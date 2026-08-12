@@ -8,10 +8,13 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include <Arduino_GFX_Library.h>
-#include <PacketSerial.h>
-#include "Indicator_Extender.h"
+//#include <SPI.h>
+#include "HWCDC.h"
+#include "./src/CH32/WS_CH32_IO.h"
 #include "ui.h"
-#include "touch.h"
+
+//#include <WiFi.h>
+
 #include "extras.h"
 #include "shared.h"
 //#include "esp_private/spi_flash_os.h"
@@ -36,38 +39,54 @@
 #define PACKET_UART_RXD 20
 #define PACKET_UART_TXD 19
 
+#define CAN_TX GPIO_NUM_6 // Transmit GPIO number for CAN
+#define CAN_RX GPIO_NUM_0 // Receive GPIO number for CAN
+
 #define BUTTON_PIN 38
 
-#define DATACOLLECTTIMEFAST 50 // ms
+#define DATACOLLECTTIMEFAST 500 // ms
 #define DATACOLLECTTIMENORMAL 10000 // ms
 #define CALCULATIONTIME 100 // ms
 
 #define GFX_DEV_DEVICE ESP32_S3_RGB
 #define RGB_PANEL
-#define GFX_BL 45
-static Arduino_DataBus *bus = new Indicator_SWSPI(
-    GFX_NOT_DEFINED /* DC */, EXPANDER_IO_LCD_CS /* CS */,
-    SPI_SCLK /* SCK */, SPI_MOSI /* MOSI */, GFX_NOT_DEFINED /* MISO */);
+//#define GFX_BL 45
 
-// See: https://github.com/esp-arduino-libs/ESP32_Display_Panel/blob/master/src/drivers/lcd/port/esp_lcd_st7701.h#L81
-static Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
-    18 /* DE */, 17 /* VSYNC */, 16 /* HSYNC */, 21 /* PCLK */,
-    4 /* R0 */, 3 /* R1 */, 2 /* R2 */, 1 /* R3 */, 0 /* R4 */,
-    10 /* G0 */, 9 /* G1 */, 8 /* G2 */, 7 /* G3 */, 6 /* G4 */, 5 /* G5 */,
-    15 /* B0 */, 14 /* B1 */, 13 /* B2 */, 12 /* B3 */, 11 /* B4 */,
-    #ifndef ALTERNATIVE
-    1 /* hsync_polarity */, 20 /* hsync_front_porch */, 10 /* hsync_pulse_width */, 10 /* hsync_back_porch */,
-    1 /* vsync_polarity */, 10 /* vsync_front_porch */, 10 /* vsync_pulse_width */, 10 /* vsync_back_porch */,
-    #else
+HWCDC USBSerial;
+
+CanFrame rxFrame;
+
+TouchDrvGT911 GT911;
+int16_t x[5], y[5];
+uint8_t gt911_i2c_addr = GT911_SLAVE_ADDRESS_L;
+bool gt911_available = false;
+
+Arduino_DataBus *bus = new Arduino_SWSPI(
+    GFX_NOT_DEFINED /* DC */, 42 /* CS */,
+    2 /* SCK */, 1 /* MOSI */, GFX_NOT_DEFINED /* MISO */);
+
+Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
+    40 /* DE */, 39 /* VSYNC */, 38 /* HSYNC */, 41 /* PCLK */,
+    46 /* R0 */, 3 /* R1 */, 8 /* R2 */, 18 /* R3 */, 17 /* R4 */,
+    14 /* G0 */, 13 /* G1 */, 12 /* G2 */, 11 /* G3 */, 10 /* G4 */, 9 /* G5 */,
+    5 /* B0 */, 45 /* B1 */, 48 /* B2 */, 47 /* B3 */, 21 /* B4 */,
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
-    1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */,
+    1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
+    #ifndef ALTERNATIVE
+    ,0 /* pclk_active_neg */, 18000000 /* prefer_speed */, false /* useBigEndian  */,
+    0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
+    #else
+    );
     #endif
-    1 /* pclk_active_neg */, 18000000 /* prefer_speed */, false /* useBigEndian  */,
-    0 /* de_idle_high */, 0 /* pclk_idle_high */, 480 * 20 /* bounce_buffer_size_px */);    
 
-static Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
+Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
+    #ifndef ALTERNATIVE
     HOR_RES /* width */, VER_RES /* height */, rgbpanel, 0 /* rotation */, false /* auto_flush */,
     bus, GFX_NOT_DEFINED /* RST */, st7701_indicator_init_operations, sizeof(st7701_indicator_init_operations));
+    #else
+    HOR_RES /* width */, VER_RES /* height */, rgbpanel, 2 /* rotation */, true /* auto_flush */,
+    bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
+    #endif
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
@@ -84,10 +103,6 @@ static volatile bool StoreSettings = false;
 static volatile byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
-
-static COBSPacketSerial myPacketSerial;
-//PacketSerial_<COBS, 0, 1024> myPacketSerial;
-
 void onPacketReceived(const uint8_t* buffer, size_t size);
 void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
@@ -99,20 +114,36 @@ dword GetMaxVData(PRunDatas RDS);
 static void IRAM_ATTR my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 //static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-  if (touch_has_signal())
-  {
-    if (touch_touched())
-    {
+  uint8_t touched = GT911.getPoint(x, y, GT911.getSupportTouchPoint());
+  if (touched > 0) {
+    USBSerial.print(millis());
+    USBSerial.print("ms ");
+    for (int i = 0; i < touched; ++i) {
+      int16_t touchX = x[i];
+      int16_t touchY = y[i];
+      switch (gfx->getRotation()) {
+        case 0:
+          touchX = gfx->width() - x[i];
+          touchY = gfx->height() - y[i];
+          break;
+        case 1:
+          touchX = gfx->width() - y[i];
+          touchY = x[i];
+          break;
+        case 2:
+          break;
+        case 3:
+          touchX = y[i];
+          touchY = gfx->height() - x[i];
+          break;
+      }
       data->state = LV_INDEV_STATE_PRESSED;
 
       /*Set the coordinates*/
-      data->point.x = touch_last_x;
-      data->point.y = touch_last_y;
+      data->point.x = touchX;
+      data->point.y = touchY;
     }
-    else if (touch_released())
-    {
-      data->state = LV_INDEV_STATE_RELEASED;
-    }
+    USBSerial.println();
   }
   else
   {
@@ -164,7 +195,7 @@ static void IRAM_ATTR storeSettings(byte BI)
     //ret = indicator_nvs_write(stage, (void *)&SET->Stages[FIXEDCHARGESTAGENUMBER], sizeof(TStageData));
 
     #ifdef DEBUG  
-    //if( ret != ESP_OK ) Serial.println("NVM error !"); else Serial.println("NVM ok.");
+    //if( ret != ESP_OK ) USBSerial.println("NVM error !"); else USBSerial.println("NVM ok.");
     #endif
 
     // enable flash cache
@@ -205,7 +236,7 @@ static void main_event_handler(lv_event_t * e)
       if(code == LV_EVENT_VALUE_CHANGED)
       {
         #ifdef DEBUG                      
-        Serial.println("Event: button value changed");
+        USBSerial.println("Event: button value changed");
         #endif
 
         if ( (event_object == testdischargebutton) || (event_object == startdischargebutton) || (event_object == testchargebutton) || (event_object == startchargebutton) )
@@ -214,7 +245,7 @@ static void main_event_handler(lv_event_t * e)
           byte i = 0;
 
           #ifdef DEBUG                      
-          Serial.println("Engage buttons");
+          USBSerial.println("Engage buttons");
           #endif
 
           // We will always start with being idle
@@ -289,7 +320,7 @@ static void main_event_handler(lv_event_t * e)
       if(code == LV_EVENT_LONG_PRESSED)
       {
         #ifdef DEBUG                      
-        Serial.println("Event: long pressed");
+        USBSerial.println("Event: long pressed");
         #endif
       }
       else
@@ -318,7 +349,7 @@ static void main_event_handler(lv_event_t * e)
         if ((event_object == zerocapacitybutton) || (event_object == zeroenergybutton) || (event_object == zerotimebutton))
         {
           #ifdef DEBUG                      
-          Serial.println("Zero button pressed");
+          USBSerial.println("Zero button pressed");
           #endif
           if (event_object == zerocapacitybutton) RDS->Capacity = 0;
           if (event_object == zeroenergybutton)   RDS->Energy = 0;
@@ -330,7 +361,7 @@ static void main_event_handler(lv_event_t * e)
         if (event_object == getpdolistbutton)
         {
           #ifdef DEBUG                      
-          Serial.println("Request PDO list");
+          USBSerial.println("Request PDO list");
           #endif
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION]   = CMD_get_PDOList;
@@ -340,19 +371,19 @@ static void main_event_handler(lv_event_t * e)
         else
         {
           #ifdef DEBUG                      
-          Serial.println("Unknown button pressed");
+          USBSerial.println("Unknown button pressed");
           #endif
           if (event_user_data == screen3)
           {
             #ifdef DEBUG                      
-            //Serial.println("Button from screen 3");
+            //USBSerial.println("Button from screen 3");
             #endif
             if (object_user_data != NULL)
             {
               // WE got a PDO select click !!
               byte SelectPDOindex = ((byte)(uintptr_t)object_user_data);      
               #ifdef DEBUG
-              Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
+              USBSerial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
               #endif
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
@@ -370,7 +401,7 @@ static void main_event_handler(lv_event_t * e)
     {
 
       #ifdef DEBUG                      
-      Serial.println("Event: keyboard/checkbox value event");
+      USBSerial.println("Event: keyboard/checkbox value event");
       #endif
 
       TStageMode SM = smOff;
@@ -401,7 +432,7 @@ static void main_event_handler(lv_event_t * e)
       {
         SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
         #ifdef DEBUG          
-        Serial.println("We got a discharge setting !!");
+        USBSerial.println("We got a discharge setting !!");
         #endif
       }
       else
@@ -409,13 +440,13 @@ static void main_event_handler(lv_event_t * e)
       {
         SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
         #ifdef DEBUG          
-        Serial.println("We got a charge setting !!");
+        USBSerial.println("We got a charge setting !!");
         #endif
       }
       else
       {
         #ifdef DEBUG          
-        Serial.println("Unknown stagemode. Should never happen !!");
+        USBSerial.println("Unknown stagemode. Should never happen !!");
         #endif
       }
 
@@ -424,7 +455,7 @@ static void main_event_handler(lv_event_t * e)
         if (lv_obj_check_type(event_object, &lv_checkbox_class))
         {
           #ifdef DEBUG          
-          Serial.println("Enable or disable a threshold !!");
+          USBSerial.println("Enable or disable a threshold !!");
           #endif
           SD->ThresholdSettings[Mode].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED); 
           GotSettings = true;
@@ -435,7 +466,7 @@ static void main_event_handler(lv_event_t * e)
           if (code == LV_EVENT_READY)
           {
             #ifdef DEBUG                      
-            Serial.println("Event: keyboardready event");
+            USBSerial.println("Event: keyboardready event");
             #endif
             const char * txt = lv_textarea_get_text(lv_keyboard_get_textarea(event_object));
             const unsigned long value = strtoul(txt, NULL, 10);
@@ -454,7 +485,7 @@ static void main_event_handler(lv_event_t * e)
     {
       GotSettings = false;      
       #ifdef DEBUG
-      Serial.println("Perpare storing settings in NVM !");
+      USBSerial.println("Perpare storing settings in NVM !");
       #endif
       StageDataTransporter[IDDLESTAGENUMBER] = SET->Stages[IDDLESTAGENUMBER];
       StageDataTransporter[FIXEDDISCHARGESTAGENUMBER] = SET->Stages[FIXEDDISCHARGESTAGENUMBER];
@@ -465,6 +496,44 @@ static void main_event_handler(lv_event_t * e)
     }   
     #endif
   }
+}
+
+static void update_battery_label()
+{
+    float voltage = 0.0f;
+    uint16_t raw = 0;
+    char text[64];
+
+    if (WS_CH32_IO::readBatteryVoltage(Wire, &voltage, &raw)) {
+        snprintf(text, sizeof(text), "Battery\n%.2f V\nADC %u", voltage, raw);
+        //lv_label_set_text(battery_label, text);
+        USBSerial.printf("Battery: %.3f V, raw ADC: %u\r\n", voltage, raw);
+
+        raw = int(round(voltage*1000));
+
+        Screen1AddVIData(raw, 0);
+
+    } else {
+        //lv_label_set_text(battery_label, "Battery\nread failed");
+        USBSerial.println("Battery ADC read failed");
+    }
+}
+
+void sendObdFrame(uint8_t obdId) {
+    CanFrame obdFrame         = {0};
+    obdFrame.identifier       = 0x7DF; // Default OBD2 address;
+    obdFrame.extd             = 0;
+    obdFrame.data_length_code = 8;
+    obdFrame.data[0]          = 2;
+    obdFrame.data[1]          = 1;
+    obdFrame.data[2]          = obdId;
+    obdFrame.data[3]          = 0xAA; // Best use 0xAA (0b10101010) instead of 0
+    obdFrame.data[4]          = 0xAA; // TWAI / CAN works better this way, as it
+    obdFrame.data[5]          = 0xAA; // needs to avoid bit-stuffing
+    obdFrame.data[6]          = 0xAA;
+    obdFrame.data[7]          = 0xAA;
+    // Accepts both pointers and references
+    ESP32Can.writeFrame(obdFrame); // timeout defaults to 1 ms
 }
 
 void AddMeasurementData(byte index, word V, word I, dword P, word T)
@@ -534,12 +603,14 @@ void setup()
   byte index;
 
   #ifdef DEBUG
-  Serial.begin(115200);
+  USBSerial.begin(115200);
   int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
-  // Serial.setDebugOutput(true);
-  Serial.println("SenseCap Indicator startup");
+  // USBSerial.setDebugOutput(true);
+  USBSerial.println("SenseCap Indicator startup");
   #endif
+
+  //WiFi.mode(WIFI_OFF);
 
   PBatterySetting SET;
   PRunDatas RDS;
@@ -571,11 +642,11 @@ void setup()
   #ifdef DEBUG  
   if( ret != ESP_OK )
   {
-    Serial.println("Partition init error !");
+    USBSerial.println("Partition init error !");
   }
   else
   {
-    Serial.println("Partition init ok.");
+    USBSerial.println("Partition init ok.");
   }
   #endif
 
@@ -611,7 +682,7 @@ void setup()
   }
 
   #ifdef DEBUG
-  Serial.println("Reading stored presets done.");
+  USBSerial.println("Reading stored presets done.");
   #endif
 
   if (false)
@@ -639,35 +710,76 @@ void setup()
       ret = indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]));
     }
     #ifdef DEBUG    
-    Serial.println("Storing default presets done.");
+    USBSerial.println("Storing default presets done.");
     #endif
   }
 
   #endif
 
-  // Init Indicator hardware
+  // Init hardware
 
-  pinMode(BUTTON_PIN, INPUT);
+  //pinMode(BUTTON_PIN, INPUT);
 
-  #ifdef DEBUG  
-  Serial.println("Init extender.");  
-  #endif
-  extender_init();
+  // Init buf /  expander
+  // This also runs initDisplayPower !!
 
-  myPacketSerial.begin(115200);
-  Serial1.begin(115200, SERIAL_8N1, PACKET_UART_RXD, PACKET_UART_TXD);
-  myPacketSerial.setStream(&Serial1);
-  myPacketSerial.setPacketHandler(&onPacketReceived);
+  if (!WS_CH32_IO::begin(Wire, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL,
+                           WS_CH32_IO::DEFAULT_I2C_FREQ, &USBSerial)) {
+        USBSerial.println("CH32V003 init failed, continuing for display debug");
+  }
+
+  // Touch !!
+  GT911.setPins(-1, -1);
+  if (GT911.begin(Wire, gt911_i2c_addr, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL)) {
+    USBSerial.print("GT911 initialized successfully at address 0x");
+    USBSerial.println(gt911_i2c_addr, HEX);
+    gt911_available = true;
+  } else {
+    USBSerial.print("Failed to initialize GT911 at address 0x");
+    USBSerial.println(gt911_i2c_addr, HEX);
+    gt911_available = false;
+  }
+
+  if (gt911_available) {
+    GT911.setHomeButtonCallback([](void *user_data) {
+      USBSerial.println("Home button pressed!");
+    },
+                                NULL);
+    GT911.setMaxTouchPoint(1); // max is 5
+  } else {
+    USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
+  }
+
+
+  // CAN !!!!
+
+  // Set pins
+  ESP32Can.setPins(CAN_TX, CAN_RX);
+
+  // You can set custom size for the queues - those are default
+  ESP32Can.setRxQueueSize(5);
+  ESP32Can.setTxQueueSize(5);
+
+  // .setSpeed() and .begin() functions require to use TwaiSpeed enum,
+  // but you can easily convert it from numerical value using .convertSpeed()
+  ESP32Can.setSpeed(ESP32Can.convertSpeed(500));
+
+  // You can also just use .begin()..
+  if(ESP32Can.begin()) {
+      USBSerial.println("CAN bus started!");
+  } else {
+      USBSerial.println("CAN bus failed!");
+  }
 
   // Init Display
   #ifdef DEBUG  
-  Serial.println("Init display.");
+  USBSerial.println("Init display.");
   #endif
   if (!gfx->begin())
   {
     #ifdef DEBUG    
-    Serial.println("gfx->begin() failed!");
-    Serial.println("Expect sever errors !!!");    
+    USBSerial.println("gfx->begin() failed!");
+    USBSerial.println("Expect sever errors !!!");    
     #endif
   }
 
@@ -678,7 +790,7 @@ void setup()
 
   #ifdef DEBUG
   String LVGL_Arduino = "Init LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Serial.println(LVGL_Arduino);
+  USBSerial.println(LVGL_Arduino);
   #endif
   lv_init();
 
@@ -690,7 +802,7 @@ void setup()
   });
 
   #ifdef DEBUG
-  Serial.println("Init our lvgl task and refresh.");    
+  USBSerial.println("Init our lvgl task and refresh.");    
   #endif
   lv_screen_init(gfx, HOR_RES, VER_RES);
   //lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
@@ -698,7 +810,7 @@ void setup()
 
   // Init touch device
   Serial.println("Init touch screen.");      
-  touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
+  //touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
@@ -708,7 +820,7 @@ void setup()
 
   #ifndef LVGLDEMOS
   #ifdef DEBUG
-  Serial.println("Init GUI.");      
+  USBSerial.println("Init GUI.");      
   #endif
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
@@ -718,7 +830,7 @@ void setup()
   #endif
 
   #ifdef DEBUG  
-  Serial.println("Init timers.");      
+  USBSerial.println("Init timers.");      
   #endif
 
   #ifdef STANDALONE
@@ -727,7 +839,7 @@ void setup()
   dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
   
   #ifdef DEBUG
-  Serial.println("Init done");
+  USBSerial.println("Init done");
   #endif
 
   #ifdef LVGLDEMOS
@@ -770,12 +882,30 @@ void loop()
     // Reset command
     SendCommand[COMMANDPOSITION] = CMD_unknown; 
     // Send the data request
-    myPacketSerial.send(data_buf, i);
+    //myPacketSerial.send(data_buf, i);
   }
 
   if (GetBatteryData)
   {
     GetBatteryData = false;
+
+    update_battery_label();
+
+    sendObdFrame(5); // For coolant temperature
+    // You can set custom timeout, default is 1000
+    if(ESP32Can.readFrame(rxFrame, 100)) {
+        // Comment out if too many frames
+        USBSerial.printf("Received frame: %03X  \r\n", rxFrame.identifier);
+        if(rxFrame.identifier == 0x7E8) {                                    // Standard OBD2 frame responce ID
+            USBSerial.printf("Collant temp: %3d°C \r\n", rxFrame.data[3] - 40); // Convert to °C
+        }
+    }
+
+
+
+    #ifdef DEBUG
+    //USBSerial.println("Getting data");
+    #endif
 
     for (i=0; i<DAUGHTERBOARDCOUNT; i++ )
     {
@@ -793,8 +923,8 @@ void loop()
           break;
         default:
           #ifdef DEBUG  
-          Serial.print("Invalid battery mode !! Number: ");
-          Serial.println(SET->TestData.Active);          
+          USBSerial.print("Invalid battery mode !! Number: ");
+          USBSerial.println(SET->TestData.Active);          
           #endif
           break;
       }
@@ -805,7 +935,7 @@ void loop()
         data_buf[j++] = CMD_get_data;
         data_buf[j++] = i;
         // Send the data request
-        myPacketSerial.send(data_buf, j);
+        //myPacketSerial.send(data_buf, j);
       }
 
       if (SET->TestData.DataTriggerCounter == 0)
@@ -870,26 +1000,60 @@ void loop()
     }
   }
 
+  /*
+  uint8_t touched = GT911.getPoint(x, y, GT911.getSupportTouchPoint());
+  if (touched > 0) {
+    USBSerial.print(millis());
+    USBSerial.print("ms ");
+    for (int i = 0; i < touched; ++i) {
+      int16_t touchX = x[i];
+      int16_t touchY = y[i];
+      switch (gfx->getRotation()) {
+        case 0:
+          break;
+        case 1:
+          touchX = y[i];
+          touchY = gfx->height() - x[i];
+          break;
+        case 2:
+          touchX = gfx->width() - x[i];
+          touchY = gfx->height() - y[i];
+          break;
+        case 3:
+          touchX = gfx->width() - y[i];
+          touchY = x[i];
+          break;
+      }
+      USBSerial.print("X[");
+      USBSerial.print(i);
+      USBSerial.print("]:");
+      USBSerial.print(x[i]);
+      USBSerial.print(" ");
+      USBSerial.print(" Y[");
+      USBSerial.print(i);
+      USBSerial.print("]:");
+      USBSerial.print(y[i]);
+      USBSerial.print(" ");
+
+      //gfx->fillCircle(touchX, touchY, 5, BLUE);
+    }
+    USBSerial.println();
+  }
+  */
+
+
   uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
   //uint32_t task_delay_ms = lv_task_handler();
   //vTaskDelay( pdMS_TO_TICKS(task_delay_ms) );
   
   //vTaskDelayUntil( &xLastWakeTime, ( 5 / portTICK_PERIOD_MS ) );
 
-  myPacketSerial.update();
-  // Check for a receive buffer overflow (optional).
-  if (myPacketSerial.overflow())
-  {
-    // Send an alert via a pin (e.g. make an overflow LED) or return a
-    // user-defined packet to the sender.
-  }
-
   #ifdef STANDALONE
   if (StoreSettings)
   {
     StoreSettings = false;
     #ifdef DEBUG
-    Serial.println("Storing setting in NVM !");
+    USBSerial.println("Storing setting in NVM !");
     #endif
     storeSettings(ActiveBatteryIndex);
   }   
@@ -940,7 +1104,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
           index = buffer[counter++];
 
-          Serial.printf("PDO received ! PDO index: #%d.\r\n", index);
+          USBSerial.printf("PDO received ! PDO index: #%d.\r\n", index);
 
           if (index)
           {
@@ -951,7 +1115,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
             if (dec.valid)
             {
-              Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", dec.maxVoltage_mV);
+              USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", dec.maxVoltage_mV);
               Screen3SetPDO(dec.index,dec.valid,dec.isEPR,dec.type,dec.minVoltage_mV,dec.maxVoltage_mV,dec.maxCurrent_mA);
             }
           }
