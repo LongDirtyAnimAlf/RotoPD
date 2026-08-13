@@ -9,11 +9,14 @@
 #include <lvgl.h>
 #include <Arduino_GFX_Library.h>
 //#include <SPI.h>
-#include "HWCDC.h"
+//#include "HWCDC.h"
 #include "./src/CH32/WS_CH32_IO.h"
 #include "ui.h"
 
 //#include <WiFi.h>
+
+#include "USB.h"
+#include "USBHID.h"
 
 #include "extras.h"
 #include "shared.h"
@@ -53,7 +56,11 @@
 #define RGB_PANEL
 //#define GFX_BL 45
 
-HWCDC USBSerial;
+//HWCDC USBSerial;
+USBCDC USBSerial;
+//#define USBSerial Serial
+
+USBHID HID;
 
 CanFrame rxFrame;
 
@@ -94,6 +101,57 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
+
+static const uint8_t report_descriptor[] = {
+  0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
+  0x09, 0x04,        // Usage (Joystick)
+  0xA1, 0x01,        // Collection (Application)
+  0xA1, 0x00,        //   Collection (Physical)
+  0x05, 0x01,        //     Usage Page (Generic Desktop Ctrls)
+  0x09, 0x30,        //     Usage (X)
+  0x09, 0x31,        //     Usage (Y)
+  0x09, 0x32,        //     Usage (Z)
+  0x09, 0x33,        //     Usage (Rx)
+  0x09, 0x34,        //     Usage (Ry)
+  0x09, 0x35,        //     Usage (Rz)
+  0x09, 0x36,        //     Usage (Slider)
+  0x09, 0x36,        //     Usage (Slider)
+  0x15, 0x81,        //     Logical Minimum (-127)
+  0x25, 0x7F,        //     Logical Maximum (127)
+  0x75, 0x08,        //     Report Size (8)
+  0x95, 0x08,        //     Report Count (8)
+  0x81, 0x02,        //     Input (Data,Var,Abs)
+  0xC0,              //   End Collection
+  0xC0,              // End Collection
+};
+
+class CustomHIDDevice : public USBHIDDevice {
+public:
+  CustomHIDDevice(void) {
+    static bool initialized = false;
+    if (!initialized) {
+      initialized = true;
+      HID.addDevice(this, sizeof(report_descriptor));
+    }
+  }
+
+  void begin(void) {
+    HID.begin();
+  }
+
+  // Called by the USB stack to get the report descriptor
+  uint16_t _onGetDescriptor(uint8_t *buffer) {
+    memcpy(buffer, report_descriptor, sizeof(report_descriptor));
+    return sizeof(report_descriptor);
+  }
+
+  // Send a report (8 bytes in this example)
+  bool send(uint8_t *data) {
+    return HID.SendReport(0, data, 8);   // report_id = 0
+  }
+};
+
+CustomHIDDevice Device;
 
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
@@ -593,7 +651,23 @@ void setup()
 {
   byte index;
 
-  #ifdef DEBUG
+
+  USB.firmwareVersion(0x0002);
+  USB.manufacturerName("Consulab for pleasure");
+  USB.productName("USB PD controller with HID");
+  USB.PID(0x04D8);
+  USB.VID(0x003F);  
+  USB.serialNumber("FFFF-FFFF");
+  USB.usbVersion(0x0002);
+
+  Device.begin();
+
+  USBSerial.begin();
+
+  USB.begin();
+
+
+  #ifdef DEBUGGGG
   USBSerial.begin(115200);
   int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
