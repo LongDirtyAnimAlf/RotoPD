@@ -137,6 +137,8 @@ bool begin(TwoWire &wire, int sda, int scl, uint32_t frequency, Print *log)
 {
     recoverI2CBus(sda, scl);
     wire.begin(sda, scl);
+    //wire.setTimeout(50U, /*reset=*/false);     // sets the maximum number of milliseconds to wait and try to reset but in case of timeout !!
+    //wire.clearTimeoutFlag();            
     wire.setClock(frequency);
     delay(20);
     return initDisplayPower(wire, log);

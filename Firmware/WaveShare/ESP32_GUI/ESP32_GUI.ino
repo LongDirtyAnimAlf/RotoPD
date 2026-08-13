@@ -44,6 +44,7 @@
 
 #define BUTTON_PIN 38
 
+#define DATAGETTIME 50 // ms
 #define DATACOLLECTTIMEFAST 500 // ms
 #define DATACOLLECTTIMENORMAL 10000 // ms
 #define CALCULATIONTIME 100 // ms
@@ -60,6 +61,9 @@ TouchDrvGT911 GT911;
 int16_t x[5], y[5];
 uint8_t gt911_i2c_addr = GT911_SLAVE_ADDRESS_L;
 bool gt911_available = false;
+
+AP33772S pd(Wire);
+INA238 ina238(INA238_ADDRESS,&Wire);
 
 Arduino_DataBus *bus = new Arduino_SWSPI(
     GFX_NOT_DEFINED /* DC */, 42 /* CS */,
@@ -93,6 +97,9 @@ static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
 
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
+
+static Ticker datagetticker;
+static volatile bool GetData = false;
 
 #ifdef STANDALONE
 static DRAM_ATTR TStageData StageDataTransporter[3];
@@ -498,27 +505,6 @@ static void main_event_handler(lv_event_t * e)
   }
 }
 
-static void update_battery_label()
-{
-    float voltage = 0.0f;
-    uint16_t raw = 0;
-    char text[64];
-
-    if (WS_CH32_IO::readBatteryVoltage(Wire, &voltage, &raw)) {
-        snprintf(text, sizeof(text), "Battery\n%.2f V\nADC %u", voltage, raw);
-        //lv_label_set_text(battery_label, text);
-        USBSerial.printf("Battery: %.3f V, raw ADC: %u\r\n", voltage, raw);
-
-        raw = int(round(voltage*1000));
-
-        Screen1AddVIData(raw, 0);
-
-    } else {
-        //lv_label_set_text(battery_label, "Battery\nread failed");
-        USBSerial.println("Battery ADC read failed");
-    }
-}
-
 void sendObdFrame(uint8_t obdId) {
     CanFrame obdFrame         = {0};
     obdFrame.identifier       = 0x7DF; // Default OBD2 address;
@@ -573,6 +559,11 @@ void AddMeasurementData(byte index, word V, word I, dword P, word T)
 }
 
 #ifdef STANDALONE
+static void datagetcb()
+{
+  GetData = true;
+}
+
 static void datacollectcb()
 {
   GetBatteryData = true;
@@ -720,7 +711,7 @@ void setup()
 
   //pinMode(BUTTON_PIN, INPUT);
 
-  // Init buf /  expander
+  // Init buf /  expander / i2c
   // This also runs initDisplayPower !!
 
   if (!WS_CH32_IO::begin(Wire, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL,
@@ -744,7 +735,7 @@ void setup()
     GT911.setHomeButtonCallback([](void *user_data) {
       USBSerial.println("Home button pressed!");
     },
-                                NULL);
+    NULL);
     GT911.setMaxTouchPoint(1); // max is 5
   } else {
     USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
@@ -834,6 +825,7 @@ void setup()
   #endif
 
   #ifdef STANDALONE
+  datagetticker.attach_ms(DATAGETTIME, datagetcb);
   datacollectticker.attach_ms(DATACOLLECTTIMEFAST, datacollectcb);
   #endif
   dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
@@ -850,6 +842,12 @@ void setup()
 
 void loop()
 {
+  static float ina_mA_c       = 0;
+  static float ina_mV_c       = 0;
+  static float ina_mW_c       = 0;
+  static float ina_T_c        = 0;
+  static int   ina_counter_c  = 0;
+
   static TickType_t xLastWakeTime = xTaskGetTickCount();
   
   unsigned long startTime = millis();
@@ -863,9 +861,20 @@ void loop()
     vTaskDelay(pdMS_TO_TICKS(100));      
   }
 
-  byte i;
+  byte BatteryIndex;
   PBatterySetting SET = NULL;
   PRunDatas RDS = NULL;
+
+  if (GetData)
+  {
+    GetData = false;
+
+    ina_mA_c      += ina238.getMilliAmpere();
+    ina_mV_c      += ina238.getBusMilliVolt();
+    ina_mW_c      += ina238.getMilliWatt();
+    ina_T_c       += ina238.getTemperature();
+    ina_counter_c++;
+  }
 
   #ifdef STANDALONE
 
@@ -878,19 +887,18 @@ void loop()
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
   {
     // Fill the data
-    for (i=0; i<(SendCommand[LENGTHPOSITION]+DATASTART); i++) data_buf[i] = SendCommand[i];
+    for (j=0; j<(SendCommand[LENGTHPOSITION]+DATASTART); j++) data_buf[j] = SendCommand[j];
     // Reset command
     SendCommand[COMMANDPOSITION] = CMD_unknown; 
     // Send the data request
-    //myPacketSerial.send(data_buf, i);
+    //myPacketSerial.send(data_buf, j);
   }
 
   if (GetBatteryData)
   {
     GetBatteryData = false;
 
-    update_battery_label();
-
+    /*
     sendObdFrame(5); // For coolant temperature
     // You can set custom timeout, default is 1000
     if(ESP32Can.readFrame(rxFrame, 100)) {
@@ -900,16 +908,15 @@ void loop()
             USBSerial.printf("Collant temp: %3d°C \r\n", rxFrame.data[3] - 40); // Convert to °C
         }
     }
-
-
+    */
 
     #ifdef DEBUG
     //USBSerial.println("Getting data");
     #endif
 
-    for (i=0; i<DAUGHTERBOARDCOUNT; i++ )
+    for (BatteryIndex=0; BatteryIndex<DAUGHTERBOARDCOUNT; BatteryIndex++ )
     {
-      SET = &Batteries[i];
+      SET = &Batteries[BatteryIndex];
 
       switch(SET->TestData.Active)
       {
@@ -931,20 +938,57 @@ void loop()
 
       if (SET->TestData.DataTriggerCounter == 0)
       {
-        j = 0;
-        data_buf[j++] = CMD_get_data;
-        data_buf[j++] = i;
-        // Send the data request
-        //myPacketSerial.send(data_buf, j);
-      }
 
-      if (SET->TestData.DataTriggerCounter == 0)
-      {
+        RDS = &SET->TestData.RunDatas;        
+        
+        USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
+                      pd.getTemperature_C(),
+                      pd.getRequestedVoltage_mV(),
+                      pd.getRequestedCurrent_mA());
+
+        if (pd.isDerating()) USBSerial.print(F("  [DR]"));
+        if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
+
+        USBSerial.println();
+
+        if (ina_counter_c == 0)
+        {
+          // Get latest data
+          RDS->LastBatteryData.I = lroundf(ina238.getMilliAmpere());
+          RDS->LastBatteryData.V = lroundf(ina238.getBusMilliVolt());
+          RDS->LastBatteryData.P = lroundf(ina238.getMilliWatt());
+          RDS->LastBatteryData.T = lroundf(ina238.getTemperature() * 10);
+        }
+        else
+        {
+          // Get average data
+          RDS->LastBatteryData.V = lroundf(ina_mV_c / ina_counter_c);
+          RDS->LastBatteryData.I = lroundf(ina_mA_c / ina_counter_c);
+          RDS->LastBatteryData.P = lroundf(ina_mW_c / ina_counter_c);
+          RDS->LastBatteryData.T = lroundf(((ina_T_c *10) / ina_counter_c));
+
+          ina_mA_c      = 0;
+          ina_mV_c      = 0;
+          ina_mW_c      = 0;
+          ina_T_c       = 0;
+          ina_counter_c = 0;
+        }
+
+        // Show data on screen 1
+        Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+        
         if (SET->TestData.Active == bmActive)
         {
+          //Append the data in storage
+          AddMeasurementData(BatteryIndex, RDS->LastBatteryData.V, RDS->LastBatteryData.I, RDS->LastBatteryData.P, RDS->LastBatteryData.T);
+
+          // Append data into graphs if visible
+          if (ActiveBatteryIndex == BatteryIndex) Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+
           // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
-           SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
+          SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
         }
+
       }
 
     }
@@ -959,9 +1003,9 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    for (i=0; i<DAUGHTERBOARDCOUNT; i++ )
+    for (BatteryIndex=0; BatteryIndex<DAUGHTERBOARDCOUNT; BatteryIndex++ )
     {
-      SET = &Batteries[i];
+      SET = &Batteries[BatteryIndex];
       RDS = &SET->TestData.RunDatas;  
 
       if (SET->TestData.SetStageMode != smOff)
@@ -992,55 +1036,13 @@ void loop()
         } 
       }
 
-      if (ActiveBatteryIndex == i)
+      if (ActiveBatteryIndex == BatteryIndex)
       {
         Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
         Screen1AddTData(RDS->Time);
       }
     }
   }
-
-  /*
-  uint8_t touched = GT911.getPoint(x, y, GT911.getSupportTouchPoint());
-  if (touched > 0) {
-    USBSerial.print(millis());
-    USBSerial.print("ms ");
-    for (int i = 0; i < touched; ++i) {
-      int16_t touchX = x[i];
-      int16_t touchY = y[i];
-      switch (gfx->getRotation()) {
-        case 0:
-          break;
-        case 1:
-          touchX = y[i];
-          touchY = gfx->height() - x[i];
-          break;
-        case 2:
-          touchX = gfx->width() - x[i];
-          touchY = gfx->height() - y[i];
-          break;
-        case 3:
-          touchX = gfx->width() - y[i];
-          touchY = x[i];
-          break;
-      }
-      USBSerial.print("X[");
-      USBSerial.print(i);
-      USBSerial.print("]:");
-      USBSerial.print(x[i]);
-      USBSerial.print(" ");
-      USBSerial.print(" Y[");
-      USBSerial.print(i);
-      USBSerial.print("]:");
-      USBSerial.print(y[i]);
-      USBSerial.print(" ");
-
-      //gfx->fillCircle(touchX, touchY, 5, BLUE);
-    }
-    USBSerial.println();
-  }
-  */
-
 
   uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
   //uint32_t task_delay_ms = lv_task_handler();

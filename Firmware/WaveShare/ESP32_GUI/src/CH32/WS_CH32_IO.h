@@ -37,7 +37,7 @@ static constexpr int DEFAULT_I2C_SDA = 15;
 static constexpr int DEFAULT_I2C_SCL = 7;
 static constexpr int DEFAULT_SDA = DEFAULT_I2C_SDA;
 static constexpr int DEFAULT_SCL = DEFAULT_I2C_SCL;
-static constexpr uint32_t DEFAULT_I2C_FREQ = 400000;
+static constexpr uint32_t DEFAULT_I2C_FREQ = 100000;
 static constexpr float ADC_REF_VOLTAGE = 3.3f;
 static constexpr float BATTERY_DIVIDER = 3.0f;
 
