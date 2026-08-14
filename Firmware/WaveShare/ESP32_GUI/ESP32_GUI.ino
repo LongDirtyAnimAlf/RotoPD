@@ -10,16 +10,18 @@
 #include <Arduino_GFX_Library.h>
 //#include <SPI.h>
 //#include "HWCDC.h"
-#include "./src/CH32/WS_CH32_IO.h"
 #include "ui.h"
 
 //#include <WiFi.h>
 
 #include "USB.h"
 #include "USBHID.h"
+#include "esp32-hal-tinyusb.h"
 
 #include "extras.h"
 #include "shared.h"
+#include "comms.h"
+
 //#include "esp_private/spi_flash_os.h"
 
 //#define    LVGLDEMOS
@@ -62,6 +64,10 @@ USBCDC USBSerial;
 
 USBHID HID;
 
+// Must be a global variable !!!
+char mySerial[30];
+char myFirmware[30];
+
 CanFrame rxFrame;
 
 TouchDrvGT911 GT911;
@@ -102,28 +108,13 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
 
-static const uint8_t report_descriptor[] = {
-  0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
-  0x09, 0x04,        // Usage (Joystick)
-  0xA1, 0x01,        // Collection (Application)
-  0xA1, 0x00,        //   Collection (Physical)
-  0x05, 0x01,        //     Usage Page (Generic Desktop Ctrls)
-  0x09, 0x30,        //     Usage (X)
-  0x09, 0x31,        //     Usage (Y)
-  0x09, 0x32,        //     Usage (Z)
-  0x09, 0x33,        //     Usage (Rx)
-  0x09, 0x34,        //     Usage (Ry)
-  0x09, 0x35,        //     Usage (Rz)
-  0x09, 0x36,        //     Usage (Slider)
-  0x09, 0x36,        //     Usage (Slider)
-  0x15, 0x81,        //     Logical Minimum (-127)
-  0x25, 0x7F,        //     Logical Maximum (127)
-  0x75, 0x08,        //     Report Size (8)
-  0x95, 0x08,        //     Report Count (8)
-  0x81, 0x02,        //     Input (Data,Var,Abs)
-  0xC0,              //   End Collection
-  0xC0,              // End Collection
+/* USB HID report descriptor. */
+uint8_t const report_descriptor[] = 
+{
+  TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
 };
+
+const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
 
 class CustomHIDDevice : public USBHIDDevice {
 public:
@@ -145,9 +136,9 @@ public:
     return sizeof(report_descriptor);
   }
 
-  // Send a report (8 bytes in this example)
-  bool send(uint8_t *data) {
-    return HID.SendReport(0, data, 8);   // report_id = 0
+  // Called by the USB stack to get the report descriptor
+  void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) {
+    set_report_callback(report_id, buffer, len);
   }
 };
 
@@ -580,6 +571,42 @@ void sendObdFrame(uint8_t obdId) {
     ESP32Can.writeFrame(obdFrame); // timeout defaults to 1 ms
 }
 
+bool InitROTOPD(void)
+{
+  // RotoPD Pro setup
+
+  // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
+  // VOUT connected to +5V
+  pd.clearConfig(CONFIG_UVP_EN);
+
+  if (pd.begin() != AP33772S_OK)
+  {
+    delay(500);
+    if (pd.begin() != AP33772S_OK)
+    {
+      Serial.println(F("[INIT] AP33772S failed !"));
+      pd.dumpRegisters(Serial);
+      return (false);
+    }
+  }
+  // Protection thresholds
+  // Temperature only for RotoPD Pro
+  // VOUT ISENSP AND VCC are connected to +5V
+  //pd.setOVPOffset_mV(2000);
+  //pd.setUVPThreshold(UVP_80PCT);
+  //pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
+  pd.setOTPThreshold_C(85);
+  pd.setConfig(CONFIG_OTP_EN);
+  pd.setDeratingThreshold_C(75);
+  pd.setConfig(CONFIG_DR_EN);
+
+  // Interrupts
+  //pd.setInterruptMask(MASK_ALL);
+  //pd.attachInterruptCallback(pdISR);
+
+  return (true);
+}
+
 void AddMeasurementData(byte index, word V, word I, dword P, word T)
 {
   static bool GoAround[DAUGHTERBOARDCOUNT] = {false};
@@ -650,15 +677,56 @@ void dataupdatecb()
 void setup()
 {
   byte index;
+  char myHex[10] = "";
 
+  esp_err_t ret = indicator_nvs_init();
+  #ifdef DEBUG  
+  if( ret != ESP_OK )
+  {
+  }
+  else
+  {
+  }
+  #endif
 
-  USB.firmwareVersion(0x0002);
+  USB.firmwareVersion(0x0100);
   USB.manufacturerName("Consulab for pleasure");
   USB.productName("USB PD controller with HID");
-  USB.PID(0x04D8);
-  USB.VID(0x003F);  
-  USB.serialNumber("FFFF-FFFF");
-  USB.usbVersion(0x0002);
+  USB.VID(0x04D8);
+  USB.PID(0x003F);  
+  USB.usbVersion(0x0200);
+
+  if (ret == ESP_OK)
+  {
+    storeGetBoardInfo(&BoardInfo);
+  }
+  
+  if (!BoardInfo.Valid)
+  {
+    for (index=0; index<12;index++)
+    {
+      BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
+    }
+  }
+  index = 0;
+  mySerial[0] = '\0';  
+  while (index<12)
+  {
+    //tempintcalc=(BoardInfo.BoardSerial[index]+(BoardInfo.BoardSerial[index+1]*256));
+    //sprintf(myHex, "%04X", tempintcalc);    
+    sprintf(myHex, "%02X%02X", BoardInfo.BoardSerial[index+1], BoardInfo.BoardSerial[index]);        
+    strcat(mySerial,myHex);    
+    index += 2;
+    if (index<12) strcat(mySerial,"-");
+  }
+  mySerial[29] = '\0'; 
+  //sprintf(myHex,"%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X", BoardInfo.BoardSerial[1], BoardInfo.BoardSerial[0], m[2], m[3], m[4], m[5]);
+  USB.serialNumber(mySerial);  
+
+  myFirmware[0] = '\0';  
+  sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
+  myFirmware[18] = '\0';   
+  tinyusb_add_string_descriptor(myFirmware);
 
   Device.begin();
 
@@ -701,20 +769,6 @@ void setup()
 
   SendCommand[COMMANDPOSITION] = CMD_unknown;
 
-  esp_err_t ret = 0;  
-
-  ret = indicator_nvs_init();
-  #ifdef DEBUG  
-  if( ret != ESP_OK )
-  {
-    USBSerial.println("Partition init error !");
-  }
-  else
-  {
-    USBSerial.println("Partition init ok.");
-  }
-  #endif
-
   char stagetext[] = "#stage##";
 
   // Set and get defaults;
@@ -734,16 +788,19 @@ void setup()
 
     size_t length;
 
-    stagetext[6] = '0'+(uint8_t)(index/10);
-    stagetext[7] = '0'+(uint8_t)(index%10);
+    if (ret == ESP_OK)
+    {
+      stagetext[6] = '0'+(uint8_t)(index/10);
+      stagetext[7] = '0'+(uint8_t)(index%10);
 
-    stagetext[0] = 'd';
-    length = sizeof(SET->Stages[FIXEDDISCHARGESTAGENUMBER]);    
-    ret = indicator_nvs_read(stagetext, &SET->Stages[FIXEDDISCHARGESTAGENUMBER], &length);
+      stagetext[0] = 'd';
+      length = sizeof(SET->Stages[FIXEDDISCHARGESTAGENUMBER]);    
+      indicator_nvs_read(stagetext, &SET->Stages[FIXEDDISCHARGESTAGENUMBER], &length);
 
-    stagetext[0] = 'c';
-    length = sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]);    
-    ret = indicator_nvs_read(stagetext, &SET->Stages[FIXEDCHARGESTAGENUMBER], &length);
+      stagetext[0] = 'c';
+      length = sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]);    
+      indicator_nvs_read(stagetext, &SET->Stages[FIXEDCHARGESTAGENUMBER], &length);
+    }
   }
 
   #ifdef DEBUG
@@ -756,9 +813,6 @@ void setup()
     for(index = 0; index < DAUGHTERBOARDCOUNT; index++)
     {
       SET = &Batteries[index];
-
-      stagetext[6] = '0'+(uint8_t)(index/10);
-      stagetext[7] = '0'+(uint8_t)(index%10);
      
       // Default discharge
       SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
@@ -766,13 +820,21 @@ void setup()
       SD->SetValue = 250; // 500mA    
       SD->ThresholdSettings[tmMINV].SetValue = 900; //900mV end value
       SD->ThresholdSettings[tmMINV].Enabled = true;
-      stagetext[0] = 'd';
-      ret = indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDDISCHARGESTAGENUMBER]));
 
-      // Default charge
-      SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
-      stagetext[0] = 'c';
-      ret = indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]));
+      if (ret == ESP_OK)
+      {
+        stagetext[6] = '0'+(uint8_t)(index/10);
+        stagetext[7] = '0'+(uint8_t)(index%10);
+
+        stagetext[0] = 'd';
+        indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDDISCHARGESTAGENUMBER]));
+
+        // Default charge
+        SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
+        stagetext[0] = 'c';
+        indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]));
+      }
+
     }
     #ifdef DEBUG    
     USBSerial.println("Storing default presets done.");
@@ -815,6 +877,32 @@ void setup()
     USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
   }
 
+  if (InitROTOPD())
+  {
+    pd.readAllPDOs();
+    pd.printPDOs(USBSerial);
+    Serial.println();
+
+    // Show PPS/AVS availability
+    int8_t pi = pd.getPPSIndex(), ai = pd.getAVSIndex();
+    if (pi > 0) USBSerial.printf("[INFO] PPS at PDO%d\n", pi);
+    if (ai > 0) USBSerial.printf("[INFO] AVS at PDO%d\n", ai);
+  }
+
+  // INA238 setup
+  if(!ina238.begin())
+  {
+    USBSerial.println("Cannot find INA238 on RotoPD Pro.");
+  }
+  else
+  {
+    ina238.setADCRange(1);
+    ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
+    ina238.setShuntVoltageConversionTime(INA238_150_us);
+    ina238.setAverage(INA238_16_SAMPLES); 
+    ina238.setOverCurrentLimit(5000); // Max out 5A threshold
+    ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+  }
 
   // CAN !!!!
 
@@ -916,24 +1004,77 @@ void setup()
 
 void loop()
 {
-  static float ina_mA_c       = 0;
-  static float ina_mV_c       = 0;
-  static float ina_mW_c       = 0;
-  static float ina_T_c        = 0;
-  static int   ina_counter_c  = 0;
+  uint8_t j;
 
   static TickType_t xLastWakeTime = xTaskGetTickCount();
   
-  unsigned long startTime = millis();
-  while (digitalRead(BUTTON_PIN) == LOW)
+  static unsigned long startTime = millis();
+
+  if (digitalRead(BUTTON_PIN) == LOW)
   {
-    if (millis() - startTime >= 2000)
+    startTime = millis();
+    while (digitalRead(BUTTON_PIN) == LOW)
     {
-      ESP.restart();
-      //esp_restart();
+      if (millis() - startTime >= 2000)
+      {
+        ESP.restart();
+        //esp_restart();
+      }
+      vTaskDelay(pdMS_TO_TICKS(100));      
     }
-    vTaskDelay(pdMS_TO_TICKS(100));      
-  }
+  }  
+
+  uint8_t PDOCount = 0;
+  AP33772S_PDO PDO;
+
+  if (millis() - startTime >= 1000)
+  {
+    startTime = millis();
+    uint8_t s = pd.getStatus();
+    if (s & STATUS_STARTED)
+    {
+      USBSerial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(s<0?0xFF:s), (uint8_t)(s<0?0:s));
+
+      // We have a power up !!
+      // Init the AP33772S / RotoPD
+      if (InitROTOPD())
+      {
+        // Check if we already have the new PDO's
+        if (((s & STATUS_NEWPDO)  && (s & STATUS_READY)) || (pd.waitForPDOs(2000)==AP33772S_OK))
+        {
+          // Request / read list of PDOs
+          PDOCount = pd.readAllPDOs();
+
+          #ifdef DEBUG
+          USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
+          #endif
+
+          if (PDOCount>0)
+          {
+            USBSerial.println("PDO list below.");
+            pd.printPDOs(Serial);
+            USBSerial.println("Done.");
+
+            for ( j=1; j<14; j++ )
+            {
+              if (pd.readPDO(j, PDO))
+              {
+                if (PDO.valid)
+                {
+                  //w_data.Val = PDO.raw;
+                  //resultbuffer[dataindexer++] = PDO.index;
+                  //resultbuffer[dataindexer++] = w_data.v[0];
+                  //resultbuffer[dataindexer++] = w_data.v[1];
+                }  
+              }
+            }
+          }
+        }
+      }
+    }
+  }  
+
+
 
   byte BatteryIndex;
   PBatterySetting SET = NULL;
@@ -942,19 +1083,13 @@ void loop()
   if (GetData)
   {
     GetData = false;
-
-    ina_mA_c      += ina238.getMilliAmpere();
-    ina_mV_c      += ina238.getBusMilliVolt();
-    ina_mW_c      += ina238.getMilliWatt();
-    ina_T_c       += ina238.getTemperature();
-    ina_counter_c++;
+    collectRotoPDData();
   }
 
   #ifdef STANDALONE
 
   PBatteryBoard BB = NULL;
 
-  byte j;
   uint8_t data_buf[COMMAND_SIZE];
 
   // Do we have a valid command ?
@@ -1014,7 +1149,8 @@ void loop()
       {
 
         RDS = &SET->TestData.RunDatas;        
-        
+
+        /*
         USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
                       pd.getTemperature_C(),
                       pd.getRequestedVoltage_mV(),
@@ -1024,30 +1160,12 @@ void loop()
         if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
 
         USBSerial.println();
+        */
 
-        if (ina_counter_c == 0)
-        {
-          // Get latest data
-          RDS->LastBatteryData.I = lroundf(ina238.getMilliAmpere());
-          RDS->LastBatteryData.V = lroundf(ina238.getBusMilliVolt());
-          RDS->LastBatteryData.P = lroundf(ina238.getMilliWatt());
-          RDS->LastBatteryData.T = lroundf(ina238.getTemperature() * 10);
-        }
-        else
-        {
-          // Get average data
-          RDS->LastBatteryData.V = lroundf(ina_mV_c / ina_counter_c);
-          RDS->LastBatteryData.I = lroundf(ina_mA_c / ina_counter_c);
-          RDS->LastBatteryData.P = lroundf(ina_mW_c / ina_counter_c);
-          RDS->LastBatteryData.T = lroundf(((ina_T_c *10) / ina_counter_c));
+        getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 
-          ina_mA_c      = 0;
-          ina_mV_c      = 0;
-          ina_mW_c      = 0;
-          ina_T_c       = 0;
-          ina_counter_c = 0;
-        }
-
+        USBSerial.println("Got RotoPD data");        
+        
         // Show data on screen 1
         Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
         

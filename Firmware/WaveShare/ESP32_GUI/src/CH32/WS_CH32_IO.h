@@ -41,6 +41,7 @@ static constexpr uint32_t DEFAULT_I2C_FREQ = 100000;
 static constexpr float ADC_REF_VOLTAGE = 3.3f;
 static constexpr float BATTERY_DIVIDER = 3.0f;
 
+bool checkI2CBus(int sda = DEFAULT_I2C_SDA, int scl = DEFAULT_I2C_SCL);
 void recoverI2CBus(int sda = DEFAULT_I2C_SDA, int scl = DEFAULT_I2C_SCL);
 bool begin(TwoWire &wire = Wire, int sda = DEFAULT_I2C_SDA, int scl = DEFAULT_I2C_SCL,
            uint32_t frequency = DEFAULT_I2C_FREQ, Print *log = nullptr);

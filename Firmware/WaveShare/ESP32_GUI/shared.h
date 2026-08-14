@@ -230,6 +230,9 @@ typedef struct {
   #if defined(ARDUINO_ARCH_SAMD)  
   bool Valid;
   #endif
+  #ifdef ARDUINO_ESP32S3_DEV
+  bool Valid;
+  #endif
   byte BoardSerial[12];
   byte BoardNumber;
 } TBoardInfo;

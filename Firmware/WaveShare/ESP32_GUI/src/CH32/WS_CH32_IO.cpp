@@ -9,6 +9,14 @@ static void logLine(Print *log, const char *text)
     }
 }
 
+bool checkI2CBus(int sda, int scl)
+{
+  bool Result = false;
+  Result |= (digitalRead(sda) == LOW);  
+  Result |= (digitalRead(scl) == LOW);
+  return Result;    
+}
+
 void recoverI2CBus(int sda, int scl)
 {
     Wire.end();
