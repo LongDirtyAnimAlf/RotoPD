@@ -47,7 +47,7 @@
 #define CAN_TX GPIO_NUM_6 // Transmit GPIO number for CAN
 #define CAN_RX GPIO_NUM_0 // Receive GPIO number for CAN
 
-#define BUTTON_PIN 38
+//#define BUTTON_PIN 38
 
 #define DATAGETTIME 50 // ms
 #define DATACOLLECTTIMEFAST 500 // ms
@@ -75,7 +75,7 @@ int16_t x[5], y[5];
 uint8_t gt911_i2c_addr = GT911_SLAVE_ADDRESS_L;
 bool gt911_available = false;
 
-AP33772S pd(Wire);
+AP33772S pd(&Wire);
 INA238 ina238(INA238_ADDRESS,&Wire);
 
 Arduino_DataBus *bus = new Arduino_SWSPI(
@@ -575,34 +575,43 @@ bool InitROTOPD(void)
 {
   // RotoPD Pro setup
 
-  // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
-  // VOUT connected to +5V
-  pd.clearConfig(CONFIG_UVP_EN);
-
-  if (pd.begin() != AP33772S_OK)
+  if (pd.isConnected())
   {
-    delay(500);
+    // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
+    // VOUT connected to +5V
+    pd.clearConfig(CONFIG_UVP_EN);
+
     if (pd.begin() != AP33772S_OK)
     {
-      Serial.println(F("[INIT] AP33772S failed !"));
-      pd.dumpRegisters(Serial);
-      return (false);
+      delay(500);
+      if (pd.begin() != AP33772S_OK)
+      {
+        USBSerial.println(F("[INIT] AP33772S failed !"));
+        pd.dumpRegisters(USBSerial);
+        return (false);
+      }
     }
-  }
-  // Protection thresholds
-  // Temperature only for RotoPD Pro
-  // VOUT ISENSP AND VCC are connected to +5V
-  //pd.setOVPOffset_mV(2000);
-  //pd.setUVPThreshold(UVP_80PCT);
-  //pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
-  pd.setOTPThreshold_C(85);
-  pd.setConfig(CONFIG_OTP_EN);
-  pd.setDeratingThreshold_C(75);
-  pd.setConfig(CONFIG_DR_EN);
+    // Protection thresholds
+    // Temperature only for RotoPD Pro
+    // VOUT ISENSP AND VCC are connected to +5V
+    //pd.setOVPOffset_mV(2000);
+    //pd.setUVPThreshold(UVP_80PCT);
+    //pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
+    pd.setOTPThreshold_C(85);
+    pd.setConfig(CONFIG_OTP_EN);
+    pd.setDeratingThreshold_C(75);
+    pd.setConfig(CONFIG_DR_EN);
 
-  // Interrupts
-  //pd.setInterruptMask(MASK_ALL);
-  //pd.attachInterruptCallback(pdISR);
+    // Interrupts
+    //pd.setInterruptMask(MASK_ALL);
+    //pd.attachInterruptCallback(pdISR);
+
+  }
+  else
+  {
+    USBSerial.println(F("AP33772S not connected !"));
+    return (false);
+  }
 
   return (true);
 }
@@ -734,12 +743,14 @@ void setup()
 
   USB.begin();
 
-
-  #ifdef DEBUGGGG
-  USBSerial.begin(115200);
-  int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
-  while (!Serial && cnt--) {delay(1);}
+  #ifdef DEBUG
+  //USBSerial.begin(115200);
+  int cnt = 15000;     // Will wait for up to ~5 second for Serial to connect.
+  while (!USBSerial && cnt--) {delay(1);}
   // USBSerial.setDebugOutput(true);
+
+  delay(2000);
+
   USBSerial.println("SenseCap Indicator startup");
   #endif
 
@@ -770,6 +781,7 @@ void setup()
   SendCommand[COMMANDPOSITION] = CMD_unknown;
 
   char stagetext[] = "#stage##";
+  size_t length;
 
   // Set and get defaults;
   for(index = 0; index < DAUGHTERBOARDCOUNT; index++)
@@ -785,8 +797,6 @@ void setup()
 
     SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Enabled = true;
     SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Mode = tmMINV;
-
-    size_t length;
 
     if (ret == ESP_OK)
     {
@@ -827,12 +837,14 @@ void setup()
         stagetext[7] = '0'+(uint8_t)(index%10);
 
         stagetext[0] = 'd';
-        indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDDISCHARGESTAGENUMBER]));
+        length = sizeof(SET->Stages[FIXEDDISCHARGESTAGENUMBER]);    
+        indicator_nvs_write(stagetext, SD, length);
 
         // Default charge
         SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
         stagetext[0] = 'c';
-        indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]));
+        length = sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]);    
+        indicator_nvs_write(stagetext, SD, length);
       }
 
     }
@@ -844,8 +856,9 @@ void setup()
   #endif
 
   // Init hardware
-
-  //pinMode(BUTTON_PIN, INPUT);
+  #ifdef BUTTON_PIN
+  pinMode(BUTTON_PIN, INPUT);
+  #endif
 
   // Init buf /  expander / i2c
   // This also runs initDisplayPower !!
@@ -881,7 +894,7 @@ void setup()
   {
     pd.readAllPDOs();
     pd.printPDOs(USBSerial);
-    Serial.println();
+    USBSerial.println();
 
     // Show PPS/AVS availability
     int8_t pi = pd.getPPSIndex(), ai = pd.getAVSIndex();
@@ -1010,6 +1023,7 @@ void loop()
   
   static unsigned long startTime = millis();
 
+  #ifdef BUTTON_PIN
   if (digitalRead(BUTTON_PIN) == LOW)
   {
     startTime = millis();
@@ -1023,6 +1037,7 @@ void loop()
       vTaskDelay(pdMS_TO_TICKS(100));      
     }
   }  
+  #endif
 
   uint8_t PDOCount = 0;
   AP33772S_PDO PDO;
@@ -1150,7 +1165,6 @@ void loop()
 
         RDS = &SET->TestData.RunDatas;        
 
-        /*
         USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
                       pd.getTemperature_C(),
                       pd.getRequestedVoltage_mV(),
@@ -1160,11 +1174,10 @@ void loop()
         if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
 
         USBSerial.println();
-        */
 
         getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 
-        USBSerial.println("Got RotoPD data");        
+        //USBSerial.println("Got RotoPD data");        
         
         // Show data on screen 1
         Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);

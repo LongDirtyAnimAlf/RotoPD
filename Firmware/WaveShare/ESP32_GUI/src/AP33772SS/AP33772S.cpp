@@ -15,7 +15,7 @@
 #include "AP33772S.h"
 
 // ── Constructor ──────────────────────────────────────────────────────────────
-AP33772S::AP33772S(TwoWire &wire, int8_t intPin)
+AP33772S::AP33772S(TwoWire *wire, int8_t intPin)
     : _wire(wire),
       _intPin(intPin),
       _validPDOCount(0),
@@ -268,17 +268,23 @@ void AP33772S::printPDOs(Stream &s)
     s.println(F("└─────┴──────────┴────────────┴────────────┴────────────┴────────┘"));
 }
 
+bool AP33772S::isConnected()
+{
+  _wire->beginTransmission(AP33772S_ADDRESS);
+  return ( _wire->endTransmission() == 0);
+}
+
 // ── _sendRDO() — write PD_REQMSG ─────────────────────────────────────────────
 // Layout: bits[15:12]=PDO_INDEX, bits[11:8]=CURRENT_SEL, bits[7:0]=VOLTAGE_SEL
 void AP33772S::_sendRDO(uint8_t pdoIndex, uint8_t currentSel, uint8_t voltageSel)
 {
     uint8_t b0 = voltageSel;
     uint8_t b1 = (uint8_t)(((pdoIndex & 0x0F) << 4) | (currentSel & 0x0F));
-    _wire.beginTransmission(AP33772S_ADDRESS);
-    _wire.write(CMD_PD_REQMSG);
-    _wire.write(b0);
-    _wire.write(b1);
-    _wire.endTransmission();
+    _wire->beginTransmission(AP33772S_ADDRESS);
+    _wire->write(CMD_PD_REQMSG);
+    _wire->write(b0);
+    _wire->write(b1);
+    _wire->endTransmission();
 }
 
 // ── setMaxPDO() — write PD_REQMSG ─────────────────────────────────────────────
@@ -549,46 +555,46 @@ bool AP33772S::setNTC(uint16_t r25, uint16_t r50, uint16_t r75, uint16_t r100)
 // ── Raw I/O  (little-endian per datasheet Fig. 5) ────────────────────────────
 int16_t AP33772S::readReg8(uint8_t reg)
 {
-    _wire.beginTransmission(AP33772S_ADDRESS);
-    _wire.write(reg);
-    if (_wire.endTransmission(false) != 0) return -1;
-    if (_wire.requestFrom((uint8_t)AP33772S_ADDRESS, (uint8_t)1) < 1) return -1;
-    return (int16_t)_wire.read();
+    _wire->beginTransmission(AP33772S_ADDRESS);
+    _wire->write(reg);
+    if (_wire->endTransmission(false) != 0) return -1;
+    if (_wire->requestFrom((uint8_t)AP33772S_ADDRESS, (uint8_t)1) < 1) return -1;
+    return (int16_t)_wire->read();
 }
 
 int32_t AP33772S::readReg16(uint8_t reg)
 {
-    _wire.beginTransmission(AP33772S_ADDRESS);
-    _wire.write(reg);
-    if (_wire.endTransmission(false) != 0) return -1;
-    if (_wire.requestFrom((uint8_t)AP33772S_ADDRESS, (uint8_t)2) < 2) return -1;
-    uint8_t lo = _wire.read(), hi = _wire.read();
+    _wire->beginTransmission(AP33772S_ADDRESS);
+    _wire->write(reg);
+    if (_wire->endTransmission(false) != 0) return -1;
+    if (_wire->requestFrom((uint8_t)AP33772S_ADDRESS, (uint8_t)2) < 2) return -1;
+    uint8_t lo = _wire->read(), hi = _wire->read();
     return (int32_t)((uint16_t)lo | ((uint16_t)hi << 8));
 }
 
 bool AP33772S::writeReg8(uint8_t reg, uint8_t val)
 {
-    _wire.beginTransmission(AP33772S_ADDRESS);
-    _wire.write(reg); _wire.write(val);
-    return _wire.endTransmission() == 0;
+    _wire->beginTransmission(AP33772S_ADDRESS);
+    _wire->write(reg); _wire->write(val);
+    return _wire->endTransmission() == 0;
 }
 
 bool AP33772S::writeReg16(uint8_t reg, uint16_t val)
 {
-    _wire.beginTransmission(AP33772S_ADDRESS);
-    _wire.write(reg);
-    _wire.write((uint8_t)(val & 0xFF));
-    _wire.write((uint8_t)(val >> 8));
-    return _wire.endTransmission() == 0;
+    _wire->beginTransmission(AP33772S_ADDRESS);
+    _wire->write(reg);
+    _wire->write((uint8_t)(val & 0xFF));
+    _wire->write((uint8_t)(val >> 8));
+    return _wire->endTransmission() == 0;
 }
 
 bool AP33772S::readBytes(uint8_t reg, uint8_t *buf, uint8_t len)
 {
-    _wire.beginTransmission(AP33772S_ADDRESS);
-    _wire.write(reg);
-    if (_wire.endTransmission(false) != 0) return false;
-    if (_wire.requestFrom((uint8_t)AP33772S_ADDRESS, len) < len) return false;
-    for (uint8_t i = 0; i < len; i++) buf[i] = _wire.read();
+    _wire->beginTransmission(AP33772S_ADDRESS);
+    _wire->write(reg);
+    if (_wire->endTransmission(false) != 0) return false;
+    if (_wire->requestFrom((uint8_t)AP33772S_ADDRESS, len) < len) return false;
+    for (uint8_t i = 0; i < len; i++) buf[i] = _wire->read();
     return true;
 }
 

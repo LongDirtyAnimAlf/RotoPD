@@ -175,10 +175,12 @@ struct AP33772S_PDO {
 // ─────────────────────────────────────────────────────────────────────────────
 class AP33772S {
 public:
-    explicit AP33772S(TwoWire &wire = Wire, int8_t intPin = -1);
+    //explicit AP33772S(TwoWire &wire = Wire, int8_t intPin = -1);
+    explicit AP33772S(TwoWire *wire = &Wire, int8_t intPin = -1);
 
     // ── Init ────────────────────────────────────────────────────────────────
     int8_t  begin(bool enableEPR = true, bool enablePPS = true);
+    bool    isConnected();
     int8_t  waitForStartup(uint32_t timeoutMs = 2000);
     int8_t  waitForPDOs(uint32_t timeoutMs = 8000);
 
@@ -270,7 +272,7 @@ public:
     void     dumpRegisters(Stream &s = Serial);
 
 private:
-    TwoWire     &_wire;
+    TwoWire *    _wire;
     int8_t       _intPin;
     PDO_DATA_T   _pdoRaw[MAX_PDO_ENTRIES];  // Raw bit-field structs
     AP33772S_PDO _pdoDecoded[MAX_PDO_ENTRIES];
