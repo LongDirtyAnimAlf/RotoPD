@@ -105,6 +105,8 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
     #endif
 
+
+TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
 
@@ -1105,15 +1107,70 @@ void loop()
 
   PBatteryBoard BB = NULL;
 
-  uint8_t data_buf[COMMAND_SIZE];
+  byte OUTData[COMMAND_SIZE] = {0};
+  byte INData[COMMAND_SIZE] = {0};
 
   // Do we have a valid command ?
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
   {
     // Fill the data
-    for (j=0; j<(SendCommand[LENGTHPOSITION]+DATASTART); j++) data_buf[j] = SendCommand[j];
+    for (j=0; j<(SendCommand[LENGTHPOSITION]+DATASTART); j++) OUTData[j] = SendCommand[j];
     // Reset command
-    SendCommand[COMMANDPOSITION] = CMD_unknown; 
+    SendCommand[COMMANDPOSITION] = CMD_unknown;
+
+    if (process_command(&OUTData,&INData))
+    {
+      CommandType_t Command = (CommandType_t)INData[COMMANDPOSITION];
+      byte BatteryIndex = INData[INDEXPOSITION];
+      byte Length = INData[LENGTHPOSITION];
+      byte counter = DATASTART;
+
+      if ( (Command == CMD_get_PDOList) || (Command == CMD_read_PDOList) || (Command == CMD_set_MAXPDO))
+      {
+        USBSerial.println("Got a PDO command !!");
+      }
+
+      switch(Command)
+      {
+        case CMD_get_PDOList:
+        {
+
+          AP33772S_PDO dec;
+          PDO_DATA_T raw;
+
+          byte PDOCount = INData[counter++];
+
+          if (PDOCount)
+          {
+            while ((PDOCount--)>0)
+            {
+              memset(&dec, 0, sizeof(dec));      
+
+              j = INData[counter++];
+
+              Serial.printf("PDO received ! PDO index: #%d.\r\n", j);
+
+              if (j)
+              {
+                raw.byte0 = INData[counter++];
+                raw.byte1 = INData[counter++];
+                // This fuction is index zero based !!
+                AP33772S::decodePDONew(j-1, raw, dec);
+
+                if (dec.valid)
+                {
+                  Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", dec.maxVoltage_mV);
+                  Screen3SetPDO(dec.index,dec.valid,dec.isEPR,dec.type,dec.minVoltage_mV,dec.maxVoltage_mV,dec.maxCurrent_mA);
+                }
+              }
+            }
+
+          }
+          break;
+        }
+      }
+    }
+
     // Send the data request
     //myPacketSerial.send(data_buf, j);
   }
