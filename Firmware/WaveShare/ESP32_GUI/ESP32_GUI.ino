@@ -398,7 +398,7 @@ static void main_event_handler(lv_event_t * e)
             case 1: {Setup_Screen1(ActiveBatteryIndex);Screen1SetData(SET);break;}
             case 2: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
             #ifdef STANDALONE
-            case 3: {Setup_Screen3(ActiveBatteryIndex);break;}
+            case 3: {Setup_Screen3(ActiveBatteryIndex,true);break;}
             #endif
           }
         }
@@ -576,8 +576,6 @@ void sendObdFrame(uint8_t obdId) {
 bool InitROTOPD(void)
 {
   // RotoPD Pro setup
-
-  if (pd.isConnected())
   {
     // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
     // VOUT connected to +5V
@@ -609,12 +607,6 @@ bool InitROTOPD(void)
     //pd.attachInterruptCallback(pdISR);
 
   }
-  else
-  {
-    USBSerial.println(F("AP33772S not connected !"));
-    return (false);
-  }
-
   return (true);
 }
 
@@ -892,18 +884,6 @@ void setup()
     USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
   }
 
-  if (InitROTOPD())
-  {
-    pd.readAllPDOs();
-    pd.printPDOs(USBSerial);
-    USBSerial.println();
-
-    // Show PPS/AVS availability
-    int8_t pi = pd.getPPSIndex(), ai = pd.getAVSIndex();
-    if (pi > 0) USBSerial.printf("[INFO] PPS at PDO%d\n", pi);
-    if (ai > 0) USBSerial.printf("[INFO] AVS at PDO%d\n", ai);
-  }
-
   // INA238 setup
   if(!ina238.begin())
   {
@@ -1047,50 +1027,84 @@ void loop()
   if (millis() - startTime >= 1000)
   {
     startTime = millis();
-    uint8_t s = pd.getStatus();
-    if (s & STATUS_STARTED)
+
+    if (pd.isConnected())
     {
-      USBSerial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(s<0?0xFF:s), (uint8_t)(s<0?0:s));
 
-      // We have a power up !!
-      // Init the AP33772S / RotoPD
-      if (InitROTOPD())
+      j = pd.getStatus();
+      if (j & STATUS_STARTED)
       {
-        // Check if we already have the new PDO's
-        if (((s & STATUS_NEWPDO)  && (s & STATUS_READY)) || (pd.waitForPDOs(2000)==AP33772S_OK))
+        USBSerial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+
+        PDOCount = pd.getValidPDOCount();
+        #ifdef DEBUG
+        USBSerial.printf("Initial PDO count: %d\r\n",PDOCount);
+        #endif
+
+        // We have a power up !!
+        // Init the AP33772S / RotoPD
+        if (InitROTOPD())
         {
-          // Request / read list of PDOs
-          PDOCount = pd.readAllPDOs();
 
-          #ifdef DEBUG
-          USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
-          #endif
-
-          if (PDOCount>0)
+          // Check if we already have the new PDO's
+          if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
           {
-            USBSerial.println("PDO list below.");
-            pd.printPDOs(Serial);
-            USBSerial.println("Done.");
+            // Request / read list of PDOs
+            if (PDOCount == 0) PDOCount = pd.readAllPDOs();
 
-            for ( j=1; j<14; j++ )
+            #ifdef DEBUG
+            USBSerial.printf("New PDO's !! PDO count: %d\r\n",PDOCount);
+            #endif
+
+            if (PDOCount>0)
             {
-              if (pd.readPDO(j, PDO))
+              #ifdef STANDALONE
+              Setup_Screen3(ActiveBatteryIndex,false);
+              #endif
+              
+              for( j=1; j<=13; j++ )
               {
-                if (PDO.valid)
+                Screen3SetPDO(j,false,false,0,0,0,0);
+              }
+
+              USBSerial.println("PDO list below.");
+              pd.printPDOs(USBSerial);
+              USBSerial.println("Done.");
+
+              for ( j=1; j<=13; j++ )
+              {
+                if (pd.readPDO(j, PDO))
                 {
-                  //w_data.Val = PDO.raw;
-                  //resultbuffer[dataindexer++] = PDO.index;
-                  //resultbuffer[dataindexer++] = w_data.v[0];
-                  //resultbuffer[dataindexer++] = w_data.v[1];
-                }  
+                  if (PDO.valid)
+                  {
+                    USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                    #ifdef STANDALONE
+                    Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+                    #endif
+                  }  
+                }
               }
             }
           }
         }
+        else
+        {
+          USBSerial.println(F("[INIT] AP33772S error !"));
+        }
       }
+
+      USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
+                    pd.getTemperature_C(),
+                    pd.getRequestedVoltage_mV(),
+                    pd.getRequestedCurrent_mA());
+
+      if (pd.isDerating()) USBSerial.print(F("  [DR]"));
+      if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
+
+      USBSerial.println();
+
     }
   }  
-
 
 
   byte BatteryIndex;
@@ -1135,16 +1149,17 @@ void loop()
         case CMD_get_PDOList:
         {
 
-          AP33772S_PDO dec;
+          // We need to update the GUI with the received PDO's !!
+
           PDO_DATA_T raw;
 
-          byte PDOCount = INData[counter++];
+          PDOCount = INData[counter++];
 
           if (PDOCount)
           {
             while ((PDOCount--)>0)
             {
-              memset(&dec, 0, sizeof(dec));      
+              memset(&PDO, 0, sizeof(PDO));      
 
               j = INData[counter++];
 
@@ -1155,12 +1170,12 @@ void loop()
                 raw.byte0 = INData[counter++];
                 raw.byte1 = INData[counter++];
                 // This fuction is index zero based !!
-                AP33772S::decodePDONew(j-1, raw, dec);
+                AP33772S::decodePDONew(j-1, raw, PDO);
 
-                if (dec.valid)
+                if (PDO.valid)
                 {
-                  Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", dec.maxVoltage_mV);
-                  Screen3SetPDO(dec.index,dec.valid,dec.isEPR,dec.type,dec.minVoltage_mV,dec.maxVoltage_mV,dec.maxCurrent_mA);
+                  Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                  Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
                 }
               }
             }
@@ -1221,16 +1236,6 @@ void loop()
       {
 
         RDS = &SET->TestData.RunDatas;        
-
-        USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
-                      pd.getTemperature_C(),
-                      pd.getRequestedVoltage_mV(),
-                      pd.getRequestedCurrent_mA());
-
-        if (pd.isDerating()) USBSerial.print(F("  [DR]"));
-        if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
-
-        USBSerial.println();
 
         getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 

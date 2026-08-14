@@ -212,7 +212,7 @@ void Setup_Screen1(byte index)
   obj = GetButtonLabelObject();
   if (obj != NULL) lv_label_set_text(obj,"Chart");
 
-  SetContentObject(screen1);
+  SetContentObject(screen1,true);
   cont = screen1;
 
   if ((cont != NULL) && (lv_obj_get_child_count(cont) == 0))

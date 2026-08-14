@@ -286,6 +286,8 @@ private:
     uint8_t  _keepAliveCurrentSel;
     bool     _keepAliveIsAVS;
 
+    bool     _firstStatus = false;
+
     // Helpers
     void    _decodePDO(uint8_t idx);
     void    _sendRDO(uint8_t pdoIndex, uint8_t currentSel, uint8_t voltageSel);
@@ -295,6 +297,7 @@ private:
     uint8_t  _currentEncode(uint16_t mA);
     // Input: 0–15 code, Output: approximate lower-bound mA
     static uint16_t _currentDecode(uint8_t code);
+
 };
 
 #endif // AP33772S_H

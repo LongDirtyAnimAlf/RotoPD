@@ -152,22 +152,24 @@ void Setup_Screen(lv_obj_t * cont)
   }
 }
 
-void Setup_Screen3(byte index)
+void Setup_Screen3(byte index, bool show)
 {
   lv_obj_t * obj = NULL;
 
-  obj = GetInfoObject();
-  if (obj != NULL) lv_label_set_text(obj,"PDO-list");
-
-  obj = GetButtonLabelObject();
-  if (obj != NULL)
+  if (show)
   {
-    lv_label_set_text(obj,"---");
-    // Get the navigation button itself
-    //btn_next_state = (uint16_t)((uint8_t)SCREENINDEX << 8 | (uint8_t)btn_next);    
-  }
+    obj = GetInfoObject();
+    if (obj != NULL) lv_label_set_text(obj,"PDO-list");
 
-  SetContentObject(screen3);
+    obj = GetButtonLabelObject();
+    if (obj != NULL)
+    {
+      lv_label_set_text(obj,"---");
+      // Get the navigation button itself
+      //btn_next_state = (uint16_t)((uint8_t)SCREENINDEX << 8 | (uint8_t)btn_next);    
+    }
+  }
+  SetContentObject(screen3,show);
   if (screen3 != NULL) Setup_Screen(screen3);
 }
 

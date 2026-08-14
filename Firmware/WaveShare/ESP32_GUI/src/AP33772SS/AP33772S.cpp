@@ -459,8 +459,6 @@ bool AP33772S::setOutput(bool on)
     return writeReg8(CMD_SYSTEM, on ? SYSTEM_OUTPUT_ON : SYSTEM_OUTPUT_OFF);
 }
 
-// ── Status ───────────────────────────────────────────────────────────────────
-uint8_t AP33772S::getStatus()      { int16_t v=readReg8(CMD_STATUS);  return v<0?0:(uint8_t)v; }
 uint8_t AP33772S::getOpMode()      { int16_t v=readReg8(CMD_OPMODE);  return v<0?0:(uint8_t)v; }
 uint8_t AP33772S::getMsgResult()   { int16_t v=readReg8(CMD_PD_MSGRLT);return v<0?0:(uint8_t)v;}
 bool    AP33772S::isPDConnected()     { return getOpMode() & OPMODE_PDMOD;    }
@@ -468,6 +466,20 @@ bool    AP33772S::isLegacyConnected() { return getOpMode() & OPMODE_LGCYMOD;  }
 bool    AP33772S::isCableFlipped()    { return getOpMode() & OPMODE_CCFLIP;   }
 bool    AP33772S::isDerating()        { return getOpMode() & OPMODE_DR;       }
 bool    AP33772S::isFault()           { return getStatus() & STATUS_FAULTS;   }
+
+// ── Status ───────────────────────────────────────────────────────────────────
+uint8_t AP33772S::getStatus()
+{
+    int16_t v=readReg8(CMD_STATUS);
+
+    if (!_firstStatus)
+    {
+        _firstStatus = true;
+        v |= (STATUS_STARTED|STATUS_NEWPDO|STATUS_READY);
+    }
+
+    return v<0?0:(uint8_t)v;
+}
 
 String AP33772S::getFaultString()
 {

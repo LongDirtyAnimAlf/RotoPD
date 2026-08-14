@@ -301,39 +301,43 @@ void recursive_hide(lv_obj_t *parent, bool hide)
     }
 }
 
-void SetContentObject(lv_obj_t * content)
+void SetContentObject(lv_obj_t * content, bool show)
 {
   lv_obj_t * obj;
 
   if (screenbase == NULL) return;
 
   // Get the navigation button
-  obj = GetButtonLabelObject();
-  obj = lv_obj_get_parent(obj);
-  lv_obj_remove_state(obj,LV_STATE_DISABLED);
-
-  byte Count = lv_obj_get_child_count(screenbase);
-  if (Count)
+  if (show)
   {
-    do
+    obj = GetButtonLabelObject();
+    obj = lv_obj_get_parent(obj);
+    lv_obj_remove_state(obj,LV_STATE_DISABLED);
+
+    byte Count = lv_obj_get_child_count(screenbase);
+    if (Count)
     {
-      Count--;
-      obj = lv_obj_get_child(screenbase, Count);
-      if ((obj != NULL) && (obj != content))
+      do
       {
-        // If an child has this flag, its a screen !!
-        if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))
+        Count--;
+        obj = lv_obj_get_child(screenbase, Count);
+        if ((obj != NULL) && (obj != content))
         {
-          if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+          // If an child has this flag, its a screen !!
+          if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))
+          {
+            if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+          }
         }
       }
+      while (Count);
     }
-    while (Count);
-  }
 
-  if (content != NULL)
-  {
-    if (lv_obj_has_flag(content, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(content, LV_OBJ_FLAG_HIDDEN);
+    if (content != NULL)
+    {
+      if (lv_obj_has_flag(content, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(content, LV_OBJ_FLAG_HIDDEN);
+    }
+
   }
 }
 

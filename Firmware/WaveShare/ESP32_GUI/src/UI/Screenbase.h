@@ -29,7 +29,7 @@ extern "C" {
 void CreateBaseScreen(lv_event_cb_t event_cb_more);
 
 //lv_obj_t * GetContentObject(byte contentindexnumber);
-void SetContentObject(lv_obj_t * content);
+void SetContentObject(lv_obj_t * content, bool show);
 lv_obj_t * GetInfoObject(void);
 lv_obj_t * GetButtonLabelObject(void);
 lv_event_cb_t GetEvent(void);
