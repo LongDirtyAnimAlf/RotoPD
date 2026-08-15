@@ -29,11 +29,6 @@ type
     Voltage:word;
   end;
 
-  TMyUSB = class(TUSB)
-  public
-    function CheckVendorProduct(const VID,PID:word):boolean;override;
-  end;
-
   TUSBPDController = class(TUSBPD)
   end;
 
@@ -168,6 +163,7 @@ type
     procedure Startup;
 
     procedure UpdateDevice(Sender: TObject;datacarrier:integer);
+    procedure UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 
     procedure SetEnable(Sender: TObject; value:boolean);
     procedure SetChartAxis({%H-}Sender:TObject);
@@ -238,21 +234,6 @@ begin
   lG := Green(lIn);
   lB := Blue(lIn);
   result := RGBToColor(Round(lR*factor),Round(lG*factor),Round(lB*factor));
-end;
-
-function TMyUSB.CheckVendorProduct(const VID,PID:word):boolean;
-const
-  VENDORID_BASE                 = $04D8;
-  PRODUCTID_BASE                = $003F;
-  VENDORID_ALT                  = $ABCD;
-  PRODUCTID_ALT                 = $1234;
-begin
-  result:=
-  (
-  ( (VENDORID_BASE=VID) AND (PRODUCTID_BASE=PID) )
-  OR
-  ( (VENDORID_ALT=VID) AND (PRODUCTID_ALT=PID) )
-  );
 end;
 
 { TPowerbankMainForm }
@@ -551,6 +532,7 @@ begin
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
   DD.OnDeviceChange:=@UpdateDevice;
+  DD.OnDataReceived:=@UpdateData;
 end;
 
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
@@ -1696,6 +1678,11 @@ begin
       DD.Enabled:=True;
     end;
   end;
+end;
+
+procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
+begin
+  USBDebugLog.Lines.Append('Got data !!!!');
 end;
 
 procedure TPowerbankMainForm.UpdateDevice(Sender: TObject;datacarrier:integer);

@@ -31,14 +31,20 @@ type
   end;
   PReport = ^TReport;
 
+  TDataEvent    = procedure(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word) of object;
+
   TUSBController = class
   strict private
+    FDataEvent     : TDataEvent;
     FHidCtrl       : TJvHidDevice;
     FProductSerial : ansistring;
     //FaultCounter   : word;
     procedure SetDataEvent(const DataEvent: TJvHidDataEvent);
     function  GetDataEvent:TJvHidDataEvent;
+    procedure SetDataReceived(const DataEvent: TDataEvent);
+    function GetDataReceived: TDataEvent;
     procedure ReadCallBack({%H-}HidDev: TJvHidDevice; ReportID: Byte;const Data: Pointer; {%H-}Size: Word);
+    procedure OnDataCallBack({%H-}HidDev: TJvHidDevice; ReportID: Byte;const Data: Pointer; {%H-}Size: Word);
     function GetShowReadThreading:boolean;
     function GetHidCtrl:TJvHidDevice;
   private
@@ -56,6 +62,7 @@ type
     property  HidCtrl            : TJvHidDevice read GetHidCtrl;
     property  ProductSerial      : ansistring read FProductSerial;
     property  ReadThreading      : boolean read GetShowReadThreading;
+    property  OnDataReceived     : TDataEvent read GetDataReceived write SetDataReceived;
   end;
 
   TUSBChangeEvent  = procedure(Sender: TObject;datacarrier:TUSBController) of object;
@@ -203,11 +210,20 @@ begin
   if Assigned(LocalDataTimer) then LocalDataTimer.SetEvent;
 end;
 
+procedure TUSBController.OnDataCallBack(HidDev: TJvHidDevice; ReportID: Byte;const Data: Pointer; Size: Word);
+begin
+  if Assigned(FDataEvent) then FDataEvent(Self,ReportID,Data,Size);
+end;
+
 procedure TUSBController.SetDataEvent(const DataEvent: TJvHidDataEvent);
 begin
   if Assigned(HidCtrl) then
   begin
-    HidCtrl.OnData:=DataEvent;
+    if (NOT Assigned(HidCtrl.OnData)) then
+      HidCtrl.OnData:=DataEvent
+    else
+      raise EUSBException.Create('OnData is already set !!');
+    //HidCtrl.OnData:=DataEvent;
     if Assigned(HidCtrl.OnData) then
     begin
       LocalDataTimer:=TEvent.Create(nil, true, false, '');
@@ -230,6 +246,23 @@ begin
     result:=HidCtrl.OnData
   else
     result:=nil;
+end;
+
+procedure TUSBController.SetDataReceived(const DataEvent: TDataEvent);
+begin
+  FDataEvent:=DataEvent;
+  if Assigned(HidCtrl) then
+  begin
+    if (NOT Assigned(HidCtrl.OnData)) then
+      HidCtrl.OnData:=OnDataCallBack
+    else
+      raise EUSBException.Create('OnData is already set !!');
+  end;
+end;
+
+function TUSBController.GetDataReceived: TDataEvent;
+begin
+  result:=FDataEvent;
 end;
 
 constructor TUSB.Create;

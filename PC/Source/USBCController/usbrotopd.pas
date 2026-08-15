@@ -10,7 +10,8 @@ interface
 
 uses
   SysUtils, Classes,
-  usb,usbboard;
+  usb,
+  usbboard;
 
 type
 
@@ -66,6 +67,7 @@ type
     FUSBBoards         : TList;
     FDataSource        : TMyUSB;
     FOnDeviceChange    : TDeviceEvent;
+    FOnData            : TDataEvent;
     FEmulation         : boolean;
     FEnabled           : boolean;
     FAddressReset      : boolean;
@@ -84,6 +86,8 @@ type
     procedure AddInfo(data:string);
 
     procedure UpdateUSBDevice(Sender: TObject;Board:TUSBController);
+
+    procedure OnDeviceData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 
     procedure SetEnabled(Value: Boolean);
 
@@ -114,6 +118,7 @@ type
     property  Enabled: Boolean read FEnabled write SetEnabled;
 
     property  OnDeviceChange: TDeviceEvent read FOnDeviceChange write FOnDeviceChange;
+    property  OnDataReceived : TDataEvent read FOnData write FOnData;
 
     function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
     function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
@@ -421,6 +426,10 @@ begin
   end;
 end;
 
+procedure TDataDevice.OnDeviceData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
+begin
+  if Assigned(FOnData) then FOnData(Self,ReportID,Data,Size);
+end;
 
 procedure TDataDevice.UpdateUSBDevice(Sender: TObject;Board:TUSBController);
 const
@@ -564,6 +573,8 @@ begin
 
           AddInfo('Board accepted. S/N of USB controller #'+InttoStr(localboard)+': '+localboardserial+'. FW: '+InttoStr((localfirmware SHR 8) AND $FF)+'-'+InttoStr(localfirmware AND $FF));
           Board.Accepted:=True;
+
+          Board.OnDataReceived:=OnDeviceData;
 
           Board.ControllerData:=TControllerData.Create;
           //Getmem(Board.ControllerData,SizeOf(TControllerData));

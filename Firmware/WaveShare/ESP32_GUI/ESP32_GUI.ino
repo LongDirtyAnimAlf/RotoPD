@@ -1194,6 +1194,29 @@ void loop()
         
         // Show data on screen 1
         Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+
+        byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
+        WORD_VAL  w_data;
+        DWORD_VAL dw_data;
+
+        hid_report_in[COMMANDPOSITION] = CMD_get_data;
+        hid_report_in[INDEXPOSITION] = BatteryIndex;
+        byte dataindexer = DATASTART;
+
+        w_data.Val = RDS->LastBatteryData.V;
+        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+        w_data.Val = RDS->LastBatteryData.I;
+        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+        dw_data.Val = RDS->LastBatteryData.P;
+        for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
+        w_data.Val = RDS->LastBatteryData.T;
+        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+
+        hid_report_in[LENGTHPOSITION]=dataindexer;        
+
+
+        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+
         
         if (SET->TestData.Active == bmActive)
         {
