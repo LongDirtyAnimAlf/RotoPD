@@ -7,19 +7,35 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 
 #ifdef ARDUINO_SEEED_INDICATOR_RP2040
 #define DELAYUS(_us) busy_wait_us_32(_us)
+#define USBSerial Serial
 #endif
 #if defined(ARDUINO_ARCH_SAMD)  
 #define DELAYUS(_us) delayMicroseconds(_us)
+#define USBSerial Serial
+#endif
+#ifdef ARDUINO_ESP32S3_DEV
+#include "./src/CH32/WS_CH32_IO.h"
+#define DELAYUS(_us) delayMicroseconds(_us)
+extern USBCDC USBSerial;
 #endif
 
 volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
 
-TBoardInfo BoardInfo = 
+static float ina_mA_c       = 0;
+static float ina_mV_c       = 0;
+static float ina_mW_c       = 0;
+static float ina_T_c        = 0;
+static int   ina_counter_c  = 0;
+
+DRAM_ATTR TBoardInfo BoardInfo = 
 {
   #ifdef ARDUINO_SEEED_INDICATOR_RP2040
   true, // DataInValid
   #endif
   #if defined(ARDUINO_ARCH_SAMD)  
+  false, // DataValid
+  #endif
+  #ifdef ARDUINO_ESP32S3_DEV
   false, // DataValid
   #endif
   {0}, // Default BoardSerial
@@ -40,11 +56,17 @@ uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
 
 static inline bool CheckWireStuck(void)
 {
+  #ifdef ARDUINO_ESP32S3_DEV
+  return WS_CH32_IO::checkI2CBus();
+  #else
   bool Result = false;
   Result |= (digitalRead(PIN_WIRE_BATT_SDA) == LOW);  
   Result |= (digitalRead(PIN_WIRE_BATT_SCL) == LOW);
   return Result;    
+  #endif
 }
+
+#ifndef ARDUINO_ESP32S3_DEV
 
 // Emulate opendrain pins
 void PinLow(uint32_t ulPin)
@@ -57,13 +79,17 @@ void PinHigh(uint32_t ulPin)
   pinMode(ulPin, INPUT_PULLUP);
   digitalWrite(ulPin, HIGH);  
 }
+#endif
 
 void ResetWire(void)
 {
+  #ifdef ARDUINO_ESP32S3_DEV
+  WS_CH32_IO::recoverI2CBus();
+  #else
   byte bits;
 
   #ifdef DEBUG
-  Serial.println("Wire reset starting.");
+  USBSerial.println("Wire reset starting.");
   #endif
 
   pinMode(PIN_WIRE_BATT_SDA, INPUT_PULLUP);
@@ -79,7 +105,7 @@ void ResetWire(void)
   if ( (digitalRead(PIN_WIRE_BATT_SDA) == LOW) && (digitalRead(PIN_WIRE_BATT_SCL) == HIGH) )
   {
     #ifdef DEBUG
-    Serial.println("Wire reset manual clock.");
+    USBSerial.println("Wire reset manual clock.");
     #endif
 
     // Send at max 9 clock pulses
@@ -100,7 +126,7 @@ void ResetWire(void)
       PinHigh(PIN_WIRE_BATT_SDA);
     }
     #ifdef DEBUG
-    Serial.printf("Wire reset manual clock bits needed: #%d.\r\n", bits);
+    USBSerial.printf("Wire reset manual clock bits needed: #%d.\r\n", bits);
     #endif
   }
 
@@ -111,7 +137,7 @@ void ResetWire(void)
     if (digitalRead(PIN_WIRE_BATT_SCL) == HIGH)
     {
       #ifdef DEBUG
-      Serial.println("Wire reset for SCL low 50ms.");
+      USBSerial.println("Wire reset for SCL low 50ms.");
       #endif
       // Force clock low for 50ms should reset all SAMD10 slaves.
       PinLow(PIN_WIRE_BATT_SCL);
@@ -125,13 +151,49 @@ void ResetWire(void)
   #ifdef DEBUG
   if (CheckWireStuck())
   {
-    Serial.println("Resetting wire failed.");
+    USBSerial.println("Resetting wire failed.");
   }
   else
   {
-    Serial.println("Resetting wire successful.");
+    USBSerial.println("Resetting wire successful.");
   }
   #endif
+  #endif
+}
+
+void collectRotoPDData(void)
+{
+  ina_mA_c      += ina238.getMilliAmpere();
+  ina_mV_c      += ina238.getBusMilliVolt();
+  ina_mW_c      += ina238.getMilliWatt();
+  ina_T_c       += ina238.getTemperature();
+  ina_counter_c++;
+}
+
+void getRotoPDData(word* I,word* V,dword* P,word* T)
+{
+  if (ina_counter_c == 0)
+  {
+    // Get latest data
+    *I = lroundf(ina238.getMilliAmpere());
+    *V = lroundf(ina238.getBusMilliVolt());
+    *P = lroundf(ina238.getMilliWatt());
+    *T = lroundf(ina238.getTemperature() * 10);
+  }
+  else
+  {
+    // Get average data
+    *V = lroundf(ina_mV_c / ina_counter_c);
+    *I = lroundf(ina_mA_c / ina_counter_c);
+    *P = lroundf(ina_mW_c / ina_counter_c);
+    *T = lroundf(((ina_T_c *10) / ina_counter_c));
+
+    ina_mA_c      = 0;
+    ina_mV_c      = 0;
+    ina_mW_c      = 0;
+    ina_T_c       = 0;
+    ina_counter_c = 0;
+  }
 }
 
 bool process_command(void const *data, void *result)
@@ -173,7 +235,7 @@ bool process_command(void const *data, void *result)
   if (cCmd == CMD_set_MAXPDO)
   {
     #ifdef DEBUG
-    Serial.printf("Max PDO.\r\n");
+    USBSerial.printf("Max PDO.\r\n");
     #endif
     // PD Index
     LocalBatteryBoard->BM.pdoIndex=(databuffer[dataindexer++]);
@@ -196,10 +258,10 @@ bool process_command(void const *data, void *result)
     LocalBatteryBoard->BM.maxCurrent=dw_data.Val;
 
     #ifdef DEBUG
-    Serial.printf("Received SetPD command.\r\n");
-    Serial.printf("PDO index:%d.\r\n", LocalBatteryBoard->BM.pdoIndex);
-    Serial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
-    Serial.printf("PDO current:%dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
+    USBSerial.printf("Received SetPD command.\r\n");
+    USBSerial.printf("PDO index:%d.\r\n", LocalBatteryBoard->BM.pdoIndex);
+    USBSerial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
+    USBSerial.printf("PDO current:%dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
     #endif
 
     switch (cCmd)
@@ -207,7 +269,7 @@ bool process_command(void const *data, void *result)
       case CMD_set_FIXEDPDO:
       {
         #ifdef DEBUG
-        Serial.printf("Fixed PDO.\r\n");
+        USBSerial.printf("Fixed PDO.\r\n");
         #endif
 
         LocalBatteryBoard->BM.pdoMode = pmFixed; 
@@ -217,7 +279,7 @@ bool process_command(void const *data, void *result)
       case CMD_set_PPSPDO:
       {
         #ifdef DEBUG
-        Serial.printf("PPS PDO.\r\n");
+        USBSerial.printf("PPS PDO.\r\n");
         #endif
 
         LocalBatteryBoard->BM.pdoMode = pmPPS; 
@@ -227,7 +289,7 @@ bool process_command(void const *data, void *result)
       case CMD_set_AVSPDO:
       {
         #ifdef DEBUG
-        Serial.printf("AVS PDO.\r\n");
+        USBSerial.printf("AVS PDO.\r\n");
         #endif
 
         LocalBatteryBoard->BM.pdoMode = pmAVS; 
@@ -246,7 +308,7 @@ bool process_command(void const *data, void *result)
     PDOCount = pd.readAllPDOs();
 
     #ifdef DEBUG
-    Serial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
+    USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
     #endif
   }
 
@@ -255,14 +317,14 @@ bool process_command(void const *data, void *result)
     PDOCount = pd.getValidPDOCount();
 
     #ifdef DEBUG
-    Serial.printf("Received read PDO list. PDOs: %d\r\n",PDOCount);
+    USBSerial.printf("Received read PDO list. PDOs: %d\r\n",PDOCount);
     #endif
   }
 
   if (cCmd == CMD_set_value)
   {
     #ifdef DEBUG
-    Serial.printf("Received SetValue command.\r\n");
+    USBSerial.printf("Received SetValue command.\r\n");
     #endif
 
     LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]);
@@ -277,7 +339,7 @@ bool process_command(void const *data, void *result)
       case smResistor : 
       {
         #ifdef DEBUG
-        Serial.printf("Output ON.\r\n");
+        USBSerial.printf("Output ON.\r\n");
         #endif
 
         pd.setOutput(true);
@@ -290,7 +352,7 @@ bool process_command(void const *data, void *result)
       default :
       {
         #ifdef DEBUG
-        Serial.printf("Output OFF.\r\n");
+        USBSerial.printf("Output OFF.\r\n");
         #endif
 
         pd.setOutput(false);
@@ -302,7 +364,7 @@ bool process_command(void const *data, void *result)
   if (cCmd == CMD_get_data)
   {
     #ifdef DEBUG
-    Serial.printf("Received GetData command.\r\n");
+    USBSerial.printf("Received GetData command.\r\n");
     #endif
 
     float ina_mA  = ina238.getMilliAmpere();
@@ -351,10 +413,10 @@ bool process_command(void const *data, void *result)
 
         #ifdef DEBUG
         /*
-        Serial.printf("GetData command results.\r\n");
-        Serial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
-        Serial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
-        Serial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
+        USBSerial.printf("GetData command results.\r\n");
+        USBSerial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
+        USBSerial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
+        USBSerial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
         */
         #endif
 
@@ -427,10 +489,16 @@ bool process_command(void const *data, void *result)
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
+#ifdef ARDUINO_ESP32S3_DEV
+void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize)
+#else
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize)
+#endif
 {
   (void) report_id;
+  #ifndef ARDUINO_ESP32S3_DEV
   (void) report_type;
+  #endif
   (void) bufsize;
 
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
@@ -516,7 +584,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       {
         // Should never happen !!
         #ifdef DEBUG
-        Serial.printf("Severe error. Wrong battery number:%d.\r\n", cBat);
+        USBSerial.printf("Severe error. Wrong battery number:%d.\r\n", cBat);
         #endif
       }
     }
@@ -529,6 +597,11 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
     delayMicroseconds(1000U);
 
     // Send report back to host
-    usb_hid.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    #ifdef ARDUINO_ESP32S3_DEV
+    HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    #else
+    HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    #endif
+
   }
 }

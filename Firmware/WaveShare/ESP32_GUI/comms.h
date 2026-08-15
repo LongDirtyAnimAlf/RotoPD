@@ -39,14 +39,12 @@
 #include <Wire.h>
 #endif
 
-/*
 // USB HID report descriptor.
 uint8_t const desc_hid_report[] = 
 {
   TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
 };
 const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
-*/
 
 #if defined(ARDUINO_ARCH_SAMD)
 #define WireBattery MyWire

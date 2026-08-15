@@ -12,6 +12,7 @@
 //#include "HWCDC.h"
 #include "ui.h"
 
+#include "touch.h"
 //#include <WiFi.h>
 
 #include "USB.h"
@@ -70,11 +71,6 @@ char myFirmware[30];
 
 CanFrame rxFrame;
 
-TouchDrvGT911 GT911;
-int16_t x[5], y[5];
-uint8_t gt911_i2c_addr = GT911_SLAVE_ADDRESS_L;
-bool gt911_available = false;
-
 AP33772S pd(&Wire);
 INA238 ina238(INA238_ADDRESS,&Wire);
 
@@ -110,21 +106,13 @@ TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
 
-/* USB HID report descriptor. */
-uint8_t const report_descriptor[] = 
-{
-  TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
-};
-
-const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
-
 class CustomHIDDevice : public USBHIDDevice {
 public:
   CustomHIDDevice(void) {
     static bool initialized = false;
     if (!initialized) {
       initialized = true;
-      HID.addDevice(this, sizeof(report_descriptor));
+      HID.addDevice(this, sizeof(desc_hid_report));
     }
   }
 
@@ -134,11 +122,11 @@ public:
 
   // Called by the USB stack to get the report descriptor
   uint16_t _onGetDescriptor(uint8_t *buffer) {
-    memcpy(buffer, report_descriptor, sizeof(report_descriptor));
-    return sizeof(report_descriptor);
+    memcpy(buffer, desc_hid_report, sizeof(desc_hid_report));
+    return sizeof(desc_hid_report);
   }
 
-  // Called by the USB stack to get the report descriptor
+  // Called by the USB stack on set report 
   void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) {
     set_report_callback(report_id, buffer, len);
   }
@@ -172,36 +160,20 @@ dword GetMaxVData(PRunDatas RDS);
 static void IRAM_ATTR my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 //static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-  uint8_t touched = GT911.getPoint(x, y, GT911.getSupportTouchPoint());
-  if (touched > 0) {
-    USBSerial.print(millis());
-    USBSerial.print("ms ");
-    for (int i = 0; i < touched; ++i) {
-      int16_t touchX = x[i];
-      int16_t touchY = y[i];
-      switch (gfx->getRotation()) {
-        case 0:
-          touchX = gfx->width() - x[i];
-          touchY = gfx->height() - y[i];
-          break;
-        case 1:
-          touchX = gfx->width() - y[i];
-          touchY = x[i];
-          break;
-        case 2:
-          break;
-        case 3:
-          touchX = y[i];
-          touchY = gfx->height() - x[i];
-          break;
-      }
+  if (touch_has_signal())
+  {
+    if (touch_touched())
+    {
       data->state = LV_INDEV_STATE_PRESSED;
 
       /*Set the coordinates*/
-      data->point.x = touchX;
-      data->point.y = touchY;
+      data->point.x = touch_last_x;
+      data->point.y = touch_last_y;
     }
-    USBSerial.println();
+    else if (touch_released())
+    {
+      data->state = LV_INDEV_STATE_RELEASED;
+    }
   }
   else
   {
@@ -861,29 +833,7 @@ void setup()
                            WS_CH32_IO::DEFAULT_I2C_FREQ, &USBSerial)) {
         USBSerial.println("CH32V003 init failed, continuing for display debug");
   }
-
-  // Touch !!
-  GT911.setPins(-1, -1);
-  if (GT911.begin(Wire, gt911_i2c_addr, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL)) {
-    USBSerial.print("GT911 initialized successfully at address 0x");
-    USBSerial.println(gt911_i2c_addr, HEX);
-    gt911_available = true;
-  } else {
-    USBSerial.print("Failed to initialize GT911 at address 0x");
-    USBSerial.println(gt911_i2c_addr, HEX);
-    gt911_available = false;
-  }
-
-  if (gt911_available) {
-    GT911.setHomeButtonCallback([](void *user_data) {
-      USBSerial.println("Home button pressed!");
-    },
-    NULL);
-    GT911.setMaxTouchPoint(1); // max is 5
-  } else {
-    USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
-  }
-
+  
   // INA238 setup
   if(!ina238.begin())
   {
@@ -959,6 +909,7 @@ void setup()
   // Init touch device
   Serial.println("Init touch screen.");      
   //touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
+  touch_init(HOR_RES, VER_RES, gfx->getRotation());
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/

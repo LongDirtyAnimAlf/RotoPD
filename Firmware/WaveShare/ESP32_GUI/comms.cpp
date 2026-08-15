@@ -14,7 +14,6 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 #define USBSerial Serial
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
-#include "./src/CH32/WS_CH32_IO.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 extern USBCDC USBSerial;
 #endif
@@ -500,8 +499,6 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
   (void) report_type;
   #endif
   (void) bufsize;
-
-  USBSerial.println("Got you !!");
 
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
   byte j;

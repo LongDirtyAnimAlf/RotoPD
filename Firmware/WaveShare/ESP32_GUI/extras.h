@@ -3,3 +3,4 @@
 #include "./src/INA238/INA238.h"
 #include "./src/CAN/twai.h"
 #include "./src/CAN/ESP32-TWAI-CAN.hpp"
+#include "./src/CH32/WS_CH32_IO.h"
