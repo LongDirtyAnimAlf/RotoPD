@@ -1,0 +1,63 @@
+object SplashForm: TSplashForm
+  Left = 344
+  Top = 177
+  BorderStyle = bsSingle
+  Caption = 'SplashForm'
+  ClientHeight = 211
+  ClientWidth = 427
+  Color = clLime
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  FormStyle = fsStayOnTop
+  Position = poOwnerFormCenter
+  Visible = True
+  PixelsPerInch = 96
+  object Label1: TLabel
+    Left = 8
+    Top = 8
+    Width = 409
+    Height = 77
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Consulab'
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clBlue
+    Font.Height = -64
+    Font.Name = 'Broadway BT'
+    Font.Style = [fsBold, fsItalic]
+    ParentFont = False
+  end
+  object Label2: TLabel
+    Left = 24
+    Top = 104
+    Width = 377
+    Height = 24
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Battery measurement system'
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -21
+    Font.Name = 'Arial'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+  object Label3: TLabel
+    Left = 16
+    Top = 152
+    Width = 393
+    Height = 23
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Initializing'
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -19
+    Font.Name = 'Arial Narrow'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
+end

@@ -14,7 +14,6 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 #define USBSerial Serial
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
-#include "./src/CH32/WS_CH32_IO.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 extern USBCDC USBSerial;
 #endif

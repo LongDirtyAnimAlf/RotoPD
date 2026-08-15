@@ -1,0 +1,3995 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="13"/>
+    <BuildModes Active="Debug"/>
+    <Units>
+      <Unit>
+        <Filename Value="Powerbank.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="200"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="main.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="PowerbankMainForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+        <UsageCount Value="200"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="208"/>
+        <CursorPos Y="125"/>
+      </Unit>
+      <Unit>
+        <Filename Value="pddevice.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="200"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="13"/>
+      </Unit>
+      <Unit>
+        <Filename Value="vids.pas"/>
+        <UsageCount Value="197"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="28" Y="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="GUI_TPS65987\tools.pas"/>
+        <UsageCount Value="189"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="25" Y="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\client\mainclientgui.pas"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UsageCount Value="213"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="src\libmpsse.pas"/>
+        <UsageCount Value="56"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="22"/>
+        <CursorPos X="43" Y="39"/>
+      </Unit>
+      <Unit>
+        <Filename Value="src\bits.pas"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="49"/>
+        <CursorPos X="47" Y="55"/>
+      </Unit>
+      <Unit>
+        <Filename Value="src\tps65987.pas"/>
+        <UsageCount Value="11"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="34" Y="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="GUI_TPS65987\dsLeds.pas"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1099"/>
+        <CursorPos X="3" Y="1107"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\control.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2943"/>
+        <CursorPos Y="2959"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\grids.pas"/>
+        <UnitName Value="Grids"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1431"/>
+        <CursorPos X="14" Y="1443"/>
+      </Unit>
+      <Unit>
+        <Filename Value="GUI_TPS65987\HP66332.pas"/>
+        <UnitName Value="hp66332"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="242"/>
+        <CursorPos X="46" Y="255"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\dialogs.pp"/>
+        <UnitName Value="Dialogs"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="682"/>
+        <CursorPos X="72" Y="700"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\forms.pp"/>
+        <UnitName Value="Forms"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="412"/>
+        <CursorPos X="37" Y="430"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Utilities\CLI_RTOS\FreeRTOS_CLI.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="59"/>
+        <CursorPos X="24" Y="76"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="131"/>
+        <CursorPos X="13" Y="148"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="462"/>
+        <CursorPos Y="479"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Inc\stm32f0xx_hal_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="271"/>
+        <CursorPos X="12" Y="288"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Drivers\BSP\P-NUCLEO-USB002\stm32f0xx_it.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="212"/>
+        <CursorPos X="2" Y="235"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Drivers\STM32F0xx_HAL_Driver\Src\stm32f0xx_hal_uart.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2216"/>
+        <CursorPos X="6" Y="2233"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Drivers\STM32F0xx_HAL_Driver\Inc\stm32f0xx_hal_uart.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="34" Y="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Consumer_CLI_RTOS\Inc\stm32f0xx_hal_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="260"/>
+        <CursorPos X="31" Y="276"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Drivers\STM32F0xx_HAL_Driver\Inc\stm32f0xx_hal_conf_template.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="43"/>
+        <CursorPos X="9" Y="75"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Consumer_CLI_RTOS\Inc\FreeRTOSConfig.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="140"/>
+        <CursorPos Y="172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Drivers\BSP\STM32F0xx-Nucleo\stm32f0xx_nucleo.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="929"/>
+        <CursorPos X="58" Y="979"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="9"/>
+        <CursorPos X="9" Y="26"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Consumer_DRP_RTOS\Inc\stm32f0xx_it.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="42"/>
+        <CursorPos X="10" Y="71"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Drivers\BSP\STM32F0xx-Nucleo\stm32f0xx_nucleo.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="247"/>
+        <CursorPos Y="266"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Utilities\CLI_USER\cli_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="50"/>
+        <CursorPos X="14" Y="60"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Consumer_CLI_RTOS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="213"/>
+        <CursorPos X="18" Y="223"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Provider_CLI_RTOS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="789"/>
+        <CursorPos Y="941"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\HBS\Projects\2021\211163 VU Powerbanks\Software\OldSoftware\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Provider_CLI_RTOS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="172"/>
+        <CursorPos X="53" Y="182"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Src\main.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="512"/>
+        <CursorPos X="7" Y="529"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Ac6\USB\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\stm32f0xx_hal_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="35" Y="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="48"/>
+        <CursorPos X="22" Y="56"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_dpm_user.c.new"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="540"/>
+        <CursorPos X="24" Y="536"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1053"/>
+        <CursorPos Y="1071"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="198"/>
+        <CursorPos X="21" Y="215"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="114"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="275"/>
+        <CursorPos X="10" Y="292"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="668"/>
+        <CursorPos X="21" Y="685"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="668"/>
+        <CursorPos X="21" Y="685"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G0C1E-EV\Applications\USB-PD\USBPD_SINK_MSC\USBPD\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="700"/>
+        <CursorPos X="21" Y="717"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G0C1E-EV\Applications\USB-PD\USBPD_SOURCE_HID\USBPD\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="704"/>
+        <CursorPos X="21" Y="721"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY_noRTOS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1592"/>
+        <CursorPos X="38" Y="1609"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="127"/>
+        <CursorPos X="18" Y="144"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="377"/>
+        <CursorPos X="29" Y="394"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\src\usbpd_Stusb_Dpm_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="976"/>
+        <CursorPos X="24" Y="993"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_pwr_if.h"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="128"/>
+        <CursorPos X="21" Y="145"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="305"/>
+        <CursorPos X="17" Y="445"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Inc\usbpd_pwr_if.h"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="128"/>
+        <CursorPos X="21" Y="145"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="662"/>
+        <CursorPos X="27" Y="679"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_ONLY_noRTOS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="662"/>
+        <CursorPos X="27" Y="679"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="662"/>
+        <CursorPos X="27" Y="679"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="333"/>
+        <CursorPos X="27" Y="350"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_ONLY_noRTOS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="328"/>
+        <CursorPos X="27" Y="345"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="328"/>
+        <CursorPos X="27" Y="345"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="422"/>
+        <CursorPos X="17" Y="445"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="715"/>
+        <CursorPos X="27" Y="732"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY_noRTOS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="326"/>
+        <CursorPos X="18" Y="247"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="715"/>
+        <CursorPos X="27" Y="732"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="685"/>
+        <CursorPos X="58" Y="712"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Coincell\VoltageVerifier\Serial\synaser.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="271"/>
+        <CursorPos X="3" Y="288"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\MQTT\synapse\source\demo\modem\Unit1.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="15"/>
+        <CursorPos X="7" Y="36"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\SOHITClimateData\RS485.pas"/>
+        <UnitName Value="rs485"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16" Y="15"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\SOHITClimateData\OriginalDelphiDisplayer\RS485.pas"/>
+        <UnitName Value="rs485"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="167"/>
+        <CursorPos X="13" Y="256"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\SOHITHubert\Datataker.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="94"/>
+        <CursorPos X="16" Y="15"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\SOHITHubert\V11\Datataker.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16" Y="15"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\SOHITHubert\V11\rs485.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16" Y="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\SOHITSound\backup\BK2237.pas"/>
+        <UnitName Value="bk2237"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="68"/>
+        <CursorPos X="24" Y="54"/>
+      </Unit>
+      <Unit>
+        <Filename Value="share\HP66332.pas"/>
+        <UnitName Value="hp66332"/>
+        <UsageCount Value="81"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="164"/>
+        <CursorPos Y="191"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Powerpack\main.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="214"/>
+        <CursorPos X="18" Y="232"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\interfaces\win32\win32listsl.inc"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="136"/>
+        <CursorPos Y="153"/>
+      </Unit>
+      <Unit>
+        <Filename Value="share\serial\lazserial.pas"/>
+        <UnitName Value="LazSerial"/>
+        <UsageCount Value="42"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="440"/>
+        <CursorPos X="11" Y="450"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="719"/>
+        <CursorPos X="24" Y="729"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_stusb_dpm_if.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="50"/>
+        <CursorPos Y="67"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_stusb_dpm_if.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="50"/>
+        <CursorPos Y="67"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\MB1303_Consumer_RTOS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="306"/>
+        <CursorPos X="5" Y="323"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_2PORTS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="414"/>
+        <CursorPos X="8" Y="269"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="312"/>
+        <CursorPos X="8" Y="269"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="222"/>
+        <CursorPos X="44" Y="236"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="146"/>
+        <CursorPos X="50" Y="164"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Drivers\BSP\STM32G071B-Discovery\stm32g071b_discovery_usbpd_pwr.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="280"/>
+        <CursorPos X="19" Y="285"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Drivers\BSP\STM32G081B_EVAL\stm32g081b_eval_pwr.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2682"/>
+        <CursorPos X="26" Y="2630"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2670"/>
+        <CursorPos X="55" Y="2687"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_VDM\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="189"/>
+        <CursorPos X="21" Y="206"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_2PORTS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="206"/>
+        <CursorPos X="21" Y="223"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="86"/>
+        <CursorPos X="52" Y="96"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_VDM\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="131"/>
+        <CursorPos X="33" Y="88"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_ONLY_noRTOS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="292"/>
+        <CursorPos X="13" Y="309"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_cad_hw_if.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="3" Y="88"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_cad_hw_if.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="3" Y="88"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_cad_hw_if.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="3" Y="88"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_cad_hw_if.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="80"/>
+        <CursorPos X="3" Y="88"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\STM32CubeG0-master\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_cad_hw_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="731"/>
+        <CursorPos X="8" Y="799"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Attick\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_cad_hw_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="782"/>
+        <CursorPos X="8" Y="799"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\objpas\classes\classesh.inc"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="797"/>
+        <CursorPos X="3" Y="816"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="173"/>
+        <CursorPos X="79" Y="193"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Inc\usbpd_pdo_defs.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="73"/>
+        <CursorPos X="24" Y="91"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_pdo_defs.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="74"/>
+        <CursorPos X="9" Y="91"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_2PORTS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2028"/>
+        <CursorPos Y="1958"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\STM32CubeG0-master\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1092"/>
+        <CursorPos Y="1091"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\STM32CubeG0-master\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1144"/>
+        <CursorPos Y="1140"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\Consumer_DRP_RTOS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="787"/>
+        <CursorPos Y="795"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\DUAL_PORT_RTOS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="825"/>
+        <CursorPos Y="830"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Projects\STM32F072RB-Nucleo\Applications\USB_PD\EVAL_FUSB307_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="910"/>
+        <CursorPos Y="918"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_VDM\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1021"/>
+        <CursorPos X="7" Y="1025"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1259"/>
+        <CursorPos X="61" Y="1276"/>
+      </Unit>
+      <Unit>
+        <Filename Value="share\bits.pas"/>
+        <UsageCount Value="24"/>
+        <EditorIndex Value="-1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\stdctrls.pp"/>
+        <UnitName Value="StdCtrls"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1333"/>
+        <CursorPos X="18" Y="1343"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\customcheckbox.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="173"/>
+        <CursorPos X="3" Y="182"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\customcheckgroup.inc"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="209"/>
+        <CursorPos Y="225"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Utilities\CLI_USER\cli_commands.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="748"/>
+        <CursorPos X="64" Y="771"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\New folder\Utilities\CLI_USER\cli_commands.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="737"/>
+        <CursorPos X="64" Y="772"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\New folder (2)\Utilities\CLI_USER\cli_commands.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="755"/>
+        <CursorPos X="64" Y="772"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY_noRTOS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="676"/>
+        <CursorPos X="73" Y="700"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\en.STSW-STUSB010_v1.3.0\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="673"/>
+        <CursorPos X="27" Y="684"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Projects\STM32L4R5ZI-Nucleo\Appli\usbpd\STM32L4R5_MB1303_DRP_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="673"/>
+        <CursorPos X="27" Y="684"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\STM32CubeG0-master\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="415"/>
+        <CursorPos X="21" Y="426"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_pwr_hw_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="61"/>
+        <CursorPos X="14" Y="89"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\x-cube-tcpp-main\Drivers\BSP\X-NUCLEO-DRP1M1\drp1m1_usbpd_pwr.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="704"/>
+        <CursorPos X="9" Y="715"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="619"/>
+        <CursorPos X="16" Y="636"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="221"/>
+        <CursorPos X="16" Y="232"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="214"/>
+        <CursorPos X="16" Y="234"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\src\usbpd_phy.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="560"/>
+        <CursorPos X="6" Y="577"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\objpas\sysutils\sysstrh.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="79"/>
+        <CursorPos X="19" Y="93"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_tcpm.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="130"/>
+        <CursorPos X="22" Y="156"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_trace.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="45"/>
+        <CursorPos X="31" Y="62"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\STMUSBC\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_phy.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="130"/>
+        <CursorPos X="21" Y="135"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\STM32CubeG0-master\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_phy.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="310"/>
+        <CursorPos X="44" Y="338"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\en.STSW-STUSB015-v1_v1.0.0\STSW-STUSB015-v1.0.0\STSW_STUSB015_v1.0\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_porthandle.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="67"/>
+        <CursorPos X="21" Y="84"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Attick\X-CUBE-USB-PD-master\STM32CubeExpansion_USBPD_F0\Middlewares\ST\STM32_USBPD_Library\Devices\STM32F072\src\usbpd_pwr_hw_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="204"/>
+        <CursorPos Y="205"/>
+      </Unit>
+      <Unit>
+        <Filename Value="share\tools.pas"/>
+        <UsageCount Value="51"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="77"/>
+        <CursorPos Y="83"/>
+      </Unit>
+      <Unit>
+        <Filename Value="share\jvcl\jvcl\run\JvSetupApi.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="55"/>
+        <CursorPos X="7" Y="71"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\FPC-USB-HID\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1697"/>
+        <CursorPos X="11" Y="1717"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\FPC-USB-HID\jvcl\jvcl\run\JvSetupApi.pas"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="7213"/>
+        <CursorPos X="3" Y="7218"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\win\wininc\defines.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1786"/>
+        <CursorPos X="6" Y="1803"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\controls.pp"/>
+        <UnitName Value="Controls"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="45"/>
+        <CursorPos X="25" Y="62"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\components\tachart\tachartaxisutils.pas"/>
+        <UnitName Value="TAChartAxisUtils"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="57"/>
+        <CursorPos X="43" Y="74"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\comctrls.pp"/>
+        <UnitName Value="ComCtrls"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1767"/>
+        <CursorPos X="9" Y="1785"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\progressbar.inc"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="228"/>
+        <CursorPos X="20" Y="237"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="157"/>
+        <CursorPos Y="172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="19"/>
+        <CursorPos Y="32"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="58"/>
+        <CursorPos X="46" Y="71"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\client\dddmormotunit.pas"/>
+        <UsageCount Value="67"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="4"/>
+        <CursorPos X="49" Y="342"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\dom\rundatadom.pas"/>
+        <UnitName Value="RunDataDOM"/>
+        <UsageCount Value="63"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="272"/>
+        <CursorPos X="79" Y="283"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\infra\productinfra.pas"/>
+        <UnitName Value="ProductINFRA"/>
+        <UsageCount Value="63"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="351"/>
+        <CursorPos X="48" Y="364"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\BatteryButcher\Database\BDDD06\client\mainclientgui.pas"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="140"/>
+        <CursorPos Y="168"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\rtl-objpas\src\inc\dateutil.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="15"/>
+        <CursorPos X="10" Y="275"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynCrtSock.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="8806"/>
+        <CursorPos Y="8820"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\win\wininc\redef.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="996"/>
+        <CursorPos X="10" Y="1013"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\shared\dddclient.pas"/>
+        <UnitName Value="DDDClient"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="26"/>
+        <CursorPos X="14" Y="43"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\mORMotHttpClient.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="143"/>
+        <CursorPos X="17" Y="159"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynTests.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="116"/>
+        <CursorPos X="41" Y="133"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\infra\rundatainfra.pas"/>
+        <UnitName Value="RunDataINFRA"/>
+        <UsageCount Value="58"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="100"/>
+        <CursorPos X="25" Y="126"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\amalgamation\compile-fpc-x86_64-win64.sh"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="8"/>
+        <CursorPos X="185" Y="37"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\amalgamation\sqlite3mc.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="30"/>
+        <CursorPos X="53" Y="62"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynSQLite3.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2375"/>
+        <CursorPos X="14" Y="2389"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\shared\dddserver.pas"/>
+        <UnitName Value="DDDServer"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="220"/>
+        <CursorPos X="11" Y="234"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynSQLite3Static.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="116"/>
+        <CursorPos X="32" Y="144"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\mORMot.pas"/>
+        <UsageCount Value="32"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="53531"/>
+        <CursorPos Y="53545"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\Documentation\Synopse SQLite3 Framework.pro"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2982"/>
+        <CursorPos X="3" Y="2999"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynCommons.pas"/>
+        <UsageCount Value="14"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="6342"/>
+        <CursorPos X="15" Y="6375"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\mORMotDDD.pas"/>
+        <UsageCount Value="20"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1886"/>
+        <CursorPos X="46" Y="1893"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\dom\projectdom.pas"/>
+        <UnitName Value="ProjectDOM"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\dom\productdom.pas"/>
+        <UnitName Value="ProductDOM"/>
+        <UsageCount Value="50"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="86"/>
+        <CursorPos X="39" Y="145"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\shared\mORMotDDDLocal.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="7"/>
+        <CursorPos X="3" Y="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="backup\main.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3452"/>
+        <CursorPos X="23" Y="3468"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\infra\documentinfra.pas"/>
+        <UnitName Value="DocumentINFRA"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="23"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\dom\documentdom.pas"/>
+        <UnitName Value="DocumentDOM"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="14"/>
+        <CursorPos Y="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\inc\objpash.inc"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="189"/>
+        <CursorPos X="23" Y="206"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot2\common\InfraRepositoryImplementation.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="59"/>
+        <CursorPos X="36" Y="76"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SQLite3\mORMotUI.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1017"/>
+        <CursorPos X="3" Y="1020"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\CrossPlatform\SynCrossPlatformREST.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1343"/>
+        <CursorPos X="20" Y="1345"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\objpas\sysutils\sysstr.inc"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="571"/>
+        <CursorPos X="53" Y="574"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\winunits-jedi\src\jwawindows.pas"/>
+        <UnitName Value="JwaWindows"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="899"/>
+        <CursorPos X="10" Y="909"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\winunits-jedi\src\ModuleLoader.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\winunits-jedi\src\jwaprsht.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="46"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\winunits-jedi\src\jwawinsta.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="db_mormot1\infra\backup\productinfra.pas"/>
+        <UnitName Value="ProductINFRA"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="273"/>
+        <CursorPos X="40" Y="304"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\buttoncontrol.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="4"/>
+        <CursorPos Y="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\buttons.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="153"/>
+        <CursorPos Y="170"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\bitbtn.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="52"/>
+        <CursorPos Y="68"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\lcl\include\customform.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2128"/>
+        <CursorPos X="20" Y="2137"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\inc\objpas.inc"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="621"/>
+        <CursorPos Y="638"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\rtl-objpas\src\inc\system.uitypes.pp"/>
+        <UnitName Value="System.UITypes"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="202"/>
+        <CursorPos X="3" Y="219"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\components\lazutils\uitypes.pas"/>
+        <UnitName Value="UITypes"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="38"/>
+        <CursorPos X="31" Y="55"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\components\lazreport\source\lr_class.pas"/>
+        <UnitName Value="LR_Class"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="11030"/>
+        <CursorPos X="34" Y="11048"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\components\sqldbrest\editor\frmmain.pp"/>
+        <UnitName Value="frmMain"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="164"/>
+        <CursorPos X="5" Y="181"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\components\todolist\todolist.pas"/>
+        <UnitName Value="ToDoList"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="266"/>
+        <CursorPos X="18" Y="283"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\examples\cleandir\frmmain.pp"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="434"/>
+        <CursorPos X="7" Y="451"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\ide\buildlazdialog.pas"/>
+        <UnitName Value="BuildLazDialog"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="400"/>
+        <CursorPos X="14" Y="415"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\ide\codetoolsdefines.pas"/>
+        <UnitName Value="CodeToolsDefines"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="273"/>
+        <CursorPos X="18" Y="290"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\lazarus\ide\compiler.pp"/>
+        <UnitName Value="Compiler"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="270"/>
+        <CursorPos X="11" Y="287"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynCrypto.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="12519"/>
+        <CursorPos X="8" Y="12536"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynDB.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="6258"/>
+        <CursorPos X="7" Y="6275"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynMongoDB.pas"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="4356"/>
+        <CursorPos X="60" Y="4383"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <UnitName Value="StrUtils"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="21"/>
+        <CursorPos X="24" Y="31"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\inc\ustringh.inc"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="93"/>
+        <CursorPos X="21" Y="107"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\GitHub\mORMot\SynTable.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="15465"/>
+        <CursorPos Y="15479"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\BatteryDatabase\OriginalSources\Main.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="539"/>
+        <CursorPos X="10" Y="556"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="94"/>
+        <CursorPos X="20" Y="106"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_vdm_user.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="104"/>
+        <CursorPos Y="120"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="615"/>
+        <CursorPos X="11" Y="629"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="414"/>
+        <CursorPos X="27" Y="428"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="172"/>
+        <CursorPos X="29" Y="183"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="398"/>
+        <CursorPos X="27" Y="412"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_nearlyworking_v1\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="787"/>
+        <CursorPos X="29" Y="801"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="438"/>
+        <CursorPos X="27" Y="452"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Drivers\STM32G0xx_HAL_Driver\Inc\stm32g0xx_ll_ucpd.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1780"/>
+        <CursorPos X="27" Y="1781"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="364"/>
+        <CursorPos X="49" Y="379"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2763"/>
+        <CursorPos X="25" Y="2786"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USB_Device_Library\Core\Src\usbd_desc_template.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="168"/>
+        <CursorPos X="42" Y="182"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="978"/>
+        <CursorPos X="52" Y="992"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_nearlyworking_v2\Applications\USB_PD\USBPDM1_Sink_PPS\Inc\usbpd_pdo_defs.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="79"/>
+        <CursorPos X="43" Y="99"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Inc\usbpd_pdo_defs.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="9" Y="79"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_working_v1\Applications\USB_PD\SNK1M1_Sink\Inc\usbpd_pdo_defs.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="158"/>
+        <CursorPos X="9" Y="79"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Inc\usbpd_pdo_defs.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="65"/>
+        <CursorPos Y="173"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP - Copy\Inc\usbpd_vdm_user.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="33"/>
+        <CursorPos X="2" Y="47"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="99"/>
+        <CursorPos X="20" Y="113"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_gui_memmap.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="65"/>
+        <CursorPos X="24" Y="79"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="162"/>
+        <CursorPos X="75" Y="1294"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="396"/>
+        <CursorPos X="20" Y="410"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="396"/>
+        <CursorPos X="20" Y="410"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="340"/>
+        <CursorPos X="3" Y="354"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\USBPDM1_Sink_LPM\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="99"/>
+        <CursorPos X="20" Y="113"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\USBPDM1_Sink_PPS\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="99"/>
+        <CursorPos X="20" Y="113"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="213"/>
+        <CursorPos X="8" Y="227"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP - Copy\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\USBPDM1_Sink_LPM\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\USBPDM1_Sink_PPS\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="97"/>
+        <CursorPos X="28" Y="111"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="340"/>
+        <CursorPos X="3" Y="354"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="515"/>
+        <CursorPos X="59" Y="529"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_vdm_user.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="102"/>
+        <CursorPos X="16" Y="65"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G081B_EVAL\stm32g081b_eval_mux.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="370"/>
+        <CursorPos Y="536"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G0C1E-EV\stm32g0c1e_eval_mux.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="228"/>
+        <CursorPos X="19" Y="515"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="193"/>
+        <CursorPos X="13" Y="207"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="102"/>
+        <CursorPos X="23" Y="112"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2813"/>
+        <CursorPos X="59" Y="2827"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1208"/>
+        <CursorPos X="38" Y="1216"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_vdm_user.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="107"/>
+        <CursorPos X="33" Y="121"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="465"/>
+        <CursorPos X="3" Y="479"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="59"/>
+        <CursorPos X="38" Y="74"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="116"/>
+        <CursorPos X="14" Y="171"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\USBPDM1_Sink_LPM\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="170"/>
+        <CursorPos X="71" Y="171"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="383"/>
+        <CursorPos X="17" Y="397"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_dpm_user.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="455"/>
+        <CursorPos X="15" Y="469"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="314"/>
+        <CursorPos X="15" Y="328"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="293"/>
+        <CursorPos X="29" Y="358"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="420"/>
+        <CursorPos X="27" Y="370"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="210"/>
+        <CursorPos Y="232"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink\Src\stm32g0xx_hal_msp.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="65"/>
+        <CursorPos X="22" Y="88"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Utilities\TRACER_EMB\tracer_emb.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="366"/>
+        <CursorPos X="14" Y="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\STM32G0xx_HAL_Driver\Inc\stm32g0xx_hal_dma.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="189"/>
+        <CursorPos X="31" Y="204"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\STM32G0xx_HAL_Driver\Inc\Legacy\stm32_hal_legacy.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="335"/>
+        <CursorPos X="35" Y="349"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\NUCLEO-G071RB\Examples\UART\LPUART_WakeUpFromStop\Src\stm32g0xx_hal_msp.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="133"/>
+        <CursorPos X="21" Y="126"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\NUCLEO-G0B1RE\Examples_LL\LPUART\LPUART_WakeUpFromStop_Init\Src\main.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="167"/>
+        <CursorPos X="20" Y="223"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\NUCLEO-G0B1RE\Examples_LL\LPUART\LPUART_WakeUpFromStop_Init\Src\stm32g0xx_it.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="150"/>
+        <CursorPos X="43" Y="148"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Consumer_1port\Src\stm32g0xx_it.c"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="195"/>
+        <CursorPos X="25" Y="210"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="830"/>
+        <CursorPos X="6" Y="844"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP - Copy\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="59"/>
+        <CursorPos X="6" Y="73"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_working_v1_002\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="133"/>
+        <CursorPos Y="151"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_working_v1_001\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="66"/>
+        <CursorPos X="22" Y="45"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_working_v1_002\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_vdm_user.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="83"/>
+        <CursorPos Y="104"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Inc\usbpd_vdm_user.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="58"/>
+        <CursorPos Y="115"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_working_v1_001\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="98"/>
+        <CursorPos Y="122"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\main.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="87"/>
+        <CursorPos X="19" Y="110"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\demo_application.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="162"/>
+        <CursorPos Y="332"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="110"/>
+        <CursorPos X="6" Y="79"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Drivers\BSP\Components\tcpp0203\tcpp0203.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="303"/>
+        <CursorPos X="9" Y="317"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G071B-Discovery\stm32g071b_discovery_usbpd_pwr.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="221"/>
+        <CursorPos X="22" Y="234"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G081B_EVAL\stm32g081b_eval_pwr.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1214"/>
+        <CursorPos X="9" Y="1162"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G0C1E-EV\stm32g0c1e_eval_pwr.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1231"/>
+        <CursorPos X="9" Y="1185"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1495"/>
+        <CursorPos X="16" Y="1473"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1520"/>
+        <CursorPos X="20" Y="1543"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="708"/>
+        <CursorPos X="16" Y="710"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="707"/>
+        <CursorPos X="22" Y="712"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\STM32G0xx_HAL_Driver\Inc\stm32g0xx_ll_system.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="495"/>
+        <CursorPos X="44" Y="509"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\NUCLEO-G070RB\Applications\FatFs\FatFs_uSD_Standalone\Core\Src\stm32g0xx_hal_msp.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="63"/>
+        <CursorPos X="24" Y="77"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink\Src\stm32g0xx_hal_msp.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="29"/>
+        <CursorPos X="3" Y="79"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Drivers\BSP\X-NUCLEO-DRP1M1\drp1m1_conf_template.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="63"/>
+        <CursorPos X="9" Y="77"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\fpdebug\fpdbgutil.pp"/>
+        <UnitName Value="FpDbgUtil"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="144"/>
+        <CursorPos X="6" Y="162"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\PascalScript\Source\uPSRuntime.pas"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1640"/>
+        <CursorPos X="13" Y="1836"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\fpdebug\fpdbgdwarffreepascal.pas"/>
+        <UnitName Value="FpDbgDwarfFreePascal"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1505"/>
+        <CursorPos X="17" Y="1534"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\lazutils\asiancodepagefunctions.inc"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="151"/>
+        <CursorPos X="6" Y="185"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\lazutils\lazutf8.pas"/>
+        <UnitName Value="LazUTF8"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="304"/>
+        <CursorPos X="8" Y="322"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\lazutils\lconvencoding.pas"/>
+        <UnitName Value="LConvEncoding"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1912"/>
+        <CursorPos X="8" Y="1930"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\lazutils\unixlazutf8.inc"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="8" Y="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\lazutils\winlazutf8.inc"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="334"/>
+        <CursorPos X="8" Y="352"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\components\lclextensions\delphicompat.pas"/>
+        <UnitName Value="DelphiCompat"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="98"/>
+        <CursorPos X="35" Y="116"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\lazarus\ide\w32versioninfo.pas"/>
+        <UnitName Value="W32VersionInfo"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="402"/>
+        <CursorPos X="8" Y="419"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\inc\rtti.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="197"/>
+        <CursorPos X="7" Y="215"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\inc\compproc.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="287"/>
+        <CursorPos X="11" Y="305"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\arm\arm.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="669"/>
+        <CursorPos X="11" Y="645"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\java\jcompproc.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="290"/>
+        <CursorPos X="11" Y="308"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\aasmcnst.pas"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1185"/>
+        <CursorPos X="21" Y="1200"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\cgobj.pas"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2893"/>
+        <CursorPos X="9" Y="2913"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\dbgdwarf.pas"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3058"/>
+        <CursorPos X="9" Y="3075"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\x86\rax86int.pas"/>
+        <UnitName Value="Rax86int"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3240"/>
+        <CursorPos X="9" Y="3257"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="131"/>
+        <CursorPos X="53" Y="150"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS_V001\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1515"/>
+        <CursorPos X="3" Y="1528"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1067"/>
+        <CursorPos X="17" Y="1078"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Utilities\GUI_INTERFACE\gui_api.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="159"/>
+        <CursorPos X="3" Y="172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="21"/>
+        <CursorPos X="23" Y="31"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Drivers\BSP\P-NUCLEO-USB002\stm32f0xx_it.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="37"/>
+        <CursorPos X="10" Y="52"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="28"/>
+        <CursorPos X="11" Y="41"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="33"/>
+        <CursorPos X="9" Y="46"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G070RB\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="48"/>
+        <CursorPos X="8" Y="63"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\SRC1M1_Source\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="22"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G070RB\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="140"/>
+        <CursorPos X="14" Y="152"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\SRC1M1_Source\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="69"/>
+        <CursorPos Y="82"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="106"/>
+        <CursorPos Y="119"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink_PPS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="132"/>
+        <CursorPos X="12" Y="144"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink_PPS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="135"/>
+        <CursorPos Y="145"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="171"/>
+        <CursorPos Y="184"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_ONLY_noRTOS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="154"/>
+        <CursorPos Y="167"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_ONLY\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="164"/>
+        <CursorPos Y="177"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_ONLY_noRTOS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="164"/>
+        <CursorPos X="30" Y="176"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="143"/>
+        <CursorPos X="17" Y="156"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="157"/>
+        <CursorPos X="14" Y="183"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="219"/>
+        <CursorPos X="14" Y="152"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\SRC1M1_Source\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="48"/>
+        <CursorPos X="8" Y="61"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="48"/>
+        <CursorPos X="8" Y="61"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink_LPM\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="51"/>
+        <CursorPos X="29" Y="71"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G070RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="46"/>
+        <CursorPos X="31" Y="53"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\main.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="91"/>
+        <CursorPos X="76" Y="104"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="25"/>
+        <CursorPos X="9" Y="38"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1897"/>
+        <CursorPos X="49" Y="1912"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="573"/>
+        <CursorPos X="41" Y="581"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Drivers\BSP\P-NUCLEO-USB002\p-nucleo-usb002.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="568"/>
+        <CursorPos X="9" Y="579"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Drivers\BSP\P-NUCLEO-USB002\stm32f0xx_it.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="111"/>
+        <CursorPos X="59" Y="117"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="297"/>
+        <CursorPos X="22" Y="310"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Utilities\GUI_INTERFACE\bsp_gui.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="288"/>
+        <CursorPos X="29" Y="309"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="9" Y="84"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_flash_ex.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="712"/>
+        <CursorPos X="19" Y="725"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Utilities\GUI_INTERFACE\bsp_gui.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="195"/>
+        <CursorPos X="43" Y="198"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Utilities\GUI_INTERFACE\bsp_gui.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="37"/>
+        <CursorPos X="19" Y="53"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Utilities\GUI_INTERFACE\bsp_gui.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="233"/>
+        <CursorPos X="22" Y="244"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\STM32G0xx_HAL_Driver\Src\stm32g0xx_hal_flash_ex.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="36" Y="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\STM32G0xx_HAL_Driver\Inc\stm32g0xx_hal_flash.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="794"/>
+        <CursorPos X="28" Y="809"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\src\usbpd_phy.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="571"/>
+        <CursorPos X="3" Y="584"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="302"/>
+        <CursorPos X="13" Y="315"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY_noRTOS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="554"/>
+        <CursorPos X="11" Y="567"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="623"/>
+        <CursorPos X="9" Y="636"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="302"/>
+        <CursorPos X="13" Y="315"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\BSP\X-NUCLEO-DRP1M1\drp1m1_usbpd_pwr.c"/>
+        <UsageCount Value="19"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="289"/>
+        <CursorPos X="12" Y="338"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Utilities\GUI_INTERFACE\gui_api.h"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="218"/>
+        <CursorPos X="23" Y="240"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G070RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="6"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="438"/>
+        <CursorPos X="9" Y="453"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP_V001\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="810"/>
+        <CursorPos X="19" Y="827"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SRC1M1_Source\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="284"/>
+        <CursorPos X="36" Y="299"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3197"/>
+        <CursorPos X="3" Y="3210"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_cad_hw_if.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="114"/>
+        <CursorPos X="60" Y="127"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Utilities\GUI_INTERFACE\gui_api.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="159"/>
+        <CursorPos X="3" Y="172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\src\usbpd_cad_hw_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="120"/>
+        <CursorPos X="42" Y="133"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\dev\usbc\st\STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\src\usbpd_pwr_hw_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="220"/>
+        <CursorPos X="12" Y="211"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\BSP\X-NUCLEO-DRP1M1-new\drp1m1_usbpd_pwr.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="324"/>
+        <CursorPos X="37" Y="336"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Drivers\BSP\Components\STUSB1602\STUSB1602_Registers_if.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="556"/>
+        <CursorPos X="10" Y="486"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink\Inc\usbpd_pwr_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="70"/>
+        <CursorPos X="3" Y="83"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SRC1M1_Source\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="562"/>
+        <CursorPos X="47" Y="575"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SRC1M1_Source\Inc\usbpd_pwr_user.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="331"/>
+        <CursorPos X="9" Y="344"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink_PPS\Src\usbpd_pwr_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="563"/>
+        <CursorPos X="43" Y="563"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\BSP\X-NUCLEO-DRP1M1\drp1m1_usbpd_pwr.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="62"/>
+        <CursorPos X="18" Y="73"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G4XX\src\usbpd_phy_hw_if.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="143"/>
+        <CursorPos X="44" Y="178"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_phy_hw_if.h"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="181"/>
+        <CursorPos X="6" Y="193"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\src\usbpd_Stusb_Dpm_if.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="833"/>
+        <CursorPos X="84" Y="846"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_cad_hw_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="809"/>
+        <CursorPos X="30" Y="816"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2088"/>
+        <CursorPos X="17" Y="2101"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="801"/>
+        <CursorPos X="11" Y="823"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP_V002\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2080"/>
+        <CursorPos X="21" Y="2093"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="708"/>
+        <CursorPos X="70" Y="721"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="706"/>
+        <CursorPos X="70" Y="719"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="706"/>
+        <CursorPos X="70" Y="719"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="706"/>
+        <CursorPos X="70" Y="719"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="319"/>
+        <CursorPos X="70" Y="332"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SNK_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="324"/>
+        <CursorPos X="70" Y="337"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_ONLY\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="653"/>
+        <CursorPos X="70" Y="666"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_SRC_VDM\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="653"/>
+        <CursorPos X="70" Y="666"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\BSP\X-NUCLEO-DRP1M1-new\drp1m1_usbpd_pwr.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="61"/>
+        <CursorPos X="3" Y="74"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SRC1M1_Source\Inc\usbpd_pwr_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="70"/>
+        <CursorPos X="3" Y="83"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink_PPS\Inc\usbpd_pwr_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="70"/>
+        <CursorPos X="3" Y="83"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink_LPM\Inc\usbpd_pwr_user.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="70"/>
+        <CursorPos X="3" Y="83"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\BSP\X-NUCLEO-DRP1M1-orig\drp1m1_usbpd_pwr.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="196"/>
+        <CursorPos X="52" Y="203"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="122"/>
+        <CursorPos X="35" Y="135"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_phy_hw_if.c"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="189"/>
+        <CursorPos X="14" Y="190"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Drivers\BSP\STM32G0xx_Nucleo\stm32g0xx_nucleo.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="40"/>
+        <CursorPos X="38" Y="53"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="21"/>
+        <CursorPos X="48" Y="34"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="423"/>
+        <CursorPos X="11" Y="436"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_dpm_core.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="26"/>
+        <CursorPos X="11" Y="41"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_dpm_core.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="27"/>
+        <CursorPos X="11" Y="42"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Devices\STUSB1602\inc\usbpd_cad_hw_if.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="114"/>
+        <CursorPos X="3" Y="127"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\USB_new\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink_LPM\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="106"/>
+        <CursorPos Y="172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\tools.pas"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="11" Y="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\jvcl\jvcl\run\JvSetupApi.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="37"/>
+        <CursorPos X="2" Y="54"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\typinfo.pp"/>
+        <UnitName Value="TypInfo"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="219"/>
+        <CursorPos X="7" Y="236"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\main.pas"/>
+        <ComponentName Value="PowerbankMainForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="22"/>
+        <CursorPos Y="30"/>
+      </Unit>
+      <Unit>
+        <Filename Value="stm32g0.pas"/>
+        <UsageCount Value="82"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="usbcpd.pas"/>
+        <UsageCount Value="31"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="726"/>
+        <CursorPos X="5" Y="751"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\bits.pas"/>
+        <UsageCount Value="16"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="77"/>
+        <CursorPos X="14" Y="105"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\serial\lazserial.pas"/>
+        <UnitName Value="LazSerial"/>
+        <UsageCount Value="19"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="522"/>
+        <CursorPos Y="543"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1973"/>
+        <CursorPos X="10" Y="1986"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="81"/>
+        <CursorPos X="8" Y="94"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_pwr_user.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="277"/>
+        <CursorPos X="28" Y="294"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="351"/>
+        <CursorPos X="17" Y="382"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\sysutils\sysstrh.inc"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="100"/>
+        <CursorPos X="19" Y="118"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\forms.pp"/>
+        <UnitName Value="Forms"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="157"/>
+        <CursorPos X="37" Y="174"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\controls.pp"/>
+        <UnitName Value="Controls"/>
+        <UsageCount Value="15"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1174"/>
+        <CursorPos X="3" Y="1188"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\lclclasses.pp"/>
+        <UnitName Value="LCLClasses"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="31"/>
+        <CursorPos X="28" Y="45"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\classes\classesh.inc"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1952"/>
+        <CursorPos X="17" Y="1968"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\inc\objpash.inc"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="184"/>
+        <CursorPos X="26" Y="206"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\classes\compon.inc"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="249"/>
+        <CursorPos X="3" Y="267"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\inc\objpas.inc"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="282"/>
+        <CursorPos X="9" Y="325"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\..\GitHub\fpc-source\packages\fcl-sdo\tests\test_suite\test_copyhelper.pas"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="656"/>
+        <CursorPos X="5" Y="673"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\..\GitHub\freepascal\packages\fcl-pdf\src\fpparsettf.pp"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="493"/>
+        <CursorPos X="16" Y="510"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\..\GitHub\fpc-source\packages\fcl-pdf\src\fpparsettf.pp"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="54"/>
+        <CursorPos X="5" Y="71"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\..\GitHub\freepascal\compiler\arm\cpubase.pas"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="632"/>
+        <CursorPos X="9" Y="649"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\..\GitHub\Modbus\Develop\1-ThirdParty\fpGUI-develop\src\corelib\render\software\agg_font_cache_manager.pas"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="222"/>
+        <CursorPos X="2" Y="238"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Devices\STM32G0XX\src\usbpd_cad_hw_if.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1445"/>
+        <CursorPos X="21" Y="1460"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="345"/>
+        <CursorPos X="35" Y="365"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink_LPM\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="345"/>
+        <CursorPos X="10" Y="360"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink_PPS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="289"/>
+        <CursorPos X="8" Y="304"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\SRC1M1_Source\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="203"/>
+        <CursorPos X="8" Y="218"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="141"/>
+        <CursorPos X="5" Y="156"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="449"/>
+        <CursorPos X="37" Y="470"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Projects\STM32G474E-EVAL\Demonstrations\Modules\ucpd\usbpd_dpm_user.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="21"/>
+        <CursorPos Y="33"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Projects\STM32G474E-EVAL\Demonstrations\Modules\ucpd\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1278"/>
+        <CursorPos X="13" Y="1317"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP_V002\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="150"/>
+        <CursorPos Y="177"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Projects\B-G474E-DPOW1\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="443"/>
+        <CursorPos X="21" Y="458"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Projects\STM32G474E-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="108"/>
+        <CursorPos X="28" Y="123"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Projects\STM32G474E-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="95"/>
+        <CursorPos X="28" Y="110"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STM32CubeG4-master\Projects\STM32G474E-EVAL\Demonstrations\Modules\ucpd\usbpd_dpm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="371"/>
+        <CursorPos Y="389"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="98"/>
+        <CursorPos X="5" Y="104"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1323"/>
+        <CursorPos X="5" Y="1338"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Inc\usbpd_vdm_user.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="51"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="395"/>
+        <CursorPos X="33" Y="419"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="147"/>
+        <CursorPos X="46" Y="149"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="614"/>
+        <CursorPos X="71" Y="627"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="633"/>
+        <CursorPos X="71" Y="646"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1391"/>
+        <CursorPos X="54" Y="1401"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="912"/>
+        <CursorPos X="27" Y="931"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_vdm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="418"/>
+        <CursorPos X="5" Y="433"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2522"/>
+        <CursorPos X="44" Y="2545"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="304"/>
+        <CursorPos X="21" Y="317"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="246"/>
+        <CursorPos X="5" Y="261"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_2PORTS\Inc\usbpd_dpm_conf.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="88"/>
+        <CursorPos X="55" Y="86"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="383"/>
+        <CursorPos X="8" Y="403"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="117"/>
+        <CursorPos X="13" Y="132"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Inc\usbpd_pwr_if.h"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="137"/>
+        <CursorPos X="28" Y="165"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="920"/>
+        <CursorPos X="8" Y="935"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\usbpd_pwr_if.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="59"/>
+        <CursorPos X="26" Y="68"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_def.h"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="341"/>
+        <CursorPos X="9" Y="354"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\MAKEFILE\Makefile"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="148"/>
+        <CursorPos X="4" Y="166"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\STM32CubeIDE\.cproject"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="159"/>
+        <CursorPos X="128" Y="166"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Src\demo_application.c"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1101"/>
+        <CursorPos X="23" Y="1116"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Utilities\GUI_INTERFACE\gui_api.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2012"/>
+        <CursorPos X="10" Y="2025"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_core.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="464"/>
+        <CursorPos X="9" Y="479"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
+        <UsageCount Value="1"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="293"/>
+        <CursorPos X="5" Y="308"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_trace.c"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="103"/>
+        <CursorPos X="9" Y="118"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Utilities\TRACER_EMB\tracer_emb.c"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="288"/>
+        <CursorPos X="7" Y="303"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Utilities\TRACER_EMB\tracer_emb_hw.c"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="598"/>
+        <CursorPos X="30" Y="621"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Utilities\TRACER_EMB\tracer_emb_hw.h"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="16"/>
+        <CursorPos X="7" Y="38"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\usbcpd.pas"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="573"/>
+        <CursorPos X="16" Y="587"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\jedi\jvcl\jvcl\run\JvSetupApi.pas"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="39"/>
+        <CursorPos X="2" Y="54"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\serial\lazsynaser.pas"/>
+        <UnitName Value="LazSynaSer"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="468"/>
+        <CursorPos X="75" Y="491"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\libusb\src\libusboop.pas"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="981"/>
+        <CursorPos Y="998"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\share\libusb\src\libusb.pas"/>
+        <UnitName Value="LibUsb"/>
+        <UsageCount Value="2"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="432"/>
+        <CursorPos X="9" Y="447"/>
+      </Unit>
+      <Unit>
+        <Filename Value="km003c.pas"/>
+        <UsageCount Value="100"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="284"/>
+        <CursorPos X="20" Y="309"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\serial\lazserial.pas"/>
+        <UnitName Value="LazSerial"/>
+        <UsageCount Value="27"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="309"/>
+        <CursorPos Y="323"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\usbcpd.pas"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="100"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="699"/>
+        <CursorPos X="3" Y="1001"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\sysutils\sysutilh.inc"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="259"/>
+        <CursorPos X="19" Y="273"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\vids.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2019"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\fptimernew.pp"/>
+        <UsageCount Value="22"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="351"/>
+        <CursorPos Y="367"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\extctrls.pp"/>
+        <UnitName Value="ExtCtrls"/>
+        <UsageCount Value="13"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1159"/>
+        <CursorPos X="23" Y="1174"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\graphics.pp"/>
+        <UnitName Value="Graphics"/>
+        <UsageCount Value="14"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1099"/>
+        <CursorPos X="19" Y="1115"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\stdctrls.pp"/>
+        <UnitName Value="StdCtrls"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1308"/>
+        <CursorPos X="32" Y="1322"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\tools.pas"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="6"/>
+        <CursorPos Y="23"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\libusb\src\libusboop.pas"/>
+        <UsageCount Value="49"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="22"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\dsLeds.pas"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="14"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="1167"/>
+        <CursorPos X="3" Y="1172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\STSW-STUSB010\STSW_STUSB010_v1.3\Projects\STM32F072RB-Nucleo\Appli\usbpd\STM32F072_MB1303_DRP_SRCING_DEVICE\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="138"/>
+        <CursorPos Y="150"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="81"/>
+        <CursorPos Y="126"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\STM32G081B-EVAL\Demonstrations\DemoUCPD\Inc\usbpd_dpm_user.h"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="267"/>
+        <CursorPos X="82" Y="280"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Utilities\GUI_INTERFACE_ORIG\gui_api.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1973"/>
+        <CursorPos X="10" Y="1986"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\STM_firmware\x-cube-tcpp-main\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1325"/>
+        <CursorPos X="21" Y="1338"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\HP66332.pas"/>
+        <UnitName Value="hp66332"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="37" Y="6"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\libusb\src\libusb.pas"/>
+        <UnitName Value="LibUsb"/>
+        <UsageCount Value="34"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="863"/>
+        <CursorPos X="111" Y="877"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\libusb\src\libusb.pp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="91"/>
+        <CursorPos Y="109"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\packages\libusb\src\libusb.pp"/>
+        <UsageCount Value="3"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="157"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\bits.pas"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="57"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="91"/>
+        <CursorPos Y="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\mORMot2\mormot.lib.static.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="14"/>
+        <CursorPos X="2" Y="27"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\mORMot2\src\mormot.core.base.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="9272"/>
+        <CursorPos X="4" Y="9285"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\mORMot2\src\mormot.lib.static.pas"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1591"/>
+        <CursorPos X="32" Y="1574"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\compiler\ogcoff.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1002"/>
+        <CursorPos X="29" Y="1014"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\compiler\pdecsub.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2782"/>
+        <CursorPos X="14" Y="2795"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\msys64\home\superdad\libusb\libusb\Makefile.am"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="72"/>
+        <CursorPos X="21" Y="85"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\msys64\home\superdad\libusb\configure.ac"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="374"/>
+        <CursorPos X="19" Y="387"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\msys64\home\superdad\libusb\autom4te.cache\output.0"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="684"/>
+        <CursorPos Y="697"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win32\windows.pp"/>
+        <UnitName Value="Windows"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\func.inc"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2336"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\base.inc"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="959"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\symdef.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1762"/>
+        <CursorPos X="34" Y="1783"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\packages\winunits-jedi\src\jwantdsapi.pas"/>
+        <UnitName Value="JwaNtDsApi"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3455"/>
+        <CursorPos X="40" Y="3207"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\ptype.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="437"/>
+        <CursorPos X="30" Y="351"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\dbgstabs.pas"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="652"/>
+        <CursorPos X="19" Y="665"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\unix\unixcp.pp"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="723"/>
+        <CursorPos X="14" Y="739"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\win64\windows.pp"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="22"/>
+        <CursorPos X="11" Y="30"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\win64\seh64.inc"/>
+        <UsageCount Value="4"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="15" Y="233"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\aix\system.pp"/>
+        <UnitName Value="System"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="12"/>
+        <CursorPos X="5" Y="25"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\amiga\system.pp"/>
+        <UnitName Value="System"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="88"/>
+        <CursorPos X="5" Y="98"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\amiga\m68k\legacydos.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="45"/>
+        <CursorPos X="13" Y="58"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\android\sysandroid.inc"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="12" Y="17"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\atari\si_prc.pp"/>
+        <UsageCount Value="5"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="20"/>
+        <CursorPos X="35" Y="36"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\objpas.pp"/>
+        <UsageCount Value="21"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="19"/>
+        <CursorPos X="8" Y="36"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\comctrls.pp"/>
+        <UnitName Value="ComCtrls"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="967"/>
+        <CursorPos X="67" Y="981"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\classes\util.inc"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="20"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\listitem.inc"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="641"/>
+        <CursorPos X="30" Y="648"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\customlistview.inc"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="814"/>
+        <CursorPos X="46" Y="821"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\widgetset\wscomctrls.pp"/>
+        <UnitName Value="WSComCtrls"/>
+        <UsageCount Value="7"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="574"/>
+        <CursorPos Y="654"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\inc\systemh.inc"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos Y="71"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\grids.pas"/>
+        <UnitName Value="Grids"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="125"/>
+        <CursorPos X="3" Y="139"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\jedi\jvcl\jvcl\run\Hid.pas"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="31"/>
+        <CursorPos X="14" Y="41"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\usblibs\windows\jcl\jcl\source\common\JclSysInfo.pas"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1417"/>
+        <CursorPos X="24" Y="1431"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\usblibs\USB.pas"/>
+        <UnitName Value="usb"/>
+        <UsageCount Value="16"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="354"/>
+        <CursorPos X="24" Y="371"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\jedi\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="303"/>
+        <CursorPos X="18" Y="309"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\jedi\jvcl\jvcl\common\jvcl.inc"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="359"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\jedi\jvcl\jvcl\common\windowsonly.inc"/>
+        <UsageCount Value="8"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="8" Y="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <UsageCount Value="9"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="422"/>
+        <CursorPos X="15" Y="435"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\sysutils.pp"/>
+        <UnitName Value="SysUtils"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1438"/>
+        <CursorPos X="3" Y="1432"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <UnitName Value="StrUtils"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="98"/>
+        <CursorPos X="47" Y="112"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\inc\ctypes.pp"/>
+        <UsageCount Value="15"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="30" Y="49"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunklatest\fpcsrc\packages\libusb\src\libusb.pp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2109"/>
+        <CursorPos X="50" Y="2129"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\Common\dlLEDCtrl.pas"/>
+        <UsageCount Value="13"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="60"/>
+        <CursorPos X="3" Y="50"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\canvas.inc"/>
+        <UsageCount Value="13"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="24"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\fcl-image\src\fpcanvas.pp"/>
+        <UnitName Value="FPCanvas"/>
+        <UsageCount Value="13"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="189"/>
+        <CursorPos X="3" Y="182"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\fcl-image\src\fpcanvas.inc"/>
+        <UsageCount Value="13"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="806"/>
+        <CursorPos X="15" Y="821"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunklatest\fpcsrc\compiler\x86_64\cpupara.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1287"/>
+        <CursorPos X="31" Y="1306"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunklatest\fpcsrc\compiler\llvm\llvmpara.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="34"/>
+        <CursorPos X="18" Y="48"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\trunklatest\fpcsrc\compiler\i386\cpupara.pas"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="199"/>
+        <CursorPos X="43" Y="208"/>
+      </Unit>
+      <Unit>
+        <Filename Value="usbrotopd.pas"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="389"/>
+        <CursorPos Y="76"/>
+      </Unit>
+      <Unit>
+        <Filename Value="usbboard.pas"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="2"/>
+        <CursorPos X="16" Y="4"/>
+      </Unit>
+    </Units>
+    <Debugger>
+      <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
+    </Debugger>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="555" Column="5" TopLine="538"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1168" Column="11" TopLine="1163"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1728" Column="80" TopLine="1724"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="172" Column="15" TopLine="168"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="558" Column="23" TopLine="542"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1731" Column="15" TopLine="1716"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1742" Column="21" TopLine="1727"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="559" Column="26" TopLine="548"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1731" Column="42" TopLine="1715"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="170" Column="22" TopLine="157"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1696" TopLine="1687"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1731" Column="36" TopLine="1708"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="170" Column="26" TopLine="157"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1688" TopLine="1664"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="164" TopLine="116"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="551" TopLine="531"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1159" TopLine="1142"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1452" TopLine="1427"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1685" Column="35" TopLine="1663"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="167" TopLine="154"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1128" Column="35" TopLine="1120"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="123" Column="5" TopLine="104"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1691" Column="32" TopLine="1665"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="171" Column="5" TopLine="154"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1129" Column="27" TopLine="1110"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="170" Column="19" TopLine="154"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1699" Column="17" TopLine="1691"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="556" TopLine="495"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <Debugging>
+    <BreakPoints>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <Source Value="..\Common\libusb\src\libusboop.pas"/>
+        <Line Value="439"/>
+      </Item>
+    </BreakPoints>
+  </Debugging>
+</CONFIG>
