@@ -299,7 +299,6 @@ begin
   if (NOT Assigned(FHidCtl)) then
   begin
    FHidCtl:=TJvHidDeviceController.Create(nil);
-
    //FHidCtl:=HidCtl;
    //USBMasterController.DevThreadSleepTime:=USBTimeout;
    //USBMasterController.DevThreadSleepTime:=10;
@@ -345,6 +344,12 @@ begin
     // Check if our report fits the device report
     if ((SizeOf(TReport)>=HidDev.Caps.OutputReportByteLength) AND (SizeOf(TReport)>=HidDev.Caps.InputReportByteLength)) then
     begin
+      // Flush all pending reports
+      HidDev.FlushQueue;
+      // To prevent overlapped read/write errors
+      // Prevent frequent ERROR_OPERATION_ABORTED (0x3E3) and timeouts.
+      HidDev.NumInputBuffers:=32;
+      HidDev.NumOverlappedBuffers:=32;
       // Create controller with serial
       // Will be freed by the boss, if accepted
       NewUSBController:=TUSBController.Create(HidDev,LocalSerial);
@@ -429,11 +434,10 @@ begin
 
           if ( (NOT WriteOnly) AND (NOT error) AND (NOT Ctrl.ReadThreading) ) then
           begin
-            SysUtils.Sleep(10); // needed on Windows
             FillChar(Ctrl.LocalData, SizeOf(Ctrl.LocalData), 0);
             BytesProcessed:=0;
-            error:=(NOT Ctrl.HidCtrl.ReadFile(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed));
-            //error:=(NOT Ctrl.HidCtrl.ReadFileTimeOut(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed, Ctrl.HidCtrl.ThreadSleepTime));
+            //error:=(NOT Ctrl.HidCtrl.ReadFile(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed));
+            error:=(NOT Ctrl.HidCtrl.ReadFileTimeOut(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed, Ctrl.HidCtrl.ThreadSleepTime));
             error:=(error OR (BytesProcessed<>Ctrl.HidCtrl.Caps.InputReportByteLength));
             if (error) then
             begin
@@ -546,15 +550,15 @@ begin
             begin
               FillChar(Ctrl.LocalData, SizeOf(Ctrl.LocalData), 0);
               BytesProcessed:=0;
-              error:=(NOT Ctrl.HidCtrl.ReadFile(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed));
-              //error:=(NOT Ctrl.HidCtrl.ReadFileTimeOut(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed, Ctrl.HidCtrl.ThreadSleepTime));
+              //error:=(NOT Ctrl.HidCtrl.ReadFile(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed));
+              error:=(NOT Ctrl.HidCtrl.ReadFileTimeOut(Ctrl.LocalData, Ctrl.HidCtrl.Caps.InputReportByteLength, BytesProcessed, Ctrl.HidCtrl.ThreadSleepTime));
               error:=(error OR (BytesProcessed=0));
               if (error) then
               begin
                 //windows.beep(1000,100);
                 FillChar(Ctrl.LocalData, SizeOf(Ctrl.LocalData), 0);
-                //if (Ctrl.HidCtrl.Err<>ERROR_SUCCESS) then
-                //  AddErrors(Format('USB normal read error: %s (%x)', [SysErrorMessage(Ctrl.HidCtrl.Err), Ctrl.HidCtrl.Err]));
+                if (Ctrl.HidCtrl.Err<>ERROR_SUCCESS) then
+                  AddErrors(Format('USB normal read error: %s (%x)', [SysErrorMessage(Ctrl.HidCtrl.Err), Ctrl.HidCtrl.Err]));
                 break;
               end
               else
@@ -578,8 +582,8 @@ end;
 
 function TUSB.HidReadWrite(Ctrl: TUSBController; WriteOnly:boolean):boolean;
 begin
-  //result:=HidWriteReadSimple(Ctrl,WriteOnly);
-  result:=HidWriteRead(Ctrl,WriteOnly);
+  result:=HidWriteReadSimple(Ctrl,WriteOnly);
+  //result:=HidWriteRead(Ctrl,WriteOnly);
 end;
 
 procedure TUSB.DeviceRemoval(HidDev: TJvHidDevice);

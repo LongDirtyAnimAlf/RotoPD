@@ -1676,30 +1676,35 @@ begin
       DD.Enabled:=True;
     end;
   end;
-  UpdateTimer.Enabled:=True;;
+  UpdateTimer.Enabled:=True;
 end;
 
 procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 var
   measuredvalue:double;
 begin
-  //USBDebugLog.Lines.Append('Got data !!!!');
+  if (PByteArray(data)^[0]=Ord(TCommands.CMD_get_data)) then
+  begin
+    //voltage
+    measuredvalue:=(UInt16(PByteArray(data)^[3])+UInt16(PByteArray(data)^[4])*256);
+    voltage:=measuredvalue/1000;
 
-  //voltage
-  measuredvalue:=(UInt16(PByteArray(data)^[3])+UInt16(PByteArray(data)^[4])*256);
-  voltage:=measuredvalue/1000;
+    //current
+    measuredvalue:=(UInt16(PByteArray(data)^[5])+UInt16(PByteArray(data)^[6])*256);
+    current:=measuredvalue/1000;
 
-  //current
-  measuredvalue:=(UInt16(PByteArray(data)^[5])+UInt16(PByteArray(data)^[6])*256);
-  current:=measuredvalue/1000;
+    //power
+    measuredvalue:=(UInt32(PByteArray(data)^[7])+UInt32(PByteArray(data)^[8])*256+UInt32(PByteArray(data)^[9])*256*256+UInt32(PByteArray(data)^[10])*256*256*256);
+    power:=measuredvalue/1000;
+    //power:=measuredvalue/(3600*1000);
 
-  //power
-  measuredvalue:=(UInt32(PByteArray(data)^[7])+UInt32(PByteArray(data)^[8])*256+UInt32(PByteArray(data)^[9])*256*256+UInt32(PByteArray(data)^[10])*256*256*256);
-  power:=measuredvalue/1000;
-  //power:=measuredvalue/(3600*1000);
-
-  // Temperature
-  temperature:=(UInt16(PByteArray(data)^[11])+UInt16(PByteArray(data)^[12])*256)/10;
+    // Temperature
+    temperature:=(UInt16(PByteArray(data)^[11])+UInt16(PByteArray(data)^[12])*256)/10;
+  end
+  else
+  begin
+    USBDebugLog.Lines.Append('Got other data !!!!');
+  end;
 end;
 
 procedure TPowerbankMainForm.UpdateDevice(Sender: TObject;datacarrier:integer);

@@ -261,6 +261,7 @@ end;
 destructor TDataDevice.Destroy;
 var
   Ctrl:TUSBController;
+  I: integer;
 begin
   for I := 1 to FUSBBoards.Count - 1 do
   begin
@@ -493,7 +494,6 @@ begin
     if Board.HidCtrl.IsPluggedIn then
     begin
       // Arrival
-
       // First, get the real USB (product-)serial from the HID-device itself
       localboardserial:=Board.ProductSerial;
 
@@ -616,9 +616,10 @@ begin
         if (Ctrl.HidCtrl=Board.HidCtrl) then
         begin
           // Got you !!
-          // Delete and remove controller from list
           Ctrl.Destroy;
           Ctrl:=nil;
+
+          // Delete controller from list by setting nil
           FUSBBoards.Items[localboard]:=nil;
 
           AddInfo('Board [#'+InttoStr(localboard)+'] removed.');
