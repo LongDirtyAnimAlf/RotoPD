@@ -962,6 +962,11 @@ void loop()
   
   static unsigned long startTime = millis();
 
+  bool DataOk = false;
+  byte INData[COMMAND_SIZE] = {0};
+  byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
+  byte dataindexer = 0;
+
   #ifdef BUTTON_PIN
   if (digitalRead(BUTTON_PIN) == LOW)
   {
@@ -1028,6 +1033,14 @@ void loop()
               pd.printPDOs(USBSerial);
               USBSerial.println("Done.");
 
+              memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
+              hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
+              hid_report_in[INDEXPOSITION] = ActiveBatteryIndex;
+              dataindexer = DATASTART;
+
+              hid_report_in[dataindexer++] = PDOCount;
+
               for ( j=1; j<=13; j++ )
               {
                 if (pd.readPDO(j, PDO))
@@ -1038,9 +1051,17 @@ void loop()
                     #ifdef STANDALONE
                     Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
                     #endif
+                    hid_report_in[dataindexer++] = PDO.index;
+                    WORD_VAL wv;
+                    wv.Val = PDO.raw;
+                    hid_report_in[dataindexer++] = wv.bytes.LB;
+                    hid_report_in[dataindexer++] = wv.bytes.HB;
                   }  
                 }
               }
+              // Send PDO data
+              hid_report_in[LENGTHPOSITION]=dataindexer;        
+              HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
             }
           }
         }
@@ -1073,9 +1094,6 @@ void loop()
     GetData = false;
     collectRotoPDData();
   }
-
-  bool DataOk = false;
-  byte INData[COMMAND_SIZE] = {0};
 
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
@@ -1244,13 +1262,14 @@ void loop()
         // Show data on screen 1
         Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
 
-        byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
         WORD_VAL  w_data;
         DWORD_VAL dw_data;
 
+        memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
         hid_report_in[COMMANDPOSITION] = CMD_get_data;
         hid_report_in[INDEXPOSITION] = BatteryIndex;
-        byte dataindexer = DATASTART;
+        dataindexer = DATASTART;
 
         w_data.Val = RDS->LastBatteryData.V;
         for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}

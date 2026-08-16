@@ -1795,9 +1795,6 @@ begin
             AugmentedPowerDataObject     := %11;  // 0x11
           end;
         end;
-
-
-
       end;
 
       SourcePDODrawGrid.Invalidate;
