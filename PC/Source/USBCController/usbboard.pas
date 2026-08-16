@@ -123,7 +123,7 @@ begin
       end;
     end;
 
-    if error then Inc(Ctrl.FaultCounter)
+    if error then Inc(Ctrl.FaultCounter);
   until ((NOT error) OR (Ctrl.FaultCounter>FMaxErrors) );
 
   if error then
@@ -167,7 +167,7 @@ begin
         Delete(localserial,1,1);
       end;
     end;
-    if error then Inc(Ctrl.FaultCounter)
+    if error then Inc(Ctrl.FaultCounter);
   until ((NOT error) OR (Ctrl.FaultCounter>FMaxErrors) );
 
   if error then
@@ -203,7 +203,7 @@ begin
       if (NOT error) then FW:=(data[1]*256+data[2]);
     end;
 
-    if error then Inc(Ctrl.FaultCounter)
+    if error then Inc(Ctrl.FaultCounter);
   until ((NOT error) OR (Ctrl.FaultCounter>FMaxErrors) );
 
   if error then Errors:='Something went wrong while reading firmware version !!';
@@ -233,7 +233,7 @@ begin
       error:=(data[0]<>cmd);
       if (NOT error) then BN:=data[1];
     end;
-    if error then Inc(Ctrl.FaultCounter)
+    if error then Inc(Ctrl.FaultCounter);
   until ((NOT error) OR (Ctrl.FaultCounter>FMaxErrors) );
 
   if error then Errors:='Something went wrong while reading board number !!';
@@ -265,7 +265,7 @@ begin
       if (NOT error) then Info:='New USB boardnumber succes. New boardnumber: '+InttoStr(BN)
     end;
 
-    if error then Inc(Ctrl.FaultCounter)
+    if error then Inc(Ctrl.FaultCounter);
   until ((NOT error) OR (Ctrl.FaultCounter>FMaxErrors) );
 
   if error then Errors:='Something went wrong while setting board number !!';

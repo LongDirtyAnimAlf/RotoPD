@@ -1,7 +1,7 @@
 object PowerbankMainForm: TPowerbankMainForm
-  Left = 116
+  Left = 291
   Height = 730
-  Top = 153
+  Top = 131
   Width = 1586
   Caption = 'CONSULAB Powerbank Discharger'
   ClientHeight = 730
@@ -9,7 +9,6 @@ object PowerbankMainForm: TPowerbankMainForm
   LCLVersion = '4.99.0.0'
   OnClose = FormClose
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   OnShow = FormShow
   object grpPDOs: TGroupBox
     AnchorSideLeft.Side = asrBottom
@@ -934,6 +933,7 @@ object PowerbankMainForm: TPowerbankMainForm
     Top = 138
   end
   object UpdateTimer: TTimer
+    Enabled = False
     OnTimer = UpdateTimerTimer
     Left = 1094
     Top = 96

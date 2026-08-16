@@ -24,8 +24,8 @@
             <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir);..\Common\jedi\jvcl\jvcl\common"/>
-            <OtherUnitFiles Value="..\Common;..\Common\jedi\jvcl\jvcl\run;..\Common\serial;..\Common\libusb\src"/>
+            <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
+            <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\linux;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -58,9 +58,9 @@
             <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir);..\Common\jedi\jvcl\jvcl\common;..\Common\synaser;..\Common\mORMot2"/>
+            <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
             <Libraries Value="..\Common\static\$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="..\Common;..\Common\jedi\jvcl\jvcl\run;..\Common\serial;..\Common\libusb\src;..\Common\synaser;..\Common\mORMot2\src"/>
+            <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -93,9 +93,9 @@
             <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir);..\Common\jedi\jvcl\jvcl\common;..\Common\synaser;..\Common\mORMot2"/>
+            <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
             <Libraries Value="..\Common\static\$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="..\Common;..\Common\jedi\jvcl\jvcl\run;..\Common\serial;..\Common\libusb\src;..\Common\synaser;..\Common\mORMot2\src"/>
+            <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -167,17 +167,27 @@
       <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="$(ProjOutDir);..\Common\usblibs\windows\jcl\jcl\source\include;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\synaser"/>
+      <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
       <Libraries Value="..\Common\static\$(TargetCPU)-$(TargetOS)"/>
-      <OtherUnitFiles Value="..\Common;..\Common\serial;..\Common\libusb\src;..\Common\synaser;..\Common\usblibs;..\Common\usblibs\linux;..\Common\usblibs\windows;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows;..\Common\usblibs\windows\jvcl\jvcl\run"/>
+      <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <IncludeAssertionCode Value="True"/>
+      </SyntaxOptions>
+    </Parsing>
     <CodeGeneration>
       <Checks>
         <IOChecks Value="True"/>
         <RangeChecks Value="True"/>
         <OverflowChecks Value="True"/>
+        <StackChecks Value="True"/>
       </Checks>
+      <VerifyObjMethodCallValidity Value="True"/>
+      <Optimizations>
+        <OptimizationLevel Value="0"/>
+      </Optimizations>
     </CodeGeneration>
     <Linking>
       <Debugging>

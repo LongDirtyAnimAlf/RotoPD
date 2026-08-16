@@ -16,7 +16,6 @@ uses
   dsLeds,
   dlLEDCtrl,
   usbcpd,
-  usb,
   pddevice,
   hp66332,
   usbrotopd,
@@ -37,9 +36,6 @@ type
   TPowerbankMainForm = class(TForm)
     btnConnectKC003C: TButton;
     btnInit: TButton;
-    btnKC003CRcvRemoteSink: TButton;
-    btnKC003CRcvRemoteSource: TButton;
-    btnKC003CReset: TButton;
     btnTestDischarge: TSpeedButton;
     Chart1: TChart;
     Chart1LineSeries1: TLineSeries;
@@ -112,7 +108,6 @@ type
 
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
-    procedure FormDestroy(Sender: TObject);
   private
     FOldOnIdle          : TIdleEvent;
 
@@ -1128,6 +1123,16 @@ begin
 
          DisConnect(Sender);
 
+         UpdateTimer.Enabled:=False;
+
+         //DD.Enabled:=False;
+         DD.OnDataReceived:=nil;
+         DD.OnDeviceChange:=nil;
+         DD.Destroy;
+         HPsource.Destroy;
+         DUT.Destroy;
+         RotoPDController.Destroy;
+
          Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
          try
            ini.WriteInteger(Self.Name,'Top',Self.Top);
@@ -1140,16 +1145,9 @@ begin
            Ini.Free;
          end;
 
+
          CloseAction:=caFree;
        end;
-end;
-
-procedure TPowerbankMainForm.FormDestroy(Sender: TObject);
-begin
-  DD.Free;
-  HPsource.Free;
-  DUT.Free;
-  RotoPDController.Free;
 end;
 
 procedure TPowerbankMainForm.StartStopButtonClick(Sender: TObject);
@@ -1238,8 +1236,8 @@ begin
       LastTime:=NowUTC;
 
       Power:=Voltage*Current;
-      Capacity:=Capacity+1000*Current*(Elapsed/3600000);
-      Energy:=Energy+1000*Power*(Elapsed/3600000);
+      Capacity:=Capacity+Current*(Elapsed/3600000);
+      Energy:=Energy+Power*(Elapsed/3600000);
 
       SaveBatteryData(Elapsed);
 
@@ -1678,6 +1676,7 @@ begin
       DD.Enabled:=True;
     end;
   end;
+  UpdateTimer.Enabled:=True;;
 end;
 
 procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);

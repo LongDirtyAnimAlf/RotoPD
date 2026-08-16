@@ -10,38 +10,28 @@ interface
 
 uses
   SysUtils, Classes,
+  contnrs,
   usb,
   usbboard;
 
 type
 
   TCommands = (
-    CMD_unknown              = $40,
-    CMD_get_data             = $50,
+    CMD_unknown          = $00,
+    CMD_error            = $40,
+    CMD_get_data         = $50,
+    CMD_get_status,
     CMD_get_hardware,
-    CMD_set_cal,
-    CMD_get_cal,
-    CMD_set_value,
     CMD_get_firmware,
-    CMD_error,
+    CMD_set_value,
     CMD_set_energy,
-    CMD_get_timer,
-    CMD_set_timer,
-    CMD_set_tun,
-    CMD_store_tun,
-    CMD_get_data_special,
-    CMD_set_value_special,
-    CMD_get_memory,
-    CMD_set_memory,
-    CMD_set_caltable,
-    CMD_get_caltable,
-    CMD_set_localserial,
-    CMD_get_localserial,
-    CMD_controller_reset     = $B0,
-    CMD_set_program_mode     = $B1,
-    CMD_set_range            = $B3,
-    CMD_get_range            = $B4,
-    CMD_set_delay            = $B5
+    CMD_get_PDOList,
+    CMD_read_PDOList,
+    CMD_set_FIXEDPDO,
+    CMD_set_PPSPDO,
+    CMD_set_AVSPDO,
+    CMD_set_MAXPDO,
+    CMD_controller_reset = $B0
   );
 
 type
@@ -64,7 +54,8 @@ type
     //function  ReadSerial(board:word):string;
     //function  ReadFirmware(board:word):word;
     ErrorCounter       : word;
-    FUSBBoards         : TList;
+    //FUSBBoards         : TList;
+    FUSBBoards         : TObjectList;
     FDataSource        : TMyUSB;
     FOnDeviceChange    : TDeviceEvent;
     FOnData            : TDataEvent;
@@ -254,11 +245,13 @@ begin
   end;
   if NumTypes<1 then NumTypes  := 1;
 
-  //FUSBBoards:=TObjectList.Create;
-  FUSBBoards:=TList.Create;
+  FUSBBoards:=TObjectList.Create;
+  FUSBBoards.OwnsObjects:=False;
+  //FUSBBoards:=TList.Create;
   BoardCount:=NumTypes;
   Inc(BoardCount); // we do not use board zero.
-  FUSBBoards.Count:=BoardCount;
+
+  //FUSBBoards.Count:=BoardCount;
 
   FDataSource:=TMyUSB.Create;
   DataSource.MaxBoards:=BoardCount;
@@ -267,16 +260,21 @@ end;
 
 destructor TDataDevice.Destroy;
 var
-  i:word;
   Ctrl:TUSBController;
 begin
-  for I := 0 to FUSBBoards.Count - 1 do
+  for I := 1 to FUSBBoards.Count - 1 do
   begin
-    Ctrl := FUSBBoards.Items[I];
-    if Assigned(Ctrl) then Ctrl.Destroy;
+    if Assigned(FUSBBoards.Items[I]) then
+    begin
+      Ctrl := (FUSBBoards.Items[I] AS TUSBController);
+      Ctrl.Destroy;
+    end;
+    FUSBBoards.Items[I] := nil;
   end;
-  FUSBBoards.Destroy;
+
   FDataSource.Destroy;
+
+  FUSBBoards.Destroy;
 end;
 
 
@@ -444,12 +442,10 @@ const
 var
   error:boolean;
   localboard:integer;
-  localposition:integer;
   storedboard:word;
   localboardserial:ansistring;
   localfirmware:word;
   Ctrl:TUSBController;
-  Failure:boolean;
 function SerialDefault(s:string):boolean;
 var
   ds:string;
@@ -486,6 +482,7 @@ begin
   localboardserial:='';
   error:=false;
 
+  //if (Assigned(Board) AND Assigned(Board.HidCtrl)) then
   if Assigned(Board) then
   begin
     //Board.DisableReadThreading;
@@ -544,16 +541,14 @@ begin
       if (NOT error) then
       begin
         localboard:=DataSource.CheckAddressNewer(localboardserial,storedboard);
-        error:=(NOT ((localboard>0) AND (FUSBBoards.Count>localboard)));
+        error:=(NOT (localboard>0));
         if (error) then AddInfo('Check address error');
       end;
 
       if (NOT error) then
       begin
-        if (Abs(localboard)>=FUSBBoards.Count) then
-        begin
-          raise EUSBException.Create('Board number ['+InttoStr(localboard)+'] exceeds board count. Should never happen. Please check code');
-        end;
+        // Make room for the databoard into the list of FUSBBoards
+        while FUSBBoards.Count<=localboard do FUSBBoards.Add(nil);
       end;
 
       if (NOT error) then
@@ -561,12 +556,12 @@ begin
         if (NOT Assigned(FUSBBoards.Items[localboard])) then
         begin
           // Get firmware
-          //DataSource.GetBoardFirmware(Board,localfirmware);
+          DataSource.GetBoardFirmware(Board,localfirmware);
 
           // Set the correct boardnumber on the board itself, if needed
           if (storedboard<>localboard) then
           begin
-            // We do NOT use boardnumbers for batteryboards
+            // We do NOT yet use boardnumbers for RotoPD boards
             //AddInfo('Changing boardnumber from '+InttoStr(storedboard)+' to '+InttoStr(localboard));
             //DataSource.SetBoardNumber(Board,localboard);
           end;
@@ -574,12 +569,12 @@ begin
           AddInfo('Board accepted. S/N of USB controller #'+InttoStr(localboard)+': '+localboardserial+'. FW: '+InttoStr((localfirmware SHR 8) AND $FF)+'-'+InttoStr(localfirmware AND $FF));
           Board.Accepted:=True;
 
+          // As the firmware sends data by itself, allow auto-magic reception of this data
           Board.OnDataReceived:=OnDeviceData;
 
           Board.ControllerData:=TControllerData.Create;
-          //Getmem(Board.ControllerData,SizeOf(TControllerData));
 
-          // Add databoard to the list of FUSBBoards
+          // Add accepted databoard to the list of FUSBBoards
           FUSBBoards.Items[localboard]:=Board;
         end
         else
@@ -610,29 +605,26 @@ begin
     else
     begin
       // Removal
-      //localboard:=FUSBBoards.IndexOf(Board);
       localboard:=FUSBBoards.Count;
+      // Find the board with the right HID device
       while localboard>0 do
       begin
         Dec(localboard);
-        Ctrl:=FUSBBoards.Items[localboard];
+        Ctrl:=(FUSBBoards.Items[localboard] AS TUSBController);
         if NOT Assigned(Ctrl) then continue;
         if NOT Assigned(Ctrl.HidCtrl) then continue;
         if (Ctrl.HidCtrl=Board.HidCtrl) then
         begin
           // Got you !!
           // Delete and remove controller from list
-          FUSBBoards.Delete(localboard);
-          // Insert empty slot as we access boards by their board/list index.
-          FUSBBoards.Insert(localboard,nil);
-
-          //Ctrl.HidCtrl.Destroy;
-          //Ctrl.HidCtrl:=nil;
           Ctrl.Destroy;
           Ctrl:=nil;
+          FUSBBoards.Items[localboard]:=nil;
 
           AddInfo('Board [#'+InttoStr(localboard)+'] removed.');
+
           if Assigned(FOnDeviceChange) then FOnDeviceChange(Self,-1*localboard);
+
           break;
         end;
       end;

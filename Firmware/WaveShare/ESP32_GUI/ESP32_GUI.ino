@@ -844,6 +844,12 @@ void setup()
     ina238.setADCRange(1);
     ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
     ina238.setShuntVoltageConversionTime(INA238_150_us);
+
+    //ina238.setMode(uint8_t mode = INA238_MODE_CONT_TEMP_BUS_SHUNT);
+    //ina238.setBusVoltageConversionTime(uint8_t bvct = INA238_1052_us);
+    //ina238.setTemperatureConversionTime(uint8_t tct = INA238_1052_us);
+    //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
+
     ina238.setAverage(INA238_16_SAMPLES); 
     ina238.setOverCurrentLimit(5000); // Max out 5A threshold
     ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch

@@ -1959,7 +1959,7 @@ begin
           CancelIOEx(omhRead);
           // Crucial: Wait for the OS to acknowledge the cancellation
           // to ensure the 'Report' buffer is no longer being accessed by the kernel.
-          //GetOverlappedResult(HidOverlappedRead, FOvlRead, BytesRead, True);
+          GetOverlappedResult(HidOverlappedRead, FOvlRead, BytesRead, True);
           if LocalRes = WAIT_TIMEOUT then
             FErr := ERROR_TIMEOUT
           else

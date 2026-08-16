@@ -83,19 +83,20 @@ typedef union
 #define FIXEDCHARGESTAGENUMBER        2
 
 typedef enum {
-  	CMD_unknown          = 0x00,  
-  	CMD_error            = 0x40,  
-  	CMD_get_data         = 0x50,
-  	CMD_get_status,
-  	CMD_get_hardware,
-  	CMD_get_firmware,
+    CMD_unknown          = 0x00,
+    CMD_error            = 0x40,
+    CMD_get_data         = 0x50,
+    CMD_get_status,
+    CMD_get_hardware,
+    CMD_get_firmware,
     CMD_set_value,
-  	CMD_get_PDOList,
-  	CMD_read_PDOList,
-  	CMD_set_FIXEDPDO,
-  	CMD_set_PPSPDO,
-  	CMD_set_AVSPDO,
-  	CMD_set_MAXPDO,
+    CMD_set_energy,
+    CMD_get_PDOList,
+    CMD_read_PDOList,
+    CMD_set_FIXEDPDO,
+    CMD_set_PPSPDO,
+    CMD_set_AVSPDO,
+    CMD_set_MAXPDO,
     CMD_controller_reset = 0xB0
 } CommandType_t;
 
