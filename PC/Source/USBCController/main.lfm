@@ -640,6 +640,15 @@ object PowerbankMainForm: TPowerbankMainForm
         ScrollBars = ssAutoBoth
         TabOrder = 10
       end
+      object Button1: TButton
+        Left = 49
+        Height = 46
+        Top = 246
+        Width = 100
+        Caption = 'Button1'
+        TabOrder = 11
+        OnClick = Button1Click
+      end
     end
     object DisplaysPanel: TPanel
       AnchorSideLeft.Control = GroupBox1

@@ -93,7 +93,7 @@ type
     constructor Create(AppPath:string);
     destructor Destroy;override;
 
-    function  CheckParameters(board,position:word):boolean;overload;
+    function  CheckParameters(board:word):boolean;overload;
 
     function  ToTotal(board:word; out total:word):boolean;
     function  FromTotal(total:word; out board:word):boolean;
@@ -110,6 +110,8 @@ type
 
     property  OnDeviceChange: TDeviceEvent read FOnDeviceChange write FOnDeviceChange;
     property  OnDataReceived : TDataEvent read FOnData write FOnData;
+
+    function  GetPDOList(board:word):boolean;
 
     function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
     function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
@@ -343,59 +345,63 @@ begin
   aLength:=Ctrl.LocalData.Data[2]; // length always at element 2
 
   // Execute command request
-  error:=DataSource.HidReadWrite(Ctrl);
+  error:=DataSource.HidReadWrite(Ctrl,Final);
 
-  rCmd:=Ctrl.LocalData.Data[0]; // command always at element 0
-  rPos:=Ctrl.LocalData.Data[1]; // position always at element 1
-  rLength:=Ctrl.LocalData.Data[2]; // length always at element 2
-
-  // Check valid data
-  if (NOT error) then
+  if (NOT Final) then
   begin
-    if (rCmd=0) then
-    begin
-      AddErrors('Data error check. Missing command.');
-      error:=true;
-    end;
-    // Length can never ever be > 16
-    if (rLength>16) then
-    begin
-      AddErrors('Data error check. Wrong length.');
-      error:=true;
-    end;
-  end;
+    rCmd:=Ctrl.LocalData.Data[0]; // command always at element 0
+    rPos:=Ctrl.LocalData.Data[1]; // position always at element 1
+    rLength:=Ctrl.LocalData.Data[2]; // length always at element 2
 
-  // Handle CRC errors
-  if (NOT error) then error:=CheckCRCError(Ctrl.LocalData);
-
-  // Handle command error
-  if (NOT error) then
-  begin
-    if rCmd = byte(TCommands.CMD_error) then
+    // Check valid data
+    if (NOT error) then
     begin
-      AddErrors('Data error check. Command error returned.');
-      error := true;
+      if (rCmd=0) then
+      begin
+        AddErrors('Data error check. Missing command.');
+        error:=true;
+      end;
+      // Length can never ever be > 16
+      if (rLength>16) then
+      begin
+        AddErrors('Data error check. Wrong length.');
+        error:=true;
+      end;
     end;
-  end;
 
-  // Handle data error
-  if (NOT error) then
-  begin
-    if ((rCmd <> aCmd) OR (rPos <> aPos)) then
+    // Handle CRC errors
+    if (NOT error) then error:=CheckCRCError(Ctrl.LocalData);
+
+    // Handle command error
+    if (NOT error) then
     begin
-      AddErrors('Data error check. Wrong data returned.');
-      error := true;
+      if rCmd = byte(TCommands.CMD_error) then
+      begin
+        AddErrors('Data error check. Command error returned.');
+        error := true;
+      end;
     end;
-  end;
 
-  (*
-  if (error AND (NOT Final)) then
-  begin
-    Ctrl.LocalData.Data[0] := Byte(TCommands.CMD_resend_data);
-    Ctrl.LocalData.Data[1] := aPos;
-    result:=HandleDataRequest(Ctrl,True);
+    // Handle data error
+    if (NOT error) then
+    begin
+      if ((rCmd <> aCmd) OR (rPos <> aPos)) then
+      begin
+        AddErrors('Data error check. Wrong data returned.');
+        error := true;
+      end;
+    end;
+
+    (*
+    if (error AND (NOT Final)) then
+    begin
+      Ctrl.LocalData.Data[0] := Byte(TCommands.CMD_resend_data);
+      Ctrl.LocalData.Data[1] := aPos;
+      result:=HandleDataRequest(Ctrl,True);
+    end;
+    *)
+
   end;
-  *)
 
   if (error) then
   begin
@@ -661,7 +667,7 @@ begin
   board:=total+1;
 end;
 
-function TDataDevice.CheckParameters(board,position:word):boolean;
+function TDataDevice.CheckParameters(board:word):boolean;
 var
   Ctrl:TUSBController;
 begin
@@ -712,6 +718,49 @@ begin
   result:=TControllerData(TUSBController(FUSBBoards.Items[board]).ControllerData).Calibration;
 end;
 
+
+function  TDataDevice.GetPDOList(board:word):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  measuredvalue:double;
+  datalength:word;
+  PLocalData:PReport;
+  Ctrl:TUSBController;
+begin
+  result:=false;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+  ErrorCounter:=1;
+  cmd := TCommands.CMD_get_PDOList;
+
+  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[0] := byte(cmd);
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
+
+
 function  TDataDevice.ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;
 var
   error:boolean;
@@ -723,7 +772,7 @@ var
 begin
   result:=false;
 
-  if CheckParameters(board,position) then
+  if CheckParameters(board) then
   begin
     //if Emulation then
     begin
@@ -809,7 +858,7 @@ var
 begin
   result:=false;
 
-  if CheckParameters(board,position) then exit;
+  if CheckParameters(board) then exit;
 
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_energy;
@@ -857,7 +906,7 @@ var
 begin
   result:=false;
 
-  if CheckParameters(board,position) then exit;
+  if CheckParameters(board) then exit;
 
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_value;

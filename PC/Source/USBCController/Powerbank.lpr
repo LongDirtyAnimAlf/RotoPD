@@ -8,7 +8,7 @@ uses
   {$ENDIF}
   Interfaces,
   Forms, tachartlazaruspkg,
-  main;
+  main, ap33772s;
 
 {$R *.res}
 

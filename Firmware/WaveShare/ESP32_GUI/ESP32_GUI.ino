@@ -1074,12 +1074,53 @@ void loop()
     collectRotoPDData();
   }
 
+  bool DataOk = false;
+  byte INData[COMMAND_SIZE] = {0};
+
+  THIDData* PLocalHD;
+  THIDData LocalHDCopy;
+
+  for (BatteryIndex=0; BatteryIndex<DAUGHTERBOARDCOUNT; BatteryIndex++ )
+  {
+    if (HIDData[BatteryIndex].DataReceived)
+    {
+      #ifndef TINYUSB_NEED_POLLING_TASK
+      // Make a local copy of the data 
+      // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
+      noInterrupts();
+      for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[BatteryIndex].HIDEPOUTData[j];
+      LocalHDCopy.DataReceived = HIDData[BatteryIndex].DataReceived;
+      HIDData[BatteryIndex].DataReceived = false;
+      interrupts();
+      PLocalHD = &LocalHDCopy; 
+      #else
+      PLocalHD = (THIDData*)&HIDData[BatteryIndex];
+      PLocalHD->DataReceived = false;
+      #endif
+
+      //Now perform the Data update  
+      DataOk = process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+      if (DataOk)
+      {
+        // Send report back to host
+        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+
+        for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
+
+
+        #ifndef USE_LCD
+        //DataOk = false;
+        #endif
+      }
+
+    }
+  }
+
   #ifdef STANDALONE
 
   PBatteryBoard BB = NULL;
 
   byte OUTData[COMMAND_SIZE] = {0};
-  byte INData[COMMAND_SIZE] = {0};
 
   // Do we have a valid command ?
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
@@ -1089,64 +1130,66 @@ void loop()
     // Reset command
     SendCommand[COMMANDPOSITION] = CMD_unknown;
 
-    if (process_command(&OUTData,&INData))
-    {
-      CommandType_t Command = (CommandType_t)INData[COMMANDPOSITION];
-      byte BatteryIndex = INData[INDEXPOSITION];
-      byte Length = INData[LENGTHPOSITION];
-      byte counter = DATASTART;
-
-      if ( (Command == CMD_get_PDOList) || (Command == CMD_read_PDOList) || (Command == CMD_set_MAXPDO))
-      {
-        USBSerial.println("Got a PDO command !!");
-      }
-
-      switch(Command)
-      {
-        case CMD_get_PDOList:
-        {
-
-          // We need to update the GUI with the received PDO's !!
-
-          PDO_DATA_T raw;
-
-          PDOCount = INData[counter++];
-
-          if (PDOCount)
-          {
-            while ((PDOCount--)>0)
-            {
-              memset(&PDO, 0, sizeof(PDO));      
-
-              j = INData[counter++];
-
-              Serial.printf("PDO received ! PDO index: #%d.\r\n", j);
-
-              if (j)
-              {
-                raw.byte0 = INData[counter++];
-                raw.byte1 = INData[counter++];
-                // This fuction is index zero based !!
-                AP33772S::decodePDONew(j-1, raw, PDO);
-
-                if (PDO.valid)
-                {
-                  Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
-                  Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
-                }
-              }
-            }
-
-          }
-          break;
-        }
-      }
-    }
-
-    // Send the data request
-    //myPacketSerial.send(data_buf, j);
+    DataOk = process_command(&OUTData,&INData);
   }
 
+  #endif STANDALONE
+
+  if (DataOk)
+  {
+    CommandType_t Command = (CommandType_t)INData[COMMANDPOSITION];
+    byte BatteryIndex = INData[INDEXPOSITION];
+    byte Length = INData[LENGTHPOSITION];
+    byte counter = DATASTART;
+
+    if ( (Command == CMD_get_PDOList) || (Command == CMD_read_PDOList) || (Command == CMD_set_MAXPDO))
+    {
+      USBSerial.println("Got a PDO command !!");
+    }
+
+    switch(Command)
+    {
+      case CMD_get_PDOList:
+      {
+
+        // We need to update the GUI with the received PDO's !!
+
+        PDO_DATA_T raw;
+
+        PDOCount = INData[counter++];
+
+        if (PDOCount)
+        {
+          while ((PDOCount--)>0)
+          {
+            memset(&PDO, 0, sizeof(PDO));      
+
+            j = INData[counter++];
+
+            Serial.printf("PDO received ! PDO index: #%d.\r\n", j);
+
+            if (j)
+            {
+              raw.byte0 = INData[counter++];
+              raw.byte1 = INData[counter++];
+              // This fuction is index zero based !!
+              AP33772S::decodePDONew(j-1, raw, PDO);
+
+              if (PDO.valid)
+              {
+                Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+              }
+            }
+          }
+
+        }
+        break;
+      }
+    }
+  }
+
+  #ifdef STANDALONE
   if (GetBatteryData)
   {
     GetBatteryData = false;

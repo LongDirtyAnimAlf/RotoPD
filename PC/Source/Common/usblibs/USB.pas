@@ -348,8 +348,10 @@ begin
       HidDev.FlushQueue;
       // To prevent overlapped read/write errors
       // Prevent frequent ERROR_OPERATION_ABORTED (0x3E3) and timeouts.
-      HidDev.NumInputBuffers:=32;
-      HidDev.NumOverlappedBuffers:=32;
+      {$ifdef MSWINDOWS}
+      HidDev.NumInputBuffers:=128;
+      HidDev.NumOverlappedBuffers:=128;
+      {$endif}
       // Create controller with serial
       // Will be freed by the boss, if accepted
       NewUSBController:=TUSBController.Create(HidDev,LocalSerial);

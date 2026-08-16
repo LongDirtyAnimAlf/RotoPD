@@ -18,6 +18,7 @@ uses
   usbcpd,
   pddevice,
   hp66332,
+  ap33772s,
   usbrotopd,
   lazserial;
 
@@ -36,7 +37,11 @@ type
   TPowerbankMainForm = class(TForm)
     btnConnectKC003C: TButton;
     btnInit: TButton;
+    btnKC003CRcvRemoteSink: TButton;
+    btnKC003CRcvRemoteSource: TButton;
+    btnKC003CReset: TButton;
     btnTestDischarge: TSpeedButton;
+    Button1: TButton;
     Chart1: TChart;
     Chart1LineSeries1: TLineSeries;
     Chart1LineSeries2: TLineSeries;
@@ -82,6 +87,7 @@ type
     procedure btnConnectSTM32Click(Sender: TObject);
     procedure btnInitClick(Sender: TObject);
     procedure btnTestDischargeClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
     procedure DataEditKeyPress(Sender: TObject; var Key: char);
     procedure dgFlagsDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
@@ -810,7 +816,11 @@ begin
             with aSourcePDO.VariableSupplyNonBatteryPdo do
             begin
               if aCol=4 then s:=InttoStr(MaximumCurrentIn10mA*10)+ ' mA';
-              if aCol=3 then s:=InttoStr(MaximumVoltageIn50mV*50 DIV 1000)+' Volt';
+              if aCol=3 then s:=
+                FloattoStrF(MinimumVoltageIn50mV*0.05,ffFixed,8,2)+
+                '-'+
+                FloattoStrF(MaximumVoltageIn50mV*0.05,ffFixed,8,2)+
+                ' Volt';
             end;
           end
           else
@@ -1018,6 +1028,11 @@ begin
     AllStop(Sender);
     TestInfoMemo.Lines.Append('Check finished.');
   end;
+end;
+
+procedure TPowerbankMainForm.Button1Click(Sender: TObject);
+begin
+  DD.GetPDOList(1);
 end;
 
 procedure TPowerbankMainForm.DataEditKeyPress(Sender: TObject; var Key: char);
@@ -1682,28 +1697,116 @@ end;
 procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 var
   measuredvalue:double;
+  cmd:TCommands;
+  counter:integer;
+  PDOCount,PDOIndex:byte;
+  RawPDO: PDO_DATA_T;
+  PDO: TAP33772S_PDO;
 begin
-  if (PByteArray(data)^[0]=Ord(TCommands.CMD_get_data)) then
-  begin
-    //voltage
-    measuredvalue:=(UInt16(PByteArray(data)^[3])+UInt16(PByteArray(data)^[4])*256);
-    voltage:=measuredvalue/1000;
+  cmd:=TCommands(PByteArray(data)^[0]);
 
-    //current
-    measuredvalue:=(UInt16(PByteArray(data)^[5])+UInt16(PByteArray(data)^[6])*256);
-    current:=measuredvalue/1000;
+  case cmd of
+    TCommands.CMD_get_data:
+    begin
+      //voltage
+      measuredvalue:=(UInt16(PByteArray(data)^[3])+UInt16(PByteArray(data)^[4])*256);
+      voltage:=measuredvalue/1000;
 
-    //power
-    measuredvalue:=(UInt32(PByteArray(data)^[7])+UInt32(PByteArray(data)^[8])*256+UInt32(PByteArray(data)^[9])*256*256+UInt32(PByteArray(data)^[10])*256*256*256);
-    power:=measuredvalue/1000;
-    //power:=measuredvalue/(3600*1000);
+      //current
+      measuredvalue:=(UInt16(PByteArray(data)^[5])+UInt16(PByteArray(data)^[6])*256);
+      current:=measuredvalue/1000;
 
-    // Temperature
-    temperature:=(UInt16(PByteArray(data)^[11])+UInt16(PByteArray(data)^[12])*256)/10;
-  end
+      //power
+      measuredvalue:=(UInt32(PByteArray(data)^[7])+UInt32(PByteArray(data)^[8])*256+UInt32(PByteArray(data)^[9])*256*256+UInt32(PByteArray(data)^[10])*256*256*256);
+      power:=measuredvalue/1000;
+      //power:=measuredvalue/(3600*1000);
+
+      // Temperature
+      temperature:=(UInt16(PByteArray(data)^[11])+UInt16(PByteArray(data)^[12])*256)/10;
+    end;
+    TCommands.CMD_get_PDOList:
+    begin
+      Counter:=3;
+      PDOCount := PByteArray(data)^[Counter];
+      Inc(Counter);
+
+      while (PDOCount>0) do
+      begin
+        Dec(PDOCount);
+        PDOIndex := PByteArray(data)^[Counter];
+        Inc(Counter);
+        RawPDO.bytes.byte0 := PByteArray(data)^[Counter];
+        Inc(Counter);
+        RawPDO.bytes.byte1 := PByteArray(data)^[Counter];
+        Inc(Counter);
+        DecodePDONew(PDOIndex,RawPDO,PDO);
+
+        if (PDO.isEPR AND (PDO.ptype<>PDO_TYPE_FIXED)) then
+        begin
+          with DUT.SourcePDOs[PDO.index-1].EPRAVSPDO do
+          begin
+            PDPInW                       := 0;
+            MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);
+            MaximumVoltageIn100mV        := (PDO.maxVoltage_mV DIV 100);
+            PeakCurrent                  := 0;
+            AugmentedPowerDataObjectType := %01;  // 0x01=EPRAVS Adjustable Voltage Supply
+            AugmentedPowerDataObject     := %11;  // 0x11
+          end;
+        end
+        else
+        if (PDO.ptype=PDO_TYPE_FIXED) then
+        begin
+          with DUT.SourcePDOs[PDO.index-1].FixedSupplyPdo do
+          begin
+            MaximumCurrentIn10mA     := (PDO.maxCurrent_mA DIV 10);
+            VoltageIn50mV            := (PDO.maxVoltage_mV DIV 50);
+            PeakCurrent              := 0;
+            EPRModeCapable           := Ord(PDO.isEPR);
+            UnchunkedMessagesSupport := 0;
+            DataRoleSwap             := 0;
+            UsbCommunicationCapable  := 0;
+            UnconstrainedPower       := 0;
+            UsbSuspendSupported      := 0;
+            DualRolePower            := 0;
+            FixedSupply              := %00; // 0x00
+          end;
+        end
+        else
+        if (PDO.ptype=PDO_TYPE_PPS) then
+        begin
+          with DUT.SourcePDOs[PDO.index-1].VariableSupplyNonBatteryPdo do
+          begin
+            MaximumCurrentIn10mA      := (PDO.maxCurrent_mA DIV 10);
+            MinimumVoltageIn50mV      := (PDO.minVoltage_mV DIV 50);
+            MaximumVoltageIn50mV      := (PDO.maxVoltage_mV DIV 50);
+            VariableSupportNonBattery := %10;  // 0x10
+          end;
+        end
+        else
+        if (PDO.ptype=PDO_TYPE_AVS) then
+        begin
+          with DUT.SourcePDOs[PDO.index-1].EPRAVSPDO do
+          begin
+            //PDPInW                       : T8BITS;
+            MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);
+            MaximumVoltageIn100mV        := (PDO.maxVoltage_mV DIV 100);
+            //PeakCurrent                  := (PDO.maxCurrent_mA DIV 10);
+            AugmentedPowerDataObjectType := %01;  // 0x01=EPRAVS Adjustable Voltage Supply
+            AugmentedPowerDataObject     := %11;  // 0x11
+          end;
+        end;
+
+
+
+      end;
+
+      SourcePDODrawGrid.Invalidate;
+
+    end;
   else
-  begin
-    USBDebugLog.Lines.Append('Got other data !!!!');
+    begin
+      USBDebugLog.Lines.Append('Got other data !!!!');
+    end;
   end;
 end;
 
