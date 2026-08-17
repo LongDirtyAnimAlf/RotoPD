@@ -363,7 +363,7 @@ static void main_event_handler(lv_event_t * e)
           #ifndef STANDALONE
           if ( (event_object == morebutton) && (screenindex<2) ) screenindex++; // forwards button
           #else
-          if ( (event_object == morebutton) && (screenindex<3) ) screenindex++; // forwards button              
+          if ( (event_object == morebutton) && (screenindex<4) ) screenindex++; // forwards button              
           #endif
           switch(screenindex)
           {
@@ -371,6 +371,7 @@ static void main_event_handler(lv_event_t * e)
             case 2: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
             #ifdef STANDALONE
             case 3: {Setup_Screen3(ActiveBatteryIndex,true);break;}
+            case 4: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
             #endif
           }
         }
@@ -1071,6 +1072,7 @@ void loop()
         }
       }
 
+      /*
       USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
                     pd.getTemperature_C(),
                     pd.getRequestedVoltage_mV(),
@@ -1080,6 +1082,7 @@ void loop()
       if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
 
       USBSerial.println();
+      */
 
     }
   }  
@@ -1126,9 +1129,10 @@ void loop()
         for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
 
 
-        #ifndef USE_LCD
+        //#ifdef USE_LCD
         //DataOk = false;
-        #endif
+        ScreenLogger_Add("Got HID data",true);
+        //#endif
       }
 
     }
@@ -1184,7 +1188,7 @@ void loop()
 
             j = INData[counter++];
 
-            Serial.printf("PDO received ! PDO index: #%d.\r\n", j);
+            USBSerial.printf("PDO received ! PDO index: #%d.\r\n", j);
 
             if (j)
             {
@@ -1195,7 +1199,7 @@ void loop()
 
               if (PDO.valid)
               {
-                Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }
@@ -1378,158 +1382,6 @@ unsigned long TicksBetween(unsigned long InitTicks, unsigned long EndTicks)
   Result = (EndTicks - InitTicks);
   if ((long)(~Result) < Result) Result = (long)(~Result);
   return (Result);
-}
-
-void onPacketReceived(const uint8_t* buffer, size_t size)
-{
-  if (size < 1) {
-    return;
-  }
-
-  byte counter;
-  PBatterySetting SET;  
-  PRunDatas RDS;  
-  PStageData SD = NULL;  
-  AP33772S_PDO dec;
-  PDO_DATA_T raw;
-  uint8_t  index;
-
-  CommandType_t Command = (CommandType_t)buffer[COMMANDPOSITION];
-  byte BatteryIndex = buffer[INDEXPOSITION];
-  byte Length = buffer[LENGTHPOSITION];
-
-  counter = DATASTART;
-
-  switch(Command)
-  {
-    case CMD_get_PDOList:
-    {
-
-      byte PDOCount = buffer[counter++];
-
-      if (PDOCount)
-      {
-        while ((PDOCount--)>0)
-        {
-          memset(&dec, 0, sizeof(dec));      
-
-          index = buffer[counter++];
-
-          USBSerial.printf("PDO received ! PDO index: #%d.\r\n", index);
-
-          if (index)
-          {
-            raw.byte0 = buffer[counter++];
-            raw.byte1 = buffer[counter++];
-            // This fuction is index zero based !!
-            AP33772S::decodePDONew(index-1, raw, dec);
-
-            if (dec.valid)
-            {
-              USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", dec.maxVoltage_mV);
-              Screen3SetPDO(dec.index,dec.valid,dec.isEPR,dec.type,dec.minVoltage_mV,dec.maxVoltage_mV,dec.maxCurrent_mA);
-            }
-          }
-        }
-
-      }
-      break;
-    }
-    case CMD_get_data:
-    case CMD_set_value:
-    {
-
-      SET = &Batteries[BatteryIndex];
-      RDS = &SET->TestData.RunDatas;      
-
-      // Did we receive battery data ?
-      if (Command == CMD_get_data)
-      {
-        dword dcalc;
-        word Volt = 0;
-        word MaxVolt = 0;
-        word Amps = 0; 
-        dword Power = 0; 
-        word Temperature = 0; 
-
-        // Get the data from the buffer.
-        memcpy(&Volt, &buffer[counter], 2);
-        counter += 2;
-        memcpy(&Amps, &buffer[counter], 2);
-        counter += 2;
-        memcpy(&Power, &buffer[counter], 4);
-        counter += 4;
-        memcpy(&Temperature, &buffer[counter], 2);
-        counter += 2;
-
-        // Store the data
-        RDS->LastBatteryData.V = Volt;
-        RDS->LastBatteryData.I = Amps;    
-        RDS->LastBatteryData.P = Power;    
-        RDS->LastBatteryData.T = Temperature;    
-
-        // Show data on screen 1
-        Screen1AddVIData(Volt, Amps);
-        
-        if (SET->TestData.Active == bmActive)
-        {
-          //Append the data in storage
-          AddMeasurementData(BatteryIndex, Volt, Amps, Power, Temperature);
-
-          // Append data into graphs if visible
-          if (ActiveBatteryIndex == BatteryIndex) Screen2AddData(Volt,Amps);
-        }
-      }
-
-      if (Command == CMD_set_value)
-      {
-        lv_color_t c = LV_COLOR_MAKE(0,0,0); 
-
-        // Get the StageMode
-        SET->TestData.SetStageMode = (TStageMode)buffer[counter++];
-        // Get the StageValue
-        memcpy(&SET->TestData.SetStageValue, &buffer[counter], 4);
-        counter += 4;
-
-        switch (SET->TestData.SetStageMode)
-        {
-          case smCurrent:
-          case smPower:
-          case smResistor:
-          {
-            c = lv_palette_main(LV_PALETTE_DEEP_ORANGE);
-            ClearRunData(RDS);
-            SET->TestData.Active = bmActive;
-            break;
-          }
-          case smCharge:
-          {
-            c = lv_palette_main(LV_PALETTE_LIGHT_GREEN);
-            ClearRunData(RDS);
-            SET->TestData.Active = bmActive;
-            break;
-          }  
-          case smOff:
-          case smZero:
-          case smDisabled:
-          {
-            c = LV_COLOR_MAKE(0X00,0xFF,0xFF);
-            SET->TestData.Active = bmIdle;
-            break;
-          }
-          default:
-          {
-            c = lv_palette_main(LV_PALETTE_YELLOW);
-            SET->TestData.Active = bmIdle;
-            break;
-          }
-        }
-        //SetLedScreen1(BatteryIndex,c);
-        //if (ActiveBatteryIndex == BatteryIndex) Screen1SetData(SET);      
-      }
-      break;
-    }
-  }
 }
 
 void ClearRunData(PRunDatas RDS)

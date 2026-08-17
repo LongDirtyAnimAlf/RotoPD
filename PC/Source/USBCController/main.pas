@@ -223,6 +223,7 @@ uses
   Clipbrd,
   LCLType,
   SPLASH,
+  Bits,
   Tools;
 
 Const
@@ -1042,7 +1043,8 @@ end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
 begin
-  DD.SetMaxPDO(1,1);
+  //DD.SetMaxPDO(1,1);
+  DD.SetPPSPDO(1,6,3000,8500);
 end;
 
 procedure TPowerbankMainForm.DataEditKeyPress(Sender: TObject; var Key: char);
@@ -1713,6 +1715,7 @@ var
   PDOCount,PDOIndex:byte;
   RawPDO: PDO_DATA_T;
   PDO: TAP33772S_PDO;
+  wd:TWordData;
 begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
@@ -1813,17 +1816,26 @@ begin
       SourceEPRPDODrawGrid.Invalidate;
     end;
 
-    TCommands.CMD_set_MAXPDO:
+    TCommands.CMD_set_MAXPDO,TCommands.CMD_set_FIXEDPDO,TCommands.CMD_set_PPSPDO,TCommands.CMD_set_AVSPDO:
     begin
       PDOIndex := PByteArray(data)^[DATASTART];
-      RawPDO.bytes.byte0 := PByteArray(data)^[DATASTART+1];
-      RawPDO.bytes.byte1 := PByteArray(data)^[DATASTART+2];
+
+      wd.Bytes[0]:=PByteArray(data)^[DATASTART+1];
+      wd.Bytes[1]:=PByteArray(data)^[DATASTART+2];
+      USBDebugLog.Lines.Append('Req: '+InttoStr(wd.Raw)+'mA');
+
+      wd.Bytes[0]:=PByteArray(data)^[DATASTART+3];
+      wd.Bytes[1]:=PByteArray(data)^[DATASTART+4];
+      USBDebugLog.Lines.Append('Req: '+InttoStr(wd.Raw)+'mV');
+
+      RawPDO.bytes.byte0 := PByteArray(data)^[DATASTART+5];
+      RawPDO.bytes.byte1 := PByteArray(data)^[DATASTART+6];
       DecodePDONew(PDOIndex,RawPDO,PDO);
 
-      USBDebugLog.Lines.Append('PDO index '+InttoStr(PDO.index));
-      USBDebugLog.Lines.Append(InttoStr(PDO.maxVoltage_mV)+'mV');
-      USBDebugLog.Lines.Append(InttoStr(PDO.maxCurrent_mA)+'mA');
-      if PDO.isEPR then USBDebugLog.Lines.Append('(EPR)');
+      USBDebugLog.Lines.Append('AP33772S PDO index '+InttoStr(PDO.index));
+      USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxVoltage_mV)+'mV');
+      USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxCurrent_mA)+'mA');
+      if PDO.isEPR then USBDebugLog.Lines.Append('AP33772S '+'(EPR)');
 
       DUT.ActiveSRCPDO:=PDOIndex;
 

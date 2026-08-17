@@ -198,9 +198,8 @@ typedef enum
   pmFixed = 0,
   pmPPS,
   pmAVS,
+  pmMAX
 } TPDOMode;
-
-
 
 typedef struct
 {

@@ -20,7 +20,7 @@ lv_obj_t * getpdolistbutton = NULL;
 
 static lv_obj_t * PDOCells[MAX_PDO_ENTRIES] = {NULL};
 
-lv_obj_t * CreatePDOCell(lv_obj_t * parent);
+static lv_obj_t * CreatePDOCell(lv_obj_t * parent);
 void Screen3SetPDO(
   uint8_t  index,          // 1-based (1–13)
   bool     valid,          // detect bit = 1
@@ -61,7 +61,7 @@ static void btn_event_cb(lv_event_t * e)
   }
 }
 
-void Setup_Screen(lv_obj_t * cont)
+static void Setup_Screen(lv_obj_t * cont)
 {
   lv_obj_t * obj = NULL;
   lv_obj_t * label = NULL;
@@ -162,18 +162,14 @@ void Setup_Screen3(byte index, bool show)
     if (obj != NULL) lv_label_set_text(obj,"PDO-list");
 
     obj = GetButtonLabelObject();
-    if (obj != NULL)
-    {
-      lv_label_set_text(obj,"---");
-      // Get the navigation button itself
-      //btn_next_state = (uint16_t)((uint8_t)SCREENINDEX << 8 | (uint8_t)btn_next);    
-    }
+    if (obj != NULL) lv_label_set_text(obj,"Logger");
   }
+  
   SetContentObject(screen3,show);
   if (screen3 != NULL) Setup_Screen(screen3);
 }
 
-lv_obj_t * CreatePDOCell(lv_obj_t * parent)
+static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
 {
   lv_obj_t * label;
   lv_obj_t * chk;  

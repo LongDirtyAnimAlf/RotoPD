@@ -231,17 +231,7 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
   dataindexer = DATASTART;
 
-  if (cCmd == CMD_set_MAXPDO)
-  {
-    #ifdef DEBUG
-    USBSerial.printf("Max PDO.\r\n");
-    #endif
-    // PD Index
-    LocalBatteryBoard->BM.pdoIndex=(databuffer[dataindexer++]);
-    pd.setMaxPDO(LocalBatteryBoard->BM.pdoIndex);
-  }
-
-  if ( (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
     // We got a SetPDO command
     StatusUpdateNeeded = true;
@@ -259,12 +249,23 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received SetPD command.\r\n");
     USBSerial.printf("PDO index:%d.\r\n", LocalBatteryBoard->BM.pdoIndex);
-    USBSerial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
     USBSerial.printf("PDO current:%dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
+    USBSerial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
     #endif
 
     switch (cCmd)
     {
+      case CMD_set_MAXPDO:
+      {
+        #ifdef DEBUG
+        USBSerial.printf("Max PDO.\r\n");
+        #endif
+        
+        LocalBatteryBoard->BM.pdoMode = pmMAX; 
+        pd.setMaxPDO(LocalBatteryBoard->BM.pdoIndex);
+        break;
+      }
+
       case CMD_set_FIXEDPDO:
       {
         #ifdef DEBUG
@@ -450,17 +451,29 @@ bool process_command(void const *data, void *result)
         }
       }
 
-      if (cCmd == CMD_set_MAXPDO)
+      if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
       {
+
         resultbuffer[dataindexer++] = LocalBatteryBoard->BM.pdoIndex;
+        
+        w_data.Val = pd.getRequestedCurrent_mA();
+        resultbuffer[dataindexer++] = w_data.v[0];
+        resultbuffer[dataindexer++] = w_data.v[1];
+        LocalBatteryBoard->BM.maxCurrent=w_data.Val;
+
+        w_data.Val = pd.getRequestedVoltage_mV();
+        resultbuffer[dataindexer++] = w_data.v[0];
+        resultbuffer[dataindexer++] = w_data.v[1];
+        LocalBatteryBoard->BM.targetVoltage=w_data.Val;
+
         w_data.Val = 0;
         if (pd.readPDO(LocalBatteryBoard->BM.pdoIndex, PDO))
         {
           if (PDO.valid)
           {
             LocalBatteryBoard->BM.pdoMode=(TPDOMode)PDO.type;
-            LocalBatteryBoard->BM.targetVoltage=PDO.maxVoltage_mV;
-            LocalBatteryBoard->BM.maxCurrent=PDO.maxCurrent_mA;
+            //LocalBatteryBoard->BM.maxCurrent=PDO.maxCurrent_mA;
+            //LocalBatteryBoard->BM.targetVoltage=PDO.maxVoltage_mV;
             w_data.Val = PDO.raw;
           }
         }

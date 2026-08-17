@@ -123,9 +123,10 @@ type
 
     function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
 
-
     function  SetMaxPDO(board,PDO:word):boolean;
     function  SetFixedPDO(board,PDO:word;MaxCurrent_mA:dword):boolean;
+    function  SetPPSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
+    function  SetAVSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
 
     function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
     function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
@@ -809,40 +810,39 @@ begin
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
       PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
 
+      PLocalData^.Data[DATASTART] := PDOIndex;        // data itself: PDO wanted
+
       if (cmd=TCommands.CMD_set_MAXPDO) then
       begin
         PLocalData^.Data[LENGTHPOSITION] := 1;        // data length
-        PLocalData^.Data[DATASTART] := PDOIndex;      // data itself: PDO wanted
       end;
 
       if (cmd=TCommands.CMD_set_FIXEDPDO) then
       begin
         PLocalData^.Data[LENGTHPOSITION] := 1+4;        // data length
-        PLocalData^.Data[DATASTART] := PDOIndex;        // data itself: PDO wanted
 
         temp.Raw:=MaxCurrent_mA;
-        PLocalData^.Data[DATASTART]   :=(temp.Bytes[0]);
-        PLocalData^.Data[DATASTART+1] :=(temp.Bytes[1]);
-        PLocalData^.Data[DATASTART+2] :=(temp.Bytes[2]);
-        PLocalData^.Data[DATASTART+3] :=(temp.Bytes[3]);
+        PLocalData^.Data[DATASTART+1]   :=(temp.Bytes[0]);
+        PLocalData^.Data[DATASTART+2] :=(temp.Bytes[1]);
+        PLocalData^.Data[DATASTART+3] :=(temp.Bytes[2]);
+        PLocalData^.Data[DATASTART+4] :=(temp.Bytes[3]);
       end;
 
       if (cmd in [TCommands.CMD_set_PPSPDO,TCommands.CMD_set_AVSPDO]) then
       begin
         PLocalData^.Data[LENGTHPOSITION] := 1+4+4;        // data length
-        PLocalData^.Data[DATASTART] := PDOIndex;          // data itself: PDO wanted
 
         temp.Raw:=MaxCurrent_mA;
-        PLocalData^.Data[DATASTART]   :=(temp.Bytes[0]);
-        PLocalData^.Data[DATASTART+1] :=(temp.Bytes[1]);
-        PLocalData^.Data[DATASTART+2] :=(temp.Bytes[2]);
-        PLocalData^.Data[DATASTART+3] :=(temp.Bytes[3]);
+        PLocalData^.Data[DATASTART+1]   :=(temp.Bytes[0]);
+        PLocalData^.Data[DATASTART+2] :=(temp.Bytes[1]);
+        PLocalData^.Data[DATASTART+3] :=(temp.Bytes[2]);
+        PLocalData^.Data[DATASTART+4] :=(temp.Bytes[3]);
 
         temp.Raw:=Voltage_mV;
-        PLocalData^.Data[DATASTART+4] :=(temp.Bytes[0]);
-        PLocalData^.Data[DATASTART+5] :=(temp.Bytes[1]);
-        PLocalData^.Data[DATASTART+6] :=(temp.Bytes[2]);
-        PLocalData^.Data[DATASTART+7] :=(temp.Bytes[3]);
+        PLocalData^.Data[DATASTART+5] :=(temp.Bytes[0]);
+        PLocalData^.Data[DATASTART+6] :=(temp.Bytes[1]);
+        PLocalData^.Data[DATASTART+7] :=(temp.Bytes[2]);
+        PLocalData^.Data[DATASTART+8] :=(temp.Bytes[3]);
       end;
 
       error := HandleDataRequest(Ctrl,True);
@@ -861,10 +861,17 @@ function TDataDevice.SetMaxPDO(board,PDO:word):boolean;
 begin
   result:=SetPDO(board,PDO,PDO_TYPE_MAX);
 end;
-
 function TDataDevice.SetFixedPDO(board,PDO:word;MaxCurrent_mA:dword):boolean;
 begin
   result:=SetPDO(board,PDO,PDO_TYPE_FIXED,MaxCurrent_mA);
+end;
+function TDataDevice.SetPPSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
+begin
+  result:=SetPDO(board,PDO,PDO_TYPE_PPS,MaxCurrent_mA,Voltage_mV);
+end;
+function TDataDevice.SetAVSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
+begin
+  result:=SetPDO(board,PDO,PDO_TYPE_AVS,MaxCurrent_mA,Voltage_mV);
 end;
 
 function  TDataDevice.ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;
