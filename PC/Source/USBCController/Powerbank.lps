@@ -22,8 +22,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1817"/>
-        <CursorPos Y="1838"/>
+        <TopLine Value="1802"/>
+        <CursorPos X="19" Y="1814"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -35,7 +35,7 @@
       <Unit>
         <Filename Value="text.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="33"/>
+        <UsageCount Value="34"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="15"/>
       </Unit>
@@ -43,14 +43,14 @@
         <Filename Value="..\Common\ap33772s.pas"/>
         <IsPartOfProject Value="True"/>
         <Loaded Value="True"/>
-        <UsageCount Value="31"/>
+        <UsageCount Value="32"/>
         <EditorIndex Value="6"/>
         <CursorPos X="15" Y="13"/>
       </Unit>
       <Unit>
         <Filename Value="text1.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="29"/>
+        <UsageCount Value="30"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
         <CursorPos Y="107"/>
@@ -3512,7 +3512,7 @@
       <Unit>
         <Filename Value="..\Common\bits.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="65"/>
+        <UsageCount Value="66"/>
         <EditorIndex Value="2"/>
         <TopLine Value="76"/>
         <CursorPos X="12" Y="91"/>
@@ -3752,7 +3752,7 @@
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <UnitName Value="usb"/>
         <Loaded Value="True"/>
-        <UsageCount Value="31"/>
+        <UsageCount Value="32"/>
         <EditorIndex Value="4"/>
         <TopLine Value="243"/>
         <CursorPos Y="260"/>
@@ -3864,7 +3864,7 @@
       <Unit>
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="26"/>
         <EditorIndex Value="1"/>
         <TopLine Value="812"/>
         <CursorPos Y="835"/>
@@ -3872,7 +3872,7 @@
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="26"/>
         <EditorIndex Value="3"/>
       </Unit>
       <Unit>

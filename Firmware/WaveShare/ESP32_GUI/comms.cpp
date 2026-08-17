@@ -249,15 +249,15 @@ bool process_command(void const *data, void *result)
 
     #ifdef DEBUG
     USBSerial.printf("Received SetPD command.\r\n");
-    USBSerial.printf("PDO index:%d.\r\n", LocalBatteryBoard->BM.pdoIndex);
-    USBSerial.printf("PDO current:%dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
-    USBSerial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
+    USBSerial.printf("PDO index: %d.\r\n", LocalBatteryBoard->BM.pdoIndex);
+    USBSerial.printf("PDO requested current: %dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
+    USBSerial.printf("PDO target voltage: %dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
     #endif
 
     ScreenLogger_Add("Received SetPD command.",true);
-    ScreenLogger_Add_Fmt("PDO index:%d.\n", LocalBatteryBoard->BM.pdoIndex);
-    ScreenLogger_Add_Fmt("PDO current:%dmA.\n", LocalBatteryBoard->BM.maxCurrent);
-    ScreenLogger_Add_Fmt("PDO voltage:%dmV.\n", LocalBatteryBoard->BM.targetVoltage);
+    ScreenLogger_Add_Fmt("PDO index: %d.\n", LocalBatteryBoard->BM.pdoIndex);
+    ScreenLogger_Add_Fmt("PDO requested current: %dmA.\n", LocalBatteryBoard->BM.maxCurrent);
+    ScreenLogger_Add_Fmt("PDO target voltage: %dmV.\n", LocalBatteryBoard->BM.targetVoltage);
 
     switch (cCmd)
     {

@@ -971,6 +971,9 @@ void loop()
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
   byte dataindexer = 0;
 
+  PDO_DATA_T raw;
+  WORD_VAL wv;
+
   #ifdef BUTTON_PIN
   if (digitalRead(BUTTON_PIN) == LOW)
   {
@@ -1053,14 +1056,13 @@ void loop()
                   if (PDO.valid)
                   {
                     #ifdef DEBUG
-                    USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                    USBSerial.printf("PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
                     #endif
-                    ScreenLogger_Add_Fmt("PDO received ! PDO voltage : #%dmV.\n", PDO.maxVoltage_mV);
+                    ScreenLogger_Add_Fmt("PDO received ! PDO voltage: #%dmV.\n", PDO.maxVoltage_mV);
                     #ifdef STANDALONE
                     Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
                     #endif
                     hid_report_in[dataindexer++] = PDO.index;
-                    WORD_VAL wv;
                     wv.Val = PDO.raw;
                     hid_report_in[dataindexer++] = wv.bytes.LB;
                     hid_report_in[dataindexer++] = wv.bytes.HB;
@@ -1170,23 +1172,47 @@ void loop()
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
-    //if ( (Command == CMD_set_MAXPDO) ||  (Command == CMD_set_FIXEDPDO) || (Command == CMD_set_PPSPDO) || (Command == CMD_set_AVSPDO) )
-    if ( (Command == CMD_get_PDOList) || (Command == CMD_read_PDOList) || (Command == CMD_set_MAXPDO))
-    {
-        #ifdef DEBUG
-        //USBSerial.println("Got a PDO command !!");
-        #endif
-        //ScreenLogger_Add("Got a PDO command !!",true);
-    }
-
     switch(Command)
     {
+      case CMD_set_MAXPDO:
+      case CMD_set_FIXEDPDO:
+      case CMD_set_PPSPDO:
+      case CMD_set_AVSPDO:
+      {
+        j = INData[counter++];
+
+        wv.bytes.LB = INData[counter++];
+        wv.bytes.HB = INData[counter++];
+        PDO.maxCurrent_mA = wv.Val;
+        ScreenLogger_Add_Fmt("PDO requested current: #%dmA.\n", PDO.maxCurrent_mA);
+
+        wv.bytes.LB = INData[counter++];
+        wv.bytes.HB = INData[counter++];
+        PDO.maxVoltage_mV = wv.Val;
+        ScreenLogger_Add_Fmt("PDO requested voltage: #%dmV.\n", PDO.maxVoltage_mV);
+
+        raw.byte0 = INData[counter++];
+        raw.byte1 = INData[counter++];
+
+        // This fuction is index zero based !!
+        AP33772S::decodePDONew(j-1, raw, PDO);
+
+        if (PDO.valid)
+        {
+          #ifdef DEBUG
+          USBSerial.printf("PDO [%d] received ! PDO V/I: %dmV/%dmA.\r\n", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
+          #endif
+          ScreenLogger_Add_Fmt("PDO [%d] received ! PDO V/I: %dmV/%dmA.\n", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
+        }
+
+        break;
+      }
+
       case CMD_get_PDOList:
+      case CMD_read_PDOList:
       {
 
         // We need to update the GUI with the received PDO's !!
-
-        PDO_DATA_T raw;
 
         PDOCount = INData[counter++];
 
@@ -1213,9 +1239,9 @@ void loop()
               if (PDO.valid)
               {
                 #ifdef DEBUG
-                USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                USBSerial.printf("PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
                 #endif
-                ScreenLogger_Add_Fmt("PDO received ! PDO voltage : #%dmV.\n", PDO.maxVoltage_mV);
+                ScreenLogger_Add_Fmt("PDO received ! PDO voltage: #%dmV.\n", PDO.maxVoltage_mV);
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }
