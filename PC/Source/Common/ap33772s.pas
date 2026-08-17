@@ -11,6 +11,7 @@ const
   PDO_TYPE_FIXED = 0;
   PDO_TYPE_PPS   = 1;
   PDO_TYPE_AVS   = 2;
+  PDO_TYPE_MAX   = 3;
 
 type
   // ── Decoded, human-readable PDO ──────────────────────────────────────────────

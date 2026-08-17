@@ -42,6 +42,7 @@ type
     btnKC003CReset: TButton;
     btnTestDischarge: TSpeedButton;
     Button1: TButton;
+    Button2: TButton;
     Chart1: TChart;
     Chart1LineSeries1: TLineSeries;
     Chart1LineSeries2: TLineSeries;
@@ -88,6 +89,7 @@ type
     procedure btnInitClick(Sender: TObject);
     procedure btnTestDischargeClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
     procedure DataEditKeyPress(Sender: TObject; var Key: char);
     procedure dgFlagsDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
@@ -695,6 +697,9 @@ begin
     if (PDONumber=0) then exit;
 
     USBDebugLog.Lines.Append('Requesting Source PDO #'+InttoStr(PDONumber)+' at '+InttoStr(PDOVoltage)+'mV and '+InttoStr(PDOCurrent)+'mA.');
+
+    DD.SetMaxPDO(1,PDONumber);
+
   end;
 
 end;
@@ -1033,6 +1038,11 @@ end;
 procedure TPowerbankMainForm.Button1Click(Sender: TObject);
 begin
   DD.GetPDOList(1);
+end;
+
+procedure TPowerbankMainForm.Button2Click(Sender: TObject);
+begin
+  DD.SetMaxPDO(1,1);
 end;
 
 procedure TPowerbankMainForm.DataEditKeyPress(Sender: TObject; var Key: char);
@@ -1698,12 +1708,14 @@ procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const D
 var
   measuredvalue:double;
   cmd:TCommands;
+  boardnumber:byte;
   counter:integer;
   PDOCount,PDOIndex:byte;
   RawPDO: PDO_DATA_T;
   PDO: TAP33772S_PDO;
 begin
-  cmd:=TCommands(PByteArray(data)^[0]);
+  cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
+  boardnumber:=PByteArray(data)^[INDEXPOSITION];
 
   case cmd of
     TCommands.CMD_get_data:
@@ -1726,7 +1738,7 @@ begin
     end;
     TCommands.CMD_get_PDOList:
     begin
-      Counter:=3;
+      Counter:=DATASTART;
       PDOCount := PByteArray(data)^[Counter];
       Inc(Counter);
 
@@ -1798,8 +1810,29 @@ begin
       end;
 
       SourcePDODrawGrid.Invalidate;
-
+      SourceEPRPDODrawGrid.Invalidate;
     end;
+
+    TCommands.CMD_set_MAXPDO:
+    begin
+      PDOIndex := PByteArray(data)^[DATASTART];
+      RawPDO.bytes.byte0 := PByteArray(data)^[DATASTART+1];
+      RawPDO.bytes.byte1 := PByteArray(data)^[DATASTART+2];
+      DecodePDONew(PDOIndex,RawPDO,PDO);
+
+      USBDebugLog.Lines.Append('PDO index '+InttoStr(PDO.index));
+      USBDebugLog.Lines.Append(InttoStr(PDO.maxVoltage_mV)+'mV');
+      USBDebugLog.Lines.Append(InttoStr(PDO.maxCurrent_mA)+'mA');
+      if PDO.isEPR then USBDebugLog.Lines.Append('(EPR)');
+
+      DUT.ActiveSRCPDO:=PDOIndex;
+
+      DUT.RDOPosition:=PDOIndex;
+
+      SourcePDODrawGrid.Invalidate;
+      SourceEPRPDODrawGrid.Invalidate;
+    end;
+
   else
     begin
       USBDebugLog.Lines.Append('Got other data !!!!');

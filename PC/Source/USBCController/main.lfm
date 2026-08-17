@@ -649,6 +649,15 @@ object PowerbankMainForm: TPowerbankMainForm
         TabOrder = 11
         OnClick = Button1Click
       end
+      object Button2: TButton
+        Left = 51
+        Height = 59
+        Top = 318
+        Width = 100
+        Caption = 'Button2'
+        TabOrder = 12
+        OnClick = Button2Click
+      end
     end
     object DisplaysPanel: TPanel
       AnchorSideLeft.Control = GroupBox1

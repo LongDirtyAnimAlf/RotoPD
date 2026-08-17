@@ -249,12 +249,12 @@ bool process_command(void const *data, void *result)
     // Settings start at index DATASTART
     // PD Index
     LocalBatteryBoard->BM.pdoIndex=(databuffer[dataindexer++]);
-    // targetVoltage
-    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->BM.targetVoltage=dw_data.Val;
     // maxCurrent
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.maxCurrent=dw_data.Val;
+    // targetVoltage
+    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+    LocalBatteryBoard->BM.targetVoltage=dw_data.Val;
 
     #ifdef DEBUG
     USBSerial.printf("Received SetPD command.\r\n");

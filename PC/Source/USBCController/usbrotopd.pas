@@ -14,6 +14,14 @@ uses
   usb,
   usbboard;
 
+const
+  COMMANDPOSITION  = 0;
+  INDEXPOSITION    = 1;
+  LENGTHPOSITION   = 2;
+  DATASTART        = 3;
+
+  COMMAND_SIZE     = 64;
+
 type
 
   TCommands = (
@@ -113,6 +121,12 @@ type
 
     function  GetPDOList(board:word):boolean;
 
+    function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
+
+
+    function  SetMaxPDO(board,PDO:word):boolean;
+    function  SetFixedPDO(board,PDO:word;MaxCurrent_mA:dword):boolean;
+
     function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
     function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
 
@@ -130,11 +144,13 @@ implementation
 
 uses
   DateUtils,
-  IniFiles;
+  IniFiles,
+  bits,
+  ap33772s;
 
 const
   USBErrorTimeout               = 50;
-  Bits                          = 16;
+  Bitssss                          = 16;
 
 function CRC16(Buffer: String): word;  // CRC16 XMODEM
 const
@@ -723,8 +739,6 @@ function  TDataDevice.GetPDOList(board:word):boolean;
 var
   error:boolean;
   cmd: TCommands;
-  measuredvalue:double;
-  datalength:word;
   PLocalData:PReport;
   Ctrl:TUSBController;
 begin
@@ -745,7 +759,7 @@ begin
 
     repeat
       PLocalData^:=Default(TReport);
-      PLocalData^.Data[0] := byte(cmd);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
 
       error := HandleDataRequest(Ctrl,True);
 
@@ -759,7 +773,99 @@ begin
   result:=error;
 end;
 
+function  TDataDevice.SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword;Voltage_mV:dword):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  temp:TDWordData;
+  PLocalData:PReport;
+  Ctrl:TUSBController;
+begin
+  result:=false;
 
+  if CheckParameters(board) then exit;
+
+  ErrorCounter:=1;
+
+  cmd := TCommands.CMD_unknown;
+
+  case PDOType of
+    PDO_TYPE_FIXED : cmd := TCommands.CMD_set_FIXEDPDO;
+    PDO_TYPE_PPS   : cmd := TCommands.CMD_set_PPSPDO;
+    PDO_TYPE_AVS   : cmd := TCommands.CMD_set_AVSPDO;
+    PDO_TYPE_MAX   : cmd := TCommands.CMD_set_MAXPDO;
+  end;
+
+  if (cmd=TCommands.CMD_unknown) then exit;
+
+  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
+
+      if (cmd=TCommands.CMD_set_MAXPDO) then
+      begin
+        PLocalData^.Data[LENGTHPOSITION] := 1;        // data length
+        PLocalData^.Data[DATASTART] := PDOIndex;      // data itself: PDO wanted
+      end;
+
+      if (cmd=TCommands.CMD_set_FIXEDPDO) then
+      begin
+        PLocalData^.Data[LENGTHPOSITION] := 1+4;        // data length
+        PLocalData^.Data[DATASTART] := PDOIndex;        // data itself: PDO wanted
+
+        temp.Raw:=MaxCurrent_mA;
+        PLocalData^.Data[DATASTART]   :=(temp.Bytes[0]);
+        PLocalData^.Data[DATASTART+1] :=(temp.Bytes[1]);
+        PLocalData^.Data[DATASTART+2] :=(temp.Bytes[2]);
+        PLocalData^.Data[DATASTART+3] :=(temp.Bytes[3]);
+      end;
+
+      if (cmd in [TCommands.CMD_set_PPSPDO,TCommands.CMD_set_AVSPDO]) then
+      begin
+        PLocalData^.Data[LENGTHPOSITION] := 1+4+4;        // data length
+        PLocalData^.Data[DATASTART] := PDOIndex;          // data itself: PDO wanted
+
+        temp.Raw:=MaxCurrent_mA;
+        PLocalData^.Data[DATASTART]   :=(temp.Bytes[0]);
+        PLocalData^.Data[DATASTART+1] :=(temp.Bytes[1]);
+        PLocalData^.Data[DATASTART+2] :=(temp.Bytes[2]);
+        PLocalData^.Data[DATASTART+3] :=(temp.Bytes[3]);
+
+        temp.Raw:=Voltage_mV;
+        PLocalData^.Data[DATASTART+4] :=(temp.Bytes[0]);
+        PLocalData^.Data[DATASTART+5] :=(temp.Bytes[1]);
+        PLocalData^.Data[DATASTART+6] :=(temp.Bytes[2]);
+        PLocalData^.Data[DATASTART+7] :=(temp.Bytes[3]);
+      end;
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
+function TDataDevice.SetMaxPDO(board,PDO:word):boolean;
+begin
+  result:=SetPDO(board,PDO,PDO_TYPE_MAX);
+end;
+
+function TDataDevice.SetFixedPDO(board,PDO:word;MaxCurrent_mA:dword):boolean;
+begin
+  result:=SetPDO(board,PDO,PDO_TYPE_FIXED,MaxCurrent_mA);
+end;
 
 function  TDataDevice.ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;
 var
@@ -809,13 +915,13 @@ begin
         begin
           //voltage
           measuredvalue:=(UInt16(data[3])+UInt16(data[4])*256);
-          measuredvalue:=measuredvalue/((1 shl Bits)-1);
+          measuredvalue:=measuredvalue/((1 shl Bitssss)-1);
           measuredvalue:=measuredvalue*Vmax;
           voltage:=measuredvalue/1000;
 
           //current
           measuredvalue:=(UInt16(data[5])+UInt16(data[6])*256);
-          measuredvalue:=measuredvalue/((1 shl Bits)-1);
+          measuredvalue:=measuredvalue/((1 shl Bitssss)-1);
           measuredvalue:=measuredvalue*Imax;
           current:=measuredvalue/1000;
         end;
