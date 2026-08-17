@@ -26,8 +26,7 @@ static void Setup_Screen(lv_obj_t * cont)
     lv_obj_set_size(ta_logger, lv_pct(100), lv_pct(100));
     lv_obj_align(ta_logger, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_pad_all(ta_logger, 0, LV_PART_MAIN);
-    lv_obj_add_state(ta_logger, LV_STATE_DISABLED);
-    //lv_textarea_set_cursor_hidden(ta_logger, true);
+    //lv_obj_add_state(ta_logger, LV_STATE_DISABLED);
     lv_obj_remove_style(ta_logger, NULL, LV_PART_CURSOR);
     lv_textarea_set_cursor_pos(ta_logger, LV_TEXTAREA_CURSOR_LAST);
     lv_textarea_add_text(ta_logger, "USB logger\n");
@@ -62,4 +61,33 @@ void ScreenLogger_Add(const char *txt, bool newline)
   lv_textarea_add_text(ta_logger, txt); 
   if (newline) lv_textarea_add_text(ta_logger, "\n");
  }
+}
+
+int ScreenLogger_Add_Fmt(const char *format, ...)
+{
+  if (ta_logger == NULL)
+    return -1;
+
+  char myString[256];
+
+  va_list args;
+  va_start(args, format);
+
+  int result = vsnprintf(myString, sizeof(myString), format, args);
+
+  va_end(args);                    // Clean up
+
+  if (result < 0) {
+    // encoding error
+    return result;
+  }  
+
+  // Optional: detect truncation
+  if (result >= (int)sizeof(myString)) {
+    // message was truncated
+  }  
+
+  lv_textarea_add_text(ta_logger, myString);
+
+  return result;
 }

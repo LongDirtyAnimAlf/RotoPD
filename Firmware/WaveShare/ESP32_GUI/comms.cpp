@@ -1,4 +1,5 @@
 #include "comms.h"
+#include "./src/UI/screenlogger.h"
 
 #if defined(ARDUINO_ARCH_SAMD)
 MYSERCOM mysercom(PIN_WIRE_SERCOM);
@@ -253,6 +254,11 @@ bool process_command(void const *data, void *result)
     USBSerial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
     #endif
 
+    ScreenLogger_Add("Received SetPD command.",true);
+    ScreenLogger_Add_Fmt("PDO index:%d.\n", LocalBatteryBoard->BM.pdoIndex);
+    ScreenLogger_Add_Fmt("PDO current:%dmA.\n", LocalBatteryBoard->BM.maxCurrent);
+    ScreenLogger_Add_Fmt("PDO voltage:%dmV.\n", LocalBatteryBoard->BM.targetVoltage);
+
     switch (cCmd)
     {
       case CMD_set_MAXPDO:
@@ -260,6 +266,7 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("Max PDO.\r\n");
         #endif
+        ScreenLogger_Add("Max PDO.",true);
         
         LocalBatteryBoard->BM.pdoMode = pmMAX; 
         pd.setMaxPDO(LocalBatteryBoard->BM.pdoIndex);
@@ -271,6 +278,7 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("Fixed PDO.\r\n");
         #endif
+        ScreenLogger_Add("Fixed PDO.",true);
 
         LocalBatteryBoard->BM.pdoMode = pmFixed; 
         j = pd.setFixPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.maxCurrent);
@@ -281,6 +289,7 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("PPS PDO.\r\n");
         #endif
+        ScreenLogger_Add("PPS PDO.",true);
 
         LocalBatteryBoard->BM.pdoMode = pmPPS; 
         j = pd.setPPSPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.targetVoltage, LocalBatteryBoard->BM.maxCurrent);
@@ -291,6 +300,7 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("AVS PDO.\r\n");
         #endif
+        ScreenLogger_Add("AVS PDO.",true);
 
         LocalBatteryBoard->BM.pdoMode = pmAVS; 
         j = pd.setAVSPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.targetVoltage, LocalBatteryBoard->BM.maxCurrent);
@@ -310,6 +320,7 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
     #endif
+    ScreenLogger_Add_Fmt("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
   }
 
   if (cCmd == CMD_read_PDOList)
@@ -319,6 +330,7 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received read PDO list. PDOs: %d\r\n",PDOCount);
     #endif
+    ScreenLogger_Add_Fmt("Received read PDO list. PDOs: %d\n",PDOCount);
   }
 
   if (cCmd == CMD_set_value)
@@ -326,6 +338,7 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received SetValue command.\r\n");
     #endif
+    ScreenLogger_Add("Received SetValue command.",true);
 
     LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
@@ -341,6 +354,7 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("Output ON.\r\n");
         #endif
+        ScreenLogger_Add("Output ON.",true);
 
         pd.setOutput(true);
         break;
@@ -354,6 +368,7 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("Output OFF.\r\n");
         #endif
+        ScreenLogger_Add("Output OFF.",true);
 
         pd.setOutput(false);
       }
@@ -366,6 +381,7 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetData command.\r\n");
     #endif
+    ScreenLogger_Add("Received GetData command.",true);
 
     float ina_mA  = ina238.getMilliAmpere();
     float ina_mV  = ina238.getBusMilliVolt();
@@ -598,6 +614,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         #ifdef DEBUG
         USBSerial.printf("Severe error. Wrong battery number:%d.\r\n", cBat);
         #endif
+        ScreenLogger_Add_Fmt("Severe error. Wrong battery number:%d.\n", cBat);
       }
     }
   }

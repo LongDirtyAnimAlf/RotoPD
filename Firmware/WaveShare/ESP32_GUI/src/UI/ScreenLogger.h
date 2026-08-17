@@ -6,11 +6,14 @@ extern "C" {
 #endif
 
 #include <lvgl.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 extern lv_obj_t * screenlogger;
 
 void Setup_ScreenLogger(byte index, bool show);
 void ScreenLogger_Add(const char *txt, bool newline);
+int ScreenLogger_Add_Fmt(const char *format, ...);
 
 #ifdef __cplusplus
 } /*extern "C"*/

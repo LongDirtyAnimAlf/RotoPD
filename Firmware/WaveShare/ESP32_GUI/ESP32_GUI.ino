@@ -930,9 +930,11 @@ void setup()
   #endif
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
+  Setup_ScreenLogger(ActiveBatteryIndex,false);
   Setup_Screen1(ActiveBatteryIndex);
   SET = &Batteries[ActiveBatteryIndex];
   Screen1SetData(SET);
+
   #endif
 
   #ifdef DEBUG  
@@ -948,6 +950,7 @@ void setup()
   #ifdef DEBUG
   USBSerial.println("Init done");
   #endif
+  ScreenLogger_Add("Controller startup ready.",true);
 
   #ifdef LVGLDEMOS
   //lv_demo_widgets();  
@@ -1018,6 +1021,7 @@ void loop()
             #ifdef DEBUG
             USBSerial.printf("New PDO's !! PDO count: %d\r\n",PDOCount);
             #endif
+            ScreenLogger_Add_Fmt("New PDO's !! PDO count: %d\n",PDOCount);
 
             if (PDOCount>0)
             {
@@ -1048,7 +1052,10 @@ void loop()
                 {
                   if (PDO.valid)
                   {
+                    #ifdef DEBUG
                     USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                    #endif
+                    ScreenLogger_Add_Fmt("PDO received ! PDO voltage : #%dmV.\n", PDO.maxVoltage_mV);
                     #ifdef STANDALONE
                     Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
                     #endif
@@ -1086,7 +1093,6 @@ void loop()
 
     }
   }  
-
 
   byte BatteryIndex;
   PBatterySetting SET = NULL;
@@ -1131,7 +1137,7 @@ void loop()
 
         //#ifdef USE_LCD
         //DataOk = false;
-        ScreenLogger_Add("Got HID data",true);
+        //ScreenLogger_Add("Got HID data",true);
         //#endif
       }
 
@@ -1164,9 +1170,13 @@ void loop()
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
+    //if ( (Command == CMD_set_MAXPDO) ||  (Command == CMD_set_FIXEDPDO) || (Command == CMD_set_PPSPDO) || (Command == CMD_set_AVSPDO) )
     if ( (Command == CMD_get_PDOList) || (Command == CMD_read_PDOList) || (Command == CMD_set_MAXPDO))
     {
-      USBSerial.println("Got a PDO command !!");
+        #ifdef DEBUG
+        //USBSerial.println("Got a PDO command !!");
+        #endif
+        //ScreenLogger_Add("Got a PDO command !!",true);
     }
 
     switch(Command)
@@ -1188,7 +1198,10 @@ void loop()
 
             j = INData[counter++];
 
+            #ifdef DEBUG
             USBSerial.printf("PDO received ! PDO index: #%d.\r\n", j);
+            #endif
+            ScreenLogger_Add_Fmt("PDO received ! PDO index: #%d.\n", j);
 
             if (j)
             {
@@ -1199,7 +1212,10 @@ void loop()
 
               if (PDO.valid)
               {
+                #ifdef DEBUG
                 USBSerial.printf("PDO received ! PDO voltage : #%dmV.\r\n", PDO.maxVoltage_mV);
+                #endif
+                ScreenLogger_Add_Fmt("PDO received ! PDO voltage : #%dmV.\n", PDO.maxVoltage_mV);
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }
