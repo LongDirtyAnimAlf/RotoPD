@@ -712,7 +712,7 @@ void setup()
 
   #ifdef DEBUG
   //USBSerial.begin(115200);
-  int cnt = 15000;     // Will wait for up to ~5 second for Serial to connect.
+  int cnt = 1500;     // Will wait for up to ~5 second for Serial to connect.
   while (!USBSerial && cnt--) {delay(1);}
   // USBSerial.setDebugOutput(true);
 

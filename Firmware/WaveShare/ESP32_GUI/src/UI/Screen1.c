@@ -217,6 +217,15 @@ void Setup_Screen1(byte index)
 
   if ((cont != NULL) && (lv_obj_get_child_count(cont) == 0))
   {
+
+    static lv_style_t style_uniform_margin;
+    lv_style_init(&style_uniform_margin);
+    // Assign the value to all four directions
+    lv_style_set_margin_left(&style_uniform_margin, 2);
+    lv_style_set_margin_right(&style_uniform_margin, 2);
+    lv_style_set_margin_top(&style_uniform_margin, 2);
+    lv_style_set_margin_bottom(&style_uniform_margin, 2);
+
     static lv_style_t style;
     lv_style_init(&style);
     lv_style_set_text_font(&style, &lv_font_montserrat_24);  /*Set a larger font*/ 
@@ -227,26 +236,49 @@ void Setup_Screen1(byte index)
     // Create container for top
     lv_obj_t * top_cont = lv_obj_create(cont);
     lv_obj_remove_style_all(top_cont);
-    lv_obj_set_size(top_cont, lv_pct(100), lv_pct(20));
-    lv_obj_align(top_cont, LV_ALIGN_TOP_MID, 0, 0);    
+    lv_obj_set_size(top_cont, lv_pct(100), lv_pct(18));
+    lv_obj_align(top_cont, LV_ALIGN_TOP_MID, 0, 0);
+    //lv_obj_add_style(top_cont, &style_uniform_margin, LV_PART_MAIN | LV_STATE_DEFAULT);    
     
     // Create container for discharge setting and test  
     obj = lv_obj_create(top_cont);
     lv_obj_remove_style_all(obj);
-    lv_obj_set_size(obj, lv_pct(50), lv_pct(100));
-    lv_obj_align(obj, LV_ALIGN_TOP_LEFT, 0, 0);    
+    lv_obj_set_size(obj, lv_pct(40), lv_pct(100));
+    lv_obj_align(obj, LV_ALIGN_TOP_LEFT, 2, 2);    
+    lv_obj_add_style(obj, &style_uniform_margin, LV_PART_MAIN | LV_STATE_DEFAULT);    
+
+    lv_obj_set_style_border_width(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(obj, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT); // Red border
+    lv_obj_set_style_border_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);    
   
     //Create the label
     label = lv_label_create(obj);
     lv_obj_set_width(label, lv_pct(100));    
     lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
-    lv_label_set_text(label, "Discharge current [mA]");
+    lv_label_set_text(label, "Discharge set [mA]");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
+    //lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);        
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
+    obj = lv_obj_create(obj);
+    lv_obj_remove_style_all(obj);
+    lv_obj_set_size(obj, lv_pct(100), lv_pct(70));
+    lv_obj_align(obj, LV_ALIGN_BOTTOM_MID, 0, 0);    
+    /* Enable Flexbox layout on the container */
+    lv_obj_set_layout(obj, LV_LAYOUT_FLEX);
+    /* Align children horizontally (row) without wrapping */
+    lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+    /* Space children evenly: the label pushes the button to the far right */
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+
+    // Create the text edit area
     ta = lv_label_create(obj);
     lv_obj_add_style(ta, &input_label_style, 0);
     lv_label_set_text(ta, "0");
-    lv_obj_align_to(ta, label, LV_ALIGN_OUT_BOTTOM_LEFT, 20, 10); 
+    lv_obj_set_size(ta, lv_pct(60), LV_SIZE_CONTENT);
+    //lv_obj_align_to(ta, label, LV_ALIGN_OUT_BOTTOM_LEFT, 20, 10); 
+    //lv_obj_align(ta, LV_ALIGN_BOTTOM_LEFT, 10, -4);    
     lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);          
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
   
@@ -254,8 +286,9 @@ void Setup_Screen1(byte index)
   
     //Create the test button
     btn = lv_button_create(obj);
-    lv_obj_set_size(btn, lv_pct(40), LV_SIZE_CONTENT);
-    lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10);    
+    lv_obj_set_size(btn, lv_pct(35), LV_SIZE_CONTENT);
+    //lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10);    
+    //lv_obj_align_to(btn,ta1,LV_ALIGN_OUT_RIGHT_MID, 10, 0);    
   
     //lv_obj_set_style_bg_color(btn,lv_palette_darken(LV_PALETTE_INDIGO,3), LV_PART_MAIN); 
     lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);       
@@ -280,24 +313,121 @@ void Setup_Screen1(byte index)
 
     lv_obj_set_user_data(ta1, testdischargebutton);
   
+
+
+
+
     // Create container for charge setting and test  
     obj = lv_obj_create(top_cont);
     lv_obj_remove_style_all(obj);
-    lv_obj_set_size(obj, lv_pct(50), lv_pct(100));
+    lv_obj_set_size(obj, lv_pct(40), lv_pct(100));
+    lv_obj_align(obj, LV_ALIGN_TOP_RIGHT, -2, 2);    
+    lv_obj_add_style(obj, &style_uniform_margin, LV_PART_MAIN | LV_STATE_DEFAULT);    
+
+    lv_obj_set_style_border_width(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(obj, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT); // Red border
+    lv_obj_set_style_border_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);    
+  
+    //Create the label
+    label = lv_label_create(obj);
+    lv_obj_set_width(label, lv_pct(100));    
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_label_set_text(label, "Charge set [mA]");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
+    //lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);        
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+
+    obj = lv_obj_create(obj);
+    lv_obj_remove_style_all(obj);
+    lv_obj_set_size(obj, lv_pct(100), lv_pct(70));
+    lv_obj_align(obj, LV_ALIGN_BOTTOM_MID, 0, 0);    
+    /* Enable Flexbox layout on the container */
+    lv_obj_set_layout(obj, LV_LAYOUT_FLEX);
+    /* Align children horizontally (row) without wrapping */
+    lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+    /* Space children evenly: the label pushes the button to the far right */
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+
+    // Create the text edit area
+    ta = lv_label_create(obj);
+    lv_obj_add_style(ta, &input_label_style, 0);
+    lv_label_set_text(ta, "0");
+    lv_obj_set_size(ta, lv_pct(60), LV_SIZE_CONTENT);
+    //lv_obj_align_to(ta, label, LV_ALIGN_OUT_BOTTOM_LEFT, 20, 10); 
+    //lv_obj_align(ta, LV_ALIGN_BOTTOM_LEFT, 10, -4);    
+    lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);          
+    lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
+  
+    ta2 = ta;
+  
+    //Create the test button
+    btn = lv_button_create(obj);
+    lv_obj_set_size(btn, lv_pct(35), LV_SIZE_CONTENT);
+    //lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10);    
+    //lv_obj_align_to(btn,ta1,LV_ALIGN_OUT_RIGHT_MID, 10, 0);    
+  
+    //lv_obj_set_style_bg_color(btn,lv_palette_darken(LV_PALETTE_INDIGO,3), LV_PART_MAIN); 
+    lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);       
+    //lv_obj_add_flag(btn, LV_OBJ_FLAG_CHECKABLE);
+
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_LONG_PRESSED, NULL);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_RELEASED, NULL);
+
+    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);   
+
+
+    //lv_group_remove_obj(btn);    
+  
+    label = lv_label_create(btn);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_label_set_text(label, "TEST");
+  
+    testchargebutton = btn;
+  
+    lv_obj_set_user_data(ta2, testchargebutton);
+
+
+
+
+
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+    // Create container for charge setting and test  
+    obj = lv_obj_create(top_cont);
+    lv_obj_remove_style_all(obj);
+    lv_obj_set_size(obj, lv_pct(45), lv_pct(100));
     lv_obj_align(obj, LV_ALIGN_TOP_RIGHT, 0, 0);    
   
     //Create the label
     label = lv_label_create(obj);
     lv_obj_set_width(label, lv_pct(100));    
     lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
-    lv_label_set_text(label, "Charge current [mA]");
+    lv_label_set_text(label, "Charge set [mA]");
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
   
+
+
     //Create the current setting text area
     ta = lv_label_create(obj);
     lv_obj_add_style(ta, &input_label_style, 0);
     lv_label_set_text(ta, "0");
-    lv_obj_align_to(ta, label, LV_ALIGN_OUT_BOTTOM_LEFT, 20, 10); 
+    lv_obj_align_to(ta, label, LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10); 
     lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);          
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
   
@@ -306,7 +436,7 @@ void Setup_Screen1(byte index)
     //Create the test button
     btn = lv_button_create(obj);
     lv_obj_set_size(btn, lv_pct(40), LV_SIZE_CONTENT);
-    lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10);    
+    lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_LEFT, 20, 10);    
   
     //lv_obj_set_style_bg_color(btn,lv_palette_darken(LV_PALETTE_INDIGO,3), LV_PART_MAIN); 
     lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);       
@@ -322,6 +452,8 @@ void Setup_Screen1(byte index)
     testchargebutton = btn;
   
     lv_obj_set_user_data(ta2, testchargebutton);
+
+*/
 
     static lv_coord_t col_dsc2[] = { LV_GRID_FR(7), LV_GRID_FR(14), LV_GRID_FR(4), LV_GRID_FR(6), LV_GRID_TEMPLATE_LAST };
     //static lv_coord_t row_dsc2[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST };
