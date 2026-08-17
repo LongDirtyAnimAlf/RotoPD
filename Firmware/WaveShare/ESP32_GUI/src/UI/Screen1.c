@@ -11,6 +11,7 @@ lv_obj_t * testdischargebutton = NULL;
 lv_obj_t * startdischargebutton = NULL;
 lv_obj_t * testchargebutton = NULL;
 lv_obj_t * startchargebutton = NULL;
+lv_obj_t * outputbutton = NULL;
 
 lv_obj_t * zerocapacitybutton = NULL;
 lv_obj_t * zeroenergybutton = NULL;
@@ -78,7 +79,7 @@ static void DischargeStatus(bool Status)
 
 static void setbuttons(lv_obj_t * btn, bool checked)
 {
-  static lv_obj_t ** btns[4] = {&testdischargebutton,&startdischargebutton,&testchargebutton,&startchargebutton};
+  static lv_obj_t ** btns[5] = {&testdischargebutton,&startdischargebutton,&testchargebutton,&startchargebutton,&outputbutton};
   lv_obj_t * obj;  
 
 
@@ -86,7 +87,7 @@ static void setbuttons(lv_obj_t * btn, bool checked)
   {
     lv_obj_add_state(btn,LV_STATE_CHECKED);
 
-    for (byte i = 0; i < 4; i++)
+    for (byte i = 0; i < 5; i++)
     {
       obj = *btns[i];
      
@@ -106,6 +107,9 @@ static void setbuttons(lv_obj_t * btn, bool checked)
   }
   else
   {
+    if (btn == outputbutton) lv_obj_remove_state(outputbutton,LV_STATE_CHECKED);
+    lv_obj_remove_state(outputbutton,LV_STATE_DISABLED);
+
     ChargeStatus(chargedisabled);
     DischargeStatus(dischargedisabled);
     lv_obj_remove_state(zerocapacitybutton,LV_STATE_DISABLED);
@@ -392,68 +396,32 @@ void Setup_Screen1(byte index)
 
 
 
-
-
-
-
-/*
-
-
-
-
-
-
-
-
-
-
-
-    // Create container for charge setting and test  
+    // Create container for on off button
     obj = lv_obj_create(top_cont);
     lv_obj_remove_style_all(obj);
-    lv_obj_set_size(obj, lv_pct(45), lv_pct(100));
-    lv_obj_align(obj, LV_ALIGN_TOP_RIGHT, 0, 0);    
-  
-    //Create the label
-    label = lv_label_create(obj);
-    lv_obj_set_width(label, lv_pct(100));    
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
-    lv_label_set_text(label, "Charge set [mA]");
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-  
+    lv_obj_set_size(obj, lv_pct(20), lv_pct(100));
+    lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 2);    
+    lv_obj_add_style(obj, &style_uniform_margin, LV_PART_MAIN | LV_STATE_DEFAULT);    
 
+    //lv_obj_set_style_border_width(obj, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_border_color(obj, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT); // Red border
+    //lv_obj_set_style_border_opa(obj, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);    
 
-    //Create the current setting text area
-    ta = lv_label_create(obj);
-    lv_obj_add_style(ta, &input_label_style, 0);
-    lv_label_set_text(ta, "0");
-    lv_obj_align_to(ta, label, LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10); 
-    lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);          
-    lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
-  
-    ta2 = ta;
-  
-    //Create the test button
     btn = lv_button_create(obj);
-    lv_obj_set_size(btn, lv_pct(40), LV_SIZE_CONTENT);
-    lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_LEFT, 20, 10);    
-  
-    //lv_obj_set_style_bg_color(btn,lv_palette_darken(LV_PALETTE_INDIGO,3), LV_PART_MAIN); 
+    lv_obj_set_size(btn, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);       
     //lv_obj_add_flag(btn, LV_OBJ_FLAG_CHECKABLE);
-    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, (void *)btn_test_charge);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);   
   
     label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(label, "TEST");
-  
-    testchargebutton = btn;
-  
-    lv_obj_set_user_data(ta2, testchargebutton);
+    lv_label_set_text(label, "SWITCH\nOUTPUT");
 
-*/
+    outputbutton = btn;
+
+    // GRID
 
     static lv_coord_t col_dsc2[] = { LV_GRID_FR(7), LV_GRID_FR(14), LV_GRID_FR(4), LV_GRID_FR(6), LV_GRID_TEMPLATE_LAST };
     //static lv_coord_t row_dsc2[] = { LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST };
@@ -769,6 +737,7 @@ void Screen1SetData(PBatterySetting SET)
   lv_obj_add_state(startdischargebutton,LV_STATE_DISABLED);
   lv_obj_add_state(testchargebutton,LV_STATE_DISABLED);
   lv_obj_add_state(startchargebutton,LV_STATE_DISABLED);
+  lv_obj_add_state(outputbutton,LV_STATE_DISABLED);
   
   lv_obj_add_state(zerocapacitybutton,LV_STATE_DISABLED);
   lv_obj_add_state(zeroenergybutton,LV_STATE_DISABLED);
