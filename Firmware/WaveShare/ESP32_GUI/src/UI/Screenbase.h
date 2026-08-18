@@ -22,6 +22,8 @@ extern lv_obj_t * screenbase;
 extern lv_obj_t * backbutton;
 extern lv_obj_t * morebutton;
 
+extern lv_event_dsc_t * customevent;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

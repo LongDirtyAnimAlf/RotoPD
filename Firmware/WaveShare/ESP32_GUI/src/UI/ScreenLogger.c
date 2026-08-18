@@ -3,6 +3,23 @@
 lv_obj_t * screenlogger = NULL;
 static lv_obj_t * ta_logger = NULL;
 
+static void btn_event_cb_local(lv_event_t * e)
+{
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t * btn = lv_event_get_current_target_obj(e);
+
+  if (btn != NULL)
+  {
+    if (code == LV_EVENT_CLICKED)
+    {
+      if (ta_logger != NULL)
+      {
+        lv_textarea_set_text(ta_logger, "");
+     }
+    }
+  }
+}
+
 static void btn_event_cb(lv_event_t * e)
 {
   lv_event_code_t code = lv_event_get_code(e);
@@ -29,6 +46,7 @@ static void Setup_Screen(lv_obj_t * cont)
     //lv_obj_add_state(ta_logger, LV_STATE_DISABLED);
     lv_obj_remove_style(ta_logger, NULL, LV_PART_CURSOR);
     lv_textarea_set_cursor_pos(ta_logger, LV_TEXTAREA_CURSOR_LAST);
+    lv_textarea_set_text_selection(ta_logger, false);
     lv_textarea_add_text(ta_logger, "USB logger\n");
   }
 }
@@ -43,15 +61,29 @@ void Setup_ScreenLogger(byte index, bool show)
     if (obj != NULL) lv_label_set_text(obj,"Logger");
 
     obj = GetButtonLabelObject();
-    if (obj != NULL)
-    {
-      lv_label_set_text(obj,"---");
-      // Get the navigation button itself
-      //btn_next_state = (uint16_t)((uint8_t)SCREENINDEX << 8 | (uint8_t)btn_next);    
-    }
+    if (obj != NULL) lv_label_set_text(obj,"Clear");
   }
+
   SetContentObject(screenlogger,show);
   if (screenlogger != NULL) Setup_Screen(screenlogger);
+
+  if (show)
+  {
+    obj = GetButtonLabelObject();
+    if (obj != NULL)
+    {
+      // Get the navigation button itself
+      obj = lv_obj_get_parent(obj);
+      // Set new color
+      lv_obj_set_style_bg_color(obj, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT); // Red border
+      //lv_obj_set_style_bg_color(obj, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);             
+      // Remove standard event
+      lv_event_cb_t event_cb = GetEvent();
+      lv_obj_remove_event_cb(obj, event_cb);
+      // Add a local event
+      customevent = lv_obj_add_event_cb(obj, btn_event_cb_local, LV_EVENT_CLICKED, NULL);
+    }
+  }
 }
 
 void ScreenLogger_Add(const char *txt, bool newline)

@@ -8,11 +8,13 @@ lv_obj_t * screenbase = NULL;
 lv_obj_t * backbutton = NULL;
 lv_obj_t * morebutton = NULL;
 
+lv_event_dsc_t * customevent = NULL;
+
 lv_style_t input_label_style;
 
 static lv_obj_t * keyboardbase = NULL;
 static lv_obj_t * newkeyboardbase = NULL;
-static lv_event_cb_t event;
+static lv_event_cb_t event = NULL;
 static lv_anim_t a;
 
 PBatterySetting Settings = NULL;
@@ -39,7 +41,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   backbutton = obj;
   lv_obj_align(obj, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_obj_set_size(obj, lv_pct(25), LV_SIZE_CONTENT);
-  lv_obj_add_event_cb(obj, event_cb_more, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL);
   lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);      
 
   obj = lv_label_create(obj);
@@ -50,8 +52,8 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   morebutton = obj;
   lv_obj_align(obj, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_set_size(obj, lv_pct(25), LV_SIZE_CONTENT);
-  lv_obj_add_event_cb(obj, event_cb_more, LV_EVENT_CLICKED, NULL); 
-  //lv_obj_add_event_cb(obj, event_cb_more, LV_EVENT_CLICKED, &btn_next_state); 
+  lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL); 
+  //lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, &btn_next_state); 
   lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);      
 
   obj = lv_label_create(obj);
@@ -325,7 +327,20 @@ void SetContentObject(lv_obj_t * content, bool show)
   {
     obj = GetButtonLabelObject();
     obj = lv_obj_get_parent(obj);
+    // Enable button
     lv_obj_remove_state(obj,LV_STATE_DISABLED);
+    // Set standard color
+    lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);
+    // Remove all standard or custom events
+
+    if (customevent != NULL)
+    {
+      // Remove custom event
+      lv_obj_remove_event_dsc(obj, customevent);
+      customevent = NULL;
+      // Add standard event
+      lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL);
+    }
 
     byte Count = lv_obj_get_child_count(screenbase);
     if (Count)
