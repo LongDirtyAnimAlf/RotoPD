@@ -97,6 +97,7 @@ typedef enum {
     CMD_set_PPSPDO,
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
+    CMD_set_output,
     CMD_controller_reset = 0xB0
 } CommandType_t;
 

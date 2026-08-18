@@ -265,10 +265,18 @@ static void main_event_handler(lv_event_t * e)
     {
       if(code == LV_EVENT_VALUE_CHANGED)
       {
-        #ifdef DEBUG                      
-        USBSerial.println("Event: button value changed");
-        #endif
+        //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
+        bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
 
+        if (event_object == outputbutton)
+        {
+          // Prepare the command to engage the hardware
+          SendCommand[COMMANDPOSITION] = CMD_set_output;
+          SendCommand[INDEXPOSITION] = ActiveBatteryIndex;
+          SendCommand[LENGTHPOSITION] = 1U; // length
+          SendCommand[DATASTART] = (uint8_t)buttondown;
+        }    
+        else
         if ( (event_object == testdischargebutton) || (event_object == startdischargebutton) || (event_object == testchargebutton) || (event_object == startchargebutton) )
         {
           dword temp = 0;
@@ -288,9 +296,6 @@ static void main_event_handler(lv_event_t * e)
           {
             Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
           }
-
-          //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
-          bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
 
           if (!buttondown)
           {
@@ -345,12 +350,18 @@ static void main_event_handler(lv_event_t * e)
           temp /= 256;
           SendCommand[DATASTART+4] = (temp % 256);
         }
+        else
+        {
+          #ifdef DEBUG                      
+          USBSerial.println("Event unhandled: button value changed");
+          #endif
+       }
       }
       else
       if(code == LV_EVENT_LONG_PRESSED)
       {
         #ifdef DEBUG                      
-        USBSerial.println("Event: long pressed");
+        USBSerial.println("Event unhandled: long pressed");
         #endif
       }
       else

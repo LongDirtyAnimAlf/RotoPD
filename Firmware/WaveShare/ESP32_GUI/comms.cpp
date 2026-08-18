@@ -255,7 +255,7 @@ bool process_command(void const *data, void *result)
     #endif
 
     ScreenLogger_Add("Received SetPD command.",true);
-    ScreenLogger_Add_Fmt("PDO index: %d.\n", LocalBatteryBoard->BM.pdoIndex);
+    ScreenLogger_Add_Fmt("PDO index: #%d.\n", LocalBatteryBoard->BM.pdoIndex);
     ScreenLogger_Add_Fmt("PDO requested current: %dmA.\n", LocalBatteryBoard->BM.maxCurrent);
     ScreenLogger_Add_Fmt("PDO target voltage: %dmV.\n", LocalBatteryBoard->BM.targetVoltage);
 
@@ -320,7 +320,7 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
     #endif
-    ScreenLogger_Add_Fmt("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
+    ScreenLogger_Add_Fmt("Received GetAllPDO command. PDOs: %d\n",PDOCount);
   }
 
   if (cCmd == CMD_read_PDOList)
@@ -333,6 +333,26 @@ bool process_command(void const *data, void *result)
     ScreenLogger_Add_Fmt("Received read PDO list. PDOs: %d\n",PDOCount);
   }
 
+  if (cCmd == CMD_set_output)
+  {
+    bool Engage = (databuffer[dataindexer++] != 0);
+    if (Engage)
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output ON.\r\n");
+      #endif
+      ScreenLogger_Add("Output ON.",true);
+    }
+    else
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output OFF.\r\n");
+      #endif
+      ScreenLogger_Add("Output OFF.",true);
+    }
+    pd.setOutput(Engage);
+  }
+
   if (cCmd == CMD_set_value)
   {
     #ifdef DEBUG
@@ -340,7 +360,7 @@ bool process_command(void const *data, void *result)
     #endif
     ScreenLogger_Add("Received SetValue command.",true);
 
-    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]);
+    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
     StatusUpdateNeeded = true;

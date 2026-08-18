@@ -326,7 +326,7 @@ bool process_command(void const *data, void *result)
     USBSerial.printf("Received SetValue command.\r\n");
     #endif
 
-    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]);
+    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
     StatusUpdateNeeded = true;

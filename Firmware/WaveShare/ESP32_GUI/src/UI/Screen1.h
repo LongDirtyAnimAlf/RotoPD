@@ -13,6 +13,7 @@ extern lv_obj_t * testdischargebutton;
 extern lv_obj_t * startdischargebutton;
 extern lv_obj_t * testchargebutton;
 extern lv_obj_t * startchargebutton;
+extern lv_obj_t * outputbutton;
 
 extern lv_obj_t * zerocapacitybutton;
 extern lv_obj_t * zeroenergybutton;

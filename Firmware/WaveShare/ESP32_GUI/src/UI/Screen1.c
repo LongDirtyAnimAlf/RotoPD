@@ -87,21 +87,24 @@ static void setbuttons(lv_obj_t * btn, bool checked)
   {
     lv_obj_add_state(btn,LV_STATE_CHECKED);
 
-    for (byte i = 0; i < 5; i++)
+    if (btn != outputbutton)
     {
-      obj = *btns[i];
-     
-      if ( (obj != NULL) && (obj != btn) )
+      for (byte i = 0; i < 5; i++)
       {
-        lv_obj_add_state(obj,LV_STATE_DISABLED);
+        obj = *btns[i];
+      
+        if ( (obj != NULL) && (obj != btn) )
+        {
+          lv_obj_add_state(obj,LV_STATE_DISABLED);
 
-        lv_obj_add_state(zerocapacitybutton,LV_STATE_DISABLED);
-        lv_obj_add_state(zeroenergybutton,LV_STATE_DISABLED);
-        if (zerotimebutton != NULL) lv_obj_add_state(zerotimebutton,LV_STATE_DISABLED);        
-        lv_obj_add_state(ta1,LV_STATE_DISABLED);
-        lv_obj_add_state(ta2,LV_STATE_DISABLED);          
-        lv_obj_clear_flag(ta1, LV_OBJ_FLAG_CLICK_FOCUSABLE);          
-        lv_obj_clear_flag(ta2, LV_OBJ_FLAG_CLICK_FOCUSABLE);                    
+          lv_obj_add_state(zerocapacitybutton,LV_STATE_DISABLED);
+          lv_obj_add_state(zeroenergybutton,LV_STATE_DISABLED);
+          if (zerotimebutton != NULL) lv_obj_add_state(zerotimebutton,LV_STATE_DISABLED);        
+          lv_obj_add_state(ta1,LV_STATE_DISABLED);
+          lv_obj_add_state(ta2,LV_STATE_DISABLED);          
+          lv_obj_clear_flag(ta1, LV_OBJ_FLAG_CLICK_FOCUSABLE);          
+          lv_obj_clear_flag(ta2, LV_OBJ_FLAG_CLICK_FOCUSABLE);                    
+        }
       }
     }
   }
@@ -109,7 +112,7 @@ static void setbuttons(lv_obj_t * btn, bool checked)
   {
     if (btn == outputbutton) lv_obj_remove_state(outputbutton,LV_STATE_CHECKED);
     lv_obj_remove_state(outputbutton,LV_STATE_DISABLED);
-
+    
     ChargeStatus(chargedisabled);
     DischargeStatus(dischargedisabled);
     lv_obj_remove_state(zerocapacitybutton,LV_STATE_DISABLED);
@@ -264,6 +267,7 @@ void Setup_Screen1(byte index)
     //lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);        
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
+    // Create layout
     obj = lv_obj_create(obj);
     lv_obj_remove_style_all(obj);
     lv_obj_set_size(obj, lv_pct(100), lv_pct(70));
@@ -275,6 +279,23 @@ void Setup_Screen1(byte index)
     /* Space children evenly: the label pushes the button to the far right */
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
+    //Create the test button
+    btn = lv_button_create(obj);
+    lv_obj_set_size(btn, lv_pct(35), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);       
+    //lv_obj_add_flag(btn, LV_OBJ_FLAG_CHECKABLE);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_LONG_PRESSED, NULL);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);   
+
+    testdischargebutton = btn;
+  
+    label = lv_label_create(btn);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_label_set_text(label, "TEST");
 
     // Create the text edit area
     ta = lv_label_create(obj);
@@ -287,38 +308,8 @@ void Setup_Screen1(byte index)
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
   
     ta1 = ta;
-  
-    //Create the test button
-    btn = lv_button_create(obj);
-    lv_obj_set_size(btn, lv_pct(35), LV_SIZE_CONTENT);
-    //lv_obj_align_to(btn,label,LV_ALIGN_OUT_BOTTOM_RIGHT, -20, 10);    
-    //lv_obj_align_to(btn,ta1,LV_ALIGN_OUT_RIGHT_MID, 10, 0);    
-  
-    //lv_obj_set_style_bg_color(btn,lv_palette_darken(LV_PALETTE_INDIGO,3), LV_PART_MAIN); 
-    lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED,3), LV_PART_MAIN | LV_STATE_CHECKED);       
-    //lv_obj_add_flag(btn, LV_OBJ_FLAG_CHECKABLE);
-
-    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
-    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_LONG_PRESSED, NULL);
-    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-    //lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_RELEASED, NULL);
-
-    lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);   
-
-
-    //lv_group_remove_obj(btn);    
-  
-    label = lv_label_create(btn);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(label, "TEST");
-  
-    testdischargebutton = btn;
 
     lv_obj_set_user_data(ta1, testdischargebutton);
-  
-
-
 
 
     // Create container for charge setting and test  

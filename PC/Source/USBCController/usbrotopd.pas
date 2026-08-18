@@ -39,6 +39,7 @@ type
     CMD_set_PPSPDO,
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
+    CMD_set_output,
     CMD_controller_reset = $B0
   );
 
@@ -94,6 +95,7 @@ type
     function  FGetCaldate(board,position:word):ansistring;
 
     function  SetValueFine(board,position:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
+    function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
   public
     MaxErrors:word;
 
@@ -121,12 +123,12 @@ type
 
     function  GetPDOList(board:word):boolean;
 
-    function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
-
     function  SetMaxPDO(board,PDO:word):boolean;
     function  SetFixedPDO(board,PDO:word;MaxCurrent_mA:dword):boolean;
     function  SetPPSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
     function  SetAVSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
+
+    function  SetOutput(board:word; Engage:boolean):boolean;
 
     function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
     function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
@@ -735,7 +737,6 @@ begin
   result:=TControllerData(TUSBController(FUSBBoards.Items[board]).ControllerData).Calibration;
 end;
 
-
 function  TDataDevice.GetPDOList(board:word):boolean;
 var
   error:boolean;
@@ -761,6 +762,50 @@ begin
     repeat
       PLocalData^:=Default(TReport);
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
+function  TDataDevice.SetOutput(board:word; Engage:boolean):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  PLocalData:PReport;
+  Ctrl:TUSBController;
+begin
+  result:=false;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+  ErrorCounter:=1;
+  cmd := TCommands.CMD_set_output;
+
+  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
+      PLocalData^.Data[LENGTHPOSITION] := 1;        // data length
+      if Engage then
+        PLocalData^.Data[DATASTART] := 1
+      else
+        PLocalData^.Data[DATASTART] := 0;
 
       error := HandleDataRequest(Ctrl,True);
 
