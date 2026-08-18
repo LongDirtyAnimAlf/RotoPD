@@ -9,7 +9,9 @@ uses
   Windows,
   {$endif}
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  Grids, Buttons, ComCtrls, Menus, TAGraph, TASeries, Types,
+  Grids, Buttons, ComCtrls, Menus, Types,
+  TATransformations, TAGraph,
+  TASeries, TASources,TACustomSeries, TATools,
   SynEdit,
   //SynEditMiscClasses,
   fptimernew,
@@ -35,13 +37,8 @@ type
   { TPowerbankMainForm }
 
   TPowerbankMainForm = class(TForm)
-    btnConnectKC003C: TButton;
-    btnInit: TButton;
-    btnKC003CRcvRemoteSink: TButton;
-    btnKC003CRcvRemoteSource: TButton;
-    btnKC003CReset: TButton;
+    btnRotoPDGetPDOList: TButton;
     btnTestDischarge: TSpeedButton;
-    Button1: TButton;
     Button2: TButton;
     Chart1: TChart;
     Chart1LineSeries1: TLineSeries;
@@ -49,8 +46,6 @@ type
     Chart1LineSeries3: TLineSeries;
     chkCurrentLimit: TCheckBox;
     chkVoltageLimit: TCheckBox;
-    cmboSerialPorts: TComboBox;
-    cmboSerialPorts1: TComboBox;
     CurrentEdit: TEdit;
     DisplaysPanel: TPanel;
     Edit1: TEdit;
@@ -63,7 +58,10 @@ type
     lblCurrent: TLabel;
     lblDischargeSettings: TLabel;
     lblVoltage: TLabel;
-    USBDebugLog: TMemo;
+    MT1: TAutoScaleAxisTransform;
+    MyTransform1: TChartAxisTransformations;
+    MyTransform2: TChartAxisTransformations;
+    MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform;
     MemoUnhandled: TMemo;
     Panel1: TPanel;
     Panel2: TPanel;
@@ -82,13 +80,11 @@ type
     TestTimer: TTimer;
     UpdateTimer: TTimer;
     TypesBox: TComboBox;
+    USBDebugLog: TMemo;
     VoltageEdit: TEdit;
     procedure btnCleanLogsClick({%H-}Sender: TObject);
-    procedure btnConnectKC003CClick(Sender: TObject);
-    procedure btnConnectSTM32Click(Sender: TObject);
-    procedure btnInitClick(Sender: TObject);
+    procedure btnRotoPDGetPDOListClick(Sender: TObject);
     procedure btnTestDischargeClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure DataEditKeyPress(Sender: TObject; var Key: char);
     procedure dgFlagsDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -146,21 +142,13 @@ type
 
     DUT                 : TUSBPDDevice;
 
-    HPsource            : THP66332;
-    HPComport           : string;
-
-    STM32               : TLazSerial;
-    STMComport          : string;
     RotoPDController    : TUSBPDController;
-
-    PDTimer             : TFPTimer;
-    DataTimer           : TFPTimer;
 
     TestTypes           : array of TTestType;
     ActiveTestType      : TTestType;
     BatteryDataFile     : string;
 
-    DD:TDataDevice;
+    DD                  : TDataDevice;
 
     procedure AfterShow(Sender: TObject; var Done: Boolean);
     procedure Startup;
@@ -191,12 +179,6 @@ type
     function  GetPower:double;
     procedure SetTemperature(value:double);
     function  GetTemperature:double;
-
-    procedure Connect(Sender: TObject);
-    procedure DisConnect({%H-}Sender: TObject);
-
-    procedure DataTimerTimer({%H-}Sender: TObject);
-    procedure CheckTimerTimer({%H-}Sender: TObject);
   public
     Capacity                     : double;
     property SystemActive        : boolean read FSystemActive write SetActive;
@@ -452,62 +434,6 @@ begin
     end;
   end;
 
-  {$ifdef WITHKEITHLEY}
-  Tek4020:=TKeithley2700.Create;
-  {$endif}
-  HPsource:=THP66332.Create;
-
-  STMComport:='';
-
-  //if ((Length(STMComport)=0) OR (Length(HPComport)=0)) then
-  begin
-    CLIst:=TStringList.Create;
-    try
-      EnumerateCOMPorts(CLIst);
-      CListDetails:=TStringList.Create;
-      try
-        for i:=0 to Pred(CLIst.Count) do
-        begin
-          CListDetails.Delimiter:=DefaultFormatSettings.ListSeparator;
-          CListDetails.StrictDelimiter:=True;
-          CListDetails.DelimitedText:=CLIst[i];
-          (*
-          for s in CListDetails do
-          begin
-            STMComport:=s;
-          end;
-          *)
-          if (CListDetails.Count>=4) then
-          begin
-            s:=CListDetails[3];
-            {$ifdef MSWINDOWS}
-            s:=StringReplace(s,'COM','',[rfReplaceAll]);
-            {$else}
-            s:=StringReplace(s,'ttyUSB','',[rfReplaceAll]);
-            {$endif MSWINDOWS}
-            cmboSerialPorts.Items.Append(s);
-            if (CListDetails.Count>=5) then
-            begin
-              s:=CListDetails[4];
-              if (Pos('ST-Link',s)=1) then STMComport:=CListDetails[3];
-              //if (Pos('POWER-Z',s)=1) then KM003CComport:=CListDetails[3];
-              //if (Pos('APP',s)=1) then KM003CComport:=CListDetails[3];
-              //if (Pos('FNB-58',s)=1) then KM003CComport:=CListDetails[3];
-            end;
-            if (Length(STMComport)=0) then if CListDetails[2]='STMicroelectronics' then STMComport:=CListDetails[3];
-
-          end;
-        end;
-      finally
-        CListDetails.Free
-      end;
-    finally
-      CLIst.Free;
-    end;
-  end;
-
-  FSTM32BoardSerial        := 'UNKNOWN';
-
   Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
   try
     Self.Top          := ini.ReadInteger(Self.Name,'Top',Self.Top);
@@ -517,21 +443,6 @@ begin
   finally
     Ini.Free;
   end;
-
-  STM32:=TLazSerial.Create(Self);
-  STM32.Async:=false;
-
-  PDTimer:=TFPTimer.Create(Self);
-  PDTimer.Enabled:=false;
-  PDTimer.UseTimerThread:=false;
-  PDTimer.Interval:=40;
-  PDTimer.OnTimer:=@CheckTimerTimer;
-
-  DataTimer:=TFPTimer.Create(Self);
-  DataTimer.Enabled:=false;
-  DataTimer.UseTimerThread:=false;
-  DataTimer.Interval:=200;
-  DataTimer.OnTimer:=@DataTimerTimer;
 
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
@@ -923,83 +834,9 @@ begin
   TestInfoMemo.Lines.Clear;
 end;
 
-procedure TPowerbankMainForm.btnConnectKC003CClick(Sender: TObject);
+procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
-  TButton(Sender).Enabled:=false;
-  try
-    Connect(Sender);
-    PDTimer.Enabled:=True;
-    DataTimer.Enabled:=True;
-  finally
-    TButton(Sender).Enabled:=true;
-  end;
-end;
-
-procedure TPowerbankMainForm.btnConnectSTM32Click(Sender: TObject);
-begin
-  TButton(Sender).Enabled:=false;
-  try
-    Connect(Sender);
-  finally
-    TButton(Sender).Enabled:=true;
-  end;
-end;
-
-procedure TPowerbankMainForm.btnInitClick(Sender: TObject);
-var
-  aPort:word;
-begin
-  if (Length(HPComport)=0) then
-  begin
-    aPort:=StrToIntDef(cmboSerialPorts.Text,0);
-    if (aPort=0) then
-    begin
-      TestInfoMemo.Lines.Append('Please select serial port.');
-      exit;
-    end;
-  end;
-
-  TButton(Sender).Enabled:=False;
-  try
-    {$ifdef WITHKEITHLEY}
-    TestInfoMemo.Lines.Append('Initializing DMM');
-    TestInfoMemo.Invalidate;
-    Tek4020.DisConnect;
-    sleep(1000);
-    Tek4020.Connect;
-    Tek4020.Mode:=VoltageMode;
-    Tek4020.Range:=3;
-    Tek4020.Speed:=SlowSpeed;
-    {$endif}
-
-    if (Length(HPComport)>0) then
-    begin
-      TestInfoMemo.Lines.Append('Looking for HP.');
-      TestInfoMemo.Invalidate;
-      HPsource.DisConnect;
-      sleep(1000);
-      HPsource.SerialPortName:=HPComport;
-      HPsource.Connect;
-
-      if HPsource.Connected then
-      begin
-        TestInfoMemo.Lines.Append('Success. Connected with HP.');
-        TestInfoMemo.Lines.Append('Brand: '+HPsource.Manufacturer+'.');
-        TestInfoMemo.Lines.Append('Model: '+HPsource.Model+'.');
-      end
-      else
-      begin
-        TestInfoMemo.Lines.Append('HP failure.');
-        TestInfoMemo.Lines.Append('Select correct port.');
-      end;
-
-      AllStop(Sender);
-
-    end;
-
-  finally
-    TButton(Sender).Enabled:=True;
-  end;
+  DD.GetPDOList(1);
 end;
 
 procedure TPowerbankMainForm.btnTestDischargeClick(Sender: TObject);
@@ -1007,12 +844,10 @@ begin
   if TSpeedButton(Sender).Down then
   begin
     if (
-       (HPsource.Connected)
-       //AND
        //(TypesBox.ItemIndex<>-1)
        //AND
        //(SamplesBox.ItemIndex<>-1)
-       AND
+       //AND
        (Length(ActiveTestType.Name)>0)
        )
     then
@@ -1023,8 +858,6 @@ begin
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
       SystemActive:=True;
-      HPsource.SetOutput(SystemActive);
-      HPsource.SetCurrentSlow((ActiveTestType.Current/1000));
       TestTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
   end
@@ -1034,11 +867,6 @@ begin
     AllStop(Sender);
     TestInfoMemo.Lines.Append('Check finished.');
   end;
-end;
-
-procedure TPowerbankMainForm.Button1Click(Sender: TObject);
-begin
-  DD.GetPDOList(1);
 end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
@@ -1148,15 +976,12 @@ begin
 
          AllStop(Sender);
 
-         DisConnect(Sender);
-
          UpdateTimer.Enabled:=False;
 
          //DD.Enabled:=False;
          DD.OnDataReceived:=nil;
          DD.OnDeviceChange:=nil;
          DD.Destroy;
-         HPsource.Destroy;
          DUT.Destroy;
          RotoPDController.Destroy;
 
@@ -1207,8 +1032,8 @@ begin
         TestInfoMemo.Lines.Append('Filename: '+BatteryDataFile);
 
         SystemActive:=True;
-        HPsource.SetOutput(SystemActive);
-        HPsource.SetCurrentSlow(ActiveTestType.Current/1000);
+
+        DD.SetOutput(1,True);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1340,9 +1165,6 @@ procedure TPowerbankMainForm.SetEnable(Sender: TObject; value:boolean);
 begin
   if Sender<>nil then
   begin
-    if (Sender<>btnInit) then btnInit.Enabled:=value;
-    if (Sender<>cmboSerialPorts) then cmboSerialPorts.Enabled:=value;
-
     if (Sender<>StartStopButton) then StartStopButton.Enabled:=value;
 
     if (Sender<>btnTestDischarge) then btnTestDischarge.Enabled:=value;
@@ -1448,30 +1270,6 @@ begin
   result:=FTemperature;
 end;
 
-procedure TPowerbankMainForm.DataTimerTimer(Sender: TObject);
-var
-  success               : boolean;
-begin
-  success:=false;
-end;
-
-procedure TPowerbankMainForm.CheckTimerTimer(Sender: TObject);
-begin
-end;
-
-procedure TPowerbankMainForm.DisConnect(Sender: TObject);
-begin
-  PDTimer.Enabled:=False;
-  DataTimer.Enabled:=False;
-
-  STM32.Active:=False;
-end;
-
-procedure TPowerbankMainForm.Connect(Sender: TObject);
-begin
-  DisConnect(Sender);
-end;
-
 procedure TPowerbankMainForm.SetChartAxis(Sender:TObject);
 begin
   Chart1LineSeries1.Clear;
@@ -1560,16 +1358,12 @@ begin
   StoreTimer.Enabled:=False;
   TestTimer.Enabled:=False;
 
-  PDTimer.Enabled:=False;
-  DataTimer.Enabled:=False;
-
   StartTime:=0;
 
   SystemActive:=False;
-  if HPsource.Connected then
-  begin
-    HPsource.SetOutput(SystemActive);
-  end;
+
+  DD.SetOutput(1,false);
+
   SetEnable(Sender,true);
 
   StartStopButton.Down:=false;
@@ -1590,9 +1384,9 @@ begin
     //if HPsource.Connected then
     if true then
     begin
-      HPsource.Measure;
-      Current:=Abs(HPsource.Current);
-      Voltage:=HPsource.Voltage;
+      //HPsource.Measure;
+      //Current:=Abs(HPsource.Current);
+      //Voltage:=HPsource.Voltage;
     end
     else
     begin
