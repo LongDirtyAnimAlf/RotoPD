@@ -11,7 +11,7 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   Grids, Buttons, ComCtrls, Menus, Types,
   TATransformations, TAGraph,
-  TASeries, TASources,TACustomSeries, TATools,
+  TASeries,TACustomSeries, TATools,
   SynEdit,
   //SynEditMiscClasses,
   fptimernew,
@@ -19,10 +19,8 @@ uses
   dlLEDCtrl,
   usbcpd,
   pddevice,
-  hp66332,
   ap33772s,
-  usbrotopd,
-  lazserial;
+  usbrotopd;
 
 type
   TTestType = record
@@ -166,7 +164,6 @@ type
     function  CorrectVoltage(value:double):double;
     function  CorrectCurrent(value:double):double;
 
-
     procedure SetActive(value:boolean);
 
     procedure SetVoltage(value:double);
@@ -181,6 +178,7 @@ type
     function  GetTemperature:double;
   public
     Capacity                     : double;
+    CI,EI                        : qword;
     property SystemActive        : boolean read FSystemActive write SetActive;
     property Voltage             : double read GetVoltage write SetVoltage;
     property Current             : double read GetCurrent write SetCurrent;
@@ -336,8 +334,8 @@ begin
     BevelStyle := bvNone;
     Angle := 0;
     Clear;
-    Value:=-123.4;
-    FractionDigits:=2;
+    Value:=0;
+    FractionDigits:=3;
   end;
 
   NewEnergyDisplay := TLEDDisplay.Create(Panel2);
@@ -364,8 +362,8 @@ begin
     BevelStyle := bvNone;
     Angle := 0;
     Clear;
-    Value:=-123.4;
-    FractionDigits:=2;
+    Value:=0;
+    FractionDigits:=3;
   end;
 
   if FileExists('types.dat')
@@ -836,7 +834,8 @@ end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
-  DD.GetPDOList(1);
+  //DD.GetPDOList(1);
+  DD.SetEnergy(1,876456789);
 end;
 
 procedure TPowerbankMainForm.btnTestDischargeClick(Sender: TObject);
@@ -1023,8 +1022,11 @@ begin
 
         Voltage:=0;
         Current:=0;
-
+        Power:=0;
         Energy:=0;
+        Capacity:=0;
+        CI:=0;
+        EI:=0;
 
         SetChartAxis(Sender);
 
@@ -1073,6 +1075,7 @@ const
   STOPPERCENTAGE = 80;
 var
   Elapsed:longword;
+  qcalc:QWord;
 begin
   Measure;
 
@@ -1090,6 +1093,13 @@ begin
       Power:=Voltage*Current;
       Capacity:=Capacity+Current*(Elapsed/3600000);
       Energy:=Energy+Power*(Elapsed/3600000);
+
+      qcalc:=Round(Current*1000*Elapsed);
+      CI:=CI+(qcalc DIV 3600);  // this is nAh !!
+      qcalc:=qcalc*Round(Voltage*1000);
+      EI:=EI+(qcalc DIV 3600);  // this is nWh !!
+
+      DD.SetEnergy(1,EI);
 
       SaveBatteryData(Elapsed);
 

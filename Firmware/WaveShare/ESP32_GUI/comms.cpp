@@ -363,6 +363,7 @@ bool process_command(void const *data, void *result)
     LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
+
     StatusUpdateNeeded = true;
 
     switch(LocalBatteryBoard->BM.Status)
@@ -417,115 +418,122 @@ bool process_command(void const *data, void *result)
   }
   
   // Start processing the collected data !!
+  // Data start at position 3 !!
+  // 0   = Command
+  // 1   = Index
+  // 2   = Length
+  // 3.. = Data
+
+  // Echo back command and index
+  resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
+  resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+
+  // Skip length
+  // Will be set in a later stage
+  dataindexer = DATASTART;
+
+  // Return data
+  if (cCmd == CMD_get_data)
   {
-    // Data start at position 3 !!
-    // 0   = Command
-    // 1   = Index
-    // 2   = Length
-    // 3.. = Data
+    //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
+    //i += 2;
+    w_data.Val = LocalBatteryBoard->Voltage;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+    w_data.Val = LocalBatteryBoard->Current;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+    dw_data.Val = LocalBatteryBoard->Power;
+    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+    w_data.Val = LocalBatteryBoard->Temperature;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
 
-    // Echo back command and index
-	  resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
-    resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+    #ifdef DEBUG
+    /*
+    USBSerial.printf("GetData command results.\r\n");
+    USBSerial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
+    USBSerial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
+    USBSerial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
+    */
+    #endif
 
-    // Skip length
-    // Will be set in a later stage
-    dataindexer = DATASTART;
+  }
 
-    // Return data
+  if (cCmd == CMD_set_value)
+  {
+    resultbuffer[dataindexer++]=(byte)LocalBatteryBoard->BM.Status;
+    dw_data.Val = LocalBatteryBoard->BM.SetValue;
+    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+  }  
+
+  if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
+  {
+    resultbuffer[dataindexer++] = PDOCount;
+
+    if (PDOCount>0)
     {
-      if (cCmd == CMD_get_data)
+      for ( j=1; j<14; j++ )
       {
-        //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
-        //i += 2;
-        w_data.Val = LocalBatteryBoard->Voltage;
-        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-        w_data.Val = LocalBatteryBoard->Current;
-        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-        dw_data.Val = LocalBatteryBoard->Power;
-        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-        w_data.Val = LocalBatteryBoard->Temperature;
-        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-
-        #ifdef DEBUG
-        /*
-        USBSerial.printf("GetData command results.\r\n");
-        USBSerial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
-        USBSerial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
-        USBSerial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
-        */
-        #endif
-
-      }
-
-      if (cCmd == CMD_set_value)
-      {
-        resultbuffer[dataindexer++]=(byte)LocalBatteryBoard->BM.Status;
-        dw_data.Val = LocalBatteryBoard->BM.SetValue;
-        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-      }  
-
-      if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
-      {
-        resultbuffer[dataindexer++] = PDOCount;
-
-        if (PDOCount>0)
-        {
-          for ( j=1; j<14; j++ )
-          {
-            if (pd.readPDO(j, PDO))
-            {
-              if (PDO.valid)
-              {
-                w_data.Val = PDO.raw;
-                resultbuffer[dataindexer++] = PDO.index;
-                resultbuffer[dataindexer++] = w_data.v[0];
-                resultbuffer[dataindexer++] = w_data.v[1];
-              }  
-            }
-          }
-        }
-      }
-
-      if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
-      {
-
-        resultbuffer[dataindexer++] = LocalBatteryBoard->BM.pdoIndex;
-        
-        w_data.Val = pd.getRequestedCurrent_mA();
-        resultbuffer[dataindexer++] = w_data.v[0];
-        resultbuffer[dataindexer++] = w_data.v[1];
-        LocalBatteryBoard->BM.maxCurrent=w_data.Val;
-
-        w_data.Val = pd.getRequestedVoltage_mV();
-        resultbuffer[dataindexer++] = w_data.v[0];
-        resultbuffer[dataindexer++] = w_data.v[1];
-        LocalBatteryBoard->BM.targetVoltage=w_data.Val;
-
-        w_data.Val = 0;
-        if (pd.readPDO(LocalBatteryBoard->BM.pdoIndex, PDO))
+        if (pd.readPDO(j, PDO))
         {
           if (PDO.valid)
           {
-            LocalBatteryBoard->BM.pdoMode=(TPDOMode)PDO.type;
-            //LocalBatteryBoard->BM.maxCurrent=PDO.maxCurrent_mA;
-            //LocalBatteryBoard->BM.targetVoltage=PDO.maxVoltage_mV;
             w_data.Val = PDO.raw;
-          }
+            resultbuffer[dataindexer++] = PDO.index;
+            resultbuffer[dataindexer++] = w_data.v[0];
+            resultbuffer[dataindexer++] = w_data.v[1];
+          }  
         }
-        resultbuffer[dataindexer++] = w_data.v[0];
-        resultbuffer[dataindexer++] = w_data.v[1];
-      }
-
-      if (cCmd == CMD_get_firmware)
-      {
-        LocalBatteryBoard->NeedsDataUpdate;
       }
     }
+  }
+
+  if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  {
+
+    resultbuffer[dataindexer++] = LocalBatteryBoard->BM.pdoIndex;
+    
+    w_data.Val = pd.getRequestedCurrent_mA();
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+    LocalBatteryBoard->BM.maxCurrent=w_data.Val;
+
+    w_data.Val = pd.getRequestedVoltage_mV();
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+    LocalBatteryBoard->BM.targetVoltage=w_data.Val;
+
+    w_data.Val = 0;
+    if (pd.readPDO(LocalBatteryBoard->BM.pdoIndex, PDO))
+    {
+      if (PDO.valid)
+      {
+        LocalBatteryBoard->BM.pdoMode=(TPDOMode)PDO.type;
+        //LocalBatteryBoard->BM.maxCurrent=PDO.maxCurrent_mA;
+        //LocalBatteryBoard->BM.targetVoltage=PDO.maxVoltage_mV;
+        w_data.Val = PDO.raw;
+      }
+    }
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+  }
+
+  if (cCmd == CMD_get_firmware)
+  {
+    LocalBatteryBoard->NeedsDataUpdate;
+  }
+
+  if (dataindexer == DATASTART)
+  {
+    uint8_t length = databuffer[LENGTHPOSITION];
+    for ( j=0; j<length; j++ )
+    {
+      // Just echo back what we got
+      resultbuffer[dataindexer]=databuffer[dataindexer];
+      dataindexer++;
+    }
+  }
 
     // echo back length
-    resultbuffer[LENGTHPOSITION]=dataindexer;
-  }
+  resultbuffer[LENGTHPOSITION]=(dataindexer-DATASTART);
 
   LocalBatteryBoard->NeedsGUIUpdate |= GUIUpdateNeeded;
   LocalBatteryBoard->NeedsStatusUpdate |= StatusUpdateNeeded;

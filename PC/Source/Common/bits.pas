@@ -127,6 +127,15 @@ type
           );
   end;
 
+  TQWordData = bitpacked record
+    case byte of
+      1 : (
+            Bytes      : bitpacked array[0..7] of Byte;
+          );
+      2 : (
+            Raw        : qword;
+          );
+  end;
 
 implementation
 

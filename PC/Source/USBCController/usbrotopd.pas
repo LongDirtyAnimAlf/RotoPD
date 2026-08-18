@@ -33,6 +33,8 @@ type
     CMD_get_firmware,
     CMD_set_value,
     CMD_set_energy,
+    CMD_set_capacity,
+    CMD_set_time,
     CMD_get_PDOList,
     CMD_read_PDOList,
     CMD_set_FIXEDPDO,
@@ -129,11 +131,11 @@ type
     function  SetAVSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
 
     function  SetOutput(board:word; Engage:boolean):boolean;
+    function  SetEnergy(board:word; Energy:qword):boolean;
 
     function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
     function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
 
-    function  SetEnergy(board,position:word;const value:double=0):boolean;
     function  SetOff(board,position:word):boolean;
     function  SetCurrent(board,position:word;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
     function  SetCurrent(board,position:word;value:dword;fine:word):boolean;overload;
@@ -819,6 +821,52 @@ begin
   result:=error;
 end;
 
+function  TDataDevice.SetEnergy(board:word; Energy:qword):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  temp:TQWordData;
+  PLocalData:PReport;
+  Ctrl:TUSBController;
+  j:integer;
+begin
+  result:=false;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+  ErrorCounter:=1;
+  cmd := TCommands.CMD_set_energy;
+
+  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
+      PLocalData^.Data[LENGTHPOSITION] := 8;        // data length
+
+      temp.Raw:=Energy;
+      for j:=0 to 7 do PLocalData^.Data[DATASTART+j] :=(temp.Bytes[j]);
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
+
 function  TDataDevice.SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword;Voltage_mV:dword):boolean;
 var
   error:boolean;
@@ -1004,51 +1052,6 @@ var
   e,t:double;
 begin
   result:=ReadBatteryData(board,position,voltage,current,e,t);
-end;
-
-function  TDataDevice.SetEnergy(board,position:word;const value:double=0):boolean;
-var
-  error:boolean;
-  cmd: TCommands;
-  temp:UInt64;
-  PLocalData:PReport;
-  Ctrl: TUSBController;
-begin
-  result:=false;
-
-  if CheckParameters(board) then exit;
-
-  ErrorCounter:=1;
-  cmd := TCommands.CMD_set_energy;
-
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
-  begin
-    PLocalData:=@Ctrl.LocalData;
-
-    repeat
-      PLocalData^:=Default(TReport);
-      PLocalData^.Data[0] := Byte(cmd);
-      PLocalData^.Data[1] := position-1;
-      PLocalData^.Data[2] := 4;
-      if value<>0 then
-      begin
-        temp:=round(value*(8*32*3600*1000));
-        temp:=temp DIV 65536;
-        PLocalData^.Data[3] :=(temp MOD 256);
-        temp:=(temp DIV 256);
-        PLocalData^.Data[4] :=(temp MOD 256);
-        temp:=(temp DIV 256);
-        PLocalData^.Data[5] :=(temp MOD 256);
-        temp:=(temp DIV 256);
-        PLocalData^.Data[6] :=(temp MOD 256);
-      end;
-
-      error := HandleDataRequest(Ctrl);
-
-    until ((NOT error) OR (ErrorCounter>MaxErrors));
-  end;
-
-  result:=error;
 end;
 
 function TDataDevice.SetValueFine(board,position:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;

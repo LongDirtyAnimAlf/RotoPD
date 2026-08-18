@@ -984,6 +984,7 @@ void loop()
 
   PDO_DATA_T raw;
   WORD_VAL wv;
+  DWORD_VAL dwv;
 
   #ifdef BUTTON_PIN
   if (digitalRead(BUTTON_PIN) == LOW)
@@ -1178,13 +1179,41 @@ void loop()
 
   if (DataOk)
   {
-    CommandType_t Command = (CommandType_t)INData[COMMANDPOSITION];
+    CommandType_t cCmd = (CommandType_t)INData[COMMANDPOSITION];
     byte BatteryIndex = INData[INDEXPOSITION];
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
-    switch(Command)
+    switch(cCmd)
     {
+      case CMD_set_energy:
+      case CMD_set_capacity:
+      case CMD_set_time:
+      {
+        QWORD_VAL qw;
+
+        qw.Val = 0;
+
+        SET = &Batteries[BatteryIndex];
+        RDS = &SET->TestData.RunDatas; 
+
+        for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
+
+        #ifdef DEBUG
+        USBSerial.printf("Setdata [%d] received ! %d.\r\n", Length, qw.Val);
+        #endif
+        ScreenLogger_Add_Fmt("Setdata [%d] received ! %d.\n", Length, qw.Val);
+
+        if (cCmd == CMD_set_energy) RDS->Energy = qw.Val; // in nAh
+        if (cCmd == CMD_set_capacity) RDS->Capacity = qw.Val; // in nWh
+        if (cCmd == CMD_set_time) RDS->Time = qw.Val;  // in deci-seconds = 100ms
+
+        if (cCmd == CMD_set_energy) Screen1AddEData(RDS->Energy / 1000000ULL);
+        if (cCmd == CMD_set_time) Screen1AddTData(RDS->Time);
+
+        break;
+      }
+
       case CMD_set_MAXPDO:
       case CMD_set_FIXEDPDO:
       case CMD_set_PPSPDO:

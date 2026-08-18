@@ -564,7 +564,7 @@ begin
   AssignColors (3,true,false,true,true,false,true,true);
   AssignColors (4,false,true,true,true,false,true,false);
   AssignColors (5,true,true,false,true,false,true,true);
-  AssignColors (6,false,true,false,true,true,true,true);
+  AssignColors (6,true,true,false,true,true,true,true);
   AssignColors (7,true,false,true,false,false,true,false);
   AssignColors (8,true,true,true,true,true,true,true);
   AssignColors (9,true,true,true,true,false,true,true);

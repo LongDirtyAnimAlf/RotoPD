@@ -78,6 +78,14 @@ typedef union
     } bytes;
 } DWORD_VAL, DWORD_BITS;
 
+typedef union
+{
+    qword Val;
+    byte v[8];// __PACKED;
+    word w[4];// __PACKED;
+    dword dw[2];// __PACKED;
+} QWORD_VAL, QWORD_BITS;
+
 #define IDDLESTAGENUMBER              0
 #define FIXEDDISCHARGESTAGENUMBER     1
 #define FIXEDCHARGESTAGENUMBER        2
@@ -91,6 +99,8 @@ typedef enum {
     CMD_get_firmware,
     CMD_set_value,
     CMD_set_energy,
+    CMD_set_capacity,
+    CMD_set_time,
     CMD_get_PDOList,
     CMD_read_PDOList,
     CMD_set_FIXEDPDO,
