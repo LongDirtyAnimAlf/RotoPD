@@ -89,6 +89,8 @@ static void setbuttons(lv_obj_t * btn, bool checked)
 
     if (btn != outputbutton)
     {
+      lv_obj_add_state(outputbutton,LV_STATE_CHECKED);
+
       for (byte i = 0; i < 5; i++)
       {
         obj = *btns[i];
@@ -110,7 +112,7 @@ static void setbuttons(lv_obj_t * btn, bool checked)
   }
   else
   {
-    if (btn == outputbutton) lv_obj_remove_state(outputbutton,LV_STATE_CHECKED);
+    lv_obj_remove_state(outputbutton,LV_STATE_CHECKED);
     lv_obj_remove_state(outputbutton,LV_STATE_DISABLED);
     
     ChargeStatus(chargedisabled);
@@ -144,7 +146,7 @@ static void btn_event_cb(lv_event_t * e)
       longpress = true;
       checked = (lv_obj_get_state(btn) & LV_STATE_CHECKED);
       //if (checked) lv_obj_remove_state(btn,LV_STATE_CHECKED) ;else lv_obj_add_state(btn,LV_STATE_CHECKED);      
-      setbuttons(btn, (!checked));      
+      setbuttons(btn, (!checked));
       lv_obj_send_event(btn, LV_EVENT_VALUE_CHANGED, user);      
     }
 
@@ -715,6 +717,18 @@ void Screen1AddEPData(dword E, dword P)
   Screen1AddPData(P);  
 }
 
+void Screen1SetOutput(bool On)
+{
+  if (On)
+  {
+    lv_obj_add_state(outputbutton,LV_STATE_CHECKED);
+  }
+  else
+  {
+    lv_obj_remove_state(outputbutton,LV_STATE_CHECKED);
+  }
+}
+
 void Screen1SetData(PBatterySetting SET)
 {
   Settings = SET;
@@ -738,7 +752,7 @@ void Screen1SetData(PBatterySetting SET)
 
   chargedisabled = (SET->Stages[FIXEDCHARGESTAGENUMBER].Status == smDisabled);
   dischargedisabled = (SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status == smDisabled);
-  
+
   ChargeStatus(chargedisabled);
   DischargeStatus(dischargedisabled);
 
@@ -762,6 +776,8 @@ void Screen1SetData(PBatterySetting SET)
     //setbuttons(testdischargebutton, (SET->TestData.SetStageMode == smCurrent));
     //setbuttons(testchargebutton, (SET->TestData.SetStageMode == smCharge));
   }
+
+  Screen1SetOutput((SET->TestData.SetStageMode != smOff) && (SET->TestData.SetStageMode != smZero) && (SET->TestData.SetStageMode != smDisabled));
 
   #endif STANDALONE
 

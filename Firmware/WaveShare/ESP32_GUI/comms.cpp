@@ -212,6 +212,8 @@ bool process_command(void const *data, void *result)
   bool GUIUpdateNeeded = false;
   bool StatusUpdateNeeded = false;
 
+  bool Engage = false;
+
   byte PDOCount = 0;
   AP33772S_PDO PDO;
 
@@ -239,25 +241,25 @@ bool process_command(void const *data, void *result)
     // Process the settings !
     // Settings start at index DATASTART
     // PD Index
-    LocalBatteryBoard->BM.pdoIndex=(databuffer[dataindexer++]);
+    LocalBatteryBoard->pdoIndex=(databuffer[dataindexer++]);
     // maxCurrent
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->BM.maxCurrent=dw_data.Val;
+    LocalBatteryBoard->maxCurrent=dw_data.Val;
     // targetVoltage
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->BM.targetVoltage=dw_data.Val;
+    LocalBatteryBoard->targetVoltage=dw_data.Val;
 
     #ifdef DEBUG
     USBSerial.printf("Received SetPD command.\r\n");
-    USBSerial.printf("PDO index: %d.\r\n", LocalBatteryBoard->BM.pdoIndex);
-    USBSerial.printf("PDO requested current: %dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
-    USBSerial.printf("PDO target voltage: %dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
+    USBSerial.printf("PDO index: %d.\r\n", LocalBatteryBoard->pdoIndex);
+    USBSerial.printf("PDO requested current: %dmA.\r\n", LocalBatteryBoard->maxCurrent);
+    USBSerial.printf("PDO target voltage: %dmV.\r\n", LocalBatteryBoard->targetVoltage);
     #endif
 
     ScreenLogger_Add("Received SetPD command.",true);
-    ScreenLogger_Add_Fmt("PDO index: #%d.\n", LocalBatteryBoard->BM.pdoIndex);
-    ScreenLogger_Add_Fmt("PDO requested current: %dmA.\n", LocalBatteryBoard->BM.maxCurrent);
-    ScreenLogger_Add_Fmt("PDO target voltage: %dmV.\n", LocalBatteryBoard->BM.targetVoltage);
+    ScreenLogger_Add_Fmt("PDO index: #%d.\n", LocalBatteryBoard->pdoIndex);
+    ScreenLogger_Add_Fmt("PDO requested current: %dmA.\n", LocalBatteryBoard->maxCurrent);
+    ScreenLogger_Add_Fmt("PDO target voltage: %dmV.\n", LocalBatteryBoard->targetVoltage);
 
     switch (cCmd)
     {
@@ -268,8 +270,8 @@ bool process_command(void const *data, void *result)
         #endif
         ScreenLogger_Add("Max PDO.",true);
         
-        LocalBatteryBoard->BM.pdoMode = pmMAX; 
-        pd.setMaxPDO(LocalBatteryBoard->BM.pdoIndex);
+        LocalBatteryBoard->pdoMode = pmMAX; 
+        pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
         break;
       }
 
@@ -280,8 +282,8 @@ bool process_command(void const *data, void *result)
         #endif
         ScreenLogger_Add("Fixed PDO.",true);
 
-        LocalBatteryBoard->BM.pdoMode = pmFixed; 
-        j = pd.setFixPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.maxCurrent);
+        LocalBatteryBoard->pdoMode = pmFixed; 
+        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
         break;
       }
       case CMD_set_PPSPDO:
@@ -291,8 +293,8 @@ bool process_command(void const *data, void *result)
         #endif
         ScreenLogger_Add("PPS PDO.",true);
 
-        LocalBatteryBoard->BM.pdoMode = pmPPS; 
-        j = pd.setPPSPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.targetVoltage, LocalBatteryBoard->BM.maxCurrent);
+        LocalBatteryBoard->pdoMode = pmPPS; 
+        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
         break;
       }
       case CMD_set_AVSPDO:
@@ -302,8 +304,8 @@ bool process_command(void const *data, void *result)
         #endif
         ScreenLogger_Add("AVS PDO.",true);
 
-        LocalBatteryBoard->BM.pdoMode = pmAVS; 
-        j = pd.setAVSPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.targetVoltage, LocalBatteryBoard->BM.maxCurrent);
+        LocalBatteryBoard->pdoMode = pmAVS; 
+        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
         break;
       }
       default:
@@ -335,7 +337,7 @@ bool process_command(void const *data, void *result)
 
   if (cCmd == CMD_set_output)
   {
-    bool Engage = (databuffer[dataindexer++] != 0);
+    Engage = (databuffer[dataindexer++] != 0);
     if (Engage)
     {
       #ifdef DEBUG
@@ -350,6 +352,7 @@ bool process_command(void const *data, void *result)
       #endif
       ScreenLogger_Add("Output OFF.",true);
     }
+    LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
   }
 
@@ -365,6 +368,7 @@ bool process_command(void const *data, void *result)
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
 
     StatusUpdateNeeded = true;
+    Engage = false;
 
     switch(LocalBatteryBoard->BM.Status)
     {
@@ -372,12 +376,7 @@ bool process_command(void const *data, void *result)
       case smPower :
       case smResistor : 
       {
-        #ifdef DEBUG
-        USBSerial.printf("Output ON.\r\n");
-        #endif
-        ScreenLogger_Add("Output ON.",true);
-
-        pd.setOutput(true);
+        Engage = true;
         break;
       }
       case smCharge :
@@ -386,15 +385,26 @@ bool process_command(void const *data, void *result)
       }
       default :
       {
-        #ifdef DEBUG
-        USBSerial.printf("Output OFF.\r\n");
-        #endif
-        ScreenLogger_Add("Output OFF.",true);
-
-        pd.setOutput(false);
+        break;
       }
     }
-    
+
+    if (Engage)
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output ON.\r\n");
+      #endif
+      ScreenLogger_Add("Output ON.",true);
+    }
+    else
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output OFF.\r\n");
+      #endif
+      ScreenLogger_Add("Output OFF.",true);
+    }
+    LocalBatteryBoard->OutputOn = Engage; 
+    pd.setOutput(Engage);
   }
 
   if (cCmd == CMD_get_data)
@@ -489,26 +499,26 @@ bool process_command(void const *data, void *result)
   if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
 
-    resultbuffer[dataindexer++] = LocalBatteryBoard->BM.pdoIndex;
+    resultbuffer[dataindexer++] = LocalBatteryBoard->pdoIndex;
     
     w_data.Val = pd.getRequestedCurrent_mA();
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->BM.maxCurrent=w_data.Val;
+    LocalBatteryBoard->maxCurrent=w_data.Val;
 
     w_data.Val = pd.getRequestedVoltage_mV();
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->BM.targetVoltage=w_data.Val;
+    LocalBatteryBoard->targetVoltage=w_data.Val;
 
     w_data.Val = 0;
-    if (pd.readPDO(LocalBatteryBoard->BM.pdoIndex, PDO))
+    if (pd.readPDO(LocalBatteryBoard->pdoIndex, PDO))
     {
       if (PDO.valid)
       {
-        LocalBatteryBoard->BM.pdoMode=(TPDOMode)PDO.type;
-        //LocalBatteryBoard->BM.maxCurrent=PDO.maxCurrent_mA;
-        //LocalBatteryBoard->BM.targetVoltage=PDO.maxVoltage_mV;
+        LocalBatteryBoard->pdoMode=(TPDOMode)PDO.type;
+        //LocalBatteryBoard->maxCurrent=PDO.maxCurrent_mA;
+        //LocalBatteryBoard->targetVoltage=PDO.maxVoltage_mV;
         w_data.Val = PDO.raw;
       }
     }

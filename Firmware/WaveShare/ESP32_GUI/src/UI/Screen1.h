@@ -30,6 +30,7 @@ void Screen1AddPData(dword P);
 void Screen1AddTData(dword T);
 void Screen1SetThresholdLedEnabled(TThresholdModes Mode, bool On);
 void Screen1SetThresholdLed(TThresholdModes Mode, bool On);
+void Screen1SetOutput(bool On);
 
 #ifdef __cplusplus
 } /*extern "C"*/

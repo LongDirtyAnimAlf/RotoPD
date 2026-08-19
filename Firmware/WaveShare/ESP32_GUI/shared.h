@@ -215,10 +215,6 @@ typedef enum
 typedef struct
 {
   TStageMode Status;
-  TPDOMode pdoMode;
-  int pdoIndex;
-  int targetVoltage;
-  int maxCurrent;
   dword SetValue;
   TThresholdDataItem ThresholdSettings[tmLast]; // all threshold possibilities
 } TStageData, *PStageData;
@@ -254,9 +250,14 @@ typedef struct
   word Current;
   dword Power;
   word Temperature;  
+  bool OutputOn;
+  TPDOMode pdoMode;
+  int pdoIndex;
+  int targetVoltage;
+  int maxCurrent;
+  //byte Serial[8];
   TStageData BM;
   word Firmware;
-  byte Serial[8];
   bool NeedsGUIUpdate;
   bool NeedsStatusUpdate;
   bool NeedsDataUpdate;
