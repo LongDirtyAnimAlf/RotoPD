@@ -13,6 +13,7 @@ extern lv_obj_t * testdischargebutton;
 extern lv_obj_t * startdischargebutton;
 extern lv_obj_t * testchargebutton;
 extern lv_obj_t * startchargebutton;
+extern lv_obj_t * outputbutton;
 
 extern lv_obj_t * zerocapacitybutton;
 extern lv_obj_t * zeroenergybutton;
@@ -29,6 +30,7 @@ void Screen1AddPData(dword P);
 void Screen1AddTData(dword T);
 void Screen1SetThresholdLedEnabled(TThresholdModes Mode, bool On);
 void Screen1SetThresholdLed(TThresholdModes Mode, bool On);
+void Screen1SetOutput(bool On);
 
 #ifdef __cplusplus
 } /*extern "C"*/

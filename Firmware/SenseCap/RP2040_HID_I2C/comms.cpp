@@ -14,6 +14,7 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 #define USBSerial Serial
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
+#include "./src/UI/screenlogger.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 extern USBCDC USBSerial;
 #endif
@@ -26,7 +27,10 @@ static float ina_mW_c       = 0;
 static float ina_T_c        = 0;
 static int   ina_counter_c  = 0;
 
-DRAM_ATTR TBoardInfo BoardInfo = 
+#ifdef ARDUINO_ESP32S3_DEV
+DRAM_ATTR 
+#endif
+TBoardInfo BoardInfo = 
 {
   #ifdef ARDUINO_SEEED_INDICATOR_RP2040
   true, // DataInValid
@@ -211,6 +215,8 @@ bool process_command(void const *data, void *result)
   bool GUIUpdateNeeded = false;
   bool StatusUpdateNeeded = false;
 
+  bool Engage = false;
+
   byte PDOCount = 0;
   AP33772S_PDO PDO;
 
@@ -231,48 +237,62 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
   dataindexer = DATASTART;
 
-  if (cCmd == CMD_set_MAXPDO)
-  {
-    #ifdef DEBUG
-    USBSerial.printf("Max PDO.\r\n");
-    #endif
-    // PD Index
-    LocalBatteryBoard->BM.pdoIndex=(databuffer[dataindexer++]);
-    pd.setMaxPDO(LocalBatteryBoard->BM.pdoIndex);
-  }
-
-  if ( (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
     // We got a SetPDO command
     StatusUpdateNeeded = true;
     // Process the settings !
     // Settings start at index DATASTART
     // PD Index
-    LocalBatteryBoard->BM.pdoIndex=(databuffer[dataindexer++]);
-    // targetVoltage
-    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->BM.targetVoltage=dw_data.Val;
+    LocalBatteryBoard->pdoIndex=(databuffer[dataindexer++]);
     // maxCurrent
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->BM.maxCurrent=dw_data.Val;
+    LocalBatteryBoard->maxCurrent=dw_data.Val;
+    // targetVoltage
+    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+    LocalBatteryBoard->targetVoltage=dw_data.Val;
 
     #ifdef DEBUG
     USBSerial.printf("Received SetPD command.\r\n");
-    USBSerial.printf("PDO index:%d.\r\n", LocalBatteryBoard->BM.pdoIndex);
-    USBSerial.printf("PDO voltage:%dmV.\r\n", LocalBatteryBoard->BM.targetVoltage);
-    USBSerial.printf("PDO current:%dmA.\r\n", LocalBatteryBoard->BM.maxCurrent);
+    USBSerial.printf("PDO index: %d.\r\n", LocalBatteryBoard->pdoIndex);
+    USBSerial.printf("PDO requested current: %dmA.\r\n", LocalBatteryBoard->maxCurrent);
+    USBSerial.printf("PDO target voltage: %dmV.\r\n", LocalBatteryBoard->targetVoltage);
+    #endif
+
+    #ifdef ARDUINO_ESP32S3_DEV
+    ScreenLogger_Add("Received SetPD command.",true);
+    ScreenLogger_Add_Fmt("PDO index: #%d.\n", LocalBatteryBoard->pdoIndex);
+    ScreenLogger_Add_Fmt("PDO requested current: %dmA.\n", LocalBatteryBoard->maxCurrent);
+    ScreenLogger_Add_Fmt("PDO target voltage: %dmV.\n", LocalBatteryBoard->targetVoltage);
     #endif
 
     switch (cCmd)
     {
+      case CMD_set_MAXPDO:
+      {
+        #ifdef DEBUG
+        USBSerial.printf("Max PDO.\r\n");
+        #endif
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add("Max PDO.",true);
+        #endif
+        
+        LocalBatteryBoard->pdoMode = pmMAX; 
+        pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
+        break;
+      }
+
       case CMD_set_FIXEDPDO:
       {
         #ifdef DEBUG
         USBSerial.printf("Fixed PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add("Fixed PDO.",true);
+        #endif
 
-        LocalBatteryBoard->BM.pdoMode = pmFixed; 
-        j = pd.setFixPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.maxCurrent);
+        LocalBatteryBoard->pdoMode = pmFixed; 
+        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
         break;
       }
       case CMD_set_PPSPDO:
@@ -280,9 +300,12 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("PPS PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add("PPS PDO.",true);
+        #endif
 
-        LocalBatteryBoard->BM.pdoMode = pmPPS; 
-        j = pd.setPPSPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.targetVoltage, LocalBatteryBoard->BM.maxCurrent);
+        LocalBatteryBoard->pdoMode = pmPPS; 
+        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
         break;
       }
       case CMD_set_AVSPDO:
@@ -290,9 +313,12 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("AVS PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add("AVS PDO.",true);
+        #endif
 
-        LocalBatteryBoard->BM.pdoMode = pmAVS; 
-        j = pd.setAVSPDO(LocalBatteryBoard->BM.pdoIndex, LocalBatteryBoard->BM.targetVoltage, LocalBatteryBoard->BM.maxCurrent);
+        LocalBatteryBoard->pdoMode = pmAVS; 
+        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
         break;
       }
       default:
@@ -309,6 +335,9 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
+    ScreenLogger_Add_Fmt("Received GetAllPDO command. PDOs: %d\n",PDOCount);
+    #endif
   }
 
   if (cCmd == CMD_read_PDOList)
@@ -318,6 +347,34 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received read PDO list. PDOs: %d\r\n",PDOCount);
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
+    ScreenLogger_Add_Fmt("Received read PDO list. PDOs: %d\n",PDOCount);
+    #endif
+  }
+
+  if (cCmd == CMD_set_output)
+  {
+    Engage = (databuffer[dataindexer++] != 0);
+    if (Engage)
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output ON.\r\n");
+      #endif
+      #ifdef ARDUINO_ESP32S3_DEV
+      ScreenLogger_Add("Output ON.",true);
+      #endif
+    }
+    else
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output OFF.\r\n");
+      #endif
+      #ifdef ARDUINO_ESP32S3_DEV
+      ScreenLogger_Add("Output OFF.",true);
+      #endif
+    }
+    LocalBatteryBoard->OutputOn = Engage; 
+    pd.setOutput(Engage);
   }
 
   if (cCmd == CMD_set_value)
@@ -325,11 +382,16 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received SetValue command.\r\n");
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
+    ScreenLogger_Add("Received SetValue command.",true);
+    #endif
 
-    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
+    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
+
     StatusUpdateNeeded = true;
+    Engage = false;
 
     switch(LocalBatteryBoard->BM.Status)
     {
@@ -337,11 +399,7 @@ bool process_command(void const *data, void *result)
       case smPower :
       case smResistor : 
       {
-        #ifdef DEBUG
-        USBSerial.printf("Output ON.\r\n");
-        #endif
-
-        pd.setOutput(true);
+        Engage = true;
         break;
       }
       case smCharge :
@@ -350,14 +408,30 @@ bool process_command(void const *data, void *result)
       }
       default :
       {
-        #ifdef DEBUG
-        USBSerial.printf("Output OFF.\r\n");
-        #endif
-
-        pd.setOutput(false);
+        break;
       }
     }
-    
+
+    if (Engage)
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output ON.\r\n");
+      #endif
+      #ifdef ARDUINO_ESP32S3_DEV
+      ScreenLogger_Add("Output ON.",true);
+      #endif
+    }
+    else
+    {
+      #ifdef DEBUG
+      USBSerial.printf("Output OFF.\r\n");
+      #endif
+      #ifdef ARDUINO_ESP32S3_DEV
+      ScreenLogger_Add("Output OFF.",true);
+      #endif
+    }
+    LocalBatteryBoard->OutputOn = Engage; 
+    pd.setOutput(Engage);
   }
 
   if (cCmd == CMD_get_data)
@@ -365,118 +439,132 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetData command.\r\n");
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
+    ScreenLogger_Add("Received GetData command.",true);
+    #endif
 
-    float ina_mA  = ina238.getMilliAmpere();
-    float ina_mV  = ina238.getBusMilliVolt();
-    float ina_mW  = ina238.getMilliWatt();
-    float ina_T   = ina238.getTemperature();
-
-    LocalBatteryBoard->Voltage = round(ina_mV);
-    LocalBatteryBoard->Current = round(ina_mA);
-    LocalBatteryBoard->Power = round(ina_mW);
-    LocalBatteryBoard->Temperature = round(ina_T * 10);
+    getRotoPDData(&LocalBatteryBoard->Current,&LocalBatteryBoard->Voltage,&LocalBatteryBoard->Power,&LocalBatteryBoard->Temperature);
 
     GUIUpdateNeeded = true;
   }
   
   // Start processing the collected data !!
+  // Data start at position 3 !!
+  // 0   = Command
+  // 1   = Index
+  // 2   = Length
+  // 3.. = Data
+
+  // Echo back command and index
+  resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
+  resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+
+  // Skip length
+  // Will be set in a later stage
+  dataindexer = DATASTART;
+
+  // Return data
+  if (cCmd == CMD_get_data)
   {
-    // Data start at position 3 !!
-    // 0   = Command
-    // 1   = Index
-    // 2   = Length
-    // 3.. = Data
+    //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
+    //i += 2;
+    w_data.Val = LocalBatteryBoard->Voltage;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+    w_data.Val = LocalBatteryBoard->Current;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+    dw_data.Val = LocalBatteryBoard->Power;
+    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+    w_data.Val = LocalBatteryBoard->Temperature;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
 
-    // Echo back command and index
-	  resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
-    resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+    #ifdef DEBUG
+    /*
+    USBSerial.printf("GetData command results.\r\n");
+    USBSerial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
+    USBSerial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
+    USBSerial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
+    */
+    #endif
 
-    // Skip length
-    // Will be set in a later stage
-    dataindexer = DATASTART;
+  }
 
-    // Return data
+  if (cCmd == CMD_set_value)
+  {
+    resultbuffer[dataindexer++]=(byte)LocalBatteryBoard->BM.Status;
+    dw_data.Val = LocalBatteryBoard->BM.SetValue;
+    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+  }  
+
+  if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
+  {
+    resultbuffer[dataindexer++] = PDOCount;
+
+    if (PDOCount>0)
     {
-      if (cCmd == CMD_get_data)
+      for ( j=1; j<14; j++ )
       {
-        //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
-        //i += 2;
-        w_data.Val = LocalBatteryBoard->Voltage;
-        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-        w_data.Val = LocalBatteryBoard->Current;
-        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-        dw_data.Val = LocalBatteryBoard->Power;
-        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-        w_data.Val = LocalBatteryBoard->Temperature;
-        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-
-        #ifdef DEBUG
-        /*
-        USBSerial.printf("GetData command results.\r\n");
-        USBSerial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
-        USBSerial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
-        USBSerial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
-        */
-        #endif
-
-      }
-
-      if (cCmd == CMD_set_value)
-      {
-        resultbuffer[dataindexer++]=(byte)LocalBatteryBoard->BM.Status;
-        dw_data.Val = LocalBatteryBoard->BM.SetValue;
-        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-      }  
-
-      if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
-      {
-        resultbuffer[dataindexer++] = PDOCount;
-
-        if (PDOCount>0)
-        {
-          for ( j=1; j<14; j++ )
-          {
-            if (pd.readPDO(j, PDO))
-            {
-              if (PDO.valid)
-              {
-                w_data.Val = PDO.raw;
-                resultbuffer[dataindexer++] = PDO.index;
-                resultbuffer[dataindexer++] = w_data.v[0];
-                resultbuffer[dataindexer++] = w_data.v[1];
-              }  
-            }
-          }
-        }
-      }
-
-      if (cCmd == CMD_set_MAXPDO)
-      {
-        resultbuffer[dataindexer++] = LocalBatteryBoard->BM.pdoIndex;
-        w_data.Val = 0;
-        if (pd.readPDO(LocalBatteryBoard->BM.pdoIndex, PDO))
+        if (pd.readPDO(j, PDO))
         {
           if (PDO.valid)
           {
-            LocalBatteryBoard->BM.pdoMode=(TPDOMode)PDO.type;
-            LocalBatteryBoard->BM.targetVoltage=PDO.maxVoltage_mV;
-            LocalBatteryBoard->BM.maxCurrent=PDO.maxCurrent_mA;
             w_data.Val = PDO.raw;
-          }
+            resultbuffer[dataindexer++] = PDO.index;
+            resultbuffer[dataindexer++] = w_data.v[0];
+            resultbuffer[dataindexer++] = w_data.v[1];
+          }  
         }
-        resultbuffer[dataindexer++] = w_data.v[0];
-        resultbuffer[dataindexer++] = w_data.v[1];
-      }
-
-      if (cCmd == CMD_get_firmware)
-      {
-        LocalBatteryBoard->NeedsDataUpdate;
       }
     }
+  }
+
+  if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  {
+
+    resultbuffer[dataindexer++] = LocalBatteryBoard->pdoIndex;
+    
+    w_data.Val = pd.getRequestedCurrent_mA();
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+    LocalBatteryBoard->maxCurrent=w_data.Val;
+
+    w_data.Val = pd.getRequestedVoltage_mV();
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+    LocalBatteryBoard->targetVoltage=w_data.Val;
+
+    w_data.Val = 0;
+    if (pd.readPDO(LocalBatteryBoard->pdoIndex, PDO))
+    {
+      if (PDO.valid)
+      {
+        LocalBatteryBoard->pdoMode=(TPDOMode)PDO.type;
+        //LocalBatteryBoard->maxCurrent=PDO.maxCurrent_mA;
+        //LocalBatteryBoard->targetVoltage=PDO.maxVoltage_mV;
+        w_data.Val = PDO.raw;
+      }
+    }
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+  }
+
+  if (cCmd == CMD_get_firmware)
+  {
+    LocalBatteryBoard->NeedsDataUpdate;
+  }
+
+  if (dataindexer == DATASTART)
+  {
+    uint8_t length = databuffer[LENGTHPOSITION];
+    for ( j=0; j<length; j++ )
+    {
+      // Just echo back what we got
+      resultbuffer[dataindexer]=databuffer[dataindexer];
+      dataindexer++;
+    }
+  }
 
     // echo back length
-    resultbuffer[LENGTHPOSITION]=dataindexer;
-  }
+  resultbuffer[LENGTHPOSITION]=(dataindexer-DATASTART);
 
   LocalBatteryBoard->NeedsGUIUpdate |= GUIUpdateNeeded;
   LocalBatteryBoard->NeedsStatusUpdate |= StatusUpdateNeeded;
@@ -584,6 +672,9 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         // Should never happen !!
         #ifdef DEBUG
         USBSerial.printf("Severe error. Wrong battery number:%d.\r\n", cBat);
+        #endif
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add_Fmt("Severe error. Wrong battery number:%d.\n", cBat);
         #endif
       }
     }

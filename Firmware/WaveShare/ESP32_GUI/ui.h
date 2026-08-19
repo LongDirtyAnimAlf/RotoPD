@@ -1,4 +1,6 @@
+#ifdef SENSECAP
 #include "./src/Display/Indicator_SWSPI.h"
+#endif
 #include "./src/Display/lvgldriver.h"
 
 //#include "touch.h"

@@ -21,7 +21,7 @@ void Setup_Screen2(byte index)
   obj = GetButtonLabelObject();
   if (obj != NULL) lv_label_set_text(obj,"Control");
 
-  SetContentObject(screen2);
+  SetContentObject(screen2,true);
   cont = screen2;
 
   if ((cont != NULL) && (lv_obj_get_child_count(cont) == 0))

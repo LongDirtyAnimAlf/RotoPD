@@ -7,6 +7,8 @@
 #include "Adafruit_TinyUSB.h"
 #endif
 
+#include <Ticker.h>
+
 #include "shared.h"
 #include "comms.h"
 #include "storage.h"
@@ -18,7 +20,7 @@
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 
-AP33772S pd(WireBattery);
+AP33772S pd(&WireBattery);
 INA238 ina238(INA238_ADDRESS,&WireBattery);
 
 char resetReasonText[][24] = { "Unknown", "Power On / Brownout", "Run pin", "Software", "Watchdog Timer", "Debug reset" };
@@ -26,9 +28,12 @@ char resetReasonText[][24] = { "Unknown", "Power On / Brownout", "Run pin", "Sof
 COBSPacketSerial myPacketSerial;
 //PacketSerial_<COBS, 0, 1024> myPacketSerial;
 
+static Ticker datagetticker;
+static volatile bool GetData = false;
+
 #ifndef STANDALONE
 // USB HID object
-Adafruit_USBD_HID usb_hid;
+Adafruit_USBD_HID HID;
 
 // Must be a global variable !!!
 char mySerial[30];
@@ -47,6 +52,12 @@ void playTone(int tone, int duration)
     }
     #endif
 }
+
+static void datagetcb()
+{
+  GetData = true;
+}
+
 
 void InitWire(void)
 {
@@ -194,9 +205,9 @@ void setup()
     BatteryBoards[i].Power              = 0;
     BatteryBoards[i].Temperature        = 0;
     BatteryBoards[i].BM.Status          = smOff;
-    BatteryBoards[i].BM.pdoMode         = pmFixed;
-    BatteryBoards[i].BM.targetVoltage   = 0;
-    BatteryBoards[i].BM.maxCurrent      = 0;
+    BatteryBoards[i].pdoMode         = pmFixed;
+    BatteryBoards[i].targetVoltage   = 0;
+    BatteryBoards[i].maxCurrent      = 0;
   }
 
   #ifndef STANDALONE
@@ -242,14 +253,14 @@ void setup()
   //USBDevice.addStringDescriptor(mySerial);
 
   /*Init USB Device*/
-  //usb_hid.setStringDescriptor("HIDI2C BATT_CTRL");
+  //HID.setStringDescriptor("HIDI2C BATT_CTRL");
 
-  //usb_hid.setReportCallback(get_report_callback, set_report_callback);
-  usb_hid.setReportCallback(NULL, set_report_callback);
+  //HID.setReportCallback(get_report_callback, set_report_callback);
+  HID.setReportCallback(NULL, set_report_callback);
 
-  usb_hid.enableOutEndpoint(true);
-  usb_hid.setPollInterval(1);
-  usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
+  HID.enableOutEndpoint(true);
+  HID.setPollInterval(1);
+  HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
 
   myFirmware[0] = '\0';  
   sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
@@ -257,7 +268,7 @@ void setup()
   //USBDevice.setSerialDescriptor(myFirmware);
   USBDevice.addStringDescriptor(myFirmware);  
 
-  usb_hid.begin();
+  HID.begin();
 
   #endif // STANDALONE
 
@@ -271,18 +282,6 @@ void setup()
   #endif
 
   InitWire();
-
-  if (InitROTOPD())
-  {
-    pd.readAllPDOs();
-    pd.printPDOs(Serial);
-    Serial.println();
-
-    // Show PPS/AVS availability
-    int8_t pi = pd.getPPSIndex(), ai = pd.getAVSIndex();
-    if (pi > 0) Serial.printf("[INFO] PPS at PDO%d\n", pi);
-    if (ai > 0) Serial.printf("[INFO] AVS at PDO%d\n", ai);
-  }
 
   // INA238 setup
   if(!ina238.begin())
@@ -314,6 +313,8 @@ void setup()
   myPacketSerial.setPacketHandler(&onPacketReceived);
   #endif
   sensor_power_on();
+
+  datagetticker.attach_ms(DATAGETTIME, datagetcb);
 
   Serial.println("Datalogger ready for use !!");
 }
@@ -483,6 +484,12 @@ void SendBatteryDataNew(const uint8_t* buffer, size_t size)
 
 void loop()
 {
+  byte i,j;
+  byte PDOCount = 0;
+
+  bool DataOk = false;
+  byte INData[COMMAND_SIZE] = {0};
+
   rp2040.wdt_reset();
 
   //pd.task();          // Keep-alive for PPS/AVS — essential!
@@ -492,34 +499,50 @@ void loop()
   if (millis() - startTime >= 1000)
   {
     startTime = millis();
-    uint8_t s = pd.getStatus();
-    if (s & STATUS_STARTED)
+
+    if (pd.isConnected())
     {
-      Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(s<0?0xFF:s), (uint8_t)(s<0?0:s));
-
-      // We have a power up !!
-      // Init the AP33772S / RotoPD
-      if (InitROTOPD())
+      j = pd.getStatus();
+      if (j & STATUS_STARTED)
       {
-        // Check if we already have the new PDO's
-        if (((s & STATUS_NEWPDO)  && (s & STATUS_READY)) || (pd.waitForPDOs(2000)==AP33772S_OK))
-        {
-          // Request / read list of PDOs
-          byte INData[HID_INT_IN_EP_SIZE] = {0};        
-          byte OUTData[HID_INT_OUT_EP_SIZE] = {0};
-          OUTData[0] = CMD_get_PDOList;
-          if (process_command(&OUTData,&INData))
-          {
-            // We might send some PDO data back towards the SenseCap LCD/ESP32
-            if (INData[0] == CMD_get_PDOList)
-            {
-              Serial.println("PDO list below.");
-              pd.printPDOs(Serial);
-              Serial.println("Done.");
-              SendBatteryDataNew(INData, INData[2]);
-            }
+        Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
 
+        PDOCount = pd.getValidPDOCount();
+        #ifdef DEBUG
+        Serial.printf("Initial PDO count: %d\r\n",PDOCount);
+        #endif
+
+        // We have a power up !!
+        // Init the AP33772S / RotoPD
+        if (InitROTOPD())
+        {
+
+          // Check if we already have the new PDO's
+          if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
+          {
+            // Request / read list of PDOs
+            if (PDOCount == 0) PDOCount = pd.readAllPDOs();
+
+            // Request / read list of PDOs
+            byte INData[HID_INT_IN_EP_SIZE] = {0};        
+            byte OUTData[HID_INT_OUT_EP_SIZE] = {0};
+            OUTData[0] = CMD_get_PDOList;
+            if (process_command(&OUTData,&INData))
+            {
+              // We might send some PDO data back towards the SenseCap LCD/ESP32
+              if (INData[0] == CMD_get_PDOList)
+              {
+                Serial.println("PDO list below.");
+                pd.printPDOs(Serial);
+                Serial.println("Done.");
+                SendBatteryDataNew(INData, INData[2]);
+              }
+            }
           }
+        }
+        else
+        {
+          Serial.println(F("[INIT] AP33772S error !"));
         }
       }
     }
@@ -532,7 +555,13 @@ void loop()
   #endif
   #endif
 
-  byte i,j;
+  if (GetData)
+  {
+    GetData = false;
+    collectRotoPDData();
+  }
+
+
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
 
@@ -562,18 +591,14 @@ void loop()
 
       memset(PLocalHD->HIDEPINData, 0, sizeof(PLocalHD->HIDEPINData));
 
-      //Now perform the data and command processing
-      if (process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData))
+      //Now perform the Data update  
+      DataOk = process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+      if (DataOk)
       {
         // Send report back to host
-        usb_hid.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
 
-        CommandType_t cCmd=(CommandType_t)PLocalHD->HIDEPOUTData[0];
-        if ( (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
-        {
-          // Bit tricky
-          // We need to wait for the USB PD negotiations to settle
-        }
+        //for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
 
         #ifdef USE_LCD
         SendBatteryData(0);
@@ -590,7 +615,6 @@ void loop()
 
 }
 
-#ifdef STANDALONE
 void onPacketReceived(const uint8_t *buffer, size_t size)
 {
   // This is data we receive from the SenseCap LCD/ESP32 itself !!
@@ -622,4 +646,3 @@ void onPacketReceived(const uint8_t *buffer, size_t size)
     delayMicroseconds(1000U);
   }
 }
-#endif

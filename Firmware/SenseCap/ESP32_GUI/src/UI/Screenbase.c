@@ -2,16 +2,19 @@
 #include "Screen1.h"
 #include "Screen2.h"
 #include "Screen3.h"
+#include "ScreenLogger.h"
 
 lv_obj_t * screenbase = NULL;
 lv_obj_t * backbutton = NULL;
 lv_obj_t * morebutton = NULL;
 
+lv_event_dsc_t * customevent = NULL;
+
 lv_style_t input_label_style;
 
 static lv_obj_t * keyboardbase = NULL;
 static lv_obj_t * newkeyboardbase = NULL;
-static lv_event_cb_t event;
+static lv_event_cb_t event = NULL;
 static lv_anim_t a;
 
 PBatterySetting Settings = NULL;
@@ -38,7 +41,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   backbutton = obj;
   lv_obj_align(obj, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_obj_set_size(obj, lv_pct(25), LV_SIZE_CONTENT);
-  lv_obj_add_event_cb(obj, event_cb_more, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL);
   lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);      
 
   obj = lv_label_create(obj);
@@ -49,8 +52,8 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   morebutton = obj;
   lv_obj_align(obj, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_set_size(obj, lv_pct(25), LV_SIZE_CONTENT);
-  lv_obj_add_event_cb(obj, event_cb_more, LV_EVENT_CLICKED, NULL); 
-  //lv_obj_add_event_cb(obj, event_cb_more, LV_EVENT_CLICKED, &btn_next_state); 
+  lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL); 
+  //lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, &btn_next_state); 
   lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);      
 
   obj = lv_label_create(obj);
@@ -97,11 +100,23 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   //lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_BLUE,4), LV_PART_MAIN);      
+
+  screenlogger = lv_obj_create(basescreen);
+  obj = screenlogger;
+  lv_obj_remove_style_all(obj);
+  // Add flag, indicating its a screen !!
+  lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_1);
+  lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
+  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
+  lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   
   lv_obj_move_to_index(nav, 0);
   lv_obj_move_to_index(screen1, 1);
   lv_obj_move_to_index(screen2, 2);
   lv_obj_move_to_index(screen3, 3);    
+  lv_obj_move_to_index(screenlogger, 4);    
 
   lv_obj_move_to_index(morebutton, 0);
   lv_obj_move_to_index(basescreeninfo, 1);
@@ -301,39 +316,56 @@ void recursive_hide(lv_obj_t *parent, bool hide)
     }
 }
 
-void SetContentObject(lv_obj_t * content)
+void SetContentObject(lv_obj_t * content, bool show)
 {
   lv_obj_t * obj;
 
   if (screenbase == NULL) return;
 
   // Get the navigation button
-  obj = GetButtonLabelObject();
-  obj = lv_obj_get_parent(obj);
-  lv_obj_remove_state(obj,LV_STATE_DISABLED);
-
-  byte Count = lv_obj_get_child_count(screenbase);
-  if (Count)
+  if (show)
   {
-    do
+    obj = GetButtonLabelObject();
+    obj = lv_obj_get_parent(obj);
+    // Enable button
+    lv_obj_remove_state(obj,LV_STATE_DISABLED);
+    // Set standard color
+    lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);
+    // Remove all standard or custom events
+
+    if (customevent != NULL)
     {
-      Count--;
-      obj = lv_obj_get_child(screenbase, Count);
-      if ((obj != NULL) && (obj != content))
+      // Remove custom event
+      lv_obj_remove_event_dsc(obj, customevent);
+      customevent = NULL;
+      // Add standard event
+      lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL);
+    }
+
+    byte Count = lv_obj_get_child_count(screenbase);
+    if (Count)
+    {
+      do
       {
-        // If an child has this flag, its a screen !!
-        if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))
+        Count--;
+        obj = lv_obj_get_child(screenbase, Count);
+        if ((obj != NULL) && (obj != content))
         {
-          if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+          // If an child has this flag, its a screen !!
+          if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))
+          {
+            if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+          }
         }
       }
+      while (Count);
     }
-    while (Count);
-  }
 
-  if (content != NULL)
-  {
-    if (lv_obj_has_flag(content, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(content, LV_OBJ_FLAG_HIDDEN);
+    if (content != NULL)
+    {
+      if (lv_obj_has_flag(content, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(content, LV_OBJ_FLAG_HIDDEN);
+    }
+
   }
 }
 

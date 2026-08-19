@@ -11,6 +11,11 @@
 #define    STANDALONE
 #endif
 
+#define DATAGETTIME 50 // ms
+#define DATACOLLECTTIMEFAST 500 // ms
+#define DATACOLLECTTIMENORMAL 10000 // ms
+#define CALCULATIONTIME 100 // ms
+
 #define    DAUGHTERBOARDCOUNT         1
 
 #define    FW_MAJOR                   56
@@ -78,46 +83,36 @@ typedef union
     } bytes;
 } DWORD_VAL, DWORD_BITS;
 
+typedef union
+{
+    qword Val;
+    byte v[8];// __PACKED;
+    word w[4];// __PACKED;
+    dword dw[2];// __PACKED;
+} QWORD_VAL, QWORD_BITS;
+
 #define IDDLESTAGENUMBER              0
 #define FIXEDDISCHARGESTAGENUMBER     1
 #define FIXEDCHARGESTAGENUMBER        2
 
-typedef enum
-{
-  btn_test_discharge = 0xA0,
-  btn_start_discharge,
-  btn_test_charge,  
-  btn_start_charge,
-  btn_zero_capacity,
-  btn_zero_energy,
-  btn_zero_time,
-} TScreen1Buttons;
-
-typedef enum
-{
-  btn_get_PDO = 0xA0,
-} TScreen3Buttons;
-
-typedef enum
-{
-  btn_back = 0xF0,
-  btn_next
-} TNavButtons;
-
 typedef enum {
-  	CMD_unknown          = 0x00,  
-  	CMD_error            = 0x40,  
-  	CMD_get_data         = 0x50,
-  	CMD_get_status,
-  	CMD_get_hardware,
-  	CMD_get_firmware,
+    CMD_unknown          = 0x00,
+    CMD_error            = 0x40,
+    CMD_get_data         = 0x50,
+    CMD_get_status,
+    CMD_get_hardware,
+    CMD_get_firmware,
     CMD_set_value,
-  	CMD_get_PDOList,
-  	CMD_read_PDOList,
-  	CMD_set_FIXEDPDO,
-  	CMD_set_PPSPDO,
-  	CMD_set_AVSPDO,
-  	CMD_set_MAXPDO,
+    CMD_set_energy,
+    CMD_set_capacity,
+    CMD_set_time,
+    CMD_get_PDOList,
+    CMD_read_PDOList,
+    CMD_set_FIXEDPDO,
+    CMD_set_PPSPDO,
+    CMD_set_AVSPDO,
+    CMD_set_MAXPDO,
+    CMD_set_output,
     CMD_controller_reset = 0xB0
 } CommandType_t;
 
@@ -219,17 +214,12 @@ typedef enum
   pmFixed = 0,
   pmPPS,
   pmAVS,
+  pmMAX
 } TPDOMode;
-
-
 
 typedef struct
 {
   TStageMode Status;
-  TPDOMode pdoMode;
-  int pdoIndex;
-  int targetVoltage;
-  int maxCurrent;
   dword SetValue;
   TThresholdDataItem ThresholdSettings[tmLast]; // all threshold possibilities
 } TStageData, *PStageData;
@@ -252,6 +242,9 @@ typedef struct {
   #if defined(ARDUINO_ARCH_SAMD)  
   bool Valid;
   #endif
+  #ifdef ARDUINO_ESP32S3_DEV
+  bool Valid;
+  #endif
   byte BoardSerial[12];
   byte BoardNumber;
 } TBoardInfo;
@@ -262,9 +255,14 @@ typedef struct
   word Current;
   dword Power;
   word Temperature;  
+  bool OutputOn;
+  TPDOMode pdoMode;
+  int pdoIndex;
+  int targetVoltage;
+  int maxCurrent;
+  byte Serial[8];
   TStageData BM;
   word Firmware;
-  byte Serial[8];
   bool NeedsGUIUpdate;
   bool NeedsStatusUpdate;
   bool NeedsDataUpdate;

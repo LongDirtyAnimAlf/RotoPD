@@ -50,11 +50,6 @@
 
 //#define BUTTON_PIN 38
 
-#define DATAGETTIME 50 // ms
-#define DATACOLLECTTIMEFAST 500 // ms
-#define DATACOLLECTTIMENORMAL 10000 // ms
-#define CALCULATIONTIME 100 // ms
-
 #define GFX_DEV_DEVICE ESP32_S3_RGB
 #define RGB_PANEL
 //#define GFX_BL 45
@@ -378,7 +373,7 @@ static void main_event_handler(lv_event_t * e)
           #endif
           switch(screenindex)
           {
-            case 1: {Setup_Screen1(ActiveBatteryIndex);Screen1SetData(SET);Screen1SetOutput(BatteryBoards[ActiveBatteryIndex].OutputOn);break;}
+            case 1: {Setup_Screen1(ActiveBatteryIndex);Screen1SetData(SET);break;}
             case 2: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
             #ifdef STANDALONE
             case 3: {Setup_Screen3(ActiveBatteryIndex,true);break;}

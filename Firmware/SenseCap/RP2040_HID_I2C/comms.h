@@ -21,6 +21,7 @@
 #ifdef ARDUINO_SEEED_INDICATOR_RP2040
 #define PIN_WIRE_BATT_SDA  PIN_WIRE0_SDA
 #define PIN_WIRE_BATT_SCL  PIN_WIRE0_SCL
+#include "Adafruit_TinyUSB.h"
 #include "storage.h"
 #endif
 
@@ -64,9 +65,14 @@ extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
 extern TBoardInfo BoardInfo;
 extern volatile THIDData HIDData[];//[DAUGHTERBOARDCOUNT];
 
+#ifdef ARDUINO_ESP32S3_DEV
 extern USBHID HID;
-
 extern USBCDC USBSerial;
+#endif
+
+#ifdef ARDUINO_SEEED_INDICATOR_RP2040
+extern Adafruit_USBD_HID HID;
+#endif
 
 //extern AP33772S usbpd;
 extern AP33772S pd;

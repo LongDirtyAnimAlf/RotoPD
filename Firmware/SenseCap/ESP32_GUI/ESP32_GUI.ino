@@ -5,6 +5,8 @@
 // This define is sometimes missing when using old ESP32-IDF version
 //#define ESP_INTR_CPU_AFFINITY_AUTO 0
 
+#define SENSECAP
+
 #include <Arduino.h>
 #include <lvgl.h>
 #include <Arduino_GFX_Library.h>
@@ -37,10 +39,6 @@
 #define PACKET_UART_TXD 19
 
 #define BUTTON_PIN 38
-
-#define DATACOLLECTTIMEFAST 50 // ms
-#define DATACOLLECTTIMENORMAL 10000 // ms
-#define CALCULATIONTIME 100 // ms
 
 #define GFX_DEV_DEVICE ESP32_S3_RGB
 #define RGB_PANEL
@@ -174,7 +172,6 @@ static void IRAM_ATTR storeSettings(byte BI)
 }
 #endif
 
-//IRAM_ATTR
 static void main_event_handler(lv_event_t * e)
 {
   static byte screenindex = 1;
@@ -204,10 +201,18 @@ static void main_event_handler(lv_event_t * e)
     {
       if(code == LV_EVENT_VALUE_CHANGED)
       {
-        #ifdef DEBUG                      
-        Serial.println("Event: button value changed");
-        #endif
+        //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
+        bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
 
+        if (event_object == outputbutton)
+        {
+          // Prepare the command to engage the hardware
+          SendCommand[COMMANDPOSITION] = CMD_set_output;
+          SendCommand[INDEXPOSITION] = ActiveBatteryIndex;
+          SendCommand[LENGTHPOSITION] = 1U; // length
+          SendCommand[DATASTART] = (uint8_t)buttondown;
+        }    
+        else
         if ( (event_object == testdischargebutton) || (event_object == startdischargebutton) || (event_object == testchargebutton) || (event_object == startchargebutton) )
         {
           dword temp = 0;
@@ -227,9 +232,6 @@ static void main_event_handler(lv_event_t * e)
           {
             Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
           }
-
-          //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
-          bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
 
           if (!buttondown)
           {
@@ -284,12 +286,18 @@ static void main_event_handler(lv_event_t * e)
           temp /= 256;
           SendCommand[DATASTART+4] = (temp % 256);
         }
+        else
+        {
+          #ifdef DEBUG                      
+          Serial.println("Event unhandled: button value changed");
+          #endif
+       }
       }
       else
       if(code == LV_EVENT_LONG_PRESSED)
       {
         #ifdef DEBUG                      
-        Serial.println("Event: long pressed");
+        Serial.println("Event unhandled: long pressed");
         #endif
       }
       else
@@ -302,14 +310,16 @@ static void main_event_handler(lv_event_t * e)
           #ifndef STANDALONE
           if ( (event_object == morebutton) && (screenindex<2) ) screenindex++; // forwards button
           #else
-          if ( (event_object == morebutton) && (screenindex<3) ) screenindex++; // forwards button              
+          if ( (event_object == morebutton) && (screenindex<4) ) screenindex++; // forwards button              
           #endif
+
           switch(screenindex)
           {
             case 1: {Setup_Screen1(ActiveBatteryIndex);Screen1SetData(SET);break;}
             case 2: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
             #ifdef STANDALONE
-            case 3: {Setup_Screen3(ActiveBatteryIndex);break;}
+            case 3: {Setup_Screen3(ActiveBatteryIndex,true);break;}
+            case 4: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
             #endif
           }
         }
@@ -466,6 +476,7 @@ static void main_event_handler(lv_event_t * e)
     #endif
   }
 }
+
 
 void AddMeasurementData(byte index, word V, word I, dword P, word T)
 {

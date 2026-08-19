@@ -11,6 +11,11 @@
 #define    STANDALONE
 #endif
 
+#define DATAGETTIME 50 // ms
+#define DATACOLLECTTIMEFAST 500 // ms
+#define DATACOLLECTTIMENORMAL 10000 // ms
+#define CALCULATIONTIME 100 // ms
+
 #define    DAUGHTERBOARDCOUNT         1
 
 #define    FW_MAJOR                   56
@@ -255,7 +260,7 @@ typedef struct
   int pdoIndex;
   int targetVoltage;
   int maxCurrent;
-  //byte Serial[8];
+  byte Serial[8];
   TStageData BM;
   word Firmware;
   bool NeedsGUIUpdate;

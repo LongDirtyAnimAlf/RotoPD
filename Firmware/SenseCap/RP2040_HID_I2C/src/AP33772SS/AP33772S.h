@@ -175,10 +175,12 @@ struct AP33772S_PDO {
 // ─────────────────────────────────────────────────────────────────────────────
 class AP33772S {
 public:
-    explicit AP33772S(TwoWire &wire = Wire, int8_t intPin = -1);
+    //explicit AP33772S(TwoWire &wire = Wire, int8_t intPin = -1);
+    explicit AP33772S(TwoWire *wire = &Wire, int8_t intPin = -1);
 
     // ── Init ────────────────────────────────────────────────────────────────
     int8_t  begin(bool enableEPR = true, bool enablePPS = true);
+    bool    isConnected();
     int8_t  waitForStartup(uint32_t timeoutMs = 2000);
     int8_t  waitForPDOs(uint32_t timeoutMs = 8000);
 
@@ -270,7 +272,7 @@ public:
     void     dumpRegisters(Stream &s = Serial);
 
 private:
-    TwoWire     &_wire;
+    TwoWire *    _wire;
     int8_t       _intPin;
     PDO_DATA_T   _pdoRaw[MAX_PDO_ENTRIES];  // Raw bit-field structs
     AP33772S_PDO _pdoDecoded[MAX_PDO_ENTRIES];
@@ -284,6 +286,8 @@ private:
     uint8_t  _keepAliveCurrentSel;
     bool     _keepAliveIsAVS;
 
+    bool     _firstStatus = false;
+
     // Helpers
     void    _decodePDO(uint8_t idx);
     void    _sendRDO(uint8_t pdoIndex, uint8_t currentSel, uint8_t voltageSel);
@@ -293,6 +297,7 @@ private:
     uint8_t  _currentEncode(uint16_t mA);
     // Input: 0–15 code, Output: approximate lower-bound mA
     static uint16_t _currentDecode(uint8_t code);
+
 };
 
 #endif // AP33772S_H

@@ -22,6 +22,8 @@ extern lv_obj_t * screenbase;
 extern lv_obj_t * backbutton;
 extern lv_obj_t * morebutton;
 
+extern lv_event_dsc_t * customevent;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,7 +31,7 @@ extern "C" {
 void CreateBaseScreen(lv_event_cb_t event_cb_more);
 
 //lv_obj_t * GetContentObject(byte contentindexnumber);
-void SetContentObject(lv_obj_t * content);
+void SetContentObject(lv_obj_t * content, bool show);
 lv_obj_t * GetInfoObject(void);
 lv_obj_t * GetButtonLabelObject(void);
 lv_event_cb_t GetEvent(void);

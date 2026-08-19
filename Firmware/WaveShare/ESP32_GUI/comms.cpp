@@ -1,5 +1,4 @@
 #include "comms.h"
-#include "./src/UI/screenlogger.h"
 
 #if defined(ARDUINO_ARCH_SAMD)
 MYSERCOM mysercom(PIN_WIRE_SERCOM);
@@ -15,6 +14,7 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 #define USBSerial Serial
 #endif
 #ifdef ARDUINO_ESP32S3_DEV
+#include "./src/UI/screenlogger.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 extern USBCDC USBSerial;
 #endif
@@ -27,7 +27,10 @@ static float ina_mW_c       = 0;
 static float ina_T_c        = 0;
 static int   ina_counter_c  = 0;
 
-DRAM_ATTR TBoardInfo BoardInfo = 
+#ifdef ARDUINO_ESP32S3_DEV
+DRAM_ATTR 
+#endif
+TBoardInfo BoardInfo = 
 {
   #ifdef ARDUINO_SEEED_INDICATOR_RP2040
   true, // DataInValid
@@ -256,10 +259,12 @@ bool process_command(void const *data, void *result)
     USBSerial.printf("PDO target voltage: %dmV.\r\n", LocalBatteryBoard->targetVoltage);
     #endif
 
+    #ifdef ARDUINO_ESP32S3_DEV
     ScreenLogger_Add("Received SetPD command.",true);
     ScreenLogger_Add_Fmt("PDO index: #%d.\n", LocalBatteryBoard->pdoIndex);
     ScreenLogger_Add_Fmt("PDO requested current: %dmA.\n", LocalBatteryBoard->maxCurrent);
     ScreenLogger_Add_Fmt("PDO target voltage: %dmV.\n", LocalBatteryBoard->targetVoltage);
+    #endif
 
     switch (cCmd)
     {
@@ -268,7 +273,9 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("Max PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
         ScreenLogger_Add("Max PDO.",true);
+        #endif
         
         LocalBatteryBoard->pdoMode = pmMAX; 
         pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
@@ -280,7 +287,9 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("Fixed PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
         ScreenLogger_Add("Fixed PDO.",true);
+        #endif
 
         LocalBatteryBoard->pdoMode = pmFixed; 
         j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
@@ -291,7 +300,9 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("PPS PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
         ScreenLogger_Add("PPS PDO.",true);
+        #endif
 
         LocalBatteryBoard->pdoMode = pmPPS; 
         j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
@@ -302,7 +313,9 @@ bool process_command(void const *data, void *result)
         #ifdef DEBUG
         USBSerial.printf("AVS PDO.\r\n");
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
         ScreenLogger_Add("AVS PDO.",true);
+        #endif
 
         LocalBatteryBoard->pdoMode = pmAVS; 
         j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
@@ -322,7 +335,9 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetAllPDO command. PDOs: %d\r\n",PDOCount);
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
     ScreenLogger_Add_Fmt("Received GetAllPDO command. PDOs: %d\n",PDOCount);
+    #endif
   }
 
   if (cCmd == CMD_read_PDOList)
@@ -332,7 +347,9 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received read PDO list. PDOs: %d\r\n",PDOCount);
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
     ScreenLogger_Add_Fmt("Received read PDO list. PDOs: %d\n",PDOCount);
+    #endif
   }
 
   if (cCmd == CMD_set_output)
@@ -343,14 +360,18 @@ bool process_command(void const *data, void *result)
       #ifdef DEBUG
       USBSerial.printf("Output ON.\r\n");
       #endif
+      #ifdef ARDUINO_ESP32S3_DEV
       ScreenLogger_Add("Output ON.",true);
+      #endif
     }
     else
     {
       #ifdef DEBUG
       USBSerial.printf("Output OFF.\r\n");
       #endif
+      #ifdef ARDUINO_ESP32S3_DEV
       ScreenLogger_Add("Output OFF.",true);
+      #endif
     }
     LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
@@ -361,7 +382,9 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received SetValue command.\r\n");
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
     ScreenLogger_Add("Received SetValue command.",true);
+    #endif
 
     LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
@@ -394,14 +417,18 @@ bool process_command(void const *data, void *result)
       #ifdef DEBUG
       USBSerial.printf("Output ON.\r\n");
       #endif
+      #ifdef ARDUINO_ESP32S3_DEV
       ScreenLogger_Add("Output ON.",true);
+      #endif
     }
     else
     {
       #ifdef DEBUG
       USBSerial.printf("Output OFF.\r\n");
       #endif
+      #ifdef ARDUINO_ESP32S3_DEV
       ScreenLogger_Add("Output OFF.",true);
+      #endif
     }
     LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
@@ -412,17 +439,11 @@ bool process_command(void const *data, void *result)
     #ifdef DEBUG
     USBSerial.printf("Received GetData command.\r\n");
     #endif
+    #ifdef ARDUINO_ESP32S3_DEV
     ScreenLogger_Add("Received GetData command.",true);
+    #endif
 
-    float ina_mA  = ina238.getMilliAmpere();
-    float ina_mV  = ina238.getBusMilliVolt();
-    float ina_mW  = ina238.getMilliWatt();
-    float ina_T   = ina238.getTemperature();
-
-    LocalBatteryBoard->Voltage = round(ina_mV);
-    LocalBatteryBoard->Current = round(ina_mA);
-    LocalBatteryBoard->Power = round(ina_mW);
-    LocalBatteryBoard->Temperature = round(ina_T * 10);
+    getRotoPDData(&LocalBatteryBoard->Current,&LocalBatteryBoard->Voltage,&LocalBatteryBoard->Power,&LocalBatteryBoard->Temperature);
 
     GUIUpdateNeeded = true;
   }
@@ -652,7 +673,9 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         #ifdef DEBUG
         USBSerial.printf("Severe error. Wrong battery number:%d.\r\n", cBat);
         #endif
+        #ifdef ARDUINO_ESP32S3_DEV
         ScreenLogger_Add_Fmt("Severe error. Wrong battery number:%d.\n", cBat);
+        #endif
       }
     }
   }
