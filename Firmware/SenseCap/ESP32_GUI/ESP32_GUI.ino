@@ -723,6 +723,8 @@ void setup()
   #endif
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
+  Setup_ScreenLogger(ActiveBatteryIndex,false);
+  Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(ActiveBatteryIndex);
   SET = &Batteries[ActiveBatteryIndex];
   Screen1SetData(SET);
@@ -740,6 +742,7 @@ void setup()
   #ifdef DEBUG
   Serial.println("Init done");
   #endif
+  ScreenLogger_Add("Controller startup ready.",true);
 
   #ifdef LVGLDEMOS
   //lv_demo_widgets();  

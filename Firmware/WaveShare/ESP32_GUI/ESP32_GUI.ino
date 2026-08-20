@@ -371,6 +371,7 @@ static void main_event_handler(lv_event_t * e)
           #else
           if ( (event_object == morebutton) && (screenindex<4) ) screenindex++; // forwards button              
           #endif
+
           switch(screenindex)
           {
             case 1: {Setup_Screen1(ActiveBatteryIndex);Screen1SetData(SET);break;}
@@ -937,8 +938,8 @@ void setup()
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
   Setup_ScreenLogger(ActiveBatteryIndex,false);
+  Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(ActiveBatteryIndex);
-
   SET = &Batteries[ActiveBatteryIndex];
   Screen1SetData(SET);
 
