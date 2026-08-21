@@ -856,14 +856,24 @@ void setup()
   }
   else
   {
+    ina238.reset();
     ina238.setADCRange(1);
-    ina238.setMaxCurrentShunt(7, 0.005044); // Based on RotoPD Pro schematic
+    if ((BoardInfo.shuntcorrection<1000) && (BoardInfo.shuntcorrection>-1000))
+    {
+      ina238.setMaxCurrentShunt(7, (float)((5000.0+BoardInfo.shuntcorrection)/1000000.0) ); // Based on RotoPD Pro schematic
+    }
+    else
+    {
+      ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
+    }
     ina238.setOverCurrentLimit(5500); // Max out 5,5A threshold
 
     ina238.setShuntVoltageConversionTime(INA238_150_us);
-
-    //ina238.setMode(uint8_t mode = INA238_MODE_CONT_TEMP_BUS_SHUNT);
+    #ifdef WITHINA238TEMPERATURE
+    ina238.setMode(INA238_MODE_CONT_TEMP_BUS_SHUNT);
+    #else
     ina238.setMode(INA238_MODE_CONT_BUS_SHUNT);
+    #endif
     //ina238.setBusVoltageConversionTime(uint8_t bvct = INA238_1052_us);
     //ina238.setTemperatureConversionTime(uint8_t tct = INA238_1052_us);
     //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
@@ -1070,7 +1080,7 @@ void loop()
               Setup_Screen3(ActiveBatteryIndex,false);
               #endif
               
-              for( j=1; j<=13; j++ )
+              for( j=1; j<=MAX_PDO_ENTRIES; j++ )
               {
                 Screen3SetPDO(j,false,false,0,0,0,0);
               }
@@ -1087,7 +1097,7 @@ void loop()
 
               hid_report_in[dataindexer++] = PDOCount;
 
-              for ( j=1; j<=13; j++ )
+              for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
               {
                 if (pd.readPDO(j, PDO))
                 {

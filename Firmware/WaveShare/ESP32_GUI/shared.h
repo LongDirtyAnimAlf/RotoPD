@@ -16,7 +16,13 @@
 #define DATACOLLECTTIMENORMAL 10000 // ms
 #define CALCULATIONTIME 100 // ms
 
+// RotoPD
+#define WITHINA238TEMPERATURE
+#define REV11
+#ifdef REV11
 #define XRS40N10ONRESISTANCE          (2*20) //mOhm 
+#define SHUNTRESISTANCE               (5) //mOhm 
+#endif
 
 #define    DAUGHTERBOARDCOUNT         1
 
@@ -249,7 +255,7 @@ typedef struct {
   #endif
   byte BoardSerial[12];
   byte BoardNumber;
-  float shunt;
+  int16_t shuntcorrection;
 } TBoardInfo;
 
 typedef struct

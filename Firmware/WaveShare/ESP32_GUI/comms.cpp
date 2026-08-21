@@ -24,7 +24,9 @@ volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
 static float ina_mA_c       = 0;
 static float ina_mV_c       = 0;
 static float ina_mW_c       = 0;
+#ifdef WITHINA238TEMPERATURE
 static float ina_T_c        = 0;
+#endif
 static int   ina_counter_c  = 0;
 
 #ifdef ARDUINO_ESP32S3_DEV
@@ -43,7 +45,7 @@ TBoardInfo BoardInfo =
   #endif
   {0},  // Default BoardSerial
   0,    // Default BoardNumber
-  0.005 // Default INA238 shunt value
+  44     // Default INA238 shunt correction value (in uOhm, signed, int16_t)
 };
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
@@ -170,7 +172,9 @@ void collectRotoPDData(void)
   ina_mA_c      += ina238.getMilliAmpere();
   ina_mV_c      += ina238.getBusMilliVolt();
   ina_mW_c      += ina238.getMilliWatt();
-  //ina_T_c       += ina238.getTemperature();
+  #ifdef WITHINA238TEMPERATURE
+  ina_T_c       += ina238.getTemperature();
+  #endif
   ina_counter_c++;
 }
 
@@ -182,7 +186,9 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
     *I = lroundf(ina238.getMilliAmpere());
     *V = lroundf(ina238.getBusMilliVolt());
     *P = lroundf(ina238.getMilliWatt());
-    //*T = lroundf(ina238.getTemperature() * 10);
+    #ifdef WITHINA238TEMPERATURE
+    *T = lroundf(ina238.getTemperature() * 10);
+    #endif
   }
   else
   {
@@ -190,18 +196,24 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
     *V = lroundf(ina_mV_c / ina_counter_c);
     *I = lroundf(ina_mA_c / ina_counter_c);
     *P = lroundf(ina_mW_c / ina_counter_c);
-    //*T = lroundf(((ina_T_c *10) / ina_counter_c));
+    #ifdef WITHINA238TEMPERATURE
+    *T = lroundf(((ina_T_c *10) / ina_counter_c));
+    #endif
     ina_mA_c      = 0;
     ina_mV_c      = 0;
     ina_mW_c      = 0;
+    #ifdef WITHINA238TEMPERATURE
     ina_T_c       = 0;
+    #endif
     ina_counter_c = 0;
   }
 
-  word VC = ((*I * XRS40N10ONRESISTANCE) / 1000);
+  #ifdef REV11
+  // Compensate for XRS40N10 Static Drain-Source On-Resistance and shutn resistor
+  word VC = ((*I * (XRS40N10ONRESISTANCE+SHUNTRESISTANCE)) / 1000);
   *V += VC;
-
-  // Compensate for XRS40N10 Static Drain-Source On-Resistance
+  #endif
+  
 
 
 }
@@ -508,7 +520,7 @@ bool process_command(void const *data, void *result)
 
     if (PDOCount>0)
     {
-      for ( j=1; j<14; j++ )
+      for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
       {
         if (pd.readPDO(j, PDO))
         {

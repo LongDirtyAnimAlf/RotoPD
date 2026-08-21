@@ -546,7 +546,7 @@ void setup()
 
   #ifdef DEBUG
   Serial.begin(115200);
-  int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
+  int cnt = 1500;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
   // Serial.setDebugOutput(true);
   Serial.println("SenseCap Indicator startup");

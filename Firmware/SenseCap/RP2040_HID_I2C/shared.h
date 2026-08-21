@@ -16,6 +16,14 @@
 #define DATACOLLECTTIMENORMAL 10000 // ms
 #define CALCULATIONTIME 100 // ms
 
+// RotoPD
+#define WITHINA238TEMPERATURE
+#define REV11
+#ifdef REV11
+#define XRS40N10ONRESISTANCE          (2*20) //mOhm 
+#define SHUNTRESISTANCE               (5) //mOhm 
+#endif
+
 #define    DAUGHTERBOARDCOUNT         1
 
 #define    FW_MAJOR                   56
@@ -247,6 +255,7 @@ typedef struct {
   #endif
   byte BoardSerial[12];
   byte BoardNumber;
+  int16_t shuntcorrection;
 } TBoardInfo;
 
 typedef struct
@@ -255,7 +264,7 @@ typedef struct
   word Current;
   dword Power;
   word Temperature;  
-  bool OutputOn;
+  //bool OutputOn;
   TPDOMode pdoMode;
   int pdoIndex;
   int targetVoltage;
