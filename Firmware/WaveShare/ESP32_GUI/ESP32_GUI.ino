@@ -560,6 +560,8 @@ bool InitROTOPD(void)
     // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
     // VOUT connected to +5V
     pd.clearConfig(CONFIG_UVP_EN);
+    pd.clearConfig(CONFIG_OVP_EN);
+    pd.clearConfig(CONFIG_OCP_EN);
 
     if (pd.begin() != AP33772S_OK)
     {
@@ -576,11 +578,16 @@ bool InitROTOPD(void)
     // VOUT ISENSP AND VCC are connected to +5V
     //pd.setOVPOffset_mV(2000);
     //pd.setUVPThreshold(UVP_80PCT);
-    //pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
-    pd.setOTPThreshold_C(85);
+
+    pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
+
+    pd.setOTPThreshold_C(120);
     pd.setConfig(CONFIG_OTP_EN);
     pd.setDeratingThreshold_C(75);
     pd.setConfig(CONFIG_DR_EN);
+
+    // Switch off output
+    //pd.setOutput(false);
 
     // Interrupts
     //pd.setInterruptMask(MASK_ALL);
@@ -850,16 +857,18 @@ void setup()
   else
   {
     ina238.setADCRange(1);
-    ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
+    ina238.setMaxCurrentShunt(7, 0.005044); // Based on RotoPD Pro schematic
+    ina238.setOverCurrentLimit(5500); // Max out 5,5A threshold
+
     ina238.setShuntVoltageConversionTime(INA238_150_us);
 
     //ina238.setMode(uint8_t mode = INA238_MODE_CONT_TEMP_BUS_SHUNT);
+    ina238.setMode(INA238_MODE_CONT_BUS_SHUNT);
     //ina238.setBusVoltageConversionTime(uint8_t bvct = INA238_1052_us);
     //ina238.setTemperatureConversionTime(uint8_t tct = INA238_1052_us);
     //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
 
     ina238.setAverage(INA238_16_SAMPLES); 
-    ina238.setOverCurrentLimit(5000); // Max out 5A threshold
     ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
   }
 
@@ -895,10 +904,10 @@ void setup()
     #endif
   }
 
-#ifdef GFX_BL
-  pinMode(GFX_BL, OUTPUT);
-  digitalWrite(GFX_BL, HIGH);
-#endif
+  #ifdef GFX_BL
+    pinMode(GFX_BL, OUTPUT);
+    digitalWrite(GFX_BL, HIGH);
+  #endif
 
   #ifdef DEBUG
   String LVGL_Arduino = "Init LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
@@ -943,11 +952,22 @@ void setup()
   SET = &Batteries[ActiveBatteryIndex];
   Screen1SetData(SET);
 
-  BatteryBoards[ActiveBatteryIndex].OutputOn = false;
-  pd.setOutput(BatteryBoards[ActiveBatteryIndex].OutputOn);
-  Screen1SetOutput(BatteryBoards[ActiveBatteryIndex].OutputOn);
-
+  //BatteryBoards[ActiveBatteryIndex].OutputOn = false;
+  //Screen1SetOutput(BatteryBoards[ActiveBatteryIndex].OutputOn);
   #endif
+
+  //BatteryBoards[ActiveBatteryIndex].OutputOn = false;
+  /*
+  if (pd.isConnected())
+  {
+    if (InitROTOPD())
+    {
+      #ifndef LVGLDEMOS
+      Screen1SetOutput(pd.getOutput());
+      #endif
+    }
+  }
+  */
 
   #ifdef DEBUG  
   USBSerial.println("Init timers.");      
@@ -972,6 +992,10 @@ void setup()
 
 void loop()
 {
+  #ifdef LVGLDEMOS
+  uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
+  #else
+
   uint8_t j;
 
   static TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -1027,7 +1051,8 @@ void loop()
         // Init the AP33772S / RotoPD
         if (InitROTOPD())
         {
-
+          Screen1SetOutput(pd.getOutput());
+  
           // Check if we already have the new PDO's
           if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
           {
@@ -1092,20 +1117,26 @@ void loop()
         {
           USBSerial.println(F("[INIT] AP33772S error !"));
         }
+      
       }
-
-      /*
-      USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
+      else
+      {
+        /*
+        USBSerial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
                     pd.getTemperature_C(),
                     pd.getRequestedVoltage_mV(),
                     pd.getRequestedCurrent_mA());
 
-      if (pd.isDerating()) USBSerial.print(F("  [DR]"));
-      if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
+        */
 
-      USBSerial.println();
-      */
+        if (pd.isDerating()) USBSerial.print(F("  [DR]"));
+        if (pd.isFault())    USBSerial.printf("  [%s]", pd.getFaultString().c_str());
 
+        //int8_t   pd.getTemperature_C();
+
+
+        USBSerial.println();
+      }
     }
   }  
 
@@ -1457,6 +1488,7 @@ void loop()
   }   
   #endif
 
+  #endif
 }
 
 unsigned long TicksBetween(unsigned long InitTicks, unsigned long EndTicks)

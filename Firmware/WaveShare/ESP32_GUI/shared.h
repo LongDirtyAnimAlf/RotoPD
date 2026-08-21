@@ -16,6 +16,8 @@
 #define DATACOLLECTTIMENORMAL 10000 // ms
 #define CALCULATIONTIME 100 // ms
 
+#define XRS40N10ONRESISTANCE          (2*20) //mOhm 
+
 #define    DAUGHTERBOARDCOUNT         1
 
 #define    FW_MAJOR                   56
@@ -247,6 +249,7 @@ typedef struct {
   #endif
   byte BoardSerial[12];
   byte BoardNumber;
+  float shunt;
 } TBoardInfo;
 
 typedef struct
@@ -255,7 +258,7 @@ typedef struct
   word Current;
   dword Power;
   word Temperature;  
-  bool OutputOn;
+  //bool OutputOn;
   TPDOMode pdoMode;
   int pdoIndex;
   int targetVoltage;

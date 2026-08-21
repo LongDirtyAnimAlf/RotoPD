@@ -41,8 +41,9 @@ TBoardInfo BoardInfo =
   #ifdef ARDUINO_ESP32S3_DEV
   false, // DataValid
   #endif
-  {0}, // Default BoardSerial
-  0 // Default BoardNumber
+  {0},  // Default BoardSerial
+  0,    // Default BoardNumber
+  0.005 // Default INA238 shunt value
 };
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
@@ -169,7 +170,7 @@ void collectRotoPDData(void)
   ina_mA_c      += ina238.getMilliAmpere();
   ina_mV_c      += ina238.getBusMilliVolt();
   ina_mW_c      += ina238.getMilliWatt();
-  ina_T_c       += ina238.getTemperature();
+  //ina_T_c       += ina238.getTemperature();
   ina_counter_c++;
 }
 
@@ -181,7 +182,7 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
     *I = lroundf(ina238.getMilliAmpere());
     *V = lroundf(ina238.getBusMilliVolt());
     *P = lroundf(ina238.getMilliWatt());
-    *T = lroundf(ina238.getTemperature() * 10);
+    //*T = lroundf(ina238.getTemperature() * 10);
   }
   else
   {
@@ -189,14 +190,20 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
     *V = lroundf(ina_mV_c / ina_counter_c);
     *I = lroundf(ina_mA_c / ina_counter_c);
     *P = lroundf(ina_mW_c / ina_counter_c);
-    *T = lroundf(((ina_T_c *10) / ina_counter_c));
-
+    //*T = lroundf(((ina_T_c *10) / ina_counter_c));
     ina_mA_c      = 0;
     ina_mV_c      = 0;
     ina_mW_c      = 0;
     ina_T_c       = 0;
     ina_counter_c = 0;
   }
+
+  word VC = ((*I * XRS40N10ONRESISTANCE) / 1000);
+  *V += VC;
+
+  // Compensate for XRS40N10 Static Drain-Source On-Resistance
+
+
 }
 
 bool process_command(void const *data, void *result)
@@ -373,7 +380,7 @@ bool process_command(void const *data, void *result)
       ScreenLogger_Add("Output OFF.",true);
       #endif
     }
-    LocalBatteryBoard->OutputOn = Engage; 
+    //LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
   }
 
@@ -430,7 +437,7 @@ bool process_command(void const *data, void *result)
       ScreenLogger_Add("Output OFF.",true);
       #endif
     }
-    LocalBatteryBoard->OutputOn = Engage; 
+    //LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
   }
 
