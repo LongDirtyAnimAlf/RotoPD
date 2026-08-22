@@ -167,6 +167,42 @@ void ResetWire(void)
   #endif
 }
 
+bool initINA238(void)
+{
+  if(!ina238.begin())
+  {
+    return false;
+  }
+  else
+  {
+    ina238.reset();
+    ina238.setADCRange(1);
+    if ((BoardInfo.shuntcorrection<100) && (BoardInfo.shuntcorrection>-100))
+    {
+      ina238.setMaxCurrentShunt(7, (float)((5000.0+BoardInfo.shuntcorrection)/1000000.0) ); // Based on RotoPD Pro schematic
+    }
+    else
+    {
+      ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
+    }
+    ina238.setOverCurrentLimit(5500); // Max out 5,5A threshold
+
+    ina238.setShuntVoltageConversionTime(INA238_150_us);
+    #ifdef WITHINA238TEMPERATURE
+    ina238.setMode(INA238_MODE_CONT_TEMP_BUS_SHUNT);
+    #else
+    ina238.setMode(INA238_MODE_CONT_BUS_SHUNT);
+    #endif
+    //ina238.setBusVoltageConversionTime(uint8_t bvct = INA238_1052_us);
+    //ina238.setTemperatureConversionTime(uint8_t tct = INA238_1052_us);
+    //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
+
+    ina238.setAverage(INA238_16_SAMPLES); 
+    ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+  }
+  return true;
+}
+
 void collectRotoPDData(void)
 {
   ina_mA_c      += ina238.getMilliAmpere();
@@ -180,10 +216,13 @@ void collectRotoPDData(void)
 
 void getRotoPDData(word* I,word* V,dword* P,word* T)
 {
+  float li;
   if (ina_counter_c == 0)
   {
     // Get latest data
-    *I = lroundf(ina238.getMilliAmpere());
+    li = ina238.getMilliAmpere();
+    if (li<0) li=0;
+    *I = lroundf(li);
     *V = lroundf(ina238.getBusMilliVolt());
     *P = lroundf(ina238.getMilliWatt());
     #ifdef WITHINA238TEMPERATURE
@@ -193,8 +232,10 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
   else
   {
     // Get average data
+    li = (ina_mA_c / ina_counter_c);
+    if (li<0) li=0;
+    *I = lroundf(li);
     *V = lroundf(ina_mV_c / ina_counter_c);
-    *I = lroundf(ina_mA_c / ina_counter_c);
     *P = lroundf(ina_mW_c / ina_counter_c);
     #ifdef WITHINA238TEMPERATURE
     *T = lroundf(((ina_T_c *10) / ina_counter_c));
@@ -213,9 +254,176 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
   word VC = ((*I * (XRS40N10ONRESISTANCE+SHUNTRESISTANCE)) / 1000);
   *V += VC;
   #endif
-  
+}
+
+bool initROTOPD(void)
+{
+  // RotoPD Pro setup
+  {
+    // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
+    // VOUT connected to +5V
+    pd.clearConfig(CONFIG_UVP_EN);
+    pd.clearConfig(CONFIG_OVP_EN);
+    pd.clearConfig(CONFIG_OCP_EN);
+
+    if (pd.begin() != AP33772S_OK)
+    {
+      delay(500);
+      if (pd.begin() != AP33772S_OK)
+      {
+        USBSerial.println(F("[INIT] AP33772S failed !"));
+        pd.dumpRegisters(USBSerial);
+        return (false);
+      }
+    }
+    // Protection thresholds
+    // Temperature only for RotoPD Pro
+    // VOUT ISENSP AND VCC are connected to +5V
+    //pd.setOVPOffset_mV(2000);
+    //pd.setUVPThreshold(UVP_80PCT);
+
+    USBSerial.println(F("[INIT] AP33772S success."));
 
 
+    pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
+
+    pd.setOTPThreshold_C(120);
+    pd.setConfig(CONFIG_OTP_EN);
+    pd.setDeratingThreshold_C(75);
+    pd.setConfig(CONFIG_DR_EN);
+
+    // Switch off output
+    //pd.setOutput(false);
+
+    // Interrupts
+    //pd.setInterruptMask(MASK_ALL);
+    //pd.attachInterruptCallback(pdISR);
+
+  }
+  return (true);
+}
+
+void taskRotoPDInit(void)
+{
+  // To be done !!
+
+  return;
+
+  byte j,PDOCount;
+
+  if (pd.isConnected())
+  {
+    //USBSerial.println("RotoPD Pro connected.");
+
+    j = pd.getStatus();
+
+    //USBSerial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+
+    if (j & STATUS_FAULTS)
+    {
+      String out = "RotoPD fault:";
+      if (j & STATUS_OVP) out += " OVP";
+      if (j & STATUS_UVP) out += " UVP";
+      if (j & STATUS_OCP) out += " OCP";
+      if (j & STATUS_OTP) out += " OTP";
+      USBSerial.printf("%s.\r\n", out);
+    }
+
+    if (j & STATUS_STARTED)
+    {
+      USBSerial.println("RotoPD Pro started.");
+
+      USBSerial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+
+      PDOCount = pd.getValidPDOCount();
+      #ifdef DEBUG
+      USBSerial.printf("Initial PDO count: %d\r\n",PDOCount);
+      #endif
+
+      // We have a power up !!
+      // Init the AP33772S / RotoPD
+      if (initROTOPD())
+      {
+        // Check if we already have the new PDO's
+        if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
+        {
+          // Request / read list of PDOs
+          if (PDOCount == 0) PDOCount = pd.readAllPDOs();
+
+          #ifdef DEBUG
+          USBSerial.printf("New PDO's !! PDO count: %d\r\n",PDOCount);
+          #endif
+          ScreenLogger_Add_Fmt("New PDO's !! PDO count: %d\n",PDOCount);
+
+          if (PDOCount>0)
+          {
+            #ifdef STANDALONE
+            //Setup_Screen3(ActiveBatteryIndex,false);
+            #endif
+            
+            for( j=1; j<=MAX_PDO_ENTRIES; j++ )
+            {
+              //Screen3SetPDO(j,false,false,0,0,0,0);
+            }
+
+            USBSerial.println("PDO list below.");
+            pd.printPDOs(USBSerial);
+            USBSerial.println("Done.");
+
+            /*
+            memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
+            hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
+            hid_report_in[INDEXPOSITION] = ActiveBatteryIndex;
+            dataindexer = DATASTART;
+
+            hid_report_in[dataindexer++] = PDOCount;
+
+            for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
+            {
+              if (pd.readPDO(j, PDO))
+              {
+                if (PDO.valid)
+                {
+                  #ifdef DEBUG
+                  USBSerial.printf("PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
+                  #endif
+                  ScreenLogger_Add_Fmt("PDO received ! PDO voltage: #%dmV.\n", PDO.maxVoltage_mV);
+                  #ifdef STANDALONE
+                  Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+                  #endif
+                  hid_report_in[dataindexer++] = PDO.index;
+                  wv.Val = PDO.raw;
+                  hid_report_in[dataindexer++] = wv.bytes.LB;
+                  hid_report_in[dataindexer++] = wv.bytes.HB;
+                }  
+              }
+            }
+            // Send PDO data
+            hid_report_in[LENGTHPOSITION]=dataindexer;        
+            HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+            */
+          }
+        }
+
+        j = pd.getOpMode();
+
+        if (j & OPMODE_PDMOD) USBSerial.println(F("[RotoPD] PD connected"));
+        if (j & OPMODE_LGCYMOD) USBSerial.println(F("[RotoPD] legacy mode"));
+        if (j & OPMODE_CCFLIP) USBSerial.println(F("[RotoPD] cable flipped"));
+      }
+      else
+      {
+        USBSerial.println(F("[RotoPD] Init error !"));
+      }
+    
+    }
+    else
+    {
+      j = pd.getOpMode();
+      if (j & OPMODE_DR) USBSerial.println(F("[RotoPD] derating !!"));
+    }
+  }
 }
 
 bool process_command(void const *data, void *result)
