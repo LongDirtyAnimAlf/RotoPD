@@ -970,123 +970,77 @@ void loop()
   }  
   #endif
 
-  uint8_t PDOCount = 0;
+  int8_t PDOCount = 0;
   AP33772S_PDO PDO;
 
   if (millis() - startTime >= 1000)
   {
     startTime = millis();
 
-    if (pd.isConnected())
+    PDOCount = taskRotoPDInit();
+
+    if (PDOCount != -1)
     {
-      //USBSerial.println("[RotoPD] Connected.");
 
-      j = pd.getStatus();
-
-      //USBSerial.printf("[RotoPD] Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
-
-      if (j & STATUS_FAULTS)
-      {
-        String out = "RotoPD fault:";
-        if (j & STATUS_OVP) out += " OVP";
-        if (j & STATUS_UVP) out += " UVP";
-        if (j & STATUS_OCP) out += " OCP";
-        if (j & STATUS_OTP) out += " OTP";
-        USBSerial.printf("[RotoPD] %s.\r\n", out);
+      if (PDOCount == 0)
+      { 
+        #ifdef DEBUG
+        USBSerial.println("GUI process no new PDO's !!");
+        #endif
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add("GUI process no new PDO's !!",true);
+        #endif
       }
 
-      if (j & STATUS_STARTED)
+      // We have a newly connected RotoPD or new PDO's
+      if (PDOCount>0)
       {
-        USBSerial.println("[RotoPD] Started.");
-
-        USBSerial.printf("[RotoPD] Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
-
-        PDOCount = pd.getValidPDOCount();
         #ifdef DEBUG
-        USBSerial.printf("[RotoPD] Initial PDO count: %d\r\n",PDOCount);
+        USBSerial.printf("GUI process new PDO's !! PDO count: %d\r\n",PDOCount);
         #endif
 
-        // We have a power up !!
-        // Init the AP33772S / RotoPD
-        if (initROTOPD())
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add_Fmt("GUI process new PDO's !! PDO count: %d",PDOCount);
+        #endif
+
+        #ifdef STANDALONE
+        // Already done in setup
+        //Setup_Screen3(ActiveBatteryIndex,false);
+        #endif
+        
+        Screen3ClearPDOList();
+
+        memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
+        hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
+        hid_report_in[INDEXPOSITION] = ActiveBatteryIndex;
+        dataindexer = DATASTART;
+
+        hid_report_in[dataindexer++] = PDOCount;
+
+        for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
         {
-          Screen1SetOutput(pd.getOutput());
-  
-          // Check if we already have the new PDO's
-          if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
+          if (pd.readPDO(j, PDO))
           {
-            // Request / read list of PDOs
-            if (PDOCount == 0) PDOCount = pd.readAllPDOs();
-
-            #ifdef DEBUG
-            USBSerial.printf("[RotoPD] New PDO's !! PDO count: %d\r\n",PDOCount);
-            #endif
-            ScreenLogger_Add_Fmt("[RotoPD] New PDO's !! PDO count: %d\n",PDOCount);
-
-            if (PDOCount>0)
+            if (PDO.valid)
             {
-              #ifdef STANDALONE
-              Setup_Screen3(ActiveBatteryIndex,false);
+              #ifdef DEBUG
+              USBSerial.printf("[RotoPD] PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
               #endif
-              
-              for( j=1; j<=MAX_PDO_ENTRIES; j++ )
-              {
-                Screen3SetPDO(j,false,false,0,0,0,0);
-              }
-
-              USBSerial.println("[RotoPD] PDO list below.");
-              pd.printPDOs(USBSerial);
-
-              memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
-
-              hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
-              hid_report_in[INDEXPOSITION] = ActiveBatteryIndex;
-              dataindexer = DATASTART;
-
-              hid_report_in[dataindexer++] = PDOCount;
-
-              for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
-              {
-                if (pd.readPDO(j, PDO))
-                {
-                  if (PDO.valid)
-                  {
-                    #ifdef DEBUG
-                    USBSerial.printf("[RotoPD] PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
-                    #endif
-                    ScreenLogger_Add_Fmt("[RotoPD] PDO received ! PDO voltage: #%dmV.\n", PDO.maxVoltage_mV);
-                    #ifdef STANDALONE
-                    Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
-                    #endif
-                    hid_report_in[dataindexer++] = PDO.index;
-                    wv.Val = PDO.raw;
-                    hid_report_in[dataindexer++] = wv.bytes.LB;
-                    hid_report_in[dataindexer++] = wv.bytes.HB;
-                  }  
-                }
-              }
-              // Send PDO data
-              hid_report_in[LENGTHPOSITION]=dataindexer;        
-              HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
-            }
+              ScreenLogger_Add_Fmt("[RotoPD] PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+              #ifdef STANDALONE
+              Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+              #endif
+              hid_report_in[dataindexer++] = PDO.index;
+              wv.Val = PDO.raw;
+              hid_report_in[dataindexer++] = wv.bytes.LB;
+              hid_report_in[dataindexer++] = wv.bytes.HB;
+            }  
           }
-
-          j = pd.getOpMode();
-
-          if (j & OPMODE_PDMOD) USBSerial.println(F("[RotoPD] PD connected"));
-          if (j & OPMODE_LGCYMOD) USBSerial.println(F("[RotoPD] Legacy mode"));
-          if (j & OPMODE_CCFLIP) USBSerial.println(F("[RotoPD] Cable flipped"));
         }
-        else
-        {
-          USBSerial.println(F("[RotoPD] Init error !"));
-        }
-      
-      }
-      else
-      {
-        j = pd.getOpMode();
-        if (j & OPMODE_DR) USBSerial.println(F("[RotoPD] Derating !!"));
+        // Send PDO data
+        hid_report_in[LENGTHPOSITION]=dataindexer;        
+        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       }
     }
   }  
@@ -1185,7 +1139,7 @@ void loop()
         #ifdef DEBUG
         USBSerial.printf("Setdata [%d] received ! %d.\r\n", Length, qw.Val);
         #endif
-        ScreenLogger_Add_Fmt("Setdata [%d] received ! %d.\n", Length, qw.Val);
+        ScreenLogger_Add_Fmt("Setdata [%d] received ! %d.", Length, qw.Val);
 
         if (cCmd == CMD_set_energy) RDS->Energy = qw.Val; // in nAh
         if (cCmd == CMD_set_capacity) RDS->Capacity = qw.Val; // in nWh
@@ -1207,12 +1161,12 @@ void loop()
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxCurrent_mA = wv.Val;
-        ScreenLogger_Add_Fmt("PDO requested current: #%dmA.\n", PDO.maxCurrent_mA);
+        ScreenLogger_Add_Fmt("PDO requested current: #%dmA.", PDO.maxCurrent_mA);
 
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxVoltage_mV = wv.Val;
-        ScreenLogger_Add_Fmt("PDO requested voltage: #%dmV.\n", PDO.maxVoltage_mV);
+        ScreenLogger_Add_Fmt("PDO requested voltage: #%dmV.", PDO.maxVoltage_mV);
 
         raw.byte0 = INData[counter++];
         raw.byte1 = INData[counter++];
@@ -1225,7 +1179,7 @@ void loop()
           #ifdef DEBUG
           USBSerial.printf("PDO [%d] received ! PDO V/I: %dmV/%dmA.\r\n", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
           #endif
-          ScreenLogger_Add_Fmt("PDO [%d] received ! PDO V/I: %dmV/%dmA.\n", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
+          ScreenLogger_Add_Fmt("PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
         }
 
         break;
@@ -1234,8 +1188,9 @@ void loop()
       case CMD_get_PDOList:
       case CMD_read_PDOList:
       {
-
         // We need to update the GUI with the received PDO's !!
+
+        Screen3ClearPDOList();
 
         PDOCount = INData[counter++];
 
@@ -1250,7 +1205,7 @@ void loop()
             #ifdef DEBUG
             USBSerial.printf("PDO received ! PDO index: #%d.\r\n", j);
             #endif
-            ScreenLogger_Add_Fmt("PDO received ! PDO index: #%d.\n", j);
+            ScreenLogger_Add_Fmt("PDO received ! PDO index: #%d.", j);
 
             if (j)
             {
@@ -1264,7 +1219,7 @@ void loop()
                 #ifdef DEBUG
                 USBSerial.printf("PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
                 #endif
-                ScreenLogger_Add_Fmt("PDO received ! PDO voltage: #%dmV.\n", PDO.maxVoltage_mV);
+                ScreenLogger_Add_Fmt("PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }

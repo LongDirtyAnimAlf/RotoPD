@@ -82,8 +82,8 @@ bool process_command(void const *data, void *result);
 
 bool initINA238(void);
 
-bool InitROTOPD(void);
-void taskRotoPDInit(void);
+bool initROTOPD(void);
+int8_t taskRotoPDInit(void);
 void collectRotoPDData(void);
 void getRotoPDData(word* I,word* V,dword* P,word* T);
 
