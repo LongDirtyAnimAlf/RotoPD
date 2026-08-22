@@ -205,9 +205,9 @@ void setup()
     BatteryBoards[i].Power              = 0;
     BatteryBoards[i].Temperature        = 0;
     BatteryBoards[i].BM.Status          = smOff;
-    BatteryBoards[i].pdoMode         = pmFixed;
-    BatteryBoards[i].targetVoltage   = 0;
-    BatteryBoards[i].maxCurrent      = 0;
+    BatteryBoards[i].pdoMode            = pmFixed;
+    BatteryBoards[i].targetVoltage      = 0;
+    BatteryBoards[i].maxCurrent         = 0;
   }
 
   #ifndef STANDALONE
@@ -283,40 +283,6 @@ void setup()
 
   InitWire();
 
-  // INA238 setup
-  if(!ina238.begin())
-  {
-    Serial.println("Cannot find INA238 on RotoPD Pro.");
-  }
-  else
-  {
-    ina238.reset();
-    ina238.setADCRange(1);
-    if ((BoardInfo.shuntcorrection<1000) && (BoardInfo.shuntcorrection>-1000))
-    {
-      ina238.setMaxCurrentShunt(7, (float)((5000.0+BoardInfo.shuntcorrection)/1000000.0) ); // Based on RotoPD Pro schematic
-    }
-    else
-    {
-      ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
-    }
-    ina238.setOverCurrentLimit(5500); // Max out 5,5A threshold
-
-    ina238.setShuntVoltageConversionTime(INA238_150_us);
-    #ifdef WITHINA238TEMPERATURE
-    ina238.setMode(INA238_MODE_CONT_TEMP_BUS_SHUNT);
-    #else
-    ina238.setMode(INA238_MODE_CONT_BUS_SHUNT);
-    #endif
-    //ina238.setBusVoltageConversionTime(uint8_t bvct = INA238_1052_us);
-    //ina238.setTemperatureConversionTime(uint8_t tct = INA238_1052_us);
-    //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
-
-    ina238.setAverage(INA238_16_SAMPLES); 
-    ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
-  }
-
-
   // Get the reset reason
   RP2040::resetReason_t rr = rp2040.getResetReason(); 
   Serial.printf("RP2040 reset !!!!! Reset Reason %i: %s\r\n", rr, resetReasonText[rr]);
@@ -328,10 +294,32 @@ void setup()
   Serial1.setTX(PACKET_UART_RXD);
   Serial1.begin(115200);
   myPacketSerial.setStream(&Serial1);
+
+  sensor_power_on();
+
+
+    // INA238 setup
+  if (initINA238())
+  {
+    Serial.println("INA238 init success.");
+  }
+  else
+  {
+    Serial.println("INA238 init failed !!");
+  }
+
+  if (pd.isConnected())
+  {
+    Serial.println("RotoPD connected.");
+  }
+  else
+  {
+    Serial.println("RotoPD not connected or not found.");
+  }
+
   #ifdef STANDALONE  
   myPacketSerial.setPacketHandler(&onPacketReceived);
   #endif
-  sensor_power_on();
 
   datagetticker.attach_ms(DATAGETTIME, datagetcb);
 
@@ -504,7 +492,7 @@ void SendBatteryDataNew(const uint8_t* buffer, size_t size)
 void loop()
 {
   byte i,j;
-  byte PDOCount = 0;
+  int8_t PDOCount = 0;
 
   bool DataOk = false;
   byte INData[COMMAND_SIZE] = {0};
@@ -519,49 +507,38 @@ void loop()
   {
     startTime = millis();
 
-    if (pd.isConnected())
-    {
-      j = pd.getStatus();
-      if (j & STATUS_STARTED)
-      {
-        Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+    PDOCount = taskRotoPDInit();
 
-        PDOCount = pd.getValidPDOCount();
+    if (PDOCount != -1)
+    {
+      // We have a newly connected RotoPD or new PDO's
+      if (PDOCount>0)
+      {
         #ifdef DEBUG
-        Serial.printf("Initial PDO count: %d\r\n",PDOCount);
+        Serial.printf("GUI process new PDO's !! PDO count: %d\r\n",PDOCount);
         #endif
 
-        // We have a power up !!
-        // Init the AP33772S / RotoPD
-        if (InitROTOPD())
-        {
+        #ifdef ARDUINO_ESP32S3_DEV
+        ScreenLogger_Add_Fmt("GUI process new PDO's !! PDO count: %d",PDOCount);
+        #endif
 
-          // Check if we already have the new PDO's
-          if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
+        memset(&INData, 0, COMMAND_SIZE);
+
+        // Request / read list of PDOs
+        //byte INData[HID_INT_IN_EP_SIZE] = {0};        
+
+        byte OUTData[HID_INT_OUT_EP_SIZE] = {0};
+        OUTData[0] = CMD_get_PDOList;
+        if (process_command(&OUTData,&INData))
+        {
+          // We might send some PDO data back towards the SenseCap LCD/ESP32
+          if (INData[0] == CMD_get_PDOList)
           {
-            // Request / read list of PDOs
-            if (PDOCount == 0) PDOCount = pd.readAllPDOs();
-
-            // Request / read list of PDOs
-            byte INData[HID_INT_IN_EP_SIZE] = {0};        
-            byte OUTData[HID_INT_OUT_EP_SIZE] = {0};
-            OUTData[0] = CMD_get_PDOList;
-            if (process_command(&OUTData,&INData))
-            {
-              // We might send some PDO data back towards the SenseCap LCD/ESP32
-              if (INData[0] == CMD_get_PDOList)
-              {
-                Serial.println("PDO list below.");
-                pd.printPDOs(Serial);
-                Serial.println("Done.");
-                SendBatteryDataNew(INData, INData[2]);
-              }
-            }
+            Serial.println("PDO list below.");
+            pd.printPDOs(Serial);
+            Serial.println("Done.");
+            SendBatteryDataNew(INData, INData[2]);
           }
-        }
-        else
-        {
-          Serial.println(F("[INIT] AP33772S error !"));
         }
       }
     }
