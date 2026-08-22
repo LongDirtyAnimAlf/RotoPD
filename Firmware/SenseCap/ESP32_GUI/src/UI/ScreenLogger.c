@@ -1,7 +1,66 @@
 #include "Screenbase.h"
 
+#define MAX_LOG_LINES   100          /* keep only the newest N lines */
+
 lv_obj_t * screenlogger = NULL;
 static lv_obj_t * ta_logger = NULL;
+
+lv_obj_t * mylog_create(lv_obj_t * parent)
+{
+    /* Main scrollable container */
+    lv_obj_t * log_cont = lv_obj_create(parent);
+
+    lv_obj_set_size(log_cont, lv_pct(100), lv_pct(100));
+    lv_obj_align(log_cont, LV_ALIGN_TOP_MID, 0, 0);
+
+    /* Make it a vertical flex column */
+    lv_obj_set_flex_flow(log_cont, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(log_cont, 2, 0);   /* small gap between lines */
+    lv_obj_set_style_pad_all(log_cont, 6, 0);   /* inner padding */
+
+    /* Optional dark “terminal” look */
+    lv_obj_set_style_bg_color(log_cont, lv_color_hex(0x1a1a1a), 0);
+    lv_obj_set_style_border_color(log_cont, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_radius(log_cont, 4, 0);
+
+    /* Scrollbar only when needed */
+    lv_obj_set_scrollbar_mode(log_cont, LV_SCROLLBAR_MODE_AUTO);
+    lv_obj_set_scroll_dir(log_cont, LV_DIR_VER);
+
+    return log_cont;
+}
+
+void mylog_add(const char * txt)
+{
+    lv_obj_t * log_cont = ta_logger;
+
+    if (log_cont == NULL || txt == NULL) return;
+
+    /* Create a new label for this line */
+    lv_obj_t * lab = lv_label_create(log_cont);
+    lv_label_set_text(lab, txt);
+    lv_label_set_long_mode(lab, LV_LABEL_LONG_WRAP);   /* wrap long lines */
+    lv_obj_set_width(lab, lv_pct(100));                /* full width of container */
+
+    /* Optional styling */
+    lv_obj_set_style_text_color(lab, lv_color_hex(0x00ff00), 0);  /* green terminal text */
+    // lv_obj_set_style_text_font(lab, &lv_font_montserrat_12, 0);
+
+    /* Limit number of lines – delete oldest */
+    while (lv_obj_get_child_cnt(log_cont) > MAX_LOG_LINES) {
+        lv_obj_t * oldest = lv_obj_get_child(log_cont, 0);
+        lv_obj_del(oldest);
+    }
+
+    /* Keep the newest line visible */
+    lv_obj_scroll_to_view(lab, LV_ANIM_OFF);   /* or LV_ANIM_ON for smooth scroll */
+}
+
+void mylog_clear(void)
+{
+    lv_obj_t * log_cont = ta_logger;
+    lv_obj_clean(log_cont);   /* deletes all children */
+}
 
 static void btn_event_cb_local(lv_event_t * e)
 {
@@ -14,7 +73,8 @@ static void btn_event_cb_local(lv_event_t * e)
     {
       if (ta_logger != NULL)
       {
-        lv_textarea_set_text(ta_logger, "");
+        //lv_textarea_set_text(ta_logger, "");
+        mylog_clear();
      }
     }
   }
@@ -39,15 +99,7 @@ static void Setup_Screen(lv_obj_t * cont)
 
   if (lv_obj_get_child_count(cont) == 0)
   {
-    ta_logger = lv_textarea_create(cont);
-    lv_obj_set_size(ta_logger, lv_pct(100), lv_pct(100));
-    lv_obj_align(ta_logger, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_style_pad_all(ta_logger, 0, LV_PART_MAIN);
-    //lv_obj_add_state(ta_logger, LV_STATE_DISABLED);
-    lv_obj_remove_style(ta_logger, NULL, LV_PART_CURSOR);
-    lv_textarea_set_cursor_pos(ta_logger, LV_TEXTAREA_CURSOR_LAST);
-    lv_textarea_set_text_selection(ta_logger, false);
-    lv_textarea_add_text(ta_logger, "USB logger\n");
+    ta_logger = mylog_create(cont);
   }
 }
 
@@ -88,11 +140,12 @@ void Setup_ScreenLogger(byte index, bool show)
 
 void ScreenLogger_Add(const char *txt, bool newline)
 {
- if (ta_logger != NULL)
- {
-  lv_textarea_add_text(ta_logger, txt); 
-  if (newline) lv_textarea_add_text(ta_logger, "\n");
- }
+  if (ta_logger != NULL)
+  {
+    mylog_add(txt);
+    //lv_textarea_add_text(ta_logger, txt); 
+    //if (newline) lv_textarea_add_text(ta_logger, "\n");
+  }
 }
 
 int ScreenLogger_Add_Fmt(const char *format, ...)
@@ -119,7 +172,9 @@ int ScreenLogger_Add_Fmt(const char *format, ...)
     // message was truncated
   }  
 
-  lv_textarea_add_text(ta_logger, myString);
+  mylog_add(myString);
+
+  //lv_textarea_add_text(ta_logger, myString);
 
   return result;
 }

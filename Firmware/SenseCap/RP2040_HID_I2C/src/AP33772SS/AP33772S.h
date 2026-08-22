@@ -91,6 +91,7 @@
 #define MSGRLT_SUCCESS       (1 << 0)
 
 // ── SYSTEM register values ───────────────────────────────────────────────────
+#define SYSTEM_OUTPUT        (0b00010000)
 #define SYSTEM_OUTPUT_OFF    (0b00010001)
 #define SYSTEM_OUTPUT_ON     (0b00010010)
 
@@ -222,6 +223,7 @@ public:
 
     // ── Output switch ───────────────────────────────────────────────────────
     bool    setOutput(bool on);   ///< Control NMOS VOUT switch via SYSTEM reg
+    bool    getOutput(void);
 
     // ── Status ──────────────────────────────────────────────────────────────
     bool    pollI2CReady(uint32_t timeoutMs);    

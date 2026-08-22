@@ -30,6 +30,23 @@ void Screen3SetPDO(
   uint16_t maxVoltage_mV,
   uint16_t maxCurrent_mA);  // Approximate upper bound of current range
 
+void Screen3ClearPDOList(void)
+{
+
+  lv_obj_t * cell;
+  uint8_t cellcounter;
+
+  for(cellcounter = 0; cellcounter < MAX_PDO_ENTRIES; cellcounter++)
+  {
+    cell = PDOCells[cellcounter];
+    if (cell != NULL)
+    {
+      if (!lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_user_data(cell, NULL);
+    }
+  }
+}
+
 static void btn_event_cb(lv_event_t * e)
 {
   lv_event_code_t code = lv_event_get_code(e);
@@ -41,11 +58,7 @@ static void btn_event_cb(lv_event_t * e)
   {
     if (btn == getpdolistbutton)
     {
-      // Cleanup all PDO cells !!
-      for(int i = 1; i <= MAX_PDO_ENTRIES; i++)
-      {
-        Screen3SetPDO(i,false,false,0,0,0,0);
-      }
+      Screen3ClearPDOList();
     }
     else
     {
@@ -285,9 +298,35 @@ void Screen3SetPDO(
   uint16_t maxVoltage_mV,
   uint16_t maxCurrent_mA)  // Approximate upper bound of current range
 {
+
   if (index > 0) 
   {
-    lv_obj_t * cell = PDOCells[index-1];
+    lv_obj_t * cell = NULL;
+
+    uint8_t cellcounter;
+
+    if (valid)
+    {
+      for(cellcounter = 0; cellcounter < MAX_PDO_ENTRIES; cellcounter++)
+      {
+        cell = PDOCells[cellcounter];
+        uint8_t pdo_index = (uint8_t)(uintptr_t)lv_obj_get_user_data(cell);
+
+        if (pdo_index == 0) break;
+      }
+      if (cellcounter == MAX_PDO_ENTRIES)
+      {
+        // Houston, we have a problem
+        cell = NULL;
+      }
+    }
+    else
+    {
+      //cell = PDOCells[index-1];
+      cell = NULL;
+    }
+
+
 
     if (cell != NULL) 
     {
@@ -298,6 +337,7 @@ void Screen3SetPDO(
       {
         if (!lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
         p = INITCOLOR;    
+        lv_obj_set_user_data(cell, NULL);
         return;
       }
       else
@@ -305,6 +345,7 @@ void Screen3SetPDO(
         if (lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(cell, LV_OBJ_FLAG_HIDDEN);    
         if (isEPR) p = DISCHARGECOLOR;
         if (!isEPR) p = CHARGECOLOR;  
+        lv_obj_set_user_data(cell, (void *)((uint8_t)index));
       }
 
       // Get SPR/EPR label
@@ -319,9 +360,12 @@ void Screen3SetPDO(
       obj = lv_obj_get_child(cell, 1);  
       if (lv_obj_check_type(obj, &lv_label_class))
       {
-        if (type==PDO_TYPE_FIXED) lv_label_set_text(obj, "Fixed");
-        if (type==PDO_TYPE_PPS) lv_label_set_text(obj, "PPS");
-        if (type==PDO_TYPE_AVS) lv_label_set_text(obj, "AVS");
+        switch(type)
+        {
+          case PDO_TYPE_FIXED: {lv_label_set_text(obj, "Fixed");break;}
+          case PDO_TYPE_PPS: {lv_label_set_text(obj, "PPS");break;}
+          case PDO_TYPE_AVS: {lv_label_set_text(obj, "AVS");break;}
+        }
       }
 
       int cv;

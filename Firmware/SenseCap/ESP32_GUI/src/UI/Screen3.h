@@ -11,6 +11,7 @@ extern lv_obj_t * screen3;
 extern lv_obj_t * getpdolistbutton;
 
 void Setup_Screen3(byte index, bool show);
+void Screen3ClearPDOList(void);
 void Screen3SetPDO(
   uint8_t  index,          // 1-based (1–13)
   bool     valid,          // detect bit = 1

@@ -459,6 +459,14 @@ bool AP33772S::setOutput(bool on)
     return writeReg8(CMD_SYSTEM, on ? SYSTEM_OUTPUT_ON : SYSTEM_OUTPUT_OFF);
 }
 
+bool AP33772S::getOutput(void)
+{
+    int16_t s = readReg8(CMD_SYSTEM);
+    if ((s >= 0) && ((s | SYSTEM_OUTPUT) & SYSTEM_OUTPUT_ON)) return true;
+    return false;
+}
+
+
 uint8_t AP33772S::getOpMode()      { int16_t v=readReg8(CMD_OPMODE);  return v<0?0:(uint8_t)v; }
 uint8_t AP33772S::getMsgResult()   { int16_t v=readReg8(CMD_PD_MSGRLT);return v<0?0:(uint8_t)v;}
 bool    AP33772S::isPDConnected()     { return getOpMode() & OPMODE_PDMOD;    }
