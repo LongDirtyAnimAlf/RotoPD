@@ -324,7 +324,6 @@ bool initROTOPD(void)
       delay(500);
       if (pd.begin() != AP33772S_OK)
       {
-        USBSerial.println(F("[INIT] AP33772S failed !"));
         Info_Add("Comms. Init AP33772S failed !");
         pd.dumpRegisters(USBSerial);
         return (false);

@@ -324,7 +324,7 @@ bool initROTOPD(void)
       delay(500);
       if (pd.begin() != AP33772S_OK)
       {
-        USBSerial.println(F("[INIT] AP33772S failed !"));
+        Info_Add("Comms. Init AP33772S failed !");
         pd.dumpRegisters(USBSerial);
         return (false);
       }
@@ -335,8 +335,7 @@ bool initROTOPD(void)
     //pd.setOVPOffset_mV(2000);
     //pd.setUVPThreshold(UVP_80PCT);
 
-    USBSerial.println(F("[INIT] AP33772S success."));
-
+    Info_Add("Comms. Init AP33772S success.");
 
     pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
 
@@ -348,6 +347,11 @@ bool initROTOPD(void)
     // Switch off output
     //pd.setOutput(false);
 
+    if (pd.getOutput())
+      Info_Add("Comms. AP33772S output on.");
+    else
+      Info_Add("Comms. AP33772S output off.");
+    
     // Interrupts
     //pd.setInterruptMask(MASK_ALL);
     //pd.attachInterruptCallback(pdISR);
