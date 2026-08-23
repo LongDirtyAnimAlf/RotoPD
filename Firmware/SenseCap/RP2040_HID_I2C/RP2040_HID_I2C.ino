@@ -104,42 +104,6 @@ void beep_on(void) {
   analogWrite(BUZZER_PIN, 0);
 }
 
-bool InitROTOPD(void)
-{
-  // RotoPD Pro setup
-
-  // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
-  // VOUT connected to +5V
-  pd.clearConfig(CONFIG_UVP_EN);
-
-  if (pd.begin() != AP33772S_OK)
-  {
-    delay(500);
-    if (pd.begin() != AP33772S_OK)
-    {
-      Info_Add("RP2040. AP33772S init failed !");
-      pd.dumpRegisters(Serial);
-      return (false);
-    }
-  }
-  // Protection thresholds
-  // Temperature only for RotoPD Pro
-  // VOUT ISENSP AND VCC are connected to +5V
-  //pd.setOVPOffset_mV(2000);
-  //pd.setUVPThreshold(UVP_80PCT);
-  //pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
-  pd.setOTPThreshold_C(85);
-  pd.setConfig(CONFIG_OTP_EN);
-  pd.setDeratingThreshold_C(75);
-  pd.setConfig(CONFIG_DR_EN);
-
-  // Interrupts
-  //pd.setInterruptMask(MASK_ALL);
-  //pd.attachInterruptCallback(pdISR);
-
-  return (true);
-}
-
 // the setup function runs once when you press reset or power the board
 void setup()
 {

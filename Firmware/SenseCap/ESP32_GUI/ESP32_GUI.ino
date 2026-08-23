@@ -920,7 +920,9 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
   if (Command == CMD_logdata)
   {
-    ScreenLogger_Add((const char*)buffer+1,true);
+    // We got a zero terminated info string
+    // Display / send it starting from the second characted (first is identifyer/command byte)
+    Info_Add((const char*)buffer+1);
     return;
   }
 
@@ -938,6 +940,8 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
       byte PDOCount = buffer[counter++];
 
       Info_Add_Fmt("GUI. New PDOs received ! Count: #%d.", PDOCount);
+
+      Screen3ClearPDOList();
 
       if (PDOCount)
       {

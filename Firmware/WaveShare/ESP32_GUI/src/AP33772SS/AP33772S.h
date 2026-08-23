@@ -92,6 +92,7 @@
 
 // ── SYSTEM register values ───────────────────────────────────────────────────
 #define SYSTEM_OUTPUT        (0b00010000)
+#define SYSTEM_OUTPUT_AUTO   (0b00010000)
 #define SYSTEM_OUTPUT_OFF    (0b00010001)
 #define SYSTEM_OUTPUT_ON     (0b00010010)
 

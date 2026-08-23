@@ -461,11 +461,10 @@ bool AP33772S::setOutput(bool on)
 
 bool AP33772S::getOutput(void)
 {
-    int16_t s = readReg8(CMD_SYSTEM);
-    if ((s >= 0) && ((s | SYSTEM_OUTPUT) & SYSTEM_OUTPUT_ON)) return true;
-    return false;
+    //int16_t s = readReg8(CMD_SYSTEM);
+    uint8_t r = (uint8_t)readReg8(CMD_SYSTEM);
+    return (((r | SYSTEM_OUTPUT) & (SYSTEM_OUTPUT_ON | SYSTEM_OUTPUT_OFF)) != SYSTEM_OUTPUT_OFF);   // true unless VOUTCTL == Force OFF
 }
-
 
 uint8_t AP33772S::getOpMode()      { int16_t v=readReg8(CMD_OPMODE);  return v<0?0:(uint8_t)v; }
 uint8_t AP33772S::getMsgResult()   { int16_t v=readReg8(CMD_PD_MSGRLT);return v<0?0:(uint8_t)v;}
