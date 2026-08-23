@@ -73,8 +73,6 @@ uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
   return crc;
 }
 
-#ifndef ARDUINO_ESP32S3_DEV
-
 void Info_Add(const char *txt)
 {
   if (txt == NULL) return;
@@ -114,7 +112,6 @@ void Info_Add_Fmt(const char *format, ...)
   }  
   Info_Add(myString);
 }
-#endif
 
 static inline bool CheckWireStuck(void)
 {

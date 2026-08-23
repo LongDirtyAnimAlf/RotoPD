@@ -685,12 +685,11 @@ void setup()
   int cnt = 1500;     // Will wait for up to ~5 second for Serial to connect.
   while (!USBSerial && cnt--) {delay(1);}
   // USBSerial.setDebugOutput(true);
-
   delay(2000);
-
-  USBSerial.println("SenseCap Indicator startup");
   #endif
 
+  Info_Add("GUI. SenseCap Indicator startup");
+  
   //WiFi.mode(WIFI_OFF);
 
   PBatterySetting SET;
@@ -750,9 +749,7 @@ void setup()
     }
   }
 
-  #ifdef DEBUG
-  USBSerial.println("Reading stored presets done.");
-  #endif
+  Info_Add("GUI. Reading stored presets done.");
 
   if (false)
   {
@@ -785,9 +782,7 @@ void setup()
       }
 
     }
-    #ifdef DEBUG    
-    USBSerial.println("Storing default presets done.");
-    #endif
+    Info_Add("GUI. Storing default presets done.");
   }
 
   #endif
@@ -836,26 +831,21 @@ void setup()
   }
 
   // Init Display
-  #ifdef DEBUG  
-  USBSerial.println("Init display.");
-  #endif
+  Info_Add("GUI. Init gfx display.");
   if (!gfx->begin())
   {
-    #ifdef DEBUG    
-    USBSerial.println("gfx->begin() failed!");
-    USBSerial.println("Expect sever errors !!!");    
-    #endif
+    Info_Add("GUI. gfx->begin() failed!");
+    Info_Add("GUI. Expect sever errors !!!");    
   }
 
-  #ifdef GFX_BL
-    pinMode(GFX_BL, OUTPUT);
-    digitalWrite(GFX_BL, HIGH);
-  #endif
+#ifdef GFX_BL
+  pinMode(GFX_BL, OUTPUT);
+  digitalWrite(GFX_BL, HIGH);
+#endif
 
-  #ifdef DEBUG
   String LVGL_Arduino = "Init LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  USBSerial.println(LVGL_Arduino);
-  #endif
+  Info_Add_Fmt("GUI. %s",LVGL_Arduino);
+
   lv_init();
 
   /*Set a tick source so that LVGL will know how much time elapsed. */
@@ -865,15 +855,13 @@ void setup()
     //return ((uint32_t)millis());        
   });
 
-  #ifdef DEBUG
-  USBSerial.println("Init our lvgl task and refresh.");    
-  #endif
+  Info_Add("GUI. Init our lvgl task and refresh.");    
   lv_screen_init(gfx, HOR_RES, VER_RES);
   //lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
   //lv_display_set_antialiasing(disp,false);
 
   // Init touch device
-  Serial.println("Init touch screen.");      
+  Info_Add("GUI. Init touch screen.");      
   //touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
   touch_init(HOR_RES, VER_RES, gfx->getRotation());
   /*Initialize the input device driver*/
@@ -884,9 +872,7 @@ void setup()
   ActiveBatteryIndex = 0;
 
   #ifndef LVGLDEMOS
-  #ifdef DEBUG
-  USBSerial.println("Init GUI.");      
-  #endif
+  Info_Add("GUI. Init GUI.");      
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
   Setup_ScreenLogger(ActiveBatteryIndex,false);
@@ -912,9 +898,7 @@ void setup()
   }
   */
 
-  #ifdef DEBUG  
-  USBSerial.println("Init timers.");      
-  #endif
+  Info_Add("GUI. Init timers.");      
 
   #ifdef STANDALONE
   datagetticker.attach_ms(DATAGETTIME, datagetcb);
@@ -922,10 +906,8 @@ void setup()
   #endif
   dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
   
-  #ifdef DEBUG
-  USBSerial.println("Init done");
-  #endif
-  ScreenLogger_Add("Controller startup ready.",true);
+  Info_Add("GUI. Controller startup ready.");
+  Info_Add("");
 
   #ifdef LVGLDEMOS
   //lv_demo_widgets();  
@@ -982,26 +964,12 @@ void loop()
     if (PDOCount != -1)
     {
 
-      if (PDOCount == 0)
-      { 
-        #ifdef DEBUG
-        USBSerial.println("GUI process no new PDO's !!");
-        #endif
-        #ifdef ARDUINO_ESP32S3_DEV
-        ScreenLogger_Add("GUI process no new PDO's !!",true);
-        #endif
-      }
+      if (PDOCount == 0) Info_Add("GUI. No new PDO's !!");
 
       // We have a newly connected RotoPD or new PDO's
       if (PDOCount>0)
       {
-        #ifdef DEBUG
-        USBSerial.printf("GUI process new PDO's !! PDO count: %d\r\n",PDOCount);
-        #endif
-
-        #ifdef ARDUINO_ESP32S3_DEV
-        ScreenLogger_Add_Fmt("GUI process new PDO's !! PDO count: %d",PDOCount);
-        #endif
+        Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
 
         #ifdef STANDALONE
         // Already done in setup
@@ -1024,10 +992,7 @@ void loop()
           {
             if (PDO.valid)
             {
-              #ifdef DEBUG
-              USBSerial.printf("[RotoPD] PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
-              #endif
-              ScreenLogger_Add_Fmt("[RotoPD] PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+              Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
               #ifdef STANDALONE
               Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               #endif
@@ -1085,10 +1050,9 @@ void loop()
 
         for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
 
-
         //#ifdef USE_LCD
         //DataOk = false;
-        //ScreenLogger_Add("Got HID data",true);
+        //Info_Add("Got HID data");
         //#endif
       }
 
@@ -1136,10 +1100,7 @@ void loop()
 
         for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
 
-        #ifdef DEBUG
-        USBSerial.printf("Setdata [%d] received ! %d.\r\n", Length, qw.Val);
-        #endif
-        ScreenLogger_Add_Fmt("Setdata [%d] received ! %d.", Length, qw.Val);
+        Info_Add_Fmt("GUI. Setdata [%d] received ! %d.", Length, qw.Val);
 
         if (cCmd == CMD_set_energy) RDS->Energy = qw.Val; // in nAh
         if (cCmd == CMD_set_capacity) RDS->Capacity = qw.Val; // in nWh
@@ -1161,12 +1122,12 @@ void loop()
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxCurrent_mA = wv.Val;
-        ScreenLogger_Add_Fmt("PDO requested current: #%dmA.", PDO.maxCurrent_mA);
+        Info_Add_Fmt("GUI. PDO requested current: #%dmA.", PDO.maxCurrent_mA);
 
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxVoltage_mV = wv.Val;
-        ScreenLogger_Add_Fmt("PDO requested voltage: #%dmV.", PDO.maxVoltage_mV);
+        Info_Add_Fmt("GUI. PDO requested voltage: #%dmV.", PDO.maxVoltage_mV);
 
         raw.byte0 = INData[counter++];
         raw.byte1 = INData[counter++];
@@ -1176,10 +1137,7 @@ void loop()
 
         if (PDO.valid)
         {
-          #ifdef DEBUG
-          USBSerial.printf("PDO [%d] received ! PDO V/I: %dmV/%dmA.\r\n", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
-          #endif
-          ScreenLogger_Add_Fmt("PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
+          Info_Add_Fmt("GUI. PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
         }
 
         break;
@@ -1202,10 +1160,7 @@ void loop()
 
             j = INData[counter++];
 
-            #ifdef DEBUG
-            USBSerial.printf("PDO received ! PDO index: #%d.\r\n", j);
-            #endif
-            ScreenLogger_Add_Fmt("PDO received ! PDO index: #%d.", j);
+            Info_Add_Fmt("GUI. PDO received ! PDO index: #%d.", j);
 
             if (j)
             {
@@ -1216,10 +1171,7 @@ void loop()
 
               if (PDO.valid)
               {
-                #ifdef DEBUG
-                USBSerial.printf("PDO received ! PDO voltage: #%dmV.\r\n", PDO.maxVoltage_mV);
-                #endif
-                ScreenLogger_Add_Fmt("PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }

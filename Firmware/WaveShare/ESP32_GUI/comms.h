@@ -59,24 +59,11 @@ const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xF
 #define WireBattery Wire
 #endif
 
-extern TwoWire WireBattery;
-
-extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
 extern TBoardInfo BoardInfo;
 extern volatile THIDData HIDData[];//[DAUGHTERBOARDCOUNT];
 
-#ifdef ARDUINO_ESP32S3_DEV
-extern USBHID HID;
-extern USBCDC USBSerial;
-#endif
-
-#ifdef ARDUINO_SEEED_INDICATOR_RP2040
-extern Adafruit_USBD_HID HID;
-#endif
-
-//extern AP33772S usbpd;
-extern AP33772S pd;
-extern INA238 ina238;
+void Info_Add(const char *txt);
+void Info_Add_Fmt(const char *format, ...);
 
 bool process_command(void const *data, void *result);
 

@@ -105,6 +105,7 @@ typedef union
 
 typedef enum {
     CMD_unknown          = 0x00,
+    CMD_logdata          = 0x30,
     CMD_error            = 0x40,
     CMD_get_data         = 0x50,
     CMD_get_status,
