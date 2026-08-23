@@ -934,6 +934,14 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   uint8_t  index;
 
   CommandType_t Command = (CommandType_t)buffer[COMMANDPOSITION];
+
+  if (Command == CMD_logdata)
+  {
+    ScreenLogger_Add((const char*)buffer+1,true);
+    return;
+  }
+
+
   byte BatteryIndex = buffer[INDEXPOSITION];
   byte Length = buffer[LENGTHPOSITION];
 
