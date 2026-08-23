@@ -1,6 +1,14 @@
 # RotoPD
 SenseCap firmware to control RotoPD through I2C (qwiic).
 
+Works with latest LVGL 9.5
+LVGL needs Arduino_GFX
+
+Works with Arduino ESP32 v3.3.8 and might also work with newer versions
+
+Some extra libs might be needed for various boards.
+Libraries to control RotoPD [Pro] and LCD hardware are included.
+
 https://www.tindie.com/products/centylab/rotopd-pro-usb-pd-240w-avs/
 
 https://www.seeedstudio.com/SenseCAP-Indicator-D1-p-5643.html
