@@ -62,6 +62,9 @@ const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xF
 extern TBoardInfo BoardInfo;
 extern volatile THIDData HIDData[];//[DAUGHTERBOARDCOUNT];
 
+void Info_Add(const char *txt);
+void Info_Add_Fmt(const char *format, ...);
+
 bool process_command(void const *data, void *result);
 
 bool initINA238(void);

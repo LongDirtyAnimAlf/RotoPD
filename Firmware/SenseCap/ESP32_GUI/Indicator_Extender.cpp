@@ -6,6 +6,13 @@ PCA9555 ioex;
 
 bool extender_init_done = false;
 
+void release_RP2040(void)
+{
+  // RP2040 reset PIN
+  //ioex.direction(EXPANDER_IO_RP2040_RESET, PCA95x5::Direction::OUT);
+  ioex.write(EXPANDER_IO_RP2040_RESET, PCA95x5::Level::H);
+}
+
 void extender_init(void)
 {
   if (!extender_init_done)
@@ -36,8 +43,8 @@ void extender_init(void)
     ioex.direction(EXPANDER_IO_TP_RESET, PCA95x5::Direction::OUT);
 
     // RP2040 reset PIN
+    ioex.write(EXPANDER_IO_RP2040_RESET, PCA95x5::Level::L);
     ioex.direction(EXPANDER_IO_RP2040_RESET, PCA95x5::Direction::OUT);
-    ioex.write(EXPANDER_IO_RP2040_RESET, PCA95x5::Level::H);
 
     // Expander power PIN
     ioex.direction(EXPANDER_IO_BMP_PWR, PCA95x5::Direction::OUT);

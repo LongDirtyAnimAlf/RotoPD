@@ -61,9 +61,7 @@ static void datagetcb()
 
 void InitWire(void)
 {
-  #ifdef DEBUG
-  Serial.println("InitWire");
-  #endif  
+  Info_Add("RP2040. InitWire");
 
   pinMode(PIN_WIRE_BATT_SDA, INPUT_PULLUP);
   pinMode(PIN_WIRE_BATT_SCL, INPUT_PULLUP);
@@ -106,49 +104,6 @@ void beep_on(void) {
   analogWrite(BUZZER_PIN, 0);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Telemetry — only printed in RUNNING state
-// ─────────────────────────────────────────────────────────────────────────────
-void printTelemetry()
-{
-    static uint32_t last = 0;
-    if (millis() - last < 1000) return;
-    last = millis();
-
-    Serial.printf("AP33772S data. T: %d°C. VREQ: %5umV. IREQ: %5umA.",
-                  pd.getTemperature_C(),
-                  pd.getRequestedVoltage_mV(),
-                  pd.getRequestedCurrent_mA());
-
-    if (pd.isDerating()) Serial.print(F("  [DR]"));
-    if (pd.isFault())    Serial.printf("  [%s]", pd.getFaultString().c_str());
-
-    Serial.println();
-    Serial.print("INA238 data. ");
-
-    Serial.print("I: ");
-    Serial.print(ina238.getMilliAmpere(), 0);
-    Serial.print("mA. ");
-
-    Serial.print("V: ");
-    Serial.print(ina238.getBusMilliVolt(), 0);
-    Serial.print("mV. ");
-
-    Serial.print("P: ");
-    Serial.print(ina238.getMilliWatt(), 0);
-    Serial.print("mW. ");
-
-    Serial.print("T: ");
-    Serial.print(ina238.getTemperature(), 3);
-    Serial.println("°C.");
-    Serial.println();
-
-
-    //Serial.println(F("\n[INFO] Register dump:"));
-    //pd.dumpRegisters(Serial); 
-    Serial.println();
-}
-
 bool InitROTOPD(void)
 {
   // RotoPD Pro setup
@@ -162,7 +117,7 @@ bool InitROTOPD(void)
     delay(500);
     if (pd.begin() != AP33772S_OK)
     {
-      Serial.println(F("[INIT] AP33772S failed !"));
+      Info_Add("RP2040. AP33772S init failed !");
       pd.dumpRegisters(Serial);
       return (false);
     }
@@ -197,7 +152,12 @@ void setup()
   #ifndef DEBUG
   Serial.end();
   #endif
-  
+
+  Serial1.setRX(PACKET_UART_TXD);
+  Serial1.setTX(PACKET_UART_RXD);
+  Serial1.begin(115200);
+  myPacketSerial.setStream(&Serial1);
+
   for (i=0; i < DAUGHTERBOARDCOUNT;i++)
   {
     BatteryBoards[i].Voltage            = 0;
@@ -212,7 +172,7 @@ void setup()
 
   #ifndef STANDALONE
 
-  //Serial.println("InitHID logic");
+  //Info_Add("RP2040. InitHID logic");
 
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
   if (!TinyUSBDevice.isInitialized()) {
@@ -278,52 +238,49 @@ void setup()
   int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
   // Serial.setDebugOutput(true);
-  Serial.println("RP2040 Indicator starting up.");
   #endif
+
+  Info_Add("RP2040. Indicator starting up.");
 
   InitWire();
 
   // Get the reset reason
   RP2040::resetReason_t rr = rp2040.getResetReason(); 
-  Serial.printf("RP2040 reset !!!!! Reset Reason %i: %s\r\n", rr, resetReasonText[rr]);
+  Info_Add_Fmt("RP2040. Reset !!!!! Reset reason %i: %s.", rr, resetReasonText[rr]);
 
   // We might want to do someting with the WDT
   //rp2040.wdt_begin(1000u);
 
-  Serial1.setRX(PACKET_UART_TXD);
-  Serial1.setTX(PACKET_UART_RXD);
-  Serial1.begin(115200);
-  myPacketSerial.setStream(&Serial1);
-
+  Info_Add("RP2040. Sensors on.");
   sensor_power_on();
-
 
     // INA238 setup
   if (initINA238())
   {
-    Serial.println("INA238 init success.");
+    Info_Add("RP2040. INA238 init success.");
   }
   else
   {
-    Serial.println("INA238 init failed !!");
+    Info_Add("RP2040. INA238 init failed !!");
   }
 
   if (pd.isConnected())
   {
-    Serial.println("RotoPD connected.");
+    Info_Add("RP2040. RotoPD connected.");
   }
   else
   {
-    Serial.println("RotoPD not connected or not found.");
+    Info_Add("RP2040. RotoPD not connected or not found.");
   }
+
+  Info_Add("RP2040. Datalogger ready for use !!");
+  Info_Add("");
+
+  datagetticker.attach_ms(DATAGETTIME, datagetcb);
 
   #ifdef STANDALONE  
   myPacketSerial.setPacketHandler(&onPacketReceived);
   #endif
-
-  datagetticker.attach_ms(DATAGETTIME, datagetcb);
-
-  Serial.println("Datalogger ready for use !!");
 }
 
 void SendBatteryData(byte index)
@@ -514,13 +471,7 @@ void loop()
       // We have a newly connected RotoPD or new PDO's
       if (PDOCount>0)
       {
-        #ifdef DEBUG
-        Serial.printf("GUI process new PDO's !! PDO count: %d\r\n",PDOCount);
-        #endif
-
-        #ifdef ARDUINO_ESP32S3_DEV
-        ScreenLogger_Add_Fmt("GUI process new PDO's !! PDO count: %d",PDOCount);
-        #endif
+        Info_Add_Fmt("RP2040. Process new PDO's !! PDO count: %d.",PDOCount);
 
         memset(&INData, 0, COMMAND_SIZE);
 
@@ -537,7 +488,7 @@ void loop()
             Serial.println("PDO list below.");
             pd.printPDOs(Serial);
             Serial.println("Done.");
-            SendBatteryDataNew(INData, INData[2]);
+            SendBatteryDataNew(INData, INData[2]+DATASTART);
           }
         }
       }
@@ -633,7 +584,7 @@ void onPacketReceived(const uint8_t *buffer, size_t size)
       {
         // Bit tricky
         // Send back the PDO[s] !!
-        SendBatteryDataNew(INData, INData[2]);
+        SendBatteryDataNew(INData, INData[2]+DATASTART);
       }
       #ifdef USE_LCD
       SendBatteryData(0);

@@ -10,6 +10,7 @@ lv_obj_t * mylog_create(lv_obj_t * parent)
     /* Main scrollable container */
     lv_obj_t * log_cont = lv_obj_create(parent);
 
+    lv_obj_set_style_radius(log_cont, 0, 0);
     lv_obj_set_size(log_cont, lv_pct(100), lv_pct(100));
     lv_obj_align(log_cont, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -18,10 +19,9 @@ lv_obj_t * mylog_create(lv_obj_t * parent)
     lv_obj_set_style_pad_row(log_cont, 2, 0);   /* small gap between lines */
     lv_obj_set_style_pad_all(log_cont, 6, 0);   /* inner padding */
 
-    /* Optional dark “terminal” look */
+    /* Optional dark â€œterminalâ€ look */
     lv_obj_set_style_bg_color(log_cont, lv_color_hex(0x1a1a1a), 0);
     lv_obj_set_style_border_color(log_cont, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_radius(log_cont, 4, 0);
 
     /* Scrollbar only when needed */
     lv_obj_set_scrollbar_mode(log_cont, LV_SCROLLBAR_MODE_AUTO);
@@ -46,7 +46,7 @@ void mylog_add(const char * txt)
     lv_obj_set_style_text_color(lab, lv_color_hex(0x00ff00), 0);  /* green terminal text */
     // lv_obj_set_style_text_font(lab, &lv_font_montserrat_12, 0);
 
-    /* Limit number of lines – delete oldest */
+    /* Limit number of lines â€“ delete oldest */
     while (lv_obj_get_child_cnt(log_cont) > MAX_LOG_LINES) {
         lv_obj_t * oldest = lv_obj_get_child(log_cont, 0);
         lv_obj_del(oldest);

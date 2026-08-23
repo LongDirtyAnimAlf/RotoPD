@@ -75,7 +75,7 @@ uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
 
 #ifndef ARDUINO_ESP32S3_DEV
 
-void Info_Add(const char *txt, bool newline)
+void Info_Add(const char *txt)
 {
   if (txt == NULL) return;
 
@@ -84,7 +84,7 @@ void Info_Add(const char *txt, bool newline)
   #endif
 
   #ifdef ARDUINO_ESP32S3_DEV
-  ScreenLogger_Add(txt,newline);
+  ScreenLogger_Add(txt,true);
   #endif
 
   #ifdef ARDUINO_SEEED_INDICATOR_RP2040
@@ -100,20 +100,19 @@ void Info_Add(const char *txt, bool newline)
   #endif
 }
 
-int Info_Add_Fmt(const char *format, ...)
+void Info_Add_Fmt(const char *format, ...)
 {
   char myString[128];
   va_list args;
   va_start(args, format);
   int result = vsnprintf(myString, sizeof(myString), format, args);
   va_end(args);                    // Clean up
-  if (result < 0) return result;   // encoding error
+  if (result < 0) return;   // encoding error
   // Optional: detect truncation
   if (result >= (int)sizeof(myString)) {
     // message was truncated
   }  
-  Info_Add(myString,true);
-  return result;
+  Info_Add(myString);
 }
 #endif
 
@@ -382,19 +381,19 @@ int8_t taskRotoPDInit(void)
       if (j & STATUS_UVP) out += " UVP";
       if (j & STATUS_OCP) out += " OCP";
       if (j & STATUS_OTP) out += " OTP";
-      Info_Add("%s.\n", out);
+      Info_Add_Fmt("Comms. %s.",out);
     }
 
     if (j & STATUS_STARTED)
     {
       PDOCount = 0;
 
-      Info_Add("RotoPD Pro started.",true);
-      Info_Add_Fmt("Status:= 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+      Info_Add("Comms. RotoPD Pro started.");
+      Info_Add_Fmt("Comms. Status:= 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
 
       PDOCount = pd.getValidPDOCount();
 
-      Info_Add_Fmt("Initial PDO count: %d.",PDOCount);
+      Info_Add_Fmt("Comms. Initial PDO count: %d.",PDOCount);
 
       // We have a power up !!
       // Init the AP33772S / RotoPD
@@ -406,7 +405,7 @@ int8_t taskRotoPDInit(void)
           // Request / read list of PDOs
           if (PDOCount == 0) PDOCount = pd.readAllPDOs();
 
-          Info_Add_Fmt("New PDO's !! PDO count: %d.",PDOCount);
+          Info_Add_Fmt("Comms. New PDO's !! PDO count: %d.",PDOCount);
 
           if (PDOCount>0)
           {
@@ -420,20 +419,20 @@ int8_t taskRotoPDInit(void)
 
         j = pd.getOpMode();
 
-        if (j & OPMODE_PDMOD) Info_Add("[RotoPD] PD connected",true);
-        if (j & OPMODE_LGCYMOD) Info_Add("[RotoPD] legacy mode",true);
-        if (j & OPMODE_CCFLIP) Info_Add("[RotoPD] cable flipped",true);
+        if (j & OPMODE_PDMOD) Info_Add("Comms. [RotoPD] PD connected");
+        if (j & OPMODE_LGCYMOD) Info_Add("Comms. [RotoPD] legacy mode");
+        if (j & OPMODE_CCFLIP) Info_Add("Comms. [RotoPD] cable flipped");
       }
       else
       {
-        if (j & OPMODE_DR) Info_Add("[RotoPD] Init error !",true);
+        if (j & OPMODE_DR) Info_Add("Comms. [RotoPD] Init error !");
       }
     
     }
     else
     {
       j = pd.getOpMode();
-      if (j & OPMODE_DR) Info_Add("[RotoPD] derating !!",true);
+      if (j & OPMODE_DR) Info_Add("Comms. [RotoPD] derating !!");
     }
   }
 
@@ -493,16 +492,16 @@ bool process_command(void const *data, void *result)
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->targetVoltage=dw_data.Val;
 
-    Info_Add("Received SetPD command.",true);
-    Info_Add_Fmt("PDO index: #%d.", LocalBatteryBoard->pdoIndex);
-    Info_Add_Fmt("PDO requested current: %dmA.", LocalBatteryBoard->maxCurrent);
-    Info_Add_Fmt("PDO target voltage: %dmV.", LocalBatteryBoard->targetVoltage);
+    Info_Add("Comms. Received SetPD command.");
+    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->pdoIndex);
+    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->maxCurrent);
+    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->targetVoltage);
 
     switch (cCmd)
     {
       case CMD_set_MAXPDO:
       {
-        Info_Add("Max PDO.",true);
+        Info_Add("Comms. Max PDO.");
         
         LocalBatteryBoard->pdoMode = pmMAX; 
         pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
@@ -511,7 +510,7 @@ bool process_command(void const *data, void *result)
 
       case CMD_set_FIXEDPDO:
       {
-        Info_Add("Fixed PDO.",true);
+        Info_Add("Comms. Fixed PDO.");
 
         LocalBatteryBoard->pdoMode = pmFixed; 
         j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
@@ -519,7 +518,7 @@ bool process_command(void const *data, void *result)
       }
       case CMD_set_PPSPDO:
       {
-        Info_Add("PPS PDO.",true);
+        Info_Add("Comms. PPS PDO.");
 
         LocalBatteryBoard->pdoMode = pmPPS; 
         j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
@@ -527,7 +526,7 @@ bool process_command(void const *data, void *result)
       }
       case CMD_set_AVSPDO:
       {
-        Info_Add("AVS PDO.",true);
+        Info_Add("Comms. AVS PDO.");
 
         LocalBatteryBoard->pdoMode = pmAVS; 
         j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
@@ -544,14 +543,14 @@ bool process_command(void const *data, void *result)
   {
     PDOCount = pd.readAllPDOs();
 
-    Info_Add_Fmt("Received GetAllPDO command. PDOs: %d.",PDOCount);
+    Info_Add_Fmt("Comms. Received GetAllPDO command. PDOs: %d.",PDOCount);
   }
 
   if (cCmd == CMD_read_PDOList)
   {
     PDOCount = pd.getValidPDOCount();
 
-    Info_Add_Fmt("Received read PDO list. PDOs: %d.",PDOCount);
+    Info_Add_Fmt("Comms. Received read PDO list. PDOs: %d.",PDOCount);
   }
 
   if (cCmd == CMD_set_output)
@@ -559,11 +558,11 @@ bool process_command(void const *data, void *result)
     Engage = (databuffer[dataindexer++] != 0);
     if (Engage)
     {
-      Info_Add("Output ON.",true);
+      Info_Add("Comms. Output ON.");
     }
     else
     {
-      Info_Add("Output OFF.",true);
+      Info_Add("Comms. Output OFF.");
     }
     //LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
@@ -571,7 +570,7 @@ bool process_command(void const *data, void *result)
 
   if (cCmd == CMD_set_value)
   {
-    Info_Add("Received SetValue command.",true);
+    Info_Add("Comms. Received SetValue command.");
 
     LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
@@ -601,11 +600,11 @@ bool process_command(void const *data, void *result)
 
     if (Engage)
     {
-      Info_Add("Output ON.",true);
+      Info_Add("Comms. Output ON.");
     }
     else
     {
-      Info_Add("Output OFF.",true);
+      Info_Add("Comms. Output OFF.");
     }
     //LocalBatteryBoard->OutputOn = Engage; 
     pd.setOutput(Engage);
@@ -613,7 +612,7 @@ bool process_command(void const *data, void *result)
 
   if (cCmd == CMD_get_data)
   {
-    //Info_Add("Received GetData command.",true);
+    //Info_Add("Comms. Received GetData command.");
 
     getRotoPDData(&LocalBatteryBoard->Current,&LocalBatteryBoard->Voltage,&LocalBatteryBoard->Power,&LocalBatteryBoard->Temperature);
 
@@ -669,6 +668,8 @@ bool process_command(void const *data, void *result)
 
   if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
   {
+    Info_Add_Fmt("Comms. Processing available [#%d] PDOs.",PDOCount);
+
     if  ((PDOCount>=0) && (PDOCount<=MAX_PDO_ENTRIES))
     {
       resultbuffer[dataindexer++] = PDOCount;
@@ -681,10 +682,12 @@ bool process_command(void const *data, void *result)
           {
             if (PDO.valid)
             {
-              w_data.Val = PDO.raw;
+              Info_Add_Fmt("Comms. Sending PDO #%d.",PDO.index);
+
               resultbuffer[dataindexer++] = PDO.index;
-              resultbuffer[dataindexer++] = w_data.v[0];
-              resultbuffer[dataindexer++] = w_data.v[1];
+              w_data.Val = PDO.raw;
+              resultbuffer[dataindexer++] = w_data.bytes.LB;
+              resultbuffer[dataindexer++] = w_data.bytes.HB;
             }  
           }
         }
@@ -693,7 +696,7 @@ bool process_command(void const *data, void *result)
     }
     else
     {
-      Info_Add("Invalid PDO count.",true);
+      Info_Add("Comms. Invalid PDO count.");
       resultbuffer[dataindexer++] = 0;
     }
   }
@@ -857,7 +860,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       else
       {
         // Should never happen !!
-        Info_Add_Fmt("Severe error. Wrong battery number:%d.", cBat);
+        Info_Add_Fmt("Comms. Severe error. Wrong battery number:%d.", cBat);
       }
     }
   }

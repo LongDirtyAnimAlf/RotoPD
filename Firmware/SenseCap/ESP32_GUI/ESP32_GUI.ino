@@ -16,6 +16,7 @@
 #include "touch.h"
 #include "extras.h"
 #include "shared.h"
+#include "comms.h"
 //#include "esp_private/spi_flash_os.h"
 
 //#define    LVGLDEMOS
@@ -549,8 +550,12 @@ void setup()
   int cnt = 1500;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
   // Serial.setDebugOutput(true);
-  Serial.println("SenseCap Indicator startup");
   #endif
+
+  Info_Add("GUI. SenseCap Indicator startup");
+
+  Info_Add("GUI. Init extender.");  
+  extender_init();
 
   PBatterySetting SET;
   PRunDatas RDS;
@@ -579,16 +584,14 @@ void setup()
   esp_err_t ret = 0;  
 
   ret = indicator_nvs_init();
-  #ifdef DEBUG  
   if( ret != ESP_OK )
   {
-    Serial.println("Partition init error !");
+    Info_Add("GUI. Partition init error !");
   }
   else
   {
-    Serial.println("Partition init ok.");
+    Info_Add("GUI. Partition init ok.");
   }
-  #endif
 
   char stagetext[] = "#stage##";
 
@@ -621,9 +624,7 @@ void setup()
     ret = indicator_nvs_read(stagetext, &SET->Stages[FIXEDCHARGESTAGENUMBER], &length);
   }
 
-  #ifdef DEBUG
-  Serial.println("Reading stored presets done.");
-  #endif
+  Info_Add("GUI. Reading stored presets done.");
 
   if (false)
   {
@@ -649,9 +650,7 @@ void setup()
       stagetext[0] = 'c';
       ret = indicator_nvs_write(stagetext, SD, sizeof(SET->Stages[FIXEDCHARGESTAGENUMBER]));
     }
-    #ifdef DEBUG    
-    Serial.println("Storing default presets done.");
-    #endif
+    Info_Add("GUI. Storing default presets done.");
   }
 
   #endif
@@ -660,26 +659,17 @@ void setup()
 
   pinMode(BUTTON_PIN, INPUT);
 
-  #ifdef DEBUG  
-  Serial.println("Init extender.");  
-  #endif
-  extender_init();
-
   myPacketSerial.begin(115200);
   Serial1.begin(115200, SERIAL_8N1, PACKET_UART_RXD, PACKET_UART_TXD);
   myPacketSerial.setStream(&Serial1);
   myPacketSerial.setPacketHandler(&onPacketReceived);
 
   // Init Display
-  #ifdef DEBUG  
-  Serial.println("Init display.");
-  #endif
+  Info_Add("GUI. Init gfx display.");
   if (!gfx->begin())
   {
-    #ifdef DEBUG    
-    Serial.println("gfx->begin() failed!");
-    Serial.println("Expect sever errors !!!");    
-    #endif
+    Info_Add("GUI. gfx->begin() failed!");
+    Info_Add("GUI. Expect sever errors !!!");    
   }
 
 #ifdef GFX_BL
@@ -687,10 +677,9 @@ void setup()
   digitalWrite(GFX_BL, HIGH);
 #endif
 
-  #ifdef DEBUG
   String LVGL_Arduino = "Init LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Serial.println(LVGL_Arduino);
-  #endif
+  Info_Add_Fmt("GUI. %s",LVGL_Arduino);
+
   lv_init();
 
   /*Set a tick source so that LVGL will know how much time elapsed. */
@@ -700,15 +689,13 @@ void setup()
     //return ((uint32_t)millis());        
   });
 
-  #ifdef DEBUG
-  Serial.println("Init our lvgl task and refresh.");    
-  #endif
+  Info_Add("GUI. Init our lvgl task and refresh.");    
   lv_screen_init(gfx, HOR_RES, VER_RES);
   //lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
   //lv_display_set_antialiasing(disp,false);
 
   // Init touch device
-  Serial.println("Init touch screen.");      
+  Info_Add("GUI. Init touch screen.");      
   touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
@@ -718,9 +705,7 @@ void setup()
   ActiveBatteryIndex = 0;
 
   #ifndef LVGLDEMOS
-  #ifdef DEBUG
-  Serial.println("Init GUI.");      
-  #endif
+  Info_Add("GUI. Init GUI.");      
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
   Setup_ScreenLogger(ActiveBatteryIndex,false);
@@ -730,19 +715,17 @@ void setup()
   Screen1SetData(SET);
   #endif
 
-  #ifdef DEBUG  
-  Serial.println("Init timers.");      
-  #endif
+  Info_Add("GUI. Init timers.");      
 
   #ifdef STANDALONE
   datacollectticker.attach_ms(DATACOLLECTTIMEFAST, datacollectcb);
   #endif
   dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
   
-  #ifdef DEBUG
-  Serial.println("Init done");
-  #endif
-  ScreenLogger_Add("Controller startup ready.",true);
+  Info_Add("GUI. Controller startup ready.");
+  Info_Add("");
+
+  release_RP2040();
 
   #ifdef LVGLDEMOS
   //lv_demo_widgets();  
@@ -941,6 +924,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     return;
   }
 
+  if (Command != CMD_get_data) Info_Add_Fmt("GUI. Data received ! Count: #%d.", size); 
 
   byte BatteryIndex = buffer[INDEXPOSITION];
   byte Length = buffer[LENGTHPOSITION];
@@ -951,8 +935,9 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   {
     case CMD_get_PDOList:
     {
-
       byte PDOCount = buffer[counter++];
+
+      Info_Add_Fmt("GUI. New PDOs received ! Count: #%d.", PDOCount);
 
       if (PDOCount)
       {
@@ -962,7 +947,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
           index = buffer[counter++];
 
-          Serial.printf("PDO received ! PDO index: #%d.\r\n", index);
+          Info_Add_Fmt("GUI. PDO received ! PDO index: #%d.", index);
 
           if (index)
           {
@@ -973,7 +958,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
             if (dec.valid)
             {
-              Serial.printf("PDO received ! PDO voltage : #%dmV.\r\n", dec.maxVoltage_mV);
+              Info_Add_Fmt("GUI. PDO received ! PDO voltage : #%dmV.", dec.maxVoltage_mV);
               Screen3SetPDO(dec.index,dec.valid,dec.isEPR,dec.type,dec.minVoltage_mV,dec.maxVoltage_mV,dec.maxCurrent_mA);
             }
           }

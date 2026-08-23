@@ -42,6 +42,7 @@ extern PCA9555 ioex;
 extern "C" {
 #endif
 
+void release_RP2040(void);
 void extender_init(void);
 
 #ifdef __cplusplus
