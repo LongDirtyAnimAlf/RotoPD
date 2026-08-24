@@ -435,11 +435,12 @@ void loop()
         //byte INData[HID_INT_IN_EP_SIZE] = {0};        
 
         byte OUTData[HID_INT_OUT_EP_SIZE] = {0};
-        OUTData[0] = CMD_get_PDOList;
+        OUTData[COMMANDPOSITION] = CMD_get_PDOList;
+        OUTData[INDEXPOSITION] = BoardInfo.BoardNumber;
         if (process_command(&OUTData,&INData))
         {
           // We might send some PDO data back towards the SenseCap LCD/ESP32
-          if (INData[0] == CMD_get_PDOList)
+          if (INData[COMMANDPOSITION] == CMD_get_PDOList)
           {
             Serial.println("PDO list below.");
             pd.printPDOs(Serial);
