@@ -1525,6 +1525,9 @@ begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
 
+  USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
+
+
   case cmd of
     TCommands.CMD_get_data:
     begin

@@ -22,8 +22,9 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <TopLine Value="1508"/>
-        <CursorPos X="26" Y="1582"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="1511"/>
+        <CursorPos X="79" Y="1528"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -3862,7 +3863,6 @@
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="30"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <TopLine Value="19"/>
         <CursorPos Y="49"/>
@@ -3957,7 +3957,7 @@
     <Debugger>
       <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
     </Debugger>
-    <JumpHistory HistoryIndex="29">
+    <JumpHistory HistoryIndex="28">
       <Position>
         <Filename Value="usbrotopd.pas"/>
         <Caret Line="778" Column="26" TopLine="767"/>
@@ -4073,10 +4073,6 @@
       <Position>
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <Caret Line="260" TopLine="243"/>
-      </Position>
-      <Position>
-        <Filename Value="usbboard.pas"/>
-        <Caret TopLine="82"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -3,9 +3,7 @@
 #include <PacketSerial.h>
 #include <Arduino.h>
 
-#ifndef STANDALONE
 #include "Adafruit_TinyUSB.h"
-#endif
 
 #include <Ticker.h>
 
@@ -31,14 +29,12 @@ COBSPacketSerial myPacketSerial;
 static Ticker datagetticker;
 static volatile bool GetData = false;
 
-#ifndef STANDALONE
 // USB HID object
 Adafruit_USBD_HID HID;
 
 // Must be a global variable !!!
 char mySerial[30];
 char myFirmware[30];
-#endif
 
 void playTone(int tone, int duration)
 {
@@ -134,8 +130,6 @@ void setup()
     BatteryBoards[i].maxCurrent         = 0;
   }
 
-  #ifndef STANDALONE
-
   //Info_Add("RP2040. InitHID logic");
 
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
@@ -194,8 +188,6 @@ void setup()
 
   HID.begin();
 
-  #endif // STANDALONE
-
   // Enable serial (again) for programming and debugging
   #ifdef DEBUG  
   Serial.begin(115200);
@@ -234,20 +226,18 @@ void setup()
 
   datagetticker.attach_ms(DATAGETTIME, datagetcb);
 
-  #ifdef STANDALONE  
   myPacketSerial.setPacketHandler(&onPacketReceived);
-  #endif
 }
 
-void SendBatteryData(byte index)
+void SendBatteryData(void)
 {
   byte j,k;
   PBatteryBoard LocalBatteryBoard;
 
-  uint8_t data_buf[32];
+  uint8_t data_buf[COMMAND_SIZE];
   WORD_VAL data;
   
-  LocalBatteryBoard= &BatteryBoards[index];
+  LocalBatteryBoard= &BatteryBoards[0];
 
   if ((LocalBatteryBoard->NeedsGUIUpdate) || (LocalBatteryBoard->NeedsDataUpdate) || (LocalBatteryBoard->NeedsStatusUpdate))
   {
@@ -255,12 +245,9 @@ void SendBatteryData(byte index)
     {
       LocalBatteryBoard->NeedsGUIUpdate = false;
 
-      j = 0;
-
-      data_buf[j++] = CMD_get_data;
-      data_buf[j++] = index;
-      // Make space for length info
-      j++;
+      data_buf[COMMANDPOSITION] = CMD_get_data;
+      data_buf[INDEXPOSITION] = BoardInfo.BoardNumber;
+      j = DATASTART;
 
       // Voltage
       data.Val = LocalBatteryBoard->Voltage;
@@ -288,23 +275,25 @@ void SendBatteryData(byte index)
       data_buf[j++] = data.bytes.HB;
 
       // Add length
-      data_buf[2] = j;
+      data_buf[LENGTHPOSITION] = j;
 
+      #ifdef USE_LCD
       // Send the data
       myPacketSerial.send(data_buf, j);
+      #endif
+
+
+
+
     }
 
     if (LocalBatteryBoard->NeedsStatusUpdate)
     {
       LocalBatteryBoard->NeedsStatusUpdate = false;
 
-      j = 0;
-
-      data_buf[j++] = CMD_set_value;
-      data_buf[j++] = index;
-      // Make space for length info
-      j++;
-
+      data_buf[COMMANDPOSITION] = CMD_set_value;
+      data_buf[INDEXPOSITION] = BoardInfo.BoardNumber;
+      j = DATASTART;
 
       // Send status
       data_buf[j++] = (byte)LocalBatteryBoard->BM.Status;
@@ -324,10 +313,12 @@ void SendBatteryData(byte index)
       */
 
       // Add length
-      data_buf[2] = j;
+      data_buf[LENGTHPOSITION] = j;
 
+      #ifdef USE_LCD
       // Send the data
       myPacketSerial.send(data_buf, j);
+      #endif
     }
 
     /*
@@ -335,12 +326,9 @@ void SendBatteryData(byte index)
     {
       LocalBatteryBoard->NeedsStatusUpdate = false;
 
-      j = 0;
-
-      data_buf[j++] = CMD_get_status;
-      data_buf[j++] = index;
-      // Make space for length info
-      j++;
+      data_buf[COMMANDPOSITION] = CMD_get_status;
+      data_buf[INDEXPOSITION] = BoardInfo.BoardNumber;
+      j = DATASTART;
 
       // Send status
       data_buf[j++] = (byte)LocalBatteryBoard->BM.Status;
@@ -360,10 +348,12 @@ void SendBatteryData(byte index)
       data_buf[j++] = LocalBatteryBoard->BM.pdoIndex;
 
       // Add length
-      data_buf[2] = j;
+      data_buf[LENGTHPOSITION] = j;
       
+      #ifdef USE_LCD
       // Send the data
       myPacketSerial.send(data_buf, j);
+      #endif
     }
     */
     
@@ -371,12 +361,9 @@ void SendBatteryData(byte index)
     {
       LocalBatteryBoard->NeedsDataUpdate = false;
 
-      j = 0;
-
-      data_buf[j++] = CMD_get_firmware;
-      data_buf[j++] = index;
-      // Make space for length info
-      j++;
+      data_buf[COMMANDPOSITION] = CMD_get_firmware;
+      data_buf[INDEXPOSITION] = BoardInfo.BoardNumber;
+      j = DATASTART;
 
       // Firmware version
       data_buf[j++] = LocalBatteryBoard->Firmware;
@@ -388,10 +375,12 @@ void SendBatteryData(byte index)
       }
 
       // Add length
-      data_buf[2] = j;
+      data_buf[LENGTHPOSITION] = j;
 
+      #ifdef USE_LCD
       // Send the data
       myPacketSerial.send(data_buf, j);
+      #endif
     }
   }
 }
@@ -445,18 +434,16 @@ void loop()
             Serial.println("PDO list below.");
             pd.printPDOs(Serial);
             Serial.println("Done.");
-            SendBatteryDataNew(INData, INData[2]+DATASTART);
+            SendBatteryDataNew(INData, INData[LENGTHPOSITION]+DATASTART);
           }
         }
       }
     }
   }  
 
-  #ifndef STANDALONE
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
   TinyUSBDevice.task();
-  #endif
   #endif
 
   if (GetData)
@@ -469,7 +456,6 @@ void loop()
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
 
-  #ifndef STANDALONE
   for (i=0; i<DAUGHTERBOARDCOUNT; i++ )
   {
     if (HIDData[i].DataReceived)
@@ -504,13 +490,10 @@ void loop()
 
         //for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
 
-        #ifdef USE_LCD
-        SendBatteryData(0);
-        #endif
+        SendBatteryData();
       }
     }
   }
-  #endif // !STANDALONE
 
   myPacketSerial.update();
   if (myPacketSerial.overflow())
@@ -547,11 +530,16 @@ void onPacketReceived(const uint8_t *buffer, size_t size)
       {
         // Bit tricky
         // Send back the PDO[s] !!
-        SendBatteryDataNew(INData, INData[2]+DATASTART);
+        SendBatteryDataNew(INData, INData[LENGTHPOSITION]+DATASTART);
       }
-      #ifdef USE_LCD
-      SendBatteryData(0);
-      #endif
+
+      if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) || (cCmd == CMD_get_data))      
+      {
+        // Send back the data over HID
+        HID.sendReport(0, &INData, HID_INT_IN_EP_SIZE);
+      }
+
+      SendBatteryData();
     }
     delayMicroseconds(1000U);
   }
