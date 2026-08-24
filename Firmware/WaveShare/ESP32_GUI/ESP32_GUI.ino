@@ -625,6 +625,8 @@ void setup()
   byte index;
   char myHex[10] = "";
 
+  ActiveBatteryIndex = 0;
+
   esp_err_t ret = indicator_nvs_init();
   #ifdef DEBUG  
   if( ret != ESP_OK )
@@ -680,19 +682,64 @@ void setup()
 
   USB.begin();
 
+  // Init buf /  expander / i2c
+  // This also runs initDisplayPower !!
+  if (!WS_CH32_IO::begin(Wire, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL,
+                           WS_CH32_IO::DEFAULT_I2C_FREQ, &USBSerial)) {
+        USBSerial.println("CH32V003 init failed, continuing for display debug");
+  }
+
+  // Init Display
+  Info_Add("GUI. Init gfx display.");
+  if (!gfx->begin())
+  {
+    Info_Add("GUI. gfx->begin() failed!");
+    Info_Add("GUI. Expect sever errors !!!");    
+  }
+
+#ifdef GFX_BL
+  pinMode(GFX_BL, OUTPUT);
+  digitalWrite(GFX_BL, HIGH);
+#endif
+
+  lv_init();
+
+  /*Set a tick source so that LVGL will know how much time elapsed. */
+  lv_tick_set_cb([](){ 
+    //return (uint32_t) (esp_timer_get_time() / 1000LL);
+    return (xTaskGetTickCount());    
+    //return ((uint32_t)millis());        
+  });
+
+  Info_Add("GUI. Init our lvgl task and refresh.");    
+  lv_screen_init(gfx, HOR_RES, VER_RES);
+  //lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
+  //lv_display_set_antialiasing(disp,false);
+
+  PBatterySetting SET;
+
+  #ifndef LVGLDEMOS
+  CreateBaseScreen(main_event_handler);
+  lv_screen_load(screenbase);
+  Setup_ScreenLogger(ActiveBatteryIndex,false);
+  Info_Add("GUI. Init GUI.");      
+  Setup_Screen3(ActiveBatteryIndex,false);
+  Setup_Screen1(ActiveBatteryIndex);
+  SET = &Batteries[ActiveBatteryIndex];
+  Screen1SetData(SET);
+  #endif
+
   #ifdef DEBUG
   //USBSerial.begin(115200);
   int cnt = 1500;     // Will wait for up to ~5 second for Serial to connect.
   while (!USBSerial && cnt--) {delay(1);}
   // USBSerial.setDebugOutput(true);
-  delay(2000);
   #endif
 
   Info_Add("GUI. SenseCap Indicator startup");
   
   //WiFi.mode(WIFI_OFF);
 
-  PBatterySetting SET;
   PRunDatas RDS;
   PStageData SD;  
 
@@ -791,24 +838,17 @@ void setup()
   #ifdef BUTTON_PIN
   pinMode(BUTTON_PIN, INPUT);
   #endif
-
-  // Init buf /  expander / i2c
-  // This also runs initDisplayPower !!
-
-  if (!WS_CH32_IO::begin(Wire, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL,
-                           WS_CH32_IO::DEFAULT_I2C_FREQ, &USBSerial)) {
-        USBSerial.println("CH32V003 init failed, continuing for display debug");
-  }
   
-  // INA238 setup
+    // INA238 setup
   if (initINA238())
-  {
-    USBSerial.println("INA238 init success.");
-  }
+    Info_Add("GUI. INA238 init success.");
   else
-  {
-    USBSerial.println("INA238 init failed !!");
-  }
+    Info_Add("GUI. INA238 init failed !!");
+
+  if (pd.isConnected())
+    Info_Add("GUI. RotoPD connected.");
+  else
+    Info_Add("GUI. RotoPD not connected or not found.");
 
   // CAN !!!!
 
@@ -824,41 +864,19 @@ void setup()
   ESP32Can.setSpeed(ESP32Can.convertSpeed(500));
 
   // You can also just use .begin()..
-  if(ESP32Can.begin()) {
-      USBSerial.println("CAN bus started!");
-  } else {
-      USBSerial.println("CAN bus failed!");
-  }
+  if(ESP32Can.begin())
+    Info_Add("GUI. CAN bus started!");
+  else
+    Info_Add("GUI. CAN bus failed!");
 
-  // Init Display
-  Info_Add("GUI. Init gfx display.");
-  if (!gfx->begin())
-  {
-    Info_Add("GUI. gfx->begin() failed!");
-    Info_Add("GUI. Expect sever errors !!!");    
-  }
+  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  Info_Add(LVGL_Arduino.c_str());
 
-#ifdef GFX_BL
-  pinMode(GFX_BL, OUTPUT);
-  digitalWrite(GFX_BL, HIGH);
-#endif
+  Info_Add("GUI. Init timers.");      
 
-  String LVGL_Arduino = "Init LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Info_Add_Fmt("GUI. %s",LVGL_Arduino);
-
-  lv_init();
-
-  /*Set a tick source so that LVGL will know how much time elapsed. */
-  lv_tick_set_cb([](){ 
-    //return (uint32_t) (esp_timer_get_time() / 1000LL);
-    return (xTaskGetTickCount());    
-    //return ((uint32_t)millis());        
-  });
-
-  Info_Add("GUI. Init our lvgl task and refresh.");    
-  lv_screen_init(gfx, HOR_RES, VER_RES);
-  //lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
-  //lv_display_set_antialiasing(disp,false);
+  #ifdef STANDALONE
+  datagetticker.attach_ms(DATAGETTIME, datagetcb);
+  datacollectticker.attach_ms(DATACOLLECTTIMEFAST, datacollectcb);
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
@@ -868,42 +886,8 @@ void setup()
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
   lv_indev_set_read_cb(indev, my_touchpad_read);
-
-  ActiveBatteryIndex = 0;
-
-  #ifndef LVGLDEMOS
-  Info_Add("GUI. Init GUI.");      
-  CreateBaseScreen(main_event_handler);
-  lv_screen_load(screenbase);
-  Setup_ScreenLogger(ActiveBatteryIndex,false);
-  Setup_Screen3(ActiveBatteryIndex,false);
-  Setup_Screen1(ActiveBatteryIndex);
-  SET = &Batteries[ActiveBatteryIndex];
-  Screen1SetData(SET);
-
-  //BatteryBoards[ActiveBatteryIndex].OutputOn = false;
-  //Screen1SetOutput(BatteryBoards[ActiveBatteryIndex].OutputOn);
   #endif
-
-  //BatteryBoards[ActiveBatteryIndex].OutputOn = false;
-  /*
-  if (pd.isConnected())
-  {
-    if (initROTOPD())
-    {
-      #ifndef LVGLDEMOS
-      Screen1SetOutput(pd.getOutput());
-      #endif
-    }
-  }
-  */
-
-  Info_Add("GUI. Init timers.");      
-
-  #ifdef STANDALONE
-  datagetticker.attach_ms(DATAGETTIME, datagetcb);
-  datacollectticker.attach_ms(DATACOLLECTTIMEFAST, datacollectcb);
-  #endif
+  
   dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
   
   Info_Add("GUI. Controller startup ready.");
@@ -963,6 +947,8 @@ void loop()
 
     if (PDOCount != -1)
     {
+      // Got PDO data from plugin of PD source
+      Info_Add("GUI. Plugin of PD source !!");
 
       if (PDOCount == 0) Info_Add("GUI. No new PDO's !!");
 
@@ -992,7 +978,10 @@ void loop()
           {
             if (PDO.valid)
             {
-              Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+              if (PDO.isEPR)
+                Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+              else
+                Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
               #ifdef STANDALONE
               Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               #endif
@@ -1148,9 +1137,14 @@ void loop()
       {
         // We need to update the GUI with the received PDO's !!
 
+        // Got PDO data from plugin of PD source
+        Info_Add("GUI. PDO list request by user !!");
+
         Screen3ClearPDOList();
 
         PDOCount = INData[counter++];
+
+        Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
 
         if (PDOCount)
         {
@@ -1171,7 +1165,11 @@ void loop()
 
               if (PDO.valid)
               {
-                Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                if (PDO.isEPR)
+                  Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                else
+                  Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }

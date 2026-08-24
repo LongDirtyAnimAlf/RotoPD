@@ -220,22 +220,14 @@ void setup()
 
     // INA238 setup
   if (initINA238())
-  {
     Info_Add("RP2040. INA238 init success.");
-  }
   else
-  {
     Info_Add("RP2040. INA238 init failed !!");
-  }
 
   if (pd.isConnected())
-  {
     Info_Add("RP2040. RotoPD connected.");
-  }
   else
-  {
     Info_Add("RP2040. RotoPD not connected or not found.");
-  }
 
   Info_Add("RP2040. Datalogger ready for use !!");
   Info_Add("");

@@ -341,7 +341,7 @@ bool initROTOPD(void)
 
     pd.setOTPThreshold_C(120);
     pd.setConfig(CONFIG_OTP_EN);
-    pd.setDeratingThreshold_C(75);
+    pd.setDeratingThreshold_C(85);
     pd.setConfig(CONFIG_DR_EN);
 
     // Switch off output
