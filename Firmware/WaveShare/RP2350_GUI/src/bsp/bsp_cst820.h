@@ -22,7 +22,16 @@ typedef enum
     CST820_REG_DisAutoSleep = 0xFE,
 } cst820_reg_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool bsp_touch_new_cst820(bsp_touch_interface_t **interface, bsp_touch_info_t *info);
 bsp_touch_interface_t *bsp_cst820_get_touch_interface(void);
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
 
 #endif

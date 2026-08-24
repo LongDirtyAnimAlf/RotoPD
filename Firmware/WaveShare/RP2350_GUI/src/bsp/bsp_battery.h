@@ -23,4 +23,3 @@ void bsp_battery_read(float *voltage, uint16_t *adc_raw);
 #endif
 
 #endif // __BSP_BATTERY_H__
-

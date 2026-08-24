@@ -42,6 +42,7 @@ extern "C" {
 #endif
 
 bool bsp_display_new_st7701(bsp_display_interface_t **interface, bsp_display_info_t *info);
+
 #ifdef __cplusplus
 }
 #endif

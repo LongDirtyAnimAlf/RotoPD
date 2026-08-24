@@ -407,7 +407,6 @@ extern "C"
 {
 #endif
 
-
 void bsp_xl2515_reset(void);
 void bsp_xl2515_init(xl2515_rate_kbps_t rate_kbps);
 void bsp_xl2515_send(uint32_t can_id, uint8_t *data, uint8_t len);

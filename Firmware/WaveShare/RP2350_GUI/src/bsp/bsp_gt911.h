@@ -21,7 +21,15 @@ typedef enum
     GT911_EREG_READ_XY = 0x814E,
 } gt911_reg_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool bsp_touch_new_gt911(bsp_touch_interface_t **interface, bsp_touch_info_t *info);
 bsp_touch_interface_t *bsp_gt911_get_touch_interface(void);
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
 
 #endif

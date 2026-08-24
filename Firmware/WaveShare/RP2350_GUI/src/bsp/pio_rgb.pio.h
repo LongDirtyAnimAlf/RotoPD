@@ -56,12 +56,21 @@ static __pio_const struct pio_program vsync_program = {
 #endif
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline pio_sm_config vsync_program_get_default_config(uint offset) {
     pio_sm_config c = pio_get_default_sm_config();
     sm_config_set_wrap(&c, offset + vsync_wrap_target, offset + vsync_wrap);
     sm_config_set_sideset(&c, 2, true, false);
     return c;
 }
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
 #endif
 
 // ----- //
@@ -107,12 +116,21 @@ static __pio_const struct pio_program hsync_program = {
 #endif
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline pio_sm_config hsync_program_get_default_config(uint offset) {
     pio_sm_config c = pio_get_default_sm_config();
     sm_config_set_wrap(&c, offset + hsync_wrap_target, offset + hsync_wrap);
     sm_config_set_sideset(&c, 3, true, false);
     return c;
 }
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
 #endif
 
 // --- //
@@ -149,11 +167,20 @@ static __pio_const struct pio_program rgb_program = {
 #endif
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline pio_sm_config rgb_program_get_default_config(uint offset) {
     pio_sm_config c = pio_get_default_sm_config();
     sm_config_set_wrap(&c, offset + rgb_wrap_target, offset + rgb_wrap);
     return c;
 }
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
 #endif
 
 // ------ //
@@ -200,10 +227,19 @@ static __pio_const struct pio_program rgb_de_program = {
 #endif
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline pio_sm_config rgb_de_program_get_default_config(uint offset) {
     pio_sm_config c = pio_get_default_sm_config();
     sm_config_set_wrap(&c, offset + rgb_de_wrap_target, offset + rgb_de_wrap);
     sm_config_set_sideset(&c, 2, true, false);
     return c;
 }
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
 #endif

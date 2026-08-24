@@ -32,9 +32,17 @@ typedef enum
     PCF85063_TIMER_MODE,
 }pcf85063_reg_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void bsp_pcf85063_init(void);
 void bsp_pcf85063_get_time(struct tm *now_tm);
 void bsp_pcf85063_set_time(struct tm *now_tm);
 // void bsp_pcf85063_test(void);
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
 
 #endif

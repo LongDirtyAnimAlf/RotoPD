@@ -495,6 +495,10 @@ enum QMI8658_WakeOnMotionThreshold
     QMI8658WomThreshold_low = 32    /*!< Low threshold - small motion needed to wake. */
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 unsigned char bsp_qmi8658_write_reg(unsigned char reg, unsigned char value);
 unsigned char bsp_qmi8658_read_reg(unsigned char reg, unsigned char *buf, unsigned short len);
 unsigned char bsp_qmi8658_init(void);
@@ -510,5 +514,9 @@ unsigned char bsp_qmi8658_readStatus1(void);
 float bsp_qmi8658_readTemp(void);
 void bsp_qmi8658_enableWakeOnMotion(void);
 void bsp_qmi8658_disableWakeOnMotion(void);
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
 
 #endif
