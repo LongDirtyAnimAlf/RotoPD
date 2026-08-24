@@ -54,6 +54,9 @@
 #define RGB_PANEL
 //#define GFX_BL 45
 
+// Default placeholder due to re-use of existing software
+#define ActiveBatteryIndex 0
+
 //HWCDC USBSerial;
 USBCDC USBSerial;
 //#define USBSerial Serial
@@ -99,7 +102,6 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
 
 class CustomHIDDevice : public USBHIDDevice {
 public:
@@ -267,7 +269,7 @@ static void main_event_handler(lv_event_t * e)
         {
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION] = CMD_set_output;
-          SendCommand[INDEXPOSITION] = ActiveBatteryIndex;
+          SendCommand[INDEXPOSITION] = BoardInfo.BoardNumber;
           SendCommand[LENGTHPOSITION] = 1U; // length
           SendCommand[DATASTART] = (uint8_t)buttondown;
         }    
@@ -333,7 +335,7 @@ static void main_event_handler(lv_event_t * e)
 
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION] = CMD_set_value;
-          SendCommand[INDEXPOSITION] = ActiveBatteryIndex;
+          SendCommand[INDEXPOSITION] = BoardInfo.BoardNumber;
           SendCommand[LENGTHPOSITION] = 5U; // length
           SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
           temp = SET->TestData.SetStageValue;
@@ -403,7 +405,7 @@ static void main_event_handler(lv_event_t * e)
           #endif
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION]   = CMD_get_PDOList;
-          SendCommand[INDEXPOSITION]     = ActiveBatteryIndex;
+          SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
           SendCommand[LENGTHPOSITION]    = 0U; // length
         }
         else
@@ -425,7 +427,7 @@ static void main_event_handler(lv_event_t * e)
               #endif
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
-              SendCommand[INDEXPOSITION]     = ActiveBatteryIndex;
+              SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
               SendCommand[LENGTHPOSITION]    = 1U; // length
               SendCommand[DATASTART]         = SelectPDOindex;
             }
@@ -625,8 +627,6 @@ void setup()
   byte index;
   char myHex[10] = "";
 
-  ActiveBatteryIndex = 0;
-
   esp_err_t ret = indicator_nvs_init();
   #ifdef DEBUG  
   if( ret != ESP_OK )
@@ -655,7 +655,12 @@ void setup()
     {
       BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
     }
+    for (index=0; index<4;index++)
+    {
+      BoardInfo.BoardCalDate[index] = DefaultCalDate[index];
+    }
   }
+
   index = 0;
   mySerial[0] = '\0';  
   while (index<12)
@@ -967,7 +972,8 @@ void loop()
         memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
         hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
-        hid_report_in[INDEXPOSITION] = ActiveBatteryIndex;
+        hid_report_in[INDEXPOSITION] = BoardInfo.BoardNumber;
+
         dataindexer = DATASTART;
 
         hid_report_in[dataindexer++] = PDOCount;
@@ -979,9 +985,9 @@ void loop()
             if (PDO.valid)
             {
               if (PDO.isEPR)
-                Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
               else
-                Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
               #ifdef STANDALONE
               Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               #endif
@@ -999,7 +1005,6 @@ void loop()
     }
   }  
 
-  byte BatteryIndex;
   PBatterySetting SET = NULL;
   PRunDatas RDS = NULL;
 
@@ -1012,40 +1017,37 @@ void loop()
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
 
-  for (BatteryIndex=0; BatteryIndex<DAUGHTERBOARDCOUNT; BatteryIndex++ )
+  if (HIDData[ActiveBatteryIndex].DataReceived)
   {
-    if (HIDData[BatteryIndex].DataReceived)
+    #ifndef TINYUSB_NEED_POLLING_TASK
+    // Make a local copy of the data 
+    // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
+    noInterrupts();
+    for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[ActiveBatteryIndex].HIDEPOUTData[j];
+    LocalHDCopy.DataReceived = HIDData[ActiveBatteryIndex].DataReceived;
+    HIDData[ActiveBatteryIndex].DataReceived = false;
+    interrupts();
+    PLocalHD = &LocalHDCopy; 
+    #else
+    PLocalHD = (THIDData*)&HIDData[ActiveBatteryIndex];
+    PLocalHD->DataReceived = false;
+    #endif
+
+    //Now perform the Data update  
+    DataOk = process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+    if (DataOk)
     {
-      #ifndef TINYUSB_NEED_POLLING_TASK
-      // Make a local copy of the data 
-      // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
-      noInterrupts();
-      for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[BatteryIndex].HIDEPOUTData[j];
-      LocalHDCopy.DataReceived = HIDData[BatteryIndex].DataReceived;
-      HIDData[BatteryIndex].DataReceived = false;
-      interrupts();
-      PLocalHD = &LocalHDCopy; 
-      #else
-      PLocalHD = (THIDData*)&HIDData[BatteryIndex];
-      PLocalHD->DataReceived = false;
-      #endif
+      // Send report back to host
+      HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
 
-      //Now perform the Data update  
-      DataOk = process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
-      if (DataOk)
-      {
-        // Send report back to host
-        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+      for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
 
-        for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
-
-        //#ifdef USE_LCD
-        //DataOk = false;
-        //Info_Add("Got HID data");
-        //#endif
-      }
-
+      //#ifdef USE_LCD
+      //DataOk = false;
+      //Info_Add("Got HID data");
+      //#endif
     }
+
   }
 
   #ifdef STANDALONE
@@ -1070,7 +1072,7 @@ void loop()
   if (DataOk)
   {
     CommandType_t cCmd = (CommandType_t)INData[COMMANDPOSITION];
-    byte BatteryIndex = INData[INDEXPOSITION];
+    byte BoardNumber = INData[INDEXPOSITION];
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
@@ -1084,7 +1086,7 @@ void loop()
 
         qw.Val = 0;
 
-        SET = &Batteries[BatteryIndex];
+        SET = &Batteries[ActiveBatteryIndex];
         RDS = &SET->TestData.RunDatas; 
 
         for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
@@ -1111,12 +1113,12 @@ void loop()
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxCurrent_mA = wv.Val;
-        Info_Add_Fmt("GUI. PDO requested current: #%dmA.", PDO.maxCurrent_mA);
+        Info_Add_Fmt("GUI. PDO requested current: %dmA.", PDO.maxCurrent_mA);
 
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxVoltage_mV = wv.Val;
-        Info_Add_Fmt("GUI. PDO requested voltage: #%dmV.", PDO.maxVoltage_mV);
+        Info_Add_Fmt("GUI. PDO requested voltage: %dmV.", PDO.maxVoltage_mV);
 
         raw.byte0 = INData[counter++];
         raw.byte1 = INData[counter++];
@@ -1154,7 +1156,7 @@ void loop()
 
             j = INData[counter++];
 
-            Info_Add_Fmt("GUI. PDO received ! PDO index: #%d.", j);
+            //Info_Add_Fmt("GUI. PDO received ! PDO index: #%d.", j);
 
             if (j)
             {
@@ -1166,9 +1168,9 @@ void loop()
               if (PDO.valid)
               {
                 if (PDO.isEPR)
-                  Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                  Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
                 else
-                  Info_Add_Fmt("GUI. PDO received ! PDO voltage: #%dmV.", PDO.maxVoltage_mV);
+                  Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
 
                 Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
@@ -1202,78 +1204,74 @@ void loop()
     //USBSerial.println("Getting data");
     #endif
 
-    for (BatteryIndex=0; BatteryIndex<DAUGHTERBOARDCOUNT; BatteryIndex++ )
+    SET = &Batteries[ActiveBatteryIndex];
+
+    switch(SET->TestData.Active)
     {
-      SET = &Batteries[BatteryIndex];
+      case bmActive:
+        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
+        if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
+        break;
+      case bmReady:
+      case bmIdle:
+        SET->TestData.DataTriggerCounter = 0;
+        break;
+      default:
+        #ifdef DEBUG  
+        USBSerial.print("Invalid battery mode !! Number: ");
+        USBSerial.println(SET->TestData.Active);          
+        #endif
+        break;
+    }
 
-      switch(SET->TestData.Active)
+    if (SET->TestData.DataTriggerCounter == 0)
+    {
+
+      RDS = &SET->TestData.RunDatas;        
+
+      getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
+
+      //USBSerial.println("Got RotoPD data");        
+      
+      // Show data on screen 1
+      Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+
+      WORD_VAL  w_data;
+      DWORD_VAL dw_data;
+
+      memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
+      hid_report_in[COMMANDPOSITION] = CMD_get_data;
+      hid_report_in[INDEXPOSITION] = BoardInfo.BoardNumber;
+
+      dataindexer = DATASTART;
+
+      w_data.Val = RDS->LastBatteryData.V;
+      for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+      w_data.Val = RDS->LastBatteryData.I;
+      for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+      dw_data.Val = RDS->LastBatteryData.P;
+      for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
+      w_data.Val = RDS->LastBatteryData.T;
+      for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+
+      hid_report_in[LENGTHPOSITION]=dataindexer;        
+
+
+      HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+
+      
+      if (SET->TestData.Active == bmActive)
       {
-        case bmActive:
-          // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
-          if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
-          break;
-        case bmReady:
-        case bmIdle:
-          SET->TestData.DataTriggerCounter = 0;
-          break;
-        default:
-          #ifdef DEBUG  
-          USBSerial.print("Invalid battery mode !! Number: ");
-          USBSerial.println(SET->TestData.Active);          
-          #endif
-          break;
+        //Append the data in storage
+        AddMeasurementData(ActiveBatteryIndex, RDS->LastBatteryData.V, RDS->LastBatteryData.I, RDS->LastBatteryData.P, RDS->LastBatteryData.T);
+
+        // Append data into graphs
+        Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+
+        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
+        SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }
-
-      if (SET->TestData.DataTriggerCounter == 0)
-      {
-
-        RDS = &SET->TestData.RunDatas;        
-
-        getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
-
-        //USBSerial.println("Got RotoPD data");        
-        
-        // Show data on screen 1
-        Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-
-        WORD_VAL  w_data;
-        DWORD_VAL dw_data;
-
-        memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
-
-        hid_report_in[COMMANDPOSITION] = CMD_get_data;
-        hid_report_in[INDEXPOSITION] = BatteryIndex;
-        dataindexer = DATASTART;
-
-        w_data.Val = RDS->LastBatteryData.V;
-        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-        w_data.Val = RDS->LastBatteryData.I;
-        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-        dw_data.Val = RDS->LastBatteryData.P;
-        for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
-        w_data.Val = RDS->LastBatteryData.T;
-        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-
-        hid_report_in[LENGTHPOSITION]=dataindexer;        
-
-
-        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
-
-        
-        if (SET->TestData.Active == bmActive)
-        {
-          //Append the data in storage
-          AddMeasurementData(BatteryIndex, RDS->LastBatteryData.V, RDS->LastBatteryData.I, RDS->LastBatteryData.P, RDS->LastBatteryData.T);
-
-          // Append data into graphs if visible
-          if (ActiveBatteryIndex == BatteryIndex) Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-
-          // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
-          SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
-        }
-
-      }
-
     }
   }
 
@@ -1286,45 +1284,39 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    for (BatteryIndex=0; BatteryIndex<DAUGHTERBOARDCOUNT; BatteryIndex++ )
+    SET = &Batteries[ActiveBatteryIndex];
+    RDS = &SET->TestData.RunDatas;  
+
+    if (SET->TestData.SetStageMode != smOff)
     {
-      SET = &Batteries[BatteryIndex];
-      RDS = &SET->TestData.RunDatas;  
-
-      if (SET->TestData.SetStageMode != smOff)
+      // CALCULATIONTIME = 100, so every tick [increase] is 100ms
+      if (SET->TestData.Active != bmReady)
       {
-        // CALCULATIONTIME = 100, so every tick [increase] is 100ms
-        if (SET->TestData.Active != bmReady)
+        RDS->Time++;
+
+        if (RDS->LastBatteryData.I != 0)
         {
-          RDS->Time++;
+          // Capacity calculations
+          qcalc = RDS->LastBatteryData.I * 1000ULL;
+          // qcalc is now uA
+          qcalc *= (CALCULATIONTIME);
+          RDS->Capacity += (qcalc / (3600ULL)); // this is nAh !!      
 
-          if (RDS->LastBatteryData.I != 0)
+          if (RDS->LastBatteryData.V != 0)
           {
-            // Capacity calculations
-            qcalc = RDS->LastBatteryData.I * 1000ULL;
-            // qcalc is now uA
-            qcalc *= (CALCULATIONTIME);
-            RDS->Capacity += (qcalc / (3600ULL)); // this is nAh !!      
-
-            if (RDS->LastBatteryData.V != 0)
-            {
-              // Energy calculations
-              dcalc = RDS->LastBatteryData.V;
-              // dcalc is now mV
-              qcalc *= dcalc; // this is now mV * nAs = pWs
-              qcalc /= (1000ULL); // this is nWs !!            
-              RDS->Energy += (qcalc / 3600ULL); // this is nWh !!      
-            }
+            // Energy calculations
+            dcalc = RDS->LastBatteryData.V;
+            // dcalc is now mV
+            qcalc *= dcalc; // this is now mV * nAs = pWs
+            qcalc /= (1000ULL); // this is nWs !!            
+            RDS->Energy += (qcalc / 3600ULL); // this is nWh !!      
           }
-        } 
-      }
-
-      if (ActiveBatteryIndex == BatteryIndex)
-      {
-        Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
-        Screen1AddTData(RDS->Time);
-      }
+        }
+      } 
     }
+
+    Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
+    Screen1AddTData(RDS->Time);
   }
 
   uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);

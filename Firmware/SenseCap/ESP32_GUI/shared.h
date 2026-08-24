@@ -49,6 +49,7 @@
 
 #define COMMANDPOSITION   (0)
 #define INDEXPOSITION     (1)
+#define BOARDPOSITION     (1)
 #define LENGTHPOSITION    (2)
 #define DATASTART         (3)
 
@@ -122,6 +123,8 @@ typedef enum {
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
     CMD_set_output,
+    CMD_get_curcal,
+    CMD_set_curcal,
     CMD_controller_reset = 0xB0
 } CommandType_t;
 
@@ -255,6 +258,7 @@ typedef struct {
   bool Valid;
   #endif
   byte BoardSerial[12];
+  byte BoardCalDate[4];  // YYMD
   byte BoardNumber;
   int16_t shuntcorrection;
 } TBoardInfo;

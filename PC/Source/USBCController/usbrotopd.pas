@@ -26,6 +26,7 @@ type
 
   TCommands = (
     CMD_unknown          = $00,
+    CMD_logdata          = $30,
     CMD_error            = $40,
     CMD_get_data         = $50,
     CMD_get_status,
@@ -42,6 +43,8 @@ type
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
     CMD_set_output,
+    CMD_get_curcal,
+    CMD_set_curcal,
     CMD_controller_reset = $B0
   );
 

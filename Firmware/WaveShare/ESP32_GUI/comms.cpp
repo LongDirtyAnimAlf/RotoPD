@@ -57,8 +57,9 @@ TBoardInfo BoardInfo =
   false, // DataValid
   #endif
   {0},  // Default BoardSerial
-  0,    // Default BoardNumber
-  44     // Default INA238 shunt correction value (in uOhm, signed, int16_t)
+  {0},  // Default BoardCalDate  
+  DEFAULTBOARDNUMBER,    // Default BoardNumber
+  44    // Default INA238 shunt correction value (in uOhm, signed, int16_t)
 };
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
@@ -224,6 +225,7 @@ bool initINA238(void)
 {
   if(!ina238.begin())
   {
+    //Info_Add("Comms. Init INA238 failed !");
     return false;
   }
   else
@@ -252,6 +254,8 @@ bool initINA238(void)
 
     ina238.setAverage(INA238_16_SAMPLES); 
     ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+
+    //Info_Add("Comms. Init INA238 success.");
   }
   return true;
 }
@@ -443,6 +447,7 @@ int8_t taskRotoPDInit(void)
 bool process_command(void const *data, void *result)
 {
   CommandType_t cCmd = CMD_unknown;
+  byte BN = 0;
 
   byte dataindexer,j,databyte;
 
@@ -467,13 +472,13 @@ bool process_command(void const *data, void *result)
 
   PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
 
-	cCmd=(CommandType_t)databuffer[COMMANDPOSITION];
-  // device index = databuffer[INDEXPOSITION];
+	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
+  BN    = databuffer[INDEXPOSITION];
   // datalength = databuffer[LENGTHPOSITION];
 
   // Data start at position 3 !!
   // 0   = Command
-  // 1   = Index
+  // 1   = BoardNumber
   // 2   = Length
   // 3.. = Data
   dataindexer = DATASTART;
@@ -623,13 +628,22 @@ bool process_command(void const *data, void *result)
   // Start processing the collected data !!
   // Data start at position 3 !!
   // 0   = Command
-  // 1   = Index
+  // 1   = BoardNumber
   // 2   = Length
   // 3.. = Data
 
-  // Echo back command and index
-  resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
-  resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+  // Echo back command and index/number
+  //resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
+  //resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+
+  resultbuffer[COMMANDPOSITION]=cCmd;
+  resultbuffer[INDEXPOSITION]=BN;
+
+  if (BN != BoardInfo.BoardNumber)
+  {
+    // Should never happen !!
+    Info_Add_Fmt("Comms. Severe error. Wrong boardnumber ! Received %d. Board has %d.", BN, BoardInfo.BoardNumber);
+  }
 
   // Skip length
   // Will be set in a later stage
@@ -849,10 +863,9 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
 		default:
 		{
+      //byte cBat=hid_report_out[1];
       byte cBat=0;
-      //cBat=hid_report_out[1];
-      //if (cBat<DAUGHTERBOARDCOUNT)
-      if (true)
+      if (cBat<DAUGHTERBOARDCOUNT)
       {
         SendData = false;
         for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) HIDData[cBat].HIDEPOUTData[j] = hid_report_out[j];

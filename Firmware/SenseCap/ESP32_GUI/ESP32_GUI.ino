@@ -44,6 +44,12 @@
 #define GFX_DEV_DEVICE ESP32_S3_RGB
 #define RGB_PANEL
 #define GFX_BL 45
+
+// Default placeholder due to re-use of existing software
+#define ActiveBatteryIndex 0
+
+TBoardInfo BoardInfo;
+
 static Arduino_DataBus *bus = new Indicator_SWSPI(
     GFX_NOT_DEFINED /* DC */, EXPANDER_IO_LCD_CS /* CS */,
     SPI_SCLK /* SCK */, SPI_MOSI /* MOSI */, GFX_NOT_DEFINED /* MISO */);
@@ -69,7 +75,6 @@ static Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     bus, GFX_NOT_DEFINED /* RST */, st7701_indicator_init_operations, sizeof(st7701_indicator_init_operations));
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-static volatile byte DRAM_ATTR ActiveBatteryIndex = 0;
 
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
@@ -209,7 +214,7 @@ static void main_event_handler(lv_event_t * e)
         {
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION] = CMD_set_output;
-          SendCommand[INDEXPOSITION] = ActiveBatteryIndex;
+          SendCommand[INDEXPOSITION] = BoardInfo.BoardNumber;
           SendCommand[LENGTHPOSITION] = 1U; // length
           SendCommand[DATASTART] = (uint8_t)buttondown;
         }    
@@ -275,7 +280,7 @@ static void main_event_handler(lv_event_t * e)
 
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION] = CMD_set_value;
-          SendCommand[INDEXPOSITION] = ActiveBatteryIndex;
+          SendCommand[INDEXPOSITION] = BoardInfo.BoardNumber;
           SendCommand[LENGTHPOSITION] = 5U; // length
           SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
           temp = SET->TestData.SetStageValue;
@@ -345,7 +350,7 @@ static void main_event_handler(lv_event_t * e)
           #endif
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION]   = CMD_get_PDOList;
-          SendCommand[INDEXPOSITION]     = ActiveBatteryIndex;
+          SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
           SendCommand[LENGTHPOSITION]    = 0U; // length
         }
         else
@@ -367,7 +372,7 @@ static void main_event_handler(lv_event_t * e)
               #endif
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
-              SendCommand[INDEXPOSITION]     = ActiveBatteryIndex;
+              SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
               SendCommand[LENGTHPOSITION]    = 1U; // length
               SendCommand[DATASTART]         = SelectPDOindex;
             }
@@ -478,7 +483,6 @@ static void main_event_handler(lv_event_t * e)
   }
 }
 
-
 void AddMeasurementData(byte index, word V, word I, dword P, word T)
 {
   static bool GoAround[DAUGHTERBOARDCOUNT] = {false};
@@ -544,6 +548,8 @@ void dataupdatecb()
 void setup()
 {
   byte index;
+
+  BoardInfo.BoardNumber = (byte)-1;
 
   #ifdef DEBUG
   Serial.begin(115200);
@@ -702,8 +708,6 @@ void setup()
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
   lv_indev_set_read_cb(indev, my_touchpad_read);
 
-  ActiveBatteryIndex = 0;
-
   #ifndef LVGLDEMOS
   Info_Add("GUI. Init GUI.");      
   CreateBaseScreen(main_event_handler);
@@ -748,7 +752,6 @@ void loop()
     vTaskDelay(pdMS_TO_TICKS(100));      
   }
 
-  byte i;
   PBatterySetting SET = NULL;
   PRunDatas RDS = NULL;
 
@@ -756,7 +759,7 @@ void loop()
 
   PBatteryBoard BB = NULL;
 
-  byte j;
+  byte i,j;
   uint8_t data_buf[COMMAND_SIZE];
 
   // Do we have a valid command ?
@@ -774,47 +777,44 @@ void loop()
   {
     GetBatteryData = false;
 
-    for (i=0; i<DAUGHTERBOARDCOUNT; i++ )
+    SET = &Batteries[ActiveBatteryIndex];
+
+    switch(SET->TestData.Active)
     {
-      SET = &Batteries[i];
-
-      switch(SET->TestData.Active)
-      {
-        case bmActive:
-          // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
-          if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
-          break;
-        case bmReady:
-        case bmIdle:
-          SET->TestData.DataTriggerCounter = 0;
-          break;
-        default:
-          #ifdef DEBUG  
-          Serial.print("Invalid battery mode !! Number: ");
-          Serial.println(SET->TestData.Active);          
-          #endif
-          break;
-      }
-
-      if (SET->TestData.DataTriggerCounter == 0)
-      {
-        j = 0;
-        data_buf[j++] = CMD_get_data;
-        data_buf[j++] = i;
-        // Send the data request
-        myPacketSerial.send(data_buf, j);
-      }
-
-      if (SET->TestData.DataTriggerCounter == 0)
-      {
-        if (SET->TestData.Active == bmActive)
-        {
-          // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
-           SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
-        }
-      }
-
+      case bmActive:
+        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
+        if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
+        break;
+      case bmReady:
+      case bmIdle:
+        SET->TestData.DataTriggerCounter = 0;
+        break;
+      default:
+        #ifdef DEBUG  
+        Serial.print("Invalid battery mode !! Number: ");
+        Serial.println(SET->TestData.Active);          
+        #endif
+        break;
     }
+
+    if (SET->TestData.DataTriggerCounter == 0)
+    {
+      j = 0;
+      data_buf[j++] = CMD_get_data;
+      data_buf[j++] = BoardInfo.BoardNumber;
+      // Send the data request
+      myPacketSerial.send(data_buf, j);
+    }
+
+    if (SET->TestData.DataTriggerCounter == 0)
+    {
+      if (SET->TestData.Active == bmActive)
+      {
+        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
+          SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
+      }
+    }
+
   }
 
   #endif STANDALONE
@@ -826,45 +826,39 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    for (i=0; i<DAUGHTERBOARDCOUNT; i++ )
+    SET = &Batteries[ActiveBatteryIndex];
+    RDS = &SET->TestData.RunDatas;  
+
+    if (SET->TestData.SetStageMode != smOff)
     {
-      SET = &Batteries[i];
-      RDS = &SET->TestData.RunDatas;  
-
-      if (SET->TestData.SetStageMode != smOff)
+      // CALCULATIONTIME = 100, so every tick [increase] is 100ms
+      if (SET->TestData.Active != bmReady)
       {
-        // CALCULATIONTIME = 100, so every tick [increase] is 100ms
-        if (SET->TestData.Active != bmReady)
+        RDS->Time++;
+
+        if (RDS->LastBatteryData.I != 0)
         {
-          RDS->Time++;
+          // Capacity calculations
+          qcalc = RDS->LastBatteryData.I * 1000ULL;
+          // qcalc is now uA
+          qcalc *= (CALCULATIONTIME);
+          RDS->Capacity += (qcalc / (3600ULL)); // this is nAh !!      
 
-          if (RDS->LastBatteryData.I != 0)
+          if (RDS->LastBatteryData.V != 0)
           {
-            // Capacity calculations
-            qcalc = RDS->LastBatteryData.I * 1000ULL;
-            // qcalc is now uA
-            qcalc *= (CALCULATIONTIME);
-            RDS->Capacity += (qcalc / (3600ULL)); // this is nAh !!      
-
-            if (RDS->LastBatteryData.V != 0)
-            {
-              // Energy calculations
-              dcalc = RDS->LastBatteryData.V;
-              // dcalc is now mV
-              qcalc *= dcalc; // this is now mV * nAs = pWs
-              qcalc /= (1000ULL); // this is nWs !!            
-              RDS->Energy += (qcalc / 3600ULL); // this is nWh !!      
-            }
+            // Energy calculations
+            dcalc = RDS->LastBatteryData.V;
+            // dcalc is now mV
+            qcalc *= dcalc; // this is now mV * nAs = pWs
+            qcalc /= (1000ULL); // this is nWs !!            
+            RDS->Energy += (qcalc / 3600ULL); // this is nWh !!      
           }
-        } 
-      }
-
-      if (ActiveBatteryIndex == i)
-      {
-        Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
-        Screen1AddTData(RDS->Time);
-      }
+        }
+      } 
     }
+
+    Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
+    Screen1AddTData(RDS->Time);
   }
 
   uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
@@ -914,7 +908,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   PStageData SD = NULL;  
   AP33772S_PDO dec;
   PDO_DATA_T raw;
-  uint8_t  index;
+  uint8_t index;
 
   CommandType_t Command = (CommandType_t)buffer[COMMANDPOSITION];
 
@@ -928,7 +922,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
   if (Command != CMD_get_data) Info_Add_Fmt("GUI. Data received ! Count: #%d.", size); 
 
-  byte BatteryIndex = buffer[INDEXPOSITION];
+  byte BoardNumber = buffer[INDEXPOSITION];
   byte Length = buffer[LENGTHPOSITION];
 
   counter = DATASTART;
@@ -951,8 +945,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
           index = buffer[counter++];
 
-          Info_Add_Fmt("GUI. PDO received ! PDO index: #%d.", index);
-
           if (index)
           {
             raw.byte0 = buffer[counter++];
@@ -962,7 +954,10 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
             if (dec.valid)
             {
-              Info_Add_Fmt("GUI. PDO received ! PDO voltage : #%dmV.", dec.maxVoltage_mV);
+              if (dec.isEPR)
+                Info_Add_Fmt("GUI. EPR PDO received ! Index: #%d. Voltage: %dmV.", index, dec.maxVoltage_mV);
+              else
+                Info_Add_Fmt("GUI. PDO received ! Index: #%d. Voltage: %dmV.", index, dec.maxVoltage_mV);
               Screen3SetPDO(dec.index,dec.valid,dec.isEPR,dec.type,dec.minVoltage_mV,dec.maxVoltage_mV,dec.maxCurrent_mA);
             }
           }
@@ -975,7 +970,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     case CMD_set_value:
     {
 
-      SET = &Batteries[BatteryIndex];
+      SET = &Batteries[ActiveBatteryIndex];
       RDS = &SET->TestData.RunDatas;      
 
       // Did we receive battery data ?
@@ -1010,10 +1005,10 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         if (SET->TestData.Active == bmActive)
         {
           //Append the data in storage
-          AddMeasurementData(BatteryIndex, Volt, Amps, Power, Temperature);
+          AddMeasurementData(ActiveBatteryIndex, Volt, Amps, Power, Temperature);
 
           // Append data into graphs if visible
-          if (ActiveBatteryIndex == BatteryIndex) Screen2AddData(Volt,Amps);
+          Screen2AddData(Volt,Amps);
         }
       }
 

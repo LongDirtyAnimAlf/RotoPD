@@ -834,8 +834,8 @@ end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
-  //DD.GetPDOList(1);
-  DD.SetEnergy(1,876456789);
+  DD.GetPDOList(1);
+  //DD.SetEnergy(1,876456789);
 end;
 
 procedure TPowerbankMainForm.btnTestDischargeClick(Sender: TObject);
@@ -1512,14 +1512,15 @@ end;
 
 procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 var
-  measuredvalue:double;
-  cmd:TCommands;
-  boardnumber:byte;
-  counter:integer;
-  PDOCount,PDOIndex:byte;
-  RawPDO: PDO_DATA_T;
-  PDO: TAP33772S_PDO;
-  wd:TWordData;
+  measuredvalue        : double;
+  cmd                  : TCommands;
+  boardnumber          : byte;
+  counter              : integer;
+  PDOCount,PDOIndex    : byte;
+  RawPDO               : PDO_DATA_T;
+  PDO                  : TAP33772S_PDO;
+  wd                   : TWordData;
+  aSourcePDO           : ^TSOURCEPDO;
 begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
@@ -1560,22 +1561,14 @@ begin
         Inc(Counter);
         DecodePDONew(PDOIndex,RawPDO,PDO);
 
-        if (PDO.isEPR AND (PDO.ptype<>PDO_TYPE_FIXED)) then
-        begin
-          with DUT.SourcePDOs[PDO.index-1].EPRAVSPDO do
-          begin
-            PDPInW                       := 0;
-            MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);
-            MaximumVoltageIn100mV        := (PDO.maxVoltage_mV DIV 100);
-            PeakCurrent                  := 0;
-            AugmentedPowerDataObjectType := %01;  // 0x01=EPRAVS Adjustable Voltage Supply
-            AugmentedPowerDataObject     := %11;  // 0x11
-          end;
-        end
+        if (PDO.isEPR) then
+          aSourcePDO := @DUT.SourceEPRPDOs[PDO.index-8]
         else
+          aSourcePDO := @DUT.SourcePDOs[PDO.index-1];
+
         if (PDO.ptype=PDO_TYPE_FIXED) then
         begin
-          with DUT.SourcePDOs[PDO.index-1].FixedSupplyPdo do
+          with aSourcePDO^.FixedSupplyPdo do
           begin
             MaximumCurrentIn10mA     := (PDO.maxCurrent_mA DIV 10);
             VoltageIn50mV            := (PDO.maxVoltage_mV DIV 50);
@@ -1593,7 +1586,7 @@ begin
         else
         if (PDO.ptype=PDO_TYPE_PPS) then
         begin
-          with DUT.SourcePDOs[PDO.index-1].VariableSupplyNonBatteryPdo do
+          with aSourcePDO^.VariableSupplyNonBatteryPdo do
           begin
             MaximumCurrentIn10mA      := (PDO.maxCurrent_mA DIV 10);
             MinimumVoltageIn50mV      := (PDO.minVoltage_mV DIV 50);
@@ -1604,7 +1597,7 @@ begin
         else
         if (PDO.ptype=PDO_TYPE_AVS) then
         begin
-          with DUT.SourcePDOs[PDO.index-1].EPRAVSPDO do
+          with aSourcePDO^.EPRAVSPDO do
           begin
             //PDPInW                       : T8BITS;
             MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);

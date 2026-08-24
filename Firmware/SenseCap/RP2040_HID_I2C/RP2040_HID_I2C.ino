@@ -532,10 +532,16 @@ void onPacketReceived(const uint8_t *buffer, size_t size)
   if (size <= HID_INT_OUT_EP_SIZE)
   {
     for (byte i=0; i<size; i++ ) OUTData[i]=buffer[i];
+
+    // The SenseCap LCD does not know the boardnumber
+    // So set in here explicit
+    OUTData[INDEXPOSITION] = BoardInfo.BoardNumber;
+
     if (process_command(&OUTData,&INData))
     {
       // We might send some data back towards the SenseCap LCD/ESP32
       CommandType_t cCmd=(CommandType_t)INData[0];
+
       if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) || (cCmd == CMD_set_MAXPDO))
       {
         // Bit tricky

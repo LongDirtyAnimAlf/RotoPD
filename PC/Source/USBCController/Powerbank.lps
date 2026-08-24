@@ -22,9 +22,8 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="1084"/>
-        <CursorPos X="29" Y="1100"/>
+        <TopLine Value="1508"/>
+        <CursorPos X="26" Y="1582"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -36,7 +35,7 @@
       <Unit>
         <Filename Value="text.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="40"/>
+        <UsageCount Value="42"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="15"/>
       </Unit>
@@ -44,14 +43,14 @@
         <Filename Value="..\Common\ap33772s.pas"/>
         <IsPartOfProject Value="True"/>
         <Loaded Value="True"/>
-        <UsageCount Value="38"/>
-        <EditorIndex Value="6"/>
-        <CursorPos X="15" Y="13"/>
+        <UsageCount Value="40"/>
+        <EditorIndex Value="5"/>
+        <CursorPos X="3" Y="13"/>
       </Unit>
       <Unit>
         <Filename Value="text1.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="36"/>
+        <UsageCount Value="38"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
         <CursorPos Y="107"/>
@@ -3379,9 +3378,9 @@
         <Filename Value="..\Common\usbcpd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="100"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="991"/>
-        <CursorPos X="5" Y="1008"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="995"/>
+        <CursorPos X="13" Y="1014"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\sysutils\sysutilh.inc"/>
@@ -3512,9 +3511,8 @@
       </Unit>
       <Unit>
         <Filename Value="..\Common\bits.pas"/>
-        <Loaded Value="True"/>
-        <UsageCount Value="69"/>
-        <EditorIndex Value="2"/>
+        <UsageCount Value="70"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="27" Y="136"/>
       </Unit>
       <Unit>
@@ -3752,10 +3750,9 @@
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <UnitName Value="usb"/>
         <Loaded Value="True"/>
-        <UsageCount Value="35"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="243"/>
-        <CursorPos Y="260"/>
+        <UsageCount Value="36"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="142"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\jedi\jvcl\jvcl\run\JvHidControllerClass.pas"/>
@@ -3864,16 +3861,18 @@
       <Unit>
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="29"/>
+        <UsageCount Value="30"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="838"/>
-        <CursorPos X="64" Y="855"/>
+        <TopLine Value="19"/>
+        <CursorPos Y="49"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="29"/>
-        <EditorIndex Value="3"/>
+        <UsageCount Value="30"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="70"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\Hid.pas"/>
@@ -3960,62 +3959,6 @@
     </Debugger>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="22" Column="24" TopLine="5"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="180" Column="11" TopLine="152"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="181" Column="7" TopLine="153"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="236" Column="15" TopLine="208"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="250" Column="20" TopLine="222"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="878" Column="64" TopLine="850"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="882" Column="37" TopLine="854"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1026" Column="15" TopLine="998"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1027" Column="11" TopLine="999"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1094" Column="13" TopLine="1066"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1090" Column="28" TopLine="1082"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1082" Column="22" TopLine="1072"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1101" TopLine="1082"/>
-      </Position>
-      <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="837" Column="25" TopLine="819"/>
-      </Position>
-      <Position>
         <Filename Value="usbrotopd.pas"/>
         <Caret Line="778" Column="26" TopLine="767"/>
       </Position>
@@ -4078,6 +4021,62 @@
       <Position>
         <Filename Value="main.pas"/>
         <Caret Line="838" Column="11" TopLine="834"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="855" Column="64" TopLine="838"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="47" TopLine="34"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1654" TopLine="1511"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="838" Column="5" TopLine="835"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1548" TopLine="1532"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1595" Column="33" TopLine="1579"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1568" Column="26" TopLine="1557"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1565" Column="26" TopLine="1552"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1613" Column="27" TopLine="1444"/>
+      </Position>
+      <Position>
+        <Filename Value="..\Common\usbcpd.pas"/>
+        <Caret Line="1016" TopLine="994"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1526" Column="5" TopLine="1504"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1607" Column="28" TopLine="1581"/>
+      </Position>
+      <Position>
+        <Filename Value="..\Common\usblibs\USB.pas"/>
+        <Caret Line="260" TopLine="243"/>
+      </Position>
+      <Position>
+        <Filename Value="usbboard.pas"/>
+        <Caret TopLine="82"/>
       </Position>
     </JumpHistory>
     <RunParams>
