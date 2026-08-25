@@ -8,13 +8,11 @@
 
 #define MY_DISP_HOR_RES (480)
 #define MY_DISP_VER_RES (320)
-
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
-
 #define LVGL_DRAW_BUF_LINES  10 // number of display lines in each draw buffer in partial mode
-
-//#define DRAW_BUF_SIZE (MY_DISP_HOR_RES * (MY_DISP_VER_RES / LVGL_DRAW_BUF_LINES) * BYTE_PER_PIXEL)
 #define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
+
+#define RENDER_MODE_DIRECT
 
 static bsp_display_interface_t *display_if = NULL;
 
@@ -22,6 +20,7 @@ static lv_display_t *disp_drv = NULL;                         /*Descriptor of a 
 
 void disp_flush(lv_display_t * drv, const lv_area_t * area, uint8_t * color_p)
 {
+    #ifndef RENDER_MODE_DIRECT
     bsp_display_interface_t *display_if = (bsp_display_interface_t *)lv_display_get_user_data(drv);
 
     bsp_display_area_t display_area = {
@@ -35,13 +34,14 @@ void disp_flush(lv_display_t * drv, const lv_area_t * area, uint8_t * color_p)
 
     display_if->flush_dma(&display_area, buf16);
     
+    #endif
 
     if (lv_display_flush_is_last(drv))
     {
         //gfxdisplay->flush();
         display_if->flush_dma(NULL, NULL);        
     }
-
+   
     lv_display_flush_ready(drv);
 }
 
@@ -83,14 +83,21 @@ void lv_port_disp_init(void)
 
     bsp_display_new_st7701(&display_if, &display_info);
     display_if->init();
-    
+
+    #ifdef RENDER_MODE_DIRECT
+    static uint8_t * buf_data = (uint8_t *)rgb_info.framebuffer1;
+    #else
     static uint8_t buf_data[DRAW_BUF_SIZE] __attribute__((aligned(4))); // 4-byte aligned for performance
+    #endif
 
     disp_drv = lv_display_create(MY_DISP_HOR_RES, MY_DISP_VER_RES);
     lv_display_set_color_format(disp_drv, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(disp_drv, disp_flush);
+    #ifdef RENDER_MODE_DIRECT
+    lv_display_set_buffers(disp_drv, buf_data, NULL, (MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL), LV_DISPLAY_RENDER_MODE_DIRECT);
+    #else
     lv_display_set_buffers(disp_drv, buf_data, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-    lv_display_set_user_data(disp_drv, display_if);
+    #endif
 
-    //lv_disp_drv_register(&disp_drv);
+    lv_display_set_user_data(disp_drv, display_if);
 }

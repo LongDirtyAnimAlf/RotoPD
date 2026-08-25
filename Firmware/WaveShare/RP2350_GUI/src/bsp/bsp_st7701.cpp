@@ -111,7 +111,6 @@ bsp_st7701_cmd_t init_cmds[] = {
     {.reg = 0xE5, .data = (uint8_t[]){0xE4}, .data_bytes = 1, .delay_ms = 0},
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, .data_bytes = 5, .delay_ms = 0},
 
-
     // Mirror Y    
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x10}, .data_bytes = 5, .delay_ms = 0},
     {.reg = 0xC7, .data = (uint8_t[]){0x04}, .data_bytes = 1, .delay_ms = 0},
@@ -119,7 +118,6 @@ bsp_st7701_cmd_t init_cmds[] = {
     // Mirror X
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, .data_bytes = 5, .delay_ms = 0},
     {.reg = 0x36, .data = (uint8_t[]){0x10}, .data_bytes = 1, .delay_ms = 0},
-
     
     // 中文：显示模式配置
     // English: Display mode configuration
