@@ -7,7 +7,7 @@
 //#include "rp_pico_alloc.h"
 
 #define MY_DISP_HOR_RES (480)
-#define MY_DISP_VER_RES (480)
+#define MY_DISP_VER_RES (320)
 
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
 
@@ -34,6 +34,14 @@ void disp_flush(lv_display_t * drv, const lv_area_t * area, uint8_t * color_p)
     uint16_t * buf16 = (uint16_t *)color_p; // Let's say it's a 16 bit (RGB565) display
 
     display_if->flush_dma(&display_area, buf16);
+    
+
+    if (lv_display_flush_is_last(drv))
+    {
+        //gfxdisplay->flush();
+        display_if->flush_dma(NULL, NULL);        
+    }
+
     lv_display_flush_ready(drv);
 }
 
@@ -48,18 +56,19 @@ void lv_port_disp_init(void)
 
     rgb_info.width = MY_DISP_HOR_RES;
     rgb_info.height = MY_DISP_VER_RES;
-    //rgb_info.transfer_size = MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL;
-    rgb_info.transfer_size = MY_DISP_HOR_RES * 240;
+    //rgb_info.transfer_size = MY_DISP_HOR_RES * MY_DISP_VER_RES;
+    //rgb_info.transfer_size = MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES;
+    rgb_info.transfer_size = 0;
     rgb_info.pclk_freq = BSP_LCD_PCLK_FREQ;
     rgb_info.mode.double_buffer = false;
-    rgb_info.mode.enabled_transfer = true;
+    rgb_info.mode.enabled_transfer = false;
     rgb_info.mode.enabled_psram = false;
     //rgb_info.framebuffer1 = rp_mem_malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
-    //rgb_info.framebuffer1 = (uint16_t *)malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
+    rgb_info.framebuffer1 = (uint16_t *)malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
     //rgb_info.framebuffer1 = malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * sizeof(uint16_t));
 
     //rgb_info.framebuffer1 = NULL;
-    //rgb_info.framebuffer2 = NULL;
+    rgb_info.framebuffer2 = NULL;
     //rgb_info.transfer_buffer1 = NULL;
     //rgb_info.transfer_buffer2 = NULL;    
 
@@ -75,7 +84,7 @@ void lv_port_disp_init(void)
     bsp_display_new_st7701(&display_if, &display_info);
     display_if->init();
     
-    static uint8_t buf_data[DRAW_BUF_SIZE] __attribute__((aligned(64))); // 4-byte aligned for performance
+    static uint8_t buf_data[DRAW_BUF_SIZE] __attribute__((aligned(4))); // 4-byte aligned for performance
 
     disp_drv = lv_display_create(MY_DISP_HOR_RES, MY_DISP_VER_RES);
     lv_display_set_color_format(disp_drv, LV_COLOR_FORMAT_RGB565);

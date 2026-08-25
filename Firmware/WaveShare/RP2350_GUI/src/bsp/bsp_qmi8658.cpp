@@ -143,7 +143,7 @@ void bsp_qmi8658_config_gyro(enum QMI8658_GyrRange range, enum QMI8658_GyrOdr od
 
 void bsp_qmi8658_config_mag(enum QMI8658_MagDev device, enum QMI8658_MagOdr odr)
 {
-    uint8_t data = device | odr;
+    uint8_t data = ((uint8_t)device | (uint8_t)odr);
 	bsp_qmi8658_reg_write_byte(QMI8658Register_Ctrl4, &data);
 }
 
@@ -154,7 +154,7 @@ void bsp_qmi8658_config_ae(enum QMI8658_AeOdr odr)
 	bsp_qmi8658_config_acc(QMI8658_config.accRange, QMI8658_config.accOdr, QMI8658Lpf_Enable, QMI8658St_Disable);
 	bsp_qmi8658_config_gyro(QMI8658_config.gyrRange, QMI8658_config.gyrOdr, QMI8658Lpf_Enable, QMI8658St_Disable);
 	bsp_qmi8658_config_mag(QMI8658_config.magDev, QMI8658_config.magOdr);
-	bsp_qmi8658_reg_write_byte(QMI8658Register_Ctrl6, &odr);
+	bsp_qmi8658_reg_write_byte(QMI8658Register_Ctrl6, (uint8_t*)&odr);
 }
 
 unsigned char bsp_qmi8658_readStatus0(void)
@@ -346,7 +346,7 @@ void bsp_qmi8658_doCtrl9Command(enum QMI8658_Ctrl9Command cmd)
 {
 	uint8_t val;
 
-	bsp_qmi8658_reg_write_byte(QMI8658Register_Ctrl9, &cmd);
+	bsp_qmi8658_reg_write_byte(QMI8658Register_Ctrl9, (uint8_t*)&cmd);
     gpio_init(DOF_INT1);
 	gpio_pull_up(DOF_INT1);
     gpio_set_dir(DOF_INT1, GPIO_IN);

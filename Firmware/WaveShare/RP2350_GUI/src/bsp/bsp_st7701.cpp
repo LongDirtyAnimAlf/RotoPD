@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #include "bsp_st7701.h"
 #include "hardware/clocks.h"
 
@@ -108,6 +110,16 @@ bsp_st7701_cmd_t init_cmds[] = {
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x13}, .data_bytes = 5, .delay_ms = 0},
     {.reg = 0xE5, .data = (uint8_t[]){0xE4}, .data_bytes = 1, .delay_ms = 0},
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, .data_bytes = 5, .delay_ms = 0},
+
+
+    // Mirror Y    
+    {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x10}, .data_bytes = 5, .delay_ms = 0},
+    {.reg = 0xC7, .data = (uint8_t[]){0x04}, .data_bytes = 1, .delay_ms = 0},
+
+    // Mirror X
+    {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, .data_bytes = 5, .delay_ms = 0},
+    {.reg = 0x36, .data = (uint8_t[]){0x10}, .data_bytes = 1, .delay_ms = 0},
+
     
     // 中文：显示模式配置
     // English: Display mode configuration
@@ -213,12 +225,12 @@ static void bsp_st7701_init(void)
     pio_rgb_pin_t pin;
     pio_rgb_info_t *rgb_info = (pio_rgb_info_t *)g_display_info->user_data;
 
-    // printf("pio_rgb_init framebuffer1:0x%x\r\n", rgb_info->framebuffer1);
-    // printf("pio_rgb_init framebuffer2:0x%x\r\n", rgb_info->framebuffer2);
+    Serial.printf("pio_rgb_init framebuffer1:0x%x\r\n", rgb_info->framebuffer1);
+    Serial.printf("pio_rgb_init framebuffer2:0x%x\r\n", rgb_info->framebuffer2);
 
     if (rgb_info->framebuffer1 == NULL)
     {
-        printf("Error: Framebuffer1 is NULL\r\n");
+        Serial.printf("Error: Framebuffer1 is NULL\r\n");
         return;
     }
     for (size_t i = 0; i < rgb_info->width * rgb_info->height; i++)
@@ -231,7 +243,7 @@ static void bsp_st7701_init(void)
     {
         if (rgb_info->framebuffer2 == NULL)
         {
-            printf("Error: Framebuffer2 is NULL\r\n");
+            Serial.printf("Error: Framebuffer2 is NULL\r\n");
             return;
         }
     }
@@ -241,7 +253,7 @@ static void bsp_st7701_init(void)
     {
         if (rgb_info->transfer_buffer1 == NULL && rgb_info->transfer_buffer2 == NULL)
         {
-            printf("Error: Transfer buffer1 or buffer2 is NULL\r\n");
+            Serial.printf("Error: Transfer buffer1 or buffer2 is NULL\r\n");
             return;
         }
     }
@@ -254,6 +266,8 @@ static void bsp_st7701_init(void)
     pin.vsync_pin = BSP_LCD_VSYNC_PIN;
 
     pio_rgb_init(rgb_info, &pin);
+
+    Serial.println("Done.");
 }
 
 void bsp_st7701_flush_dma(bsp_display_area_t *area, uint16_t *color_p)

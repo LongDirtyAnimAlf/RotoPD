@@ -43,6 +43,10 @@
 #define QMI8658_STATUS1_CMD_DONE (0x01)
 #define QMI8658_STATUS1_WAKEUP_EVENT (0x04)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct{
     int16_t acc_x;
 	int16_t acc_y;
@@ -494,10 +498,6 @@ enum QMI8658_WakeOnMotionThreshold
     QMI8658WomThreshold_high = 128, /*!< High threshold - large motion needed to wake. */
     QMI8658WomThreshold_low = 32    /*!< Low threshold - small motion needed to wake. */
 };
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 unsigned char bsp_qmi8658_write_reg(unsigned char reg, unsigned char value);
 unsigned char bsp_qmi8658_read_reg(unsigned char reg, unsigned char *buf, unsigned short len);

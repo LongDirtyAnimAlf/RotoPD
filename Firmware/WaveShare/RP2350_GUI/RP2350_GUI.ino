@@ -67,12 +67,12 @@ void setup() {
   {
     Serial.println("RP2350. BaseScreen assigned.");
     lv_screen_load(screenbase);
-    Setup_ScreenLogger(0,false);
+    //Setup_ScreenLogger(0,false);
     if (screenlogger != NULL) Serial.println("RP2350. Screenlogger assigned.");
     //Info_Add("GUI. Init GUI.");      
-    Setup_Screen3(0,false);
+    //Setup_Screen3(0,false);
     if (screen3 != NULL) Serial.println("RP2350. Screen3 assigned.");
-    //Setup_Screen1(NULL);
+    Setup_Screen1(NULL);
   }
 
   //Screen1SetData(NULL);
