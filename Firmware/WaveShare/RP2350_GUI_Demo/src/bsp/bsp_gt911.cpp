@@ -5,12 +5,10 @@ static bsp_touch_info_t *g_touch_info;
 static bsp_touch_interface_t *g_touch_if;
 static bool g_gt911_irq_flag = false;
 
-
 bsp_touch_interface_t *bsp_gt911_get_touch_interface(void)
 {
     return g_touch_if;
 }
-
 
 void bsp_gt911_reg_read_byte(uint16_t reg_addr, uint8_t *data, size_t len)
 {
@@ -26,7 +24,6 @@ static void bsp_gt911_get_rotation(uint16_t *rotation)
 {
     *rotation = g_touch_info->rotation;
 }
-
 
 static void bsp_gt911_set_rotation(uint16_t rotation)
 {
@@ -136,29 +133,33 @@ void bsp_gt911_reset(void)
 
 void bsp_gt911_init(void)
 {
-    uint8_t data[4] = {0};
+    uint8_t data[5] = {0};
+
     gpio_init(BSP_GT911_RST_PIN);
     gpio_set_dir(BSP_GT911_RST_PIN, GPIO_OUT);
 
     gpio_init(BSP_GT911_INT_PIN);
     gpio_set_dir(BSP_GT911_INT_PIN, GPIO_OUT);
     gpio_put(BSP_GT911_INT_PIN, 0);
-    bsp_gt911_reset();
 
+    bsp_gt911_reset();
+ 
+    uint8_t tries = 10;
     do
     {
         bsp_gt911_reg_read_byte(GT911_REG_PRODUCT_ID, data, 4);
 
         if (strstr((char *)data, "911"))
         {
-            printf("GT911_ID:%s\r\n", data);
+            //Serial.printf("GT911_ID: %s\r\n", data);
             break;
         }
         else
-            printf("Not found GT911!!\r\n");
-
-        sleep_ms(1000);
-    } while (1);
+        {
+            //Serial.printf("Not found GT911: %d!!\r\n",tries);
+        }
+        sleep_ms(100);
+    } while (tries--);
     
     gpio_set_dir(BSP_GT911_INT_PIN, GPIO_IN);
     gpio_pull_up(BSP_GT911_INT_PIN);
