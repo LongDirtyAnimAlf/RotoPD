@@ -1,3 +1,5 @@
+#define RP2350_PSRAM_CS 47
+
 #include <Arduino.h>
 #include <lvgl.h>
 #include "./src/lvgl/lv_port/lv_port_disp.h"
@@ -50,6 +52,9 @@ void setup() {
   while (!Serial && cnt--) {delay(1);}
   Serial.println("Starting RP2350 init.");
 
+  Serial.printf("PSRAM Size reported by core: %d\n", rp2040.getPSRAMSize());
+  Serial.printf("Free PSRAM heap: %d\n", rp2040.getFreePSRAMHeap());
+
   Serial.println("RP2350. LVGL init.");
   lv_init();
   lv_port_disp_init();
@@ -58,7 +63,7 @@ void setup() {
   Serial.println("RP2350. Touch init.");
   touch_init(480, 480, 0); // rotation will be handled by lvgl
   lv_indev_t *indev = lv_indev_create();
-  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
+  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); //Touchpad should have POINTER type
   lv_indev_set_read_cb(indev, my_touchpad_read);
 
   Serial.println("RP2350. Screen init.");
@@ -94,6 +99,17 @@ void setup() {
 }
 
 void loop() {
-  lv_timer_handler();
-  sleep_ms(5);
+  unsigned long startTime = millis();
+
+  //lv_timer_handler();
+  //sleep_ms(5);
+
+
+  if (millis() - startTime >= 1000)
+  {
+    startTime = millis();
+    Serial.println("Looping");
+  }
+
+  lv_timer_handler_run_in_period(5);
 }

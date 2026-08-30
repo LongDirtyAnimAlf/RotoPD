@@ -368,7 +368,14 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
     g_pio_rgb_info->change_framebuffer_flag = false;
     g_pio_rgb_info->_framebuffer = g_pio_rgb_info->framebuffer1;
     g_pio_rgb_info->transfer_index = 0;
-    g_pio_rgb_info->transfer_index_max = g_pio_rgb_info->width * g_pio_rgb_info->height / g_pio_rgb_info->transfer_size;
+    if (g_pio_rgb_info->transfer_size != 0)
+    {
+        g_pio_rgb_info->transfer_index_max = g_pio_rgb_info->width * g_pio_rgb_info->height / g_pio_rgb_info->transfer_size;
+    }
+    else
+    {
+        g_pio_rgb_info->transfer_index_max = 0;
+    }
     // printf("transfer_index_max:%d\n", g_pio_rgb_info->transfer_index_max);
     // printf("pio_rgb_init framebuffer1:0x%x\r\n", g_pio_rgb_info->framebuffer1);
     // printf("pio_rgb_init framebuffer2:0x%x\r\n", g_pio_rgb_info->framebuffer2);

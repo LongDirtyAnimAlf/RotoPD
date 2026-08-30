@@ -1,4 +1,4 @@
-
+#include "Arduino.h"
 #include "lv_port_disp.h"
 #include <lvgl.h>
 #include <stdbool.h>
@@ -9,10 +9,26 @@
 #define MY_DISP_HOR_RES (480)
 #define MY_DISP_VER_RES (480)
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
-#define LVGL_DRAW_BUF_LINES  10 // number of display lines in each draw buffer in partial mode
+#define LVGL_DRAW_BUF_LINES  5 // number of display lines in each draw buffer in partial mode
 #define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
 
-#define RENDER_MODE_DIRECT
+//#define DOUBLE_BUFFER
+//#define RENDER_MODE_DIRECT
+//#define USE_PSRAM
+
+#ifndef USE_PSRAM
+#undef DOUBLE_BUFFER
+#endif
+
+#ifdef RENDER_MODE_DIRECT
+#undef LVGL_DRAW_BUF_LINES
+#undef DRAW_BUF_SIZE
+#endif
+
+
+// Prefer non-static pointers (or clear static carefully)
+uint8_t *buf_data_1 = NULL;
+uint8_t *buf_data_2 = NULL;
 
 static bsp_display_interface_t *display_if = NULL;
 
@@ -39,15 +55,17 @@ void disp_flush(lv_display_t * drv, const lv_area_t * area, uint8_t * color_p)
     if (lv_display_flush_is_last(drv))
     {
         //gfxdisplay->flush();
-        display_if->flush_dma(NULL, NULL);        
+        //display_if->flush_dma(NULL, NULL); 
+        //pio_rgb_change_framebuffer();       
     }
-   
+
     lv_display_flush_ready(drv);
 }
 
 void disp_flush_done(void)
 {
-    lv_display_flush_ready(disp_drv);
+    //pio_rgb_change_framebuffer();
+    //lv_display_flush_ready(disp_drv);
 }
 
 void lv_port_disp_init(void)
@@ -56,23 +74,50 @@ void lv_port_disp_init(void)
 
     rgb_info.width = MY_DISP_HOR_RES;
     rgb_info.height = MY_DISP_VER_RES;
-    //rgb_info.transfer_size = MY_DISP_HOR_RES * MY_DISP_VER_RES;
-    //rgb_info.transfer_size = MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES;
-    rgb_info.transfer_size = 0;
     rgb_info.pclk_freq = BSP_LCD_PCLK_FREQ;
+    #ifdef DOUBLE_BUFFER
+    rgb_info.mode.double_buffer = true;
+    #else
     rgb_info.mode.double_buffer = false;
+    #endif
+
+    #ifdef USE_PSRAM
+
+    rgb_info.transfer_size = MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES;
+    rgb_info.mode.enabled_transfer = true;
+    rgb_info.mode.enabled_psram = true;
+    rgb_info.framebuffer1 = (uint16_t *)pmalloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
+    #ifdef DOUBLE_BUFFER
+    rgb_info.framebuffer2 = (uint16_t *)pmalloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
+    #else
+    rgb_info.framebuffer2 = NULL;
+    #endif
+    rgb_info.transfer_buffer1 = (uint16_t *)malloc(MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
+    #ifdef DOUBLE_BUFFER
+    rgb_info.transfer_buffer2 = (uint16_t *)malloc(MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
+    #else
+    rgb_info.transfer_buffer2 = (uint16_t *)malloc(MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
+    //rgb_info.transfer_buffer2 = NULL;
+    #endif
+
+    rgb_info.dma_flush_done_cb = disp_flush_done;
+
+    #else //USE_PSRAM
+
+    rgb_info.transfer_size = 0;
     rgb_info.mode.enabled_transfer = false;
     rgb_info.mode.enabled_psram = false;
-    //rgb_info.framebuffer1 = rp_mem_malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
-    rgb_info.framebuffer1 = (uint16_t *)malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
-    //rgb_info.framebuffer1 = malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * sizeof(uint16_t));
 
-    //rgb_info.framebuffer1 = NULL;
+    rgb_info.framebuffer1 = (uint16_t *)malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
+    #ifdef DOUBLE_BUFFER
+    rgb_info.framebuffer2 = (uint16_t *)malloc(MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);
+    #else
     rgb_info.framebuffer2 = NULL;
-    //rgb_info.transfer_buffer1 = NULL;
-    //rgb_info.transfer_buffer2 = NULL;    
+    #endif
 
     rgb_info.dma_flush_done_cb = NULL;
+
+    #endif //USE_PSRAM
 
     bsp_display_info_t display_info;//  = {0};
     display_info.width = MY_DISP_HOR_RES;
@@ -85,19 +130,24 @@ void lv_port_disp_init(void)
     display_if->init();
 
     #ifdef RENDER_MODE_DIRECT
-    static uint8_t * buf_data = (uint8_t *)rgb_info.framebuffer1;
+    buf_data_1 = (uint8_t *)rgb_info.framebuffer1;
+    buf_data_2 = (uint8_t *)rgb_info.framebuffer2;
+    //static uint8_t * buf_data_2 = NULL;
     #else
-    static uint8_t buf_data[DRAW_BUF_SIZE] __attribute__((aligned(4))); // 4-byte aligned for performance
+    buf_data_1 = (uint8_t *)malloc(DRAW_BUF_SIZE);
+    #ifdef DOUBLE_BUFFER
+    buf_data_2 = (uint8_t *)malloc(DRAW_BUF_SIZE);
+    #endif
+
     #endif
 
     disp_drv = lv_display_create(MY_DISP_HOR_RES, MY_DISP_VER_RES);
+    #ifdef RENDER_MODE_DIRECT
+    lv_display_set_buffers(disp_drv, buf_data_1, buf_data_2, (MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL), LV_DISPLAY_RENDER_MODE_DIRECT);
+    #else
+    lv_display_set_buffers(disp_drv, buf_data_1, buf_data_2, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    #endif
     lv_display_set_color_format(disp_drv, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(disp_drv, disp_flush);
-    #ifdef RENDER_MODE_DIRECT
-    lv_display_set_buffers(disp_drv, buf_data, NULL, (MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL), LV_DISPLAY_RENDER_MODE_DIRECT);
-    #else
-    lv_display_set_buffers(disp_drv, buf_data, NULL, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-    #endif
-
     lv_display_set_user_data(disp_drv, display_if);
 }
