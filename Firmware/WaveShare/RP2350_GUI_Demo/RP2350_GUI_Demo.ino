@@ -1,9 +1,14 @@
 #define RP2350_PSRAM_CS 47
 
 #include <Arduino.h>
+
+//#include "Adafruit_TinyUSB.h"
+
 #include <lvgl.h>
 #include "./src/lvgl/lv_port/lv_port_disp.h"
 #include "./src/lvgl/lv_port/lv_port_indev.h"
+
+//#define Serial USBSerial
 
 // Callback that returns elapsed ms since boot
 static uint32_t my_tick_get_cb(void) {
@@ -70,7 +75,7 @@ void setup() {
   lv_obj_t* screen = lv_obj_create(NULL);
   lv_screen_load(screen);
 
-  //lv_obj_set_style_bg_color(screen,lv_palette_darken(LV_PALETTE_GREEN,4), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(screen,lv_palette_darken(LV_PALETTE_GREEN,4), LV_PART_MAIN);
 
   lv_obj_set_style_border_width(screen, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_border_color(screen, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT); // Red border
@@ -99,13 +104,13 @@ void setup() {
 }
 
 void loop() {
-  unsigned long startTime = millis();
+  static uint32_t startTime = millis();
 
   //lv_timer_handler();
   //sleep_ms(5);
 
 
-  if (millis() - startTime >= 1000)
+  if ((millis() - startTime) >= 1000UL)
   {
     startTime = millis();
     Serial.println("Looping");
