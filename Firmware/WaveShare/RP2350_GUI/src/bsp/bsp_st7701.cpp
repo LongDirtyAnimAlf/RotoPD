@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #include "bsp_st7701.h"
 #include "hardware/clocks.h"
 
@@ -223,12 +221,12 @@ static void bsp_st7701_init(void)
     pio_rgb_pin_t pin;
     pio_rgb_info_t *rgb_info = (pio_rgb_info_t *)g_display_info->user_data;
 
-    Serial.printf("pio_rgb_init framebuffer1:0x%x\r\n", rgb_info->framebuffer1);
-    Serial.printf("pio_rgb_init framebuffer2:0x%x\r\n", rgb_info->framebuffer2);
+    //Serial.printf("pio_rgb_init framebuffer1:0x%x\r\n", rgb_info->framebuffer1);
+    //Serial.printf("pio_rgb_init framebuffer2:0x%x\r\n", rgb_info->framebuffer2);
 
     if (rgb_info->framebuffer1 == NULL)
     {
-        Serial.printf("Error: Framebuffer1 is NULL\r\n");
+        //Serial.printf("Error: Framebuffer1 is NULL\r\n");
         return;
     }
     for (size_t i = 0; i < rgb_info->width * rgb_info->height; i++)
@@ -241,7 +239,7 @@ static void bsp_st7701_init(void)
     {
         if (rgb_info->framebuffer2 == NULL)
         {
-            Serial.printf("Error: Framebuffer2 is NULL\r\n");
+            //Serial.printf("Error: Framebuffer2 is NULL\r\n");
             return;
         }
     }
@@ -251,7 +249,7 @@ static void bsp_st7701_init(void)
     {
         if (rgb_info->transfer_buffer1 == NULL && rgb_info->transfer_buffer2 == NULL)
         {
-            Serial.printf("Error: Transfer buffer1 or buffer2 is NULL\r\n");
+            //Serial.printf("Error: Transfer buffer1 or buffer2 is NULL\r\n");
             return;
         }
     }
@@ -265,7 +263,7 @@ static void bsp_st7701_init(void)
 
     pio_rgb_init(rgb_info, &pin);
 
-    Serial.println("Done.");
+    //Serial.println("Done.");
 }
 
 void bsp_st7701_flush_dma(bsp_display_area_t *area, uint16_t *color_p)

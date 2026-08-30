@@ -11,11 +11,11 @@
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
-#define BOUNCE_BUFFER  120 // number of display lines in each bounce buffer
+#define BOUNCE_BUFFER  80 // number of display lines in each bounce buffer
 
-//#define DOUBLE_BUFFER
+#define DOUBLE_BUFFER
 //#define RENDER_MODE_DIRECT
-//#define USE_PSRAM
+#define USE_PSRAM
 
 #ifndef USE_PSRAM
 #undef DOUBLE_BUFFER
@@ -76,8 +76,11 @@ void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
       display_if->flush_dma(NULL, NULL); 
       //pio_rgb_change_framebuffer();   
       //pio_rgb_change_framebuffer();    
-
     }
+
+    #ifndef USE_PSRAM
+    lv_disp_flush_ready(disp);
+    #endif
 
     #endif
 }
