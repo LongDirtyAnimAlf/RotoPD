@@ -15,7 +15,7 @@
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
 #define LVGL_DRAW_BUF_LINES  40 // number of display lines in each draw buffer in partial mode
 #define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
-#define BOUNCE_BUFFER (MY_DISP_VER_RES / 20) // number of display lines in each bounce buffer
+#define BOUNCE_BUFFER_SIZE ((MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES) * 2) // number of display lines in each bounce buffer
 
 #ifndef USE_PSRAM
 #undef DOUBLE_BUFFER
@@ -28,8 +28,8 @@ uint8_t *buf_data_2 = NULL;
 #ifdef USE_PSRAM
 
 // Two transfer buffers always needed !!
-static uint16_t transfer_buffer1[(MY_DISP_HOR_RES * BOUNCE_BUFFER)];
-static uint16_t transfer_buffer2[(MY_DISP_HOR_RES * BOUNCE_BUFFER)];
+static uint16_t transfer_buffer1[BOUNCE_BUFFER_SIZE];
+static uint16_t transfer_buffer2[BOUNCE_BUFFER_SIZE];
 
 // Real framebuffers
 static uint8_t framebuffer1[MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL] PSRAM;
@@ -66,6 +66,14 @@ void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
 
     display_if->flush_dma(&display_area, (uint16_t *)px_map); // Let's say it's a 16 bit (RGB565) display
 
+    if (lv_display_flush_is_last(disp))
+    {
+      //gfxdisplay->flush();
+      //display_if->flush_dma(NULL, NULL); 
+      //pio_rgb_change_framebuffer();   
+      //pio_rgb_change_framebuffer();    
+    }
+
     lv_disp_flush_ready(disp);
 
     #else
@@ -89,7 +97,7 @@ void disp_flush_done(void)
 {
     //Serial.println("CB done");
     //pio_rgb_change_framebuffer();
-    lv_display_flush_ready(disp_drv);
+    //lv_display_flush_ready(disp_drv);
 }
 
 void lv_port_disp_init(void)
@@ -116,7 +124,7 @@ void lv_port_disp_init(void)
     #ifdef USE_PSRAM
     rgb_info.mode.enabled_psram = true;
 
-    rgb_info.transfer_size = MY_DISP_HOR_RES * BOUNCE_BUFFER;
+    rgb_info.transfer_size = BOUNCE_BUFFER_SIZE;
     rgb_info.mode.enabled_transfer = true;
 
     rgb_info.transfer_buffer1 = transfer_buffer1;
