@@ -48,9 +48,6 @@ void setup() {
   while (!Serial && cnt--) {delay(1);}
   Serial.println("Starting RP2350 init.");
 
-  Serial.printf("PSRAM Size reported by core: %d\n", rp2040.getPSRAMSize());
-  Serial.printf("Free PSRAM heap: %d\n", rp2040.getFreePSRAMHeap());
-
   bsp_i2c_init();
   Serial.println("RP2350. I2C init.");
   lv_init();
@@ -79,20 +76,47 @@ void setup() {
     Setup_Screen3(0,false);
     if (screen3 != NULL) Serial.println("RP2350. Screen3 assigned.");
     Setup_Screen1(0);
+    if (screen1 != NULL) Serial.println("RP2350. Screen1 assigned.");
   }
 
-  Screen1SetData(NULL);
+  //Screen1SetData(NULL);
   
+  lv_mem_monitor_t mon;
+  lv_mem_monitor(&mon);
+  Serial.printf("LVGL heap: used %u / total %u, max used %u\n",
+       mon.total_size - mon.free_size,
+       mon.total_size,
+       mon.max_used);
+
+  // Internal SRAM heap
+  Serial.printf("Internal RAM  free: %u bytes\n", rp2040.getFreeHeap());
+
+  // PSRAM heap
+  Serial.printf("PSRAM         free: %u bytes\n", rp2040.getFreePSRAMHeap());
+  Serial.printf("PSRAM         total: %u bytes\n", rp2040.getTotalPSRAMHeap());
+  Serial.printf("PSRAM         size : %u bytes\n", rp2040.getPSRAMSize());
+
   Serial.println("Init RP2350 ready.");
 }
 
 void loop()
 {
   static uint32_t startTime = millis();
+  static uint32_t counts = 0;
+
   if ((millis() - startTime) >= 1000UL)
   {
     startTime = millis();
-    Serial.println("Looping");
+    //Serial.println("Looping");
+
+    counts++;
+
+    if (counts==20)
+    {
+      Serial.println("Stop all");
+      lv_anim_delete_all();                 // stop all animations
+      lv_timer_enable(false);               // temporarily disable all LVGL timers
+    }
   }
   lv_timer_handler_run_in_period(LVGL_TICK_PERIOD_MS);
 }

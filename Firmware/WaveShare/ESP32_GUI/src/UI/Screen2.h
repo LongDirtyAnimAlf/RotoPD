@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include <lvgl.h>
-#include "shared.h"
+#include "./../../shared.h"
 
 extern lv_obj_t * screen2;
 

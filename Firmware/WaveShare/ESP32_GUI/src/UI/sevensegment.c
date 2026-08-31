@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <lvgl.h>
-#include "shared.h"
+#include "./../../shared.h"
 
 extern const lv_font_t lv_font_dseg7_64;
 extern const lv_font_t lv_font_dseg7_32;

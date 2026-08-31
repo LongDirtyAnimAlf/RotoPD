@@ -84,7 +84,7 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
     1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
     #ifndef ALTERNATIVE
-    ,0 /* pclk_active_neg */, 18000000 /* prefer_speed */, false /* useBigEndian  */,
+    ,0 /* pclk_active_neg */, 20000000 /* prefer_speed */, false /* useBigEndian  */,
     0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
     #else
     );
@@ -741,7 +741,7 @@ void setup()
   // USBSerial.setDebugOutput(true);
   #endif
 
-  Info_Add("GUI. SenseCap Indicator startup");
+  Info_Add("GUI. Controller startup");
   
   //WiFi.mode(WIFI_OFF);
 
@@ -874,9 +874,6 @@ void setup()
   else
     Info_Add("GUI. CAN bus failed!");
 
-  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Info_Add(LVGL_Arduino.c_str());
-
   Info_Add("GUI. Init timers.");      
 
   #ifdef STANDALONE
@@ -895,6 +892,21 @@ void setup()
   
   dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
   
+  //setCpuFrequencyMhz(80);
+
+  Info_Add_Fmt("GUI. CPU speed: %u MHz", getCpuFrequencyMhz());
+  Info_Add_Fmt("GUI. APB speed: %u Hz", getApbFrequency());
+
+  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  Info_Add(LVGL_Arduino.c_str());
+
+  lv_mem_monitor_t mon;
+  lv_mem_monitor(&mon);
+  Info_Add_Fmt("GUI. LVGL heap: used %u / total %u, max used %u",
+       mon.total_size - mon.free_size,
+       mon.total_size,
+       mon.max_used);
+
   Info_Add("GUI. Controller startup ready.");
   Info_Add("");
 

@@ -5,7 +5,7 @@
 #include <lvgl.h>
 //#include <core/lv_obj_private.h>
 #include "sevensegment.h"
-#include "shared.h"
+#include "./../../shared.h"
 
 extern const lv_font_t lv_font_montserrat_12;
 extern const lv_font_t lv_font_montserrat_14;

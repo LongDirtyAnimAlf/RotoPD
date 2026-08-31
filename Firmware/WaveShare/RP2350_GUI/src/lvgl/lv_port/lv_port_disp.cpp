@@ -6,16 +6,16 @@
 #include "./../../bsp/bsp_st7701.h"
 //#include "./../../bsp/rp_pico_alloc.h"
 
-#define MY_DISP_HOR_RES (480)
-#define MY_DISP_VER_RES (480)
-#define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
-#define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
-#define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
-#define BOUNCE_BUFFER  120 // number of display lines in each bounce buffer
-
 #define DOUBLE_BUFFER
 //#define RENDER_MODE_DIRECT
 #define USE_PSRAM
+
+#define MY_DISP_HOR_RES (480)
+#define MY_DISP_VER_RES (480)
+#define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
+#define LVGL_DRAW_BUF_LINES  40 // number of display lines in each draw buffer in partial mode
+#define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
+#define BOUNCE_BUFFER (MY_DISP_VER_RES / 20) // number of display lines in each bounce buffer
 
 #ifndef USE_PSRAM
 #undef DOUBLE_BUFFER
