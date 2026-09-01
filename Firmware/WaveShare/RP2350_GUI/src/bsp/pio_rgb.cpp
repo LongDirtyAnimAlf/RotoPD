@@ -21,6 +21,21 @@ static int rgb_dma_chan;
 static pio_rgb_info_t *g_pio_rgb_info;
 static uint16_t *buffer;
 
+void fill_u16_fast32(uint16_t *arr, size_t len, uint16_t value)
+{
+    uint32_t v32 = ((uint32_t)value << 16) | value;
+    uint32_t *p = (uint32_t *)arr;
+    size_t n = len / 2;
+
+    while (n--) {
+        *p++ = v32;
+    }
+
+    if (len & 1) {
+        arr[len - 1] = value;
+    }
+}
+
 void __no_inline_not_in_flash_func(dma_complete_handler)(void)
 {
     // ------------------------------------------------------------------
@@ -75,13 +90,13 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
             if (g_pio_rgb_info->change_framebuffer_flag &&
                 (g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1))
             {
-                g_pio_rgb_info->change_framebuffer_flag = false;
 
-                // Swap the active framebuffer
-                g_pio_rgb_info->_framebuffer =
-                    (g_pio_rgb_info->_framebuffer == g_pio_rgb_info->framebuffer1)
-                        ? g_pio_rgb_info->framebuffer2
-                        : g_pio_rgb_info->framebuffer1;
+                uint16_t *activeframebuffer = g_pio_rgb_info->_framebuffer;
+                g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
+
+                //memcpy(g_pio_rgb_info->_framebuffer, activeframebuffer, 480*480*2);                
+
+                g_pio_rgb_info->change_framebuffer_flag = false;
 
                 if (g_pio_rgb_info->dma_flush_done_cb)
                 {
@@ -161,161 +176,6 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
     }
 }
 
-/*
-uint16_t test_count = 0;
-void __no_inline_not_in_flash_func(dma_complete_handler)(void)
-{
-    test_count = (test_count + 1) % g_pio_rgb_info->transfer_index_max;
-    // 中文：双缓存模式
-    // English: Double buffer mode
-    if (g_pio_rgb_info->mode.double_buffer)
-    {
-        if (g_pio_rgb_info->mode.enabled_transfer)
-        {
-            // 中文：更新 transfer_index
-            // English: Update transfer_index
-            g_pio_rgb_info->transfer_index = (g_pio_rgb_info->transfer_index + 1) % g_pio_rgb_info->transfer_index_max;
-
-            // 中文：获取当前帧缓冲区指针
-            // English: Get the current frame buffer pointer
-            uint16_t *transfer_buffer_p = &g_pio_rgb_info->_framebuffer[g_pio_rgb_info->transfer_index * g_pio_rgb_info->transfer_size];
-
-            // 中文：使用 psram  
-            // English: Use psram
-            if (g_pio_rgb_info->mode.enabled_psram) 
-            {
-                // 中文：根据奇偶选择缓冲区
-                // English: Select buffer based on parity
-                uint16_t *dma_buffer = (g_pio_rgb_info->transfer_index % 2)
-                                           ? g_pio_rgb_info->transfer_buffer1
-                                           : g_pio_rgb_info->transfer_buffer2;
-
-                uint16_t *cp_buffer = (g_pio_rgb_info->transfer_index % 2)
-                                          ? g_pio_rgb_info->transfer_buffer2
-                                          : g_pio_rgb_info->transfer_buffer1;
-                // 中文：设置 DMA 读取地址
-                // English: Set DMA read address
-                dma_channel_set_read_addr(rgb_dma_chan, dma_buffer, true);
-
-                // 中文：将数据拷贝到 transfer_buffer
-                // English: Copy data to transfer_buffer
-                for (size_t i = 0; i < g_pio_rgb_info->transfer_size; i++)
-                {
-                    cp_buffer[i] = transfer_buffer_p[i];
-                }
-
-                // 中文：设置 DMA 读取地址
-                // English: Set DMA read address
-                //dma_channel_set_read_addr(rgb_dma_chan, dma_buffer, true);
-            }
-            // 中文：使用 sram 不使用 psram
-            // English: Use sram instead of psram
-            else 
-            {
-                dma_channel_set_read_addr(rgb_dma_chan, transfer_buffer_p, true);
-            }
-            // 中文：刷新完成
-            // English: Refresh completed
-
-            if (g_pio_rgb_info->change_framebuffer_flag)
-            {
-                //Serial.println("YOLO1");
-            }
-            if (g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1)
-            {
-                //Serial.println("YOLO2");
-            }
-
-            if (g_pio_rgb_info->change_framebuffer_flag && (g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1))
-            {
-                Serial.println("YOLO3");
-
-                g_pio_rgb_info->change_framebuffer_flag = false;
-                // 中文：切换缓冲区
-                // English: switch buffer
-                g_pio_rgb_info->_framebuffer = (g_pio_rgb_info->_framebuffer == g_pio_rgb_info->framebuffer1)
-                                                   ? g_pio_rgb_info->framebuffer2
-                                                   : g_pio_rgb_info->framebuffer1;
-
-                if (g_pio_rgb_info->dma_flush_done_cb)
-                {
-                    g_pio_rgb_info->dma_flush_done_cb();
-                }
-            }
-        }
-        else
-        {
-            dma_channel_set_read_addr(rgb_dma_chan, g_pio_rgb_info->_framebuffer, true);
-            if (g_pio_rgb_info->change_framebuffer_flag)
-            {
-                g_pio_rgb_info->change_framebuffer_flag = false;
-                if (g_pio_rgb_info->dma_flush_done_cb)
-                {
-                    g_pio_rgb_info->dma_flush_done_cb();
-                }
-            }
-        }
-    }
-    // 中文：单缓存模式
-    // English: Single cache mode
-    else 
-    {
-        if (g_pio_rgb_info->mode.enabled_transfer)
-        {
-            // 中文：使用psram
-            // English: Use psram
-            if (g_pio_rgb_info->mode.enabled_psram) 
-            {
-                // 中文：更新 transfer_index
-                // English: Update transfer_index
-                g_pio_rgb_info->transfer_index = (g_pio_rgb_info->transfer_index + 1) % g_pio_rgb_info->transfer_index_max;
-                // 中文：获取当前帧缓冲区指针
-                // English: Get the current frame buffer pointer
-                uint16_t *transfer_buffer_p = &g_pio_rgb_info->_framebuffer[g_pio_rgb_info->transfer_index * g_pio_rgb_info->transfer_size];
-                // 中文：根据奇偶选择缓冲区
-                // English: Select buffer based on parity
-                uint16_t *dma_buffer = (g_pio_rgb_info->transfer_index % 2)
-                                           ? g_pio_rgb_info->transfer_buffer1
-                                           : g_pio_rgb_info->transfer_buffer2;
-
-                uint16_t *cp_buffer = (g_pio_rgb_info->transfer_index % 2)
-                                          ? g_pio_rgb_info->transfer_buffer2
-                                          : g_pio_rgb_info->transfer_buffer1;
-                // 中文：设置 DMA 读取地址
-                // English: Set DMA read address
-                dma_channel_set_read_addr(rgb_dma_chan, dma_buffer, true);
-
-                for (size_t i = 0; i < g_pio_rgb_info->transfer_size; i++)
-                {
-                    cp_buffer[i] = transfer_buffer_p[i];
-                }
-            }
-            else
-            {
-                uint16_t *transfer_buffer_p = &g_pio_rgb_info->_framebuffer[g_pio_rgb_info->transfer_index * g_pio_rgb_info->transfer_size];
-                g_pio_rgb_info->transfer_index = (g_pio_rgb_info->transfer_index + 1) % g_pio_rgb_info->transfer_index_max;
-                // 中文：设置 DMA 读取地址
-                // English: Set DMA read address
-                dma_channel_set_read_addr(rgb_dma_chan, transfer_buffer_p, true);
-            }
-            // 中文：刷新完成
-            // English: Refresh completed
-            if ((g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1) && g_pio_rgb_info->dma_flush_done_cb)
-            {
-                g_pio_rgb_info->dma_flush_done_cb();
-            }
-        }
-        else
-        {
-            dma_channel_set_read_addr(rgb_dma_chan, g_pio_rgb_info->_framebuffer, true);
-            if (g_pio_rgb_info->dma_flush_done_cb)
-            {
-                g_pio_rgb_info->dma_flush_done_cb();
-            }
-        }
-    }
-}
-*/
 /**
  * @brief 切换帧缓冲区
  * Switching frame buffers
@@ -347,24 +207,20 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
 {
     size_t color_width = (x2 - x1 + 1);
     size_t color_height = (y2 - y1 + 1);
+
+    uint16_t *freeframebuffer = pio_rgb_get_free_framebuffer();
+
+    memcpy(&freeframebuffer[y1 * g_pio_rgb_info->width + x1], color_p, color_width * color_height * sizeof(uint16_t));    
+
+    /*
     for (size_t i = 0; i < color_height; i++)
     {
-        // uint16_t index =  (i + y1) / (g_pio_rgb_info->transfer_size / g_pio_rgb_info->width);
-        // uint16_t index_next = (index + 1) % g_pio_rgb_info->transfer_index_max;
-        // do
-        // {
-        //     if (g_pio_rgb_info->transfer_index != index_next && g_pio_rgb_info->transfer_index != index)
-        //     {
-        //         break;
-        //     }
-        //     sleep_us(1);
-        // } while (1);
-        
         for (size_t j = 0; j < color_width; j++)
         {
-            g_pio_rgb_info->_framebuffer[(i + y1) * g_pio_rgb_info->width + (j + x1)] = color_p[i * color_width + j];
+            freeframebuffer[(i + y1) * g_pio_rgb_info->width + (j + x1)] = color_p[i * color_width + j];
         }
     }
+    */
 }
 
 static inline void hsync_program_init(PIO pio, uint sm, uint offset, uint pin, float div)
@@ -548,9 +404,13 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
 
     // 中文：获取系统时钟
     // English: Get the system clock
-    float sys_clk = (float)clock_get_hz(clk_sys);
-    float pclk = (info->pclk_freq > 0) ? (float)info->pclk_freq : 18000000.0f;
-    float pio_freq = sys_clk / (pclk * 2);
+    //float sys_clk = (float)clock_get_hz(clk_sys);
+    //float pclk = (info->pclk_freq > 0) ? (float)info->pclk_freq : 18000000.0f;
+    //float pio_freq = sys_clk / (pclk * 2);
+
+    // English: Get the system clock
+    float sys_clk = clock_get_hz(clk_sys);
+    float pio_freq = sys_clk / ((float)(info->pclk_freq * 2));
 
     pio_set_gpio_base(RGB_SYNC_PIO, RGB_PIO_BASE_PIN);
     pio_set_gpio_base(RGB_COLOR_DATA_PIO, RGB_PIO_BASE_PIN);
@@ -568,7 +428,7 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
 
     // 中文：初始化pio 程序
     // English: Initialize pio program
-    hsync_program_init(RGB_SYNC_PIO, hsync_sm, hsync_offset, pin->hsync_pin, 6.0f);
+    hsync_program_init(RGB_SYNC_PIO, hsync_sm, hsync_offset, pin->hsync_pin, pio_freq);
     vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, 1.0f);
     rgb_de_program_init(RGB_COLOR_DATA_PIO, rgb_de_sm, rgb_de_offset, pin->de_pin, 1.0f);
     rgb_program_init(RGB_COLOR_DATA_PIO, rgb_sm, rgb_offset, pin->data0_pin, 1.0f);

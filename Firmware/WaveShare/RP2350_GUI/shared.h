@@ -29,7 +29,7 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   600u
+#define    DATASIZE                   10u
 
 #define    DVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
 #define    PVTIME                     (1000u * 60u * 10u) // 10 minutes in ms

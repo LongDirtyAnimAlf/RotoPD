@@ -6,16 +6,16 @@
 #include "./../../bsp/bsp_st7701.h"
 //#include "./../../bsp/rp_pico_alloc.h"
 
+#define DOUBLE_BUFFER
+#define RENDER_MODE_DIRECT
+#define USE_PSRAM
+
 #define MY_DISP_HOR_RES (480)
 #define MY_DISP_VER_RES (480)
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
-#define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
+#define LVGL_DRAW_BUF_LINES  60 // number of display lines in each draw buffer in partial mode
 #define DRAW_BUF_SIZE (MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL)
-#define BOUNCE_BUFFER  80 // number of display lines in each bounce buffer
-
-#define DOUBLE_BUFFER
-//#define RENDER_MODE_DIRECT
-#define USE_PSRAM
+#define BOUNCE_BUFFER_SIZE ((MY_DISP_HOR_RES * LVGL_DRAW_BUF_LINES)) // number of display lines in each bounce buffer
 
 #ifndef USE_PSRAM
 #undef DOUBLE_BUFFER
@@ -28,8 +28,8 @@ uint8_t *buf_data_2 = NULL;
 #ifdef USE_PSRAM
 
 // Two transfer buffers always needed !!
-static uint16_t transfer_buffer1[(MY_DISP_HOR_RES * BOUNCE_BUFFER)];
-static uint16_t transfer_buffer2[(MY_DISP_HOR_RES * BOUNCE_BUFFER)];
+static uint16_t transfer_buffer1[BOUNCE_BUFFER_SIZE];
+static uint16_t transfer_buffer2[BOUNCE_BUFFER_SIZE];
 
 // Real framebuffers
 static uint8_t framebuffer1[MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL] PSRAM;
@@ -66,9 +66,7 @@ void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
 
     display_if->flush_dma(&display_area, (uint16_t *)px_map); // Let's say it's a 16 bit (RGB565) display
 
-    lv_disp_flush_ready(disp);
-
-    #else
+    //lv_disp_flush_ready(disp);
 
     if (lv_display_flush_is_last(disp))
     {
@@ -77,6 +75,20 @@ void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
       //pio_rgb_change_framebuffer();   
       //pio_rgb_change_framebuffer();    
     }
+    else
+    {
+        lv_disp_flush_ready(disp);
+    }
+    
+    #else
+
+    if (lv_display_flush_is_last(disp))
+    {
+      display_if->flush_dma(NULL, NULL); 
+    }
+    else
+    lv_display_flush_ready(disp_drv);
+
 
     #ifndef USE_PSRAM
     lv_disp_flush_ready(disp);
@@ -87,8 +99,6 @@ void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
 
 void disp_flush_done(void)
 {
-    //Serial.println("CB done");
-    //pio_rgb_change_framebuffer();
     lv_display_flush_ready(disp_drv);
 }
 
@@ -114,13 +124,13 @@ void lv_port_disp_init(void)
 
 
     #ifdef USE_PSRAM
+
+    int i;
+
     rgb_info.mode.enabled_psram = true;
 
-    rgb_info.transfer_size = MY_DISP_HOR_RES * BOUNCE_BUFFER;
+    rgb_info.transfer_size = BOUNCE_BUFFER_SIZE;
     rgb_info.mode.enabled_transfer = true;
-
-    rgb_info.transfer_buffer1 = transfer_buffer1;
-    rgb_info.transfer_buffer2 = transfer_buffer2;
     
     rgb_info.dma_flush_done_cb = disp_flush_done;
 
@@ -134,6 +144,12 @@ void lv_port_disp_init(void)
 
     #endif //USE_PSRAM
 
+    if (rgb_info.mode.enabled_transfer)
+    {
+        rgb_info.transfer_buffer1 = transfer_buffer1;
+        rgb_info.transfer_buffer2 = transfer_buffer2;
+    }    
+
     bsp_display_info_t display_info;//  = {0};
     display_info.width = MY_DISP_HOR_RES;
     display_info.height = MY_DISP_VER_RES;
@@ -145,13 +161,13 @@ void lv_port_disp_init(void)
     display_if->init();
 
     #ifdef RENDER_MODE_DIRECT
-    buf_data_1 = (uint8_t *)rgb_info.framebuffer1;
-    buf_data_2 = (uint8_t *)rgb_info.framebuffer2;
+    buf_data_2 = (uint8_t *)rgb_info.framebuffer1;
+    buf_data_1 = (uint8_t *)rgb_info.framebuffer2;
     //static uint8_t * buf_data_2 = NULL;
     #else
     buf_data_1 = (uint8_t *)malloc(DRAW_BUF_SIZE);
     #ifdef DOUBLE_BUFFER
-    buf_data_2 = (uint8_t *)malloc(DRAW_BUF_SIZE);
+    //buf_data_2 = (uint8_t *)malloc(DRAW_BUF_SIZE);
     #endif
 
     #endif

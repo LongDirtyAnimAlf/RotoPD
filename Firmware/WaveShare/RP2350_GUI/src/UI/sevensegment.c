@@ -15,10 +15,10 @@ lv_obj_t * create_display(lv_obj_t * parent, lv_color_t c, bool size, byte count
 {
   byte i;
 
-  lv_font_t * digitfont;
+  const lv_font_t * digitfont;
 
   lv_obj_t *digits = lv_obj_create(parent);
-  lv_obj_set_user_data(digits,(void *)count);  
+  lv_obj_set_user_data(digits,(void *)(uintptr_t)count);  
 
   if (size)
   {

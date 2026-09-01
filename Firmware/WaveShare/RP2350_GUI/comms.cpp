@@ -1,12 +1,107 @@
 #include "comms.h"
 
+#if defined(ARDUINO_ARCH_SAMD)
+MYSERCOM mysercom(PIN_WIRE_SERCOM);
+TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
+#endif
+
+#ifdef ARDUINO_SEEED_INDICATOR_RP2040
+#define DELAYUS(_us) busy_wait_us_32(_us)
+#define USBSerial Serial
+#include <PacketSerial.h>
+extern Adafruit_USBD_HID HID;
+extern COBSPacketSerial myPacketSerial; // for logging
+#endif
+#if defined(ARDUINO_ARCH_SAMD)  
+#define DELAYUS(_us) delayMicroseconds(_us)
+#define USBSerial Serial
+#endif
+#ifdef ARDUINO_ESP32S3_DEV
 #include "./src/UI/screenlogger.h"
+#define DELAYUS(_us) delayMicroseconds(_us)
+extern USBCDC USBSerial;
+extern USBHID HID;
+extern USBCDC USBSerial;
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
+#include "./src/UI/screenlogger.h"
+#define DELAYUS(_us) delayMicroseconds(_us)
+#endif
+
+extern TwoWire WireBattery;
+
+extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
+
+//extern AP33772S usbpd;
+extern AP33772S pd;
+extern INA238 ina238;
+
+volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
+
+static float ina_mA_c       = 0;
+static float ina_mV_c       = 0;
+static float ina_mW_c       = 0;
+#ifdef WITHINA238TEMPERATURE
+static float ina_T_c        = 0;
+#endif
+static int   ina_counter_c  = 0;
+
+#ifdef ARDUINO_ESP32S3_DEV
+DRAM_ATTR 
+#endif
+TBoardInfo BoardInfo = 
+{
+  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+  true, // DataInValid
+  #endif
+  #if defined(ARDUINO_ARCH_SAMD)  
+  false, // DataValid
+  #endif
+  #ifdef ARDUINO_ESP32S3_DEV
+  false, // DataValid
+  #endif
+  {0},  // Default BoardSerial
+  {0},  // Default BoardCalDate  
+  DEFAULTBOARDNUMBER,    // Default BoardNumber
+  44    // Default INA238 shunt correction value (in uOhm, signed, int16_t)
+};
+
+uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
+{
+  uint8_t x;
+
+  while (length--){
+      x = crc >> 8 ^ *data_p++;
+      x ^= x>>4;
+      crc = (crc << 8) ^ ((uint16_t)(x << 12)) ^ ((uint16_t)(x <<5)) ^ ((uint16_t)x);
+  }
+  return crc;
+}
 
 void Info_Add(const char *txt)
 {
   if (txt == NULL) return;
 
+  #ifdef DEBUG
+  Serial.println(txt);
+  #endif
+
+  #if defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ARCH_RP2040) 
   ScreenLogger_Add(txt,true);
+  #endif
+
+  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+  // Send info to LCD
+  int size = strlen(txt);
+  uint8_t *s2 = (uint8_t*)malloc(size+2); // Add space for starting indicator and ending 0
+  if (s2 == NULL) return;
+  s2[COMMANDPOSITION] = CMD_logdata;
+  memcpy((s2+1), txt, size);
+  s2[size+1] = 0;
+  myPacketSerial.send(s2, (size+2));
+  free(s2);
+  #endif
 }
 
 void Info_Add_Fmt(const char *format, ...)
@@ -22,4 +117,667 @@ void Info_Add_Fmt(const char *format, ...)
     // message was truncated
   }  
   Info_Add(myString);
+}
+
+static inline bool CheckWireStuck(void)
+{
+  #if defined(ARDUINO_ESP32S3_DEV)
+  return WS_CH32_IO::checkI2CBus();
+  #elif defined(ARDUINO_ARCH_RP2040) 
+  return false; 
+  #else
+  bool Result = false;
+  Result |= (digitalRead(PIN_WIRE_BATT_SDA) == LOW);  
+  Result |= (digitalRead(PIN_WIRE_BATT_SCL) == LOW);
+  return Result;    
+  #endif
+}
+
+#if !defined(ARDUINO_ESP32S3_DEV) && !defined(ARDUINO_ARCH_RP2040) 
+
+// Emulate opendrain pins
+void PinLow(uint32_t ulPin)
+{
+  digitalWrite(ulPin, LOW);
+  pinMode(ulPin, OUTPUT);
+}
+void PinHigh(uint32_t ulPin)
+{
+  pinMode(ulPin, INPUT_PULLUP);
+  digitalWrite(ulPin, HIGH);  
+}
+#endif
+
+void ResetWire(void)
+{
+  #if defined(ARDUINO_ESP32S3_DEV)
+  return WS_CH32_IO::checkI2CBus();
+  #elif defined(ARDUINO_ARCH_RP2040) 
+  return;
+  #else
+  byte bits;
+
+  #ifdef DEBUG
+  Serial.println("Wire reset starting.");
+  #endif
+
+  pinMode(PIN_WIRE_BATT_SDA, INPUT_PULLUP);
+  pinMode(PIN_WIRE_BATT_SCL, INPUT_PULLUP);
+
+  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+  gpio_set_function(PIN_WIRE_BATT_SCL, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_WIRE_BATT_SDA, GPIO_FUNC_SIO);
+  #endif
+
+  DELAYUS(100U);
+
+  if ( (digitalRead(PIN_WIRE_BATT_SDA) == LOW) && (digitalRead(PIN_WIRE_BATT_SCL) == HIGH) )
+  {
+    #ifdef DEBUG
+    Serial.println("Wire reset manual clock.");
+    #endif
+
+    // Send at max 9 clock pulses
+    bits=0;
+    while ( (bits++ < 9) && (digitalRead(PIN_WIRE_BATT_SDA) == LOW) )
+    {
+      PinLow(PIN_WIRE_BATT_SCL);
+      DELAYUS(5);
+      PinHigh(PIN_WIRE_BATT_SCL);
+      DELAYUS(5);
+    }
+
+    if (digitalRead(PIN_WIRE_BATT_SDA) == HIGH)
+    {
+      // Bus recovered : send a STOP
+      PinLow(PIN_WIRE_BATT_SDA);
+      DELAYUS(5);
+      PinHigh(PIN_WIRE_BATT_SDA);
+    }
+    #ifdef DEBUG
+    Serial.printf("Wire reset manual clock bits needed: #%d.\r\n", bits);
+    #endif
+  }
+
+  DELAYUS(100U);
+
+  if (CheckWireStuck())
+  {
+    if (digitalRead(PIN_WIRE_BATT_SCL) == HIGH)
+    {
+      #ifdef DEBUG
+      Serial.println("Wire reset for SCL low 50ms.");
+      #endif
+      // Force clock low for 50ms should reset all SAMD10 slaves.
+      PinLow(PIN_WIRE_BATT_SCL);
+      DELAYUS(50000U);
+      PinHigh(PIN_WIRE_BATT_SCL);
+    }
+  }
+
+  DELAYUS(100U);
+
+  #ifdef DEBUG
+  if (CheckWireStuck())
+  {
+    Serial.println("Resetting wire failed.");
+  }
+  else
+  {
+    Serial.println("Resetting wire successful.");
+  }
+  #endif
+  #endif
+}
+
+bool initINA238(void)
+{
+  if(!ina238.begin())
+  {
+    //Info_Add("Comms. Init INA238 failed !");
+    return false;
+  }
+  else
+  {
+    ina238.reset();
+    ina238.setADCRange(1);
+    if ((BoardInfo.shuntcorrection<100) && (BoardInfo.shuntcorrection>-100))
+    {
+      ina238.setMaxCurrentShunt(7, (float)((5000.0+BoardInfo.shuntcorrection)/1000000.0) ); // Based on RotoPD Pro schematic
+    }
+    else
+    {
+      ina238.setMaxCurrentShunt(7, 0.005); // Based on RotoPD Pro schematic
+    }
+    ina238.setOverCurrentLimit(5500); // Max out 5,5A threshold
+
+    ina238.setShuntVoltageConversionTime(INA238_150_us);
+    #ifdef WITHINA238TEMPERATURE
+    ina238.setMode(INA238_MODE_CONT_TEMP_BUS_SHUNT);
+    #else
+    ina238.setMode(INA238_MODE_CONT_BUS_SHUNT);
+    #endif
+    //ina238.setBusVoltageConversionTime(uint8_t bvct = INA238_1052_us);
+    //ina238.setTemperatureConversionTime(uint8_t tct = INA238_1052_us);
+    //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
+
+    ina238.setAverage(INA238_16_SAMPLES); 
+    ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+
+    //Info_Add("Comms. Init INA238 success.");
+  }
+  return true;
+}
+
+void collectRotoPDData(void)
+{
+  ina_mA_c      += ina238.getMilliAmpere();
+  ina_mV_c      += ina238.getBusMilliVolt();
+  ina_mW_c      += ina238.getMilliWatt();
+  #ifdef WITHINA238TEMPERATURE
+  ina_T_c       += ina238.getTemperature();
+  #endif
+  ina_counter_c++;
+}
+
+void getRotoPDData(word* I,word* V,dword* P,word* T)
+{
+  float li;
+  if (ina_counter_c == 0)
+  {
+    // Get latest data
+    li = ina238.getMilliAmpere();
+    if (li<0) li=0;
+    *I = lroundf(li);
+    *V = lroundf(ina238.getBusMilliVolt());
+    *P = lroundf(ina238.getMilliWatt());
+    #ifdef WITHINA238TEMPERATURE
+    *T = lroundf(ina238.getTemperature() * 10);
+    #endif
+  }
+  else
+  {
+    // Get average data
+    li = (ina_mA_c / ina_counter_c);
+    if (li<0) li=0;
+    *I = lroundf(li);
+    *V = lroundf(ina_mV_c / ina_counter_c);
+    *P = lroundf(ina_mW_c / ina_counter_c);
+    #ifdef WITHINA238TEMPERATURE
+    *T = lroundf(((ina_T_c *10) / ina_counter_c));
+    #endif
+    ina_mA_c      = 0;
+    ina_mV_c      = 0;
+    ina_mW_c      = 0;
+    #ifdef WITHINA238TEMPERATURE
+    ina_T_c       = 0;
+    #endif
+    ina_counter_c = 0;
+  }
+
+  #ifdef REV11
+  // Compensate for XRS40N10 Static Drain-Source On-Resistance and shutn resistor
+  word VC = ((*I * (XRS40N10ONRESISTANCE+SHUNTRESISTANCE)) / 1000);
+  *V += VC;
+  #endif
+}
+
+bool initROTOPD(void)
+{
+  // RotoPD Pro setup
+  {
+    // Required for RotoPD Pro. Prevent UVP from issuing hard reset.
+    // VOUT connected to +5V
+    pd.clearConfig(CONFIG_UVP_EN);
+    pd.clearConfig(CONFIG_OVP_EN);
+    pd.clearConfig(CONFIG_OCP_EN);
+
+    if (pd.begin() != AP33772S_OK)
+    {
+      delay(500);
+      if (pd.begin() != AP33772S_OK)
+      {
+        Info_Add("Comms. Init AP33772S failed !");
+        pd.dumpRegisters(Serial);
+        return (false);
+      }
+    }
+    // Protection thresholds
+    // Temperature only for RotoPD Pro
+    // VOUT ISENSP AND VCC are connected to +5V
+    //pd.setOVPOffset_mV(2000);
+    //pd.setUVPThreshold(UVP_80PCT);
+
+    Info_Add("Comms. Init AP33772S success.");
+
+    pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
+
+    pd.setOTPThreshold_C(120);
+    pd.setConfig(CONFIG_OTP_EN);
+    pd.setDeratingThreshold_C(85);
+    pd.setConfig(CONFIG_DR_EN);
+
+    // Switch off output
+    //pd.setOutput(false);
+
+    if (pd.getOutput())
+      Info_Add("Comms. AP33772S output on.");
+    else
+      Info_Add("Comms. AP33772S output off.");
+    
+    // Interrupts
+    //pd.setInterruptMask(MASK_ALL);
+    //pd.attachInterruptCallback(pdISR);
+
+  }
+  return (true);
+}
+
+int8_t taskRotoPDInit(void)
+{
+  // To be done !!
+
+  byte j = 0;
+  byte PDOCount = -1;
+
+  if (pd.isConnected())
+  {
+    //Serial.println("RotoPD Pro connected.");
+
+    j = pd.getStatus();
+
+    //Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+
+    if (j & STATUS_FAULTS)
+    {
+      String out = "RotoPD fault:";
+      if (j & STATUS_OVP) out += " OVP";
+      if (j & STATUS_UVP) out += " UVP";
+      if (j & STATUS_OCP) out += " OCP";
+      if (j & STATUS_OTP) out += " OTP";
+      Info_Add_Fmt("Comms. %s.",out);
+    }
+
+    if (j & STATUS_STARTED)
+    {
+      PDOCount = 0;
+
+      Info_Add("Comms. RotoPD Pro started.");
+      Info_Add_Fmt("Comms. Status:= 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+
+      PDOCount = pd.getValidPDOCount();
+
+      Info_Add_Fmt("Comms. Initial PDO count: %d.",PDOCount);
+
+      // We have a power up !!
+      // Init the AP33772S / RotoPD
+      if (initROTOPD())
+      {
+        // Check if we already have the new PDO's
+        if (((j & STATUS_NEWPDO)  && (j & STATUS_READY)) || (PDOCount>0) || (pd.waitForPDOs(2000)==AP33772S_OK))
+        {
+          // Request / read list of PDOs
+          if (PDOCount == 0) PDOCount = pd.readAllPDOs();
+
+          Info_Add_Fmt("Comms. New PDO's !! PDO count: %d.",PDOCount);
+
+          if (PDOCount>0)
+          {
+            #ifdef DEBUG
+            Serial.println("PDO list below.");
+            pd.printPDOs(Serial);
+            Serial.println("Done.");
+            #endif
+          }
+        }
+
+        j = pd.getOpMode();
+
+        if (j & OPMODE_PDMOD) Info_Add("Comms. [RotoPD] PD connected");
+        if (j & OPMODE_LGCYMOD) Info_Add("Comms. [RotoPD] legacy mode");
+        if (j & OPMODE_CCFLIP) Info_Add("Comms. [RotoPD] cable flipped");
+      }
+      else
+      {
+        if (j & OPMODE_DR) Info_Add("Comms. [RotoPD] Init error !");
+      }
+    
+    }
+    else
+    {
+      j = pd.getOpMode();
+      if (j & OPMODE_DR) Info_Add("Comms. [RotoPD] derating !!");
+    }
+  }
+
+  return (PDOCount);
+}
+
+bool process_command(void const *data, void *result)
+{
+  CommandType_t cCmd = CMD_unknown;
+  byte BN = 0;
+
+  byte dataindexer,j,databyte;
+
+  DWORD_VAL dw_data;
+  WORD_VAL  w_data;
+
+  byte* databuffer = (byte*)data;
+  byte* resultbuffer = (byte*)result;
+
+  bool DataToSend = true;
+  bool GUIUpdateNeeded = false;
+  bool StatusUpdateNeeded = false;
+
+  bool Engage = false;
+
+  byte PDOCount = 0;
+  AP33772S_PDO PDO;
+
+  #ifdef CONSOLE_DEBUG
+  bool DEBUGONSCREEN = false;
+  #endif
+
+  PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
+
+	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
+  BN    = databuffer[INDEXPOSITION];
+  // datalength = databuffer[LENGTHPOSITION];
+
+  // Data start at position 3 !!
+  // 0   = Command
+  // 1   = BoardNumber
+  // 2   = Length
+  // 3.. = Data
+  dataindexer = DATASTART;
+
+  if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  {
+    // We got a SetPDO command
+    StatusUpdateNeeded = true;
+    // Process the settings !
+    // Settings start at index DATASTART
+    // PD Index
+    LocalBatteryBoard->pdoIndex=(databuffer[dataindexer++]);
+    // maxCurrent
+    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+    LocalBatteryBoard->maxCurrent=dw_data.Val;
+    // targetVoltage
+    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+    LocalBatteryBoard->targetVoltage=dw_data.Val;
+
+    Info_Add("Comms. Received SetPD command.");
+    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->pdoIndex);
+    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->maxCurrent);
+    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->targetVoltage);
+
+    switch (cCmd)
+    {
+      case CMD_set_MAXPDO:
+      {
+        Info_Add("Comms. Max PDO.");
+        
+        LocalBatteryBoard->pdoMode = pmMAX; 
+        pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
+        break;
+      }
+
+      case CMD_set_FIXEDPDO:
+      {
+        Info_Add("Comms. Fixed PDO.");
+
+        LocalBatteryBoard->pdoMode = pmFixed; 
+        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
+        break;
+      }
+      case CMD_set_PPSPDO:
+      {
+        Info_Add("Comms. PPS PDO.");
+
+        LocalBatteryBoard->pdoMode = pmPPS; 
+        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        break;
+      }
+      case CMD_set_AVSPDO:
+      {
+        Info_Add("Comms. AVS PDO.");
+
+        LocalBatteryBoard->pdoMode = pmAVS; 
+        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        break;
+      }
+      default:
+      {
+        j = AP33772S_ERR_I2C;
+      }
+    }
+  }
+
+  if (cCmd == CMD_get_PDOList)
+  {
+    PDOCount = pd.readAllPDOs();
+
+    Info_Add_Fmt("Comms. Received GetAllPDO command. PDOs: %d.",PDOCount);
+  }
+
+  if (cCmd == CMD_read_PDOList)
+  {
+    PDOCount = pd.getValidPDOCount();
+
+    Info_Add_Fmt("Comms. Received read PDO list. PDOs: %d.",PDOCount);
+  }
+
+  if (cCmd == CMD_set_output)
+  {
+    Engage = (databuffer[dataindexer++] != 0);
+    if (Engage)
+    {
+      Info_Add("Comms. Output ON.");
+    }
+    else
+    {
+      Info_Add("Comms. Output OFF.");
+    }
+    //LocalBatteryBoard->OutputOn = Engage; 
+    pd.setOutput(Engage);
+  }
+
+  if (cCmd == CMD_set_value)
+  {
+    Info_Add("Comms. Received SetValue command.");
+
+    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
+    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+    LocalBatteryBoard->BM.SetValue=dw_data.Val;
+
+    StatusUpdateNeeded = true;
+    Engage = false;
+
+    switch(LocalBatteryBoard->BM.Status)
+    {
+      case smCurrent :
+      case smPower :
+      case smResistor : 
+      {
+        Engage = true;
+        break;
+      }
+      case smCharge :
+      {
+        break;
+      }
+      default :
+      {
+        break;
+      }
+    }
+
+    if (Engage)
+    {
+      Info_Add("Comms. Output ON.");
+    }
+    else
+    {
+      Info_Add("Comms. Output OFF.");
+    }
+    //LocalBatteryBoard->OutputOn = Engage; 
+    pd.setOutput(Engage);
+  }
+
+  if (cCmd == CMD_get_data)
+  {
+    //Info_Add("Comms. Received GetData command.");
+
+    getRotoPDData(&LocalBatteryBoard->Current,&LocalBatteryBoard->Voltage,&LocalBatteryBoard->Power,&LocalBatteryBoard->Temperature);
+
+    GUIUpdateNeeded = true;
+  }
+  
+  // Start processing the collected data !!
+  // Data start at position 3 !!
+  // 0   = Command
+  // 1   = BoardNumber
+  // 2   = Length
+  // 3.. = Data
+
+  // Echo back command and index/number
+  //resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
+  //resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
+
+  resultbuffer[COMMANDPOSITION]=cCmd;
+  resultbuffer[INDEXPOSITION]=BN;
+
+  if (BN != BoardInfo.BoardNumber)
+  {
+    // Should never happen !!
+    Info_Add_Fmt("Comms. Severe error. Wrong boardnumber ! Received %d. Board has %d.", BN, BoardInfo.BoardNumber);
+  }
+
+  // Skip length
+  // Will be set in a later stage
+  dataindexer = DATASTART;
+
+  // Return data
+  if (cCmd == CMD_get_data)
+  {
+    //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
+    //i += 2;
+    w_data.Val = LocalBatteryBoard->Voltage;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+    w_data.Val = LocalBatteryBoard->Current;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+    dw_data.Val = LocalBatteryBoard->Power;
+    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+    w_data.Val = LocalBatteryBoard->Temperature;
+    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+
+    #ifdef DEBUG
+    /*
+    Serial.printf("GetData command results.\r\n");
+    Serial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
+    Serial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
+    Serial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
+    */
+    #endif
+
+  }
+
+  if (cCmd == CMD_set_value)
+  {
+    resultbuffer[dataindexer++]=(byte)LocalBatteryBoard->BM.Status;
+    dw_data.Val = LocalBatteryBoard->BM.SetValue;
+    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+  }  
+
+  if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
+  {
+    Info_Add_Fmt("Comms. Processing available [#%d] PDOs.",PDOCount);
+
+    if  ((PDOCount>=0) && (PDOCount<=MAX_PDO_ENTRIES))
+    {
+      resultbuffer[dataindexer++] = PDOCount;
+
+      if  (PDOCount>0)
+      {
+        for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
+        {
+          if (pd.readPDO(j, PDO))
+          {
+            if (PDO.valid)
+            {
+              Info_Add_Fmt("Comms. Sending PDO #%d.",PDO.index);
+
+              resultbuffer[dataindexer++] = PDO.index;
+              w_data.Val = PDO.raw;
+              resultbuffer[dataindexer++] = w_data.bytes.LB;
+              resultbuffer[dataindexer++] = w_data.bytes.HB;
+            }  
+          }
+        }
+      }
+
+    }
+    else
+    {
+      Info_Add("Comms. Invalid PDO count.");
+      resultbuffer[dataindexer++] = 0;
+    }
+  }
+
+  if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  {
+
+    resultbuffer[dataindexer++] = LocalBatteryBoard->pdoIndex;
+    
+    w_data.Val = pd.getRequestedCurrent_mA();
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+    LocalBatteryBoard->maxCurrent=w_data.Val;
+
+    w_data.Val = pd.getRequestedVoltage_mV();
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+    LocalBatteryBoard->targetVoltage=w_data.Val;
+
+    w_data.Val = 0;
+    if (pd.readPDO(LocalBatteryBoard->pdoIndex, PDO))
+    {
+      if (PDO.valid)
+      {
+        LocalBatteryBoard->pdoMode=(TPDOMode)PDO.type;
+        //LocalBatteryBoard->maxCurrent=PDO.maxCurrent_mA;
+        //LocalBatteryBoard->targetVoltage=PDO.maxVoltage_mV;
+        w_data.Val = PDO.raw;
+      }
+    }
+    resultbuffer[dataindexer++] = w_data.v[0];
+    resultbuffer[dataindexer++] = w_data.v[1];
+  }
+
+  if (cCmd == CMD_get_firmware)
+  {
+    LocalBatteryBoard->NeedsDataUpdate;
+  }
+
+  if (dataindexer == DATASTART)
+  {
+    uint8_t length = databuffer[LENGTHPOSITION];
+    for ( j=0; j<length; j++ )
+    {
+      // Just echo back what we got
+      resultbuffer[dataindexer]=databuffer[dataindexer];
+      dataindexer++;
+    }
+  }
+
+    // echo back length
+  resultbuffer[LENGTHPOSITION]=(dataindexer-DATASTART);
+
+  LocalBatteryBoard->NeedsGUIUpdate |= GUIUpdateNeeded;
+  LocalBatteryBoard->NeedsStatusUpdate |= StatusUpdateNeeded;
+
+  // Trivial: return true to indicate we have data to return.
+  // Should always be true with this firmware !!
+  return (DataToSend);
 }
