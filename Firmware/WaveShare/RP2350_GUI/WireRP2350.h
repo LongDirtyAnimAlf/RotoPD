@@ -7,7 +7,7 @@
 class TwoWireRP2350 : public TwoWire {
 public:
     TwoWireRP2350() :
-        TwoWire(BSP_I2C_NUM, BSP_I2C_SDA_PIN, BSP_I2C_SCL_PIN),          // required by rp2040/rp2350 core
+        TwoWire(BSP_I2C_NUM, BSP_I2C_SDA_PIN, BSP_I2C_SCL_PIN),
         _addr(0),
         _tx_len(0),
         _rx_len(0),

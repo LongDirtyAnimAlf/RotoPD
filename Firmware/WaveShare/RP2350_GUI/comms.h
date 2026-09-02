@@ -1,6 +1,8 @@
 #ifndef _COMMS_H_
 #define _COMMS_H_
 
+#define DEFAULTBOARDNUMBER 1
+
 #ifdef ARDUINO_WIO_TERMINAL
 #define USE_LCD 
 #define BUZZER_PIN WIO_BUZZER /* sig pin of the buzzer */
@@ -40,10 +42,6 @@
 #include <Wire.h>
 #endif
 
-const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
-const byte DefaultCalDate[4] = {20,26,01,01};
-#define DEFAULTBOARDNUMBER 1
-
 #if defined(ARDUINO_ARCH_SAMD)
 #define WireBattery MyWire
 #endif
@@ -57,9 +55,12 @@ const byte DefaultCalDate[4] = {20,26,01,01};
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-#define WireBattery Wire
+#include "WireRP2350.h"
+#define WireBattery WireRP2350
 #endif
 
+const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
+const byte DefaultCalDate[4] = {20,26,01,01};
 
 extern TBoardInfo BoardInfo;
 extern volatile THIDData HIDData[];//[DAUGHTERBOARDCOUNT];

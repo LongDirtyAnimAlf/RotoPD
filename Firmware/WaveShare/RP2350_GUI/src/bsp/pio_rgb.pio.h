@@ -69,7 +69,7 @@ static inline pio_sm_config vsync_program_get_default_config(uint offset) {
 // ----- //
 
 #define hsync_wrap_target 2
-#define hsync_wrap 14
+#define hsync_wrap 15
 #define hsync_pio_version 0
 
 #define hsync_T1 10
@@ -91,14 +91,15 @@ static __pio_const uint16_t hsync_program_instructions[] = {
     0x144a, // 11: jmp    x--, 10         side 1
     0xbc22, // 12: mov    x, y            side 3
     0xb442, // 13: nop                    side 1
-    0x1c4d, // 14: jmp    x--, 13         side 3
+    0xb442, // 14: nop                    side 1
+    0x1c4d, // 15: jmp    x--, 13         side 3
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static __pio_const struct pio_program hsync_program = {
     .instructions = hsync_program_instructions,
-    .length = 15,
+    .length = 16,
     .origin = -1,
     .pio_version = hsync_pio_version,
 #if PICO_PIO_VERSION > 0
@@ -119,7 +120,7 @@ static inline pio_sm_config hsync_program_get_default_config(uint offset) {
 // --- //
 
 #define rgb_wrap_target 2
-#define rgb_wrap 9
+#define rgb_wrap 12
 #define rgb_pio_version 0
 
 static __pio_const uint16_t rgb_program_instructions[] = {
@@ -129,18 +130,21 @@ static __pio_const uint16_t rgb_program_instructions[] = {
     0xb022, //  2: mov    x, y                   [16]
     0x20a4, //  3: wait   1 pin, 4
     0x80a0, //  4: pull   block
-    0x2027, //  5: wait   0 pin, 7
-    0x6010, //  6: out    pins, 16
-    0x20a7, //  7: wait   1 pin, 7
-    0x0044, //  8: jmp    x--, 4
-    0xc000, //  9: irq    nowait 0
+    0x6010, //  5: out    pins, 16
+    0xa042, //  6: nop
+    0xa042, //  7: nop
+    0xa042, //  8: nop
+    0x2027, //  9: wait   0 pin, 7
+    0x20a7, // 10: wait   1 pin, 7
+    0x0044, // 11: jmp    x--, 4
+    0xc000, // 12: irq    nowait 0
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static __pio_const struct pio_program rgb_program = {
     .instructions = rgb_program_instructions,
-    .length = 10,
+    .length = 13,
     .origin = -1,
     .pio_version = rgb_pio_version,
 #if PICO_PIO_VERSION > 0

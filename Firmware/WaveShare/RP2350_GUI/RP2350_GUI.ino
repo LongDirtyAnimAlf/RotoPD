@@ -7,8 +7,7 @@
 #include <lvgl.h>
 #include "pico/stdlib.h"
 #include "./src/bsp/bsp_i2c.h"
-
-#include "WireRP2350.h"
+#include "./src/bsp/bsp_st7701.h"
 
 #include "./src/lvgl/lv_port/lv_port_disp.h"
 #include "./src/lvgl/lv_port/lv_port_indev.h"
@@ -34,8 +33,8 @@
 char mySerial[30];
 char myFirmware[30];
 
-AP33772S pd(&WireRP2350);
-INA238 ina238(INA238_ADDRESS,&WireRP2350);
+AP33772S pd(&WireBattery);
+INA238 ina238(INA238_ADDRESS,&WireBattery);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
@@ -472,15 +471,9 @@ void setup()
 
   bsp_i2c_init();
 
-  //Wire.setSDA(PICO_DEFAULT_I2C_SDA_PIN);
-  //Wire.setSCL(PICO_DEFAULT_I2C_SCL_PIN);
-  //Wire.begin();
-  //Wire.setSDA(PICO_DEFAULT_I2C_SDA_PIN);
-  //Wire.setSCL(PICO_DEFAULT_I2C_SCL_PIN);
-
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();
-  lv_port_disp_init(/*HOR_RES, VER_RES*/);
+  lv_screen_init(HOR_RES, VER_RES);
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
 
   PBatterySetting SET;
@@ -558,22 +551,32 @@ void setup()
 
   lv_mem_monitor_t mon;
   lv_mem_monitor(&mon);
-  Serial.printf("LVGL heap: used %u / total %u, max used %u\n",
+  Info_Add_Fmt("LVGL heap: used %u / total %u, max used %u",
        mon.total_size - mon.free_size,
        mon.total_size,
        mon.max_used);
 
-  Serial.print("CPU Frequency: ");
-  Serial.print(rp2040.f_cpu() / 1000000);
-  Serial.println(" MHz");
+  #ifdef ARDUINO_ARCH_RP2040
+  
+  Info_Add_Fmt("CPU Frequency: %d MHz",rp2040.f_cpu() / 1000000);
 
   // Internal SRAM heap
-  Serial.printf("Internal RAM  free: %u bytes\n", rp2040.getFreeHeap());
-
+  Info_Add_Fmt("Internal RAM  free  : %u bytes", rp2040.getFreeHeap());
   // PSRAM heap
-  Serial.printf("PSRAM         free: %u bytes\n", rp2040.getFreePSRAMHeap());
-  Serial.printf("PSRAM         total: %u bytes\n", rp2040.getTotalPSRAMHeap());
-  Serial.printf("PSRAM         size : %u bytes\n", rp2040.getPSRAMSize());
+  Info_Add_Fmt("PSRAM         free  : %u bytes", rp2040.getFreePSRAMHeap());
+  Info_Add_Fmt("PSRAM         total : %u bytes", rp2040.getTotalPSRAMHeap());
+  Info_Add_Fmt("PSRAM         size  : %u bytes", rp2040.getPSRAMSize());
+
+  /*
+  for (int i = 0; i < 16; i++) {
+      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_12MA); // or 12MA
+      gpio_set_slew_rate(BSP_LCD_DATA0_PIN + i, GPIO_SLEW_RATE_SLOW);
+  }
+  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
+  gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
+  */
+
+  #endif
 
   Serial.println("Init RP2350 ready.");
 }
