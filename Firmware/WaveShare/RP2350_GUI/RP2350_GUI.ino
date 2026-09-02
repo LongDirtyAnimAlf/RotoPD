@@ -8,6 +8,8 @@
 #include "pico/stdlib.h"
 #include "./src/bsp/bsp_i2c.h"
 
+#include "WireRP2350.h"
+
 #include "./src/lvgl/lv_port/lv_port_disp.h"
 #include "./src/lvgl/lv_port/lv_port_indev.h"
 
@@ -32,8 +34,8 @@
 char mySerial[30];
 char myFirmware[30];
 
-AP33772S pd(&Wire);
-INA238 ina238(INA238_ADDRESS,&Wire);
+AP33772S pd(&WireRP2350);
+INA238 ina238(INA238_ADDRESS,&WireRP2350);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
@@ -508,7 +510,7 @@ void setup()
     SET = &Batteries[index];
 
     RDS = &SET->TestData.RunDatas;
-    RDS->BatteryDatas = (TMeasurementData*)malloc(DATASIZE * sizeof(TMeasurementData));
+    RDS->BatteryDatas = (TMeasurementData*)pmalloc(DATASIZE * sizeof(TMeasurementData));
     ClearRunData(RDS);
   
     SET->TestData.Active = bmIdle;

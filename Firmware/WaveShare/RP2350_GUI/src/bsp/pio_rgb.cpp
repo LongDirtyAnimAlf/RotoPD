@@ -21,21 +21,6 @@ static int rgb_dma_chan;
 static pio_rgb_info_t *g_pio_rgb_info;
 static uint16_t *buffer;
 
-void fill_u16_fast32(uint16_t *arr, size_t len, uint16_t value)
-{
-    uint32_t v32 = ((uint32_t)value << 16) | value;
-    uint32_t *p = (uint32_t *)arr;
-    size_t n = len / 2;
-
-    while (n--) {
-        *p++ = v32;
-    }
-
-    if (len & 1) {
-        arr[len - 1] = value;
-    }
-}
-
 void __no_inline_not_in_flash_func(dma_complete_handler)(void)
 {
     // ------------------------------------------------------------------
@@ -90,11 +75,7 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
             if (g_pio_rgb_info->change_framebuffer_flag &&
                 (g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1))
             {
-
-                uint16_t *activeframebuffer = g_pio_rgb_info->_framebuffer;
                 g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
-
-                //memcpy(g_pio_rgb_info->_framebuffer, activeframebuffer, 480*480*2);                
 
                 g_pio_rgb_info->change_framebuffer_flag = false;
 
