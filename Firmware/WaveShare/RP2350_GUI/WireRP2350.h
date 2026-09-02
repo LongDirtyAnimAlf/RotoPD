@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include "shared.h"
 #include "./src/bsp/bsp_i2c.h"
 
 class TwoWireRP2350 : public TwoWire {
@@ -128,10 +129,10 @@ public:
 
 private:
     uint8_t _addr;
-    uint8_t _tx_buffer[32];
+    uint8_t _tx_buffer[COMMAND_SIZE];
     uint8_t _tx_len;
 
-    uint8_t _rx_buffer[32];
+    uint8_t _rx_buffer[COMMAND_SIZE];
     uint8_t _rx_len;
     uint8_t _rx_index;
 

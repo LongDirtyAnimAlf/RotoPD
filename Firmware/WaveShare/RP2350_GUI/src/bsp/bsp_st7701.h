@@ -24,7 +24,7 @@
 
 //#define BSP_LCD_PCLK_FREQ   (20 * 1000 * 1000) // working for LCD without psram
 //#define BSP_LCD_PCLK_FREQ   (16 * 1000 * 1000) // original setting
-#define BSP_LCD_PCLK_FREQ   (12 * 1000 * 1000)
+#define BSP_LCD_PCLK_FREQ   (8 * 1000 * 1000)
 
 #define BSP_LCD_BL_PIN 40
 
