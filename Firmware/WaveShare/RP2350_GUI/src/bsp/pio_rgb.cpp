@@ -23,6 +23,82 @@ static uint16_t *buffer;
 
 void __no_inline_not_in_flash_func(dma_complete_handler)(void)
 {
+    if (g_pio_rgb_info->mode.enabled_transfer)
+    {
+        // Advance to the next chunk
+        g_pio_rgb_info->transfer_index =
+            (g_pio_rgb_info->transfer_index + 1) % g_pio_rgb_info->transfer_index_max;
+
+        // Pointer to the chunk we need from the (possibly PSRAM) framebuffer
+        uint16_t *next_chunk = &g_pio_rgb_info->_framebuffer[
+            g_pio_rgb_info->transfer_index * g_pio_rgb_info->transfer_size];
+
+        // Ping-pong between the two small SRAM bounce buffers
+        // ready_buffer  = already filled → start DMA from it
+        // fill_buffer   = we will fill it now for the *next* transfer
+        uint16_t *ready_buffer;
+        uint16_t *fill_buffer;
+
+        if (g_pio_rgb_info->transfer_index % 2 == 0)
+        {
+            ready_buffer = g_pio_rgb_info->transfer_buffer1;
+            fill_buffer  = g_pio_rgb_info->transfer_buffer2;
+        }
+        else
+        {
+            ready_buffer = g_pio_rgb_info->transfer_buffer2;
+            fill_buffer  = g_pio_rgb_info->transfer_buffer1;
+        }
+
+        // 1. Start DMA from the buffer that already contains valid data
+        dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
+
+        // 2. While DMA is running, copy the next chunk into the other buffer
+        memcpy(fill_buffer, next_chunk,
+                g_pio_rgb_info->transfer_size * sizeof(uint16_t));
+
+        // Full frame finished ?
+        if ((g_pio_rgb_info->change_framebuffer_flag || (!g_pio_rgb_info->mode.double_buffer)) &&
+            (g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1))
+        {
+
+            if (g_pio_rgb_info->change_framebuffer_flag)
+            {
+                g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
+                g_pio_rgb_info->change_framebuffer_flag = false;
+            }
+
+            if (g_pio_rgb_info->dma_flush_done_cb)
+            {
+                g_pio_rgb_info->dma_flush_done_cb();
+            }
+        }
+    }
+    else
+    {
+        // No chunked transfer – whole frame at once
+        dma_channel_set_read_addr(rgb_dma_chan, g_pio_rgb_info->_framebuffer, true);
+
+        // Full frame finished ?
+        if (g_pio_rgb_info->change_framebuffer_flag || (!g_pio_rgb_info->mode.double_buffer))
+        {
+            if (g_pio_rgb_info->change_framebuffer_flag)
+            {
+                g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
+                g_pio_rgb_info->change_framebuffer_flag = false;
+            }
+
+            if (g_pio_rgb_info->dma_flush_done_cb)
+            {
+                g_pio_rgb_info->dma_flush_done_cb();
+            }
+        }
+    }
+}
+
+/*
+void __no_inline_not_in_flash_func(dma_complete_handler)(void)
+{
     // ------------------------------------------------------------------
     // Double-buffer mode
     // ------------------------------------------------------------------
@@ -156,6 +232,7 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
         }
     }
 }
+*/
 
 /**
  * @brief 切换帧缓冲区

@@ -18,7 +18,7 @@
 #define PINGPONG_BUF_LINES  4  // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #else
-#define PINGPONG_BUF_LINES  40 // number of display lines in each transfer buffer in SRAM
+#define PINGPONG_BUF_LINES  20 // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  40 // number of display lines in each draw buffer in partial mode
 #endif
 
@@ -91,7 +91,6 @@ void lv_screen_init(uint16_t W, uint16_t H)
     rgb_info.mode.double_buffer = false;
     #endif
 
-
     #ifdef USE_PSRAM
 
     rgb_info.mode.enabled_psram = true;
@@ -126,6 +125,7 @@ void lv_screen_init(uint16_t W, uint16_t H)
     rgb_info.mode.enabled_transfer = false;
 
     rgb_info.dma_flush_done_cb = NULL;
+    
     #endif //USE_PSRAM
 
     if (rgb_info.mode.enabled_transfer)
