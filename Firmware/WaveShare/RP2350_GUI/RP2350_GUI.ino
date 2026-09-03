@@ -549,23 +549,30 @@ void setup()
   String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Info_Add(LVGL_Arduino.c_str());
 
-  lv_mem_monitor_t mon;
-  lv_mem_monitor(&mon);
-  Info_Add_Fmt("LVGL heap: used %u / total %u, max used %u",
-       mon.total_size - mon.free_size,
-       mon.total_size,
-       mon.max_used);
-
   #ifdef ARDUINO_ARCH_RP2040
   
   Info_Add_Fmt("CPU Frequency: %d MHz",rp2040.f_cpu() / 1000000);
 
+  Info_Add("GUI. RP2350 SRAM memory info.");
   // Internal SRAM heap
-  Info_Add_Fmt("Internal RAM  free  : %u bytes", rp2040.getFreeHeap());
+  Info_Add_Fmt("SRAM free  : %u kb", (rp2040.getFreeHeap() / 1000));
+  Info_Add_Fmt("SRAM buffer: %u kb", (lv_port_get_buffer_heap_usage() / 1000));
+  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u kb", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1000) );
+
+  lv_mem_monitor_t mon;
+  lv_mem_monitor(&mon);
+  Info_Add_Fmt("LVGL heap after init: used %u / total %u, max used %u",
+       mon.total_size - mon.free_size,
+       mon.total_size,
+       mon.max_used);
+
+  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u kb", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1000) );
+
+  Info_Add("GUI. RP2350 PSRAM memory info.");
   // PSRAM heap
-  Info_Add_Fmt("PSRAM         free  : %u bytes", rp2040.getFreePSRAMHeap());
-  Info_Add_Fmt("PSRAM         total : %u bytes", rp2040.getTotalPSRAMHeap());
-  Info_Add_Fmt("PSRAM         size  : %u bytes", rp2040.getPSRAMSize());
+  Info_Add_Fmt("PSRAM free  : %u bytes", rp2040.getFreePSRAMHeap());
+  Info_Add_Fmt("PSRAM total : %u bytes", rp2040.getTotalPSRAMHeap());
+  Info_Add_Fmt("PSRAM size  : %u bytes", rp2040.getPSRAMSize());
 
   /*
   for (int i = 0; i < 16; i++) {
@@ -578,7 +585,7 @@ void setup()
 
   #endif
 
-  Serial.println("Init RP2350 ready.");
+  Info_Add("GUI. Init RP2350 ready.");
 }
 
 void loop()
