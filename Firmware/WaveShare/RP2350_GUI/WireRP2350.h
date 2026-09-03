@@ -28,7 +28,8 @@ public:
     void end() override {}
 
     void setClock(uint32_t frequency) override {
-        (void)frequency;
+        //(void)frequency;
+        bsp_i2c_set_clock(frequency);
     }
 
     void beginTransmission(uint8_t address) override {

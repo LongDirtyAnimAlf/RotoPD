@@ -41,9 +41,15 @@ void bsp_i2c_read_reg16(uint8_t device_addr, uint16_t reg_addr, uint8_t *buffer,
 
 void bsp_i2c_init(void)
 {
-    i2c_init(BSP_I2C_NUM, 400 * 1000);
+    i2c_init(BSP_I2C_NUM, 100 * 1000);
     gpio_set_function(BSP_I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(BSP_I2C_SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(BSP_I2C_SDA_PIN);
     gpio_pull_up(BSP_I2C_SCL_PIN);
 }
+
+void bsp_i2c_set_clock(uint32_t frequency)
+{
+    i2c_init(BSP_I2C_NUM, frequency);
+}
+

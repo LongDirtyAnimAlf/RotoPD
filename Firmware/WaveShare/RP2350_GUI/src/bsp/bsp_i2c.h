@@ -23,6 +23,7 @@ void bsp_i2c_write_reg16(uint8_t device_addr, uint16_t reg_addr, uint8_t *buffer
 void bsp_i2c_read_reg16(uint8_t device_addr, uint16_t reg_addr, uint8_t *buffer, size_t len);
 
 void bsp_i2c_init(void);
+void bsp_i2c_set_clock(uint32_t frequency);
 
 #ifdef __cplusplus
 } /*extern "C"*/

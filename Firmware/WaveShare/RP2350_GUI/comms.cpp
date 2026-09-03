@@ -520,35 +520,51 @@ bool process_command(void const *data, void *result)
     {
       case CMD_set_MAXPDO:
       {
-        Info_Add("Comms. Max PDO.");
+        Info_Add("Comms. Set max PDO.");
         
         LocalBatteryBoard->pdoMode = pmMAX; 
         pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
+
         break;
       }
 
       case CMD_set_FIXEDPDO:
       {
-        Info_Add("Comms. Fixed PDO.");
+        Info_Add("Comms. Set fxed PDO.");
 
         LocalBatteryBoard->pdoMode = pmFixed; 
         j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
+        if (AP33772S_OK != j)
+        {
+          Info_Add("Comms. Set max PDO returned an error.");
+        }
+
         break;
       }
       case CMD_set_PPSPDO:
       {
-        Info_Add("Comms. PPS PDO.");
+        Info_Add("Comms. Set PPS PDO.");
 
         LocalBatteryBoard->pdoMode = pmPPS; 
         j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        if (AP33772S_OK != j)
+        {
+          Info_Add("Comms. Set PPS PDO returned an error.");
+        }
+
         break;
       }
       case CMD_set_AVSPDO:
       {
-        Info_Add("Comms. AVS PDO.");
+        Info_Add("Comms. Set AVS PDO.");
 
         LocalBatteryBoard->pdoMode = pmAVS; 
         j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        if (AP33772S_OK != j)
+        {
+          Info_Add("Comms. Set AVS PDO returned an error.");
+        }
+
         break;
       }
       default:

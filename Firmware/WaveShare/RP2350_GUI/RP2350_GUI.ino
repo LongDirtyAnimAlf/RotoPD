@@ -8,6 +8,7 @@
 #include "pico/stdlib.h"
 #include "./src/bsp/bsp_i2c.h"
 #include "./src/bsp/bsp_st7701.h"
+#include "./src/bsp/bsp_buzzer.h"
 
 #include "./src/lvgl/lv_port/lv_port_disp.h"
 #include "./src/lvgl/lv_port/lv_port_indev.h"
@@ -279,6 +280,7 @@ static void main_event_handler(lv_event_t * e)
               #ifdef DEBUG
               Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
               #endif
+              bsp_buzzer_enable(true);
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
               SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
@@ -471,6 +473,9 @@ void setup()
 
   bsp_i2c_init();
 
+  bsp_buzzer_init();
+  bsp_buzzer_enable(true);
+
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();
   lv_screen_init(HOR_RES, VER_RES);
@@ -584,6 +589,8 @@ void setup()
   */
 
   #endif
+
+  bsp_buzzer_enable(false);
 
   Info_Add("GUI. Init RP2350 ready.");
 }
@@ -764,6 +771,8 @@ void loop()
         {
           Info_Add_Fmt("GUI. PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
         }
+
+        bsp_buzzer_enable(false);
 
         break;
       }
