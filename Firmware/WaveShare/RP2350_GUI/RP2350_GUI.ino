@@ -34,8 +34,8 @@
 char mySerial[30];
 char myFirmware[30];
 
-AP33772S pd(&WireBattery);
-INA238 ina238(INA238_ADDRESS,&WireBattery);
+AP33772S pd((TwoWire*)&WireBattery);
+INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
@@ -76,6 +76,7 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
       data->point.x = touch_last_x;
       data->point.y = touch_last_y;
       Serial.println(touch_last_x);
+      Serial.println("Touched");
     }
     else if (touch_released())
     {
@@ -462,6 +463,11 @@ void setup()
   byte index;
   char myHex[10] = "";
 
+  WireBattery.setSDA(BSP_I2C_SDA_PIN);
+  WireBattery.setSCL(BSP_I2C_SCL_PIN);
+  WireBattery.begin();
+  //WireBattery.begin(BSP_I2C_NUM,BSP_I2C_SDA_PIN,BSP_I2C_SCL_PIN);
+
   //if (set_sys_clock_khz(266000, true)) {
   //      // Clock configured successfully
   //}
@@ -474,7 +480,7 @@ void setup()
   bsp_i2c_init();
 
   bsp_buzzer_init();
-  bsp_buzzer_enable(true);
+  //bsp_buzzer_enable(true);
 
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();

@@ -55,8 +55,7 @@
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-#include "WireRP2350.h"
-#define WireBattery WireRP2350
+#define WireBattery Wire1
 #endif
 
 const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};

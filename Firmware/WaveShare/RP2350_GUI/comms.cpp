@@ -29,11 +29,7 @@ extern USBCDC USBSerial;
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
-#ifdef ARDUINO_ARCH_RP2040
-extern TwoWireRP2350 WireBattery;
-#else
 extern TwoWire WireBattery;
-#endif
 
 extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
 
