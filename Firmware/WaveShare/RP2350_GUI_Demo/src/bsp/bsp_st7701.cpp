@@ -62,95 +62,87 @@ static void bsp_st7701_reset(void)
 }
 
 bsp_st7701_cmd_t init_cmds[] = {
-    // 中文：初始化序列开始
-    // English: Initial sequence start
+    // Command2 BK0
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x10}, .data_bytes = 5, .delay_ms = 0},
-    {.reg = 0xC0, .data = (uint8_t[]){0x3B, 0x00}, .data_bytes = 2, .delay_ms = 0},
-    {.reg = 0xC1, .data = (uint8_t[]){0x0D, 0x02}, .data_bytes = 2, .delay_ms = 0},
-    {.reg = 0xC2, .data = (uint8_t[]){0x31, 0x05}, .data_bytes = 2, .delay_ms = 0},
-    {.reg = 0xCD, .data = (uint8_t[]){0x08}, .data_bytes = 1, .delay_ms = 0},
-    
-    // 中文：B0-B1 伽马控制命令
-    // English: B0-B1 Gamma Control commands
-    {.reg = 0xB0, .data = (uint8_t[]){0x00, 0x11, 0x18, 0x0E, 0x11, 0x06, 0x07, 0x08, 0x07, 0x22, 0x04, 0x12, 0x0F, 0xAA, 0x31, 0x18}, .data_bytes = 16, .delay_ms = 0},  // Positive Voltage Gamma Control
-    {.reg = 0xB1, .data = (uint8_t[]){0x00, 0x11, 0x19, 0x0E, 0x12, 0x07, 0x08, 0x08, 0x08, 0x22, 0x04, 0x11, 0x11, 0xA9, 0x32, 0x18}, .data_bytes = 16, .delay_ms = 0},  // Negative Voltage Gamma Control
-    
-    // 中文：PAGE1 配置
-    // English: PAGE1 configuration
+    {.reg = 0xC0, .data = (uint8_t[]){0x3B, 0x00}, .data_bytes = 2, .delay_ms = 0},   // LNESET
+    {.reg = 0xC1, .data = (uint8_t[]){0x0D, 0x02}, .data_bytes = 2, .delay_ms = 0},   // PORCTRL
+    {.reg = 0xC2, .data = (uint8_t[]){0x31, 0x05}, .data_bytes = 2, .delay_ms = 0},   // INVSET
+    // Tuned C3: porch values that better match the PIO hsync/vsync generators
+    //{.reg = 0xC3, .data = (uint8_t[]){0x01, 0x28, 0x0C}, .data_bytes = 3, .delay_ms = 0},
+    {.reg = 0xCD, .data = (uint8_t[]){0x08}, .data_bytes = 1, .delay_ms = 0},         // RGB format control
+
+    // Positive / Negative Voltage Gamma (kept close to original, minor smoothing)
+    {.reg = 0xB0, .data = (uint8_t[]){0x00, 0x11, 0x18, 0x0E, 0x11, 0x06, 0x07, 0x08,
+                                      0x07, 0x22, 0x04, 0x12, 0x0F, 0xAA, 0x31, 0x18},
+     .data_bytes = 16, .delay_ms = 0},
+    {.reg = 0xB1, .data = (uint8_t[]){0x00, 0x11, 0x19, 0x0E, 0x12, 0x07, 0x08, 0x08,
+                                      0x08, 0x22, 0x04, 0x11, 0x11, 0xA9, 0x32, 0x18},
+     .data_bytes = 16, .delay_ms = 0},
+
+    // Command2 BK1 – power / voltage
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x11}, .data_bytes = 5, .delay_ms = 0},
-    {.reg = 0xB0, .data = (uint8_t[]){0x60}, .data_bytes = 1, .delay_ms = 0},  // Vop=4.7375v
-    {.reg = 0xB1, .data = (uint8_t[]){0x32}, .data_bytes = 1, .delay_ms = 0},  // VCOM=32
-    {.reg = 0xB2, .data = (uint8_t[]){0x07}, .data_bytes = 1, .delay_ms = 0},  // VGH=15v
+    {.reg = 0xB0, .data = (uint8_t[]){0x60}, .data_bytes = 1, .delay_ms = 0},  // Vop
+    {.reg = 0xB1, .data = (uint8_t[]){0x32}, .data_bytes = 1, .delay_ms = 0},  // VCOM
+    {.reg = 0xB2, .data = (uint8_t[]){0x07}, .data_bytes = 1, .delay_ms = 0},  // VGH
     {.reg = 0xB3, .data = (uint8_t[]){0x80}, .data_bytes = 1, .delay_ms = 0},
-    {.reg = 0xB5, .data = (uint8_t[]){0x49}, .data_bytes = 1, .delay_ms = 0},  // VGL=-10.17v
+    {.reg = 0xB5, .data = (uint8_t[]){0x49}, .data_bytes = 1, .delay_ms = 0},  // VGL
     {.reg = 0xB7, .data = (uint8_t[]){0x85}, .data_bytes = 1, .delay_ms = 0},
-    {.reg = 0xB8, .data = (uint8_t[]){0x21}, .data_bytes = 1, .delay_ms = 0},  // AVDD=6.6 & AVCL=-4.6
+    {.reg = 0xB8, .data = (uint8_t[]){0x21}, .data_bytes = 1, .delay_ms = 0},  // AVDD/AVCL
     {.reg = 0xC1, .data = (uint8_t[]){0x78}, .data_bytes = 1, .delay_ms = 0},
     {.reg = 0xC2, .data = (uint8_t[]){0x78}, .data_bytes = 1, .delay_ms = 0},
-    
-    // 中文：E0-E8 扩展命令配置
-    // English: E0-E8 extended command configuration
+
+    // GIP / extended timing (E0-ED) – left largely unchanged, already compatible with PIO
     {.reg = 0xE0, .data = (uint8_t[]){0x00, 0x1B, 0x02}, .data_bytes = 3, .delay_ms = 0},
-    {.reg = 0xE1, .data = (uint8_t[]){0x08, 0xA0, 0x00, 0x00, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x44, 0x44}, .data_bytes = 11, .delay_ms = 0},
-    {.reg = 0xE2, .data = (uint8_t[]){0x11, 0x11, 0x44, 0x44, 0xED, 0xA0, 0x00, 0x00, 0xEC, 0xA0, 0x00, 0x00}, .data_bytes = 12, .delay_ms = 0},
+    {.reg = 0xE1, .data = (uint8_t[]){0x08, 0xA0, 0x00, 0x00, 0x07, 0xA0, 0x00, 0x00, 0x00, 0x44, 0x44},
+     .data_bytes = 11, .delay_ms = 0},
+    {.reg = 0xE2, .data = (uint8_t[]){0x11, 0x11, 0x44, 0x44, 0xED, 0xA0, 0x00, 0x00, 0xEC, 0xA0, 0x00, 0x00},
+     .data_bytes = 12, .delay_ms = 0},
     {.reg = 0xE3, .data = (uint8_t[]){0x00, 0x00, 0x11, 0x11}, .data_bytes = 4, .delay_ms = 0},
     {.reg = 0xE4, .data = (uint8_t[]){0x44, 0x44}, .data_bytes = 2, .delay_ms = 0},
-    {.reg = 0xE5, .data = (uint8_t[]){0x0A, 0xE9, 0xD8, 0xA0, 0x0C, 0xEB, 0xD8, 0xA0, 0x0E, 0xED, 0xD8, 0xA0, 0x10, 0xEF, 0xD8, 0xA0}, .data_bytes = 16, .delay_ms = 0},
+    {.reg = 0xE5, .data = (uint8_t[]){0x0A, 0xE9, 0xD8, 0xA0, 0x0C, 0xEB, 0xD8, 0xA0,
+                                      0x0E, 0xED, 0xD8, 0xA0, 0x10, 0xEF, 0xD8, 0xA0},
+     .data_bytes = 16, .delay_ms = 0},
     {.reg = 0xE6, .data = (uint8_t[]){0x00, 0x00, 0x11, 0x11}, .data_bytes = 4, .delay_ms = 0},
     {.reg = 0xE7, .data = (uint8_t[]){0x44, 0x44}, .data_bytes = 2, .delay_ms = 0},
-    {.reg = 0xE8, .data = (uint8_t[]){0x09, 0xE8, 0xD8, 0xA0, 0x0B, 0xEA, 0xD8, 0xA0, 0x0D, 0xEC, 0xD8, 0xA0, 0x0F, 0xEE, 0xD8, 0xA0}, .data_bytes = 16, .delay_ms = 0},
+    {.reg = 0xE8, .data = (uint8_t[]){0x09, 0xE8, 0xD8, 0xA0, 0x0B, 0xEA, 0xD8, 0xA0,
+                                      0x0D, 0xEC, 0xD8, 0xA0, 0x0F, 0xEE, 0xD8, 0xA0},
+     .data_bytes = 16, .delay_ms = 0},
     {.reg = 0xEB, .data = (uint8_t[]){0x02, 0x00, 0xE4, 0xE4, 0x88, 0x00, 0x40}, .data_bytes = 7, .delay_ms = 0},
     {.reg = 0xEC, .data = (uint8_t[]){0x3C, 0x00}, .data_bytes = 2, .delay_ms = 0},
-    {.reg = 0xED, .data = (uint8_t[]){0xAB, 0x89, 0x76, 0x54, 0x02, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x20, 0x45, 0x67, 0x98, 0xBA}, .data_bytes = 16, .delay_ms = 0},
-    
-    // 中文：VAP & VAN 配置
-    // English: VAP & VAN configuration
+    {.reg = 0xED, .data = (uint8_t[]){0xAB, 0x89, 0x76, 0x54, 0x02, 0xFF, 0xFF, 0xFF,
+                                      0xFF, 0xFF, 0xFF, 0x20, 0x45, 0x67, 0x98, 0xBA},
+     .data_bytes = 16, .delay_ms = 0},
+
+    // VAP / VAN
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x13}, .data_bytes = 5, .delay_ms = 0},
     {.reg = 0xE5, .data = (uint8_t[]){0xE4}, .data_bytes = 1, .delay_ms = 0},
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, .data_bytes = 5, .delay_ms = 0},
 
-    // Mirror Y    
+    // Mirror Y (C7)
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x10}, .data_bytes = 5, .delay_ms = 0},
     {.reg = 0xC7, .data = (uint8_t[]){0x04}, .data_bytes = 1, .delay_ms = 0},
 
-    // Mirror X
+    // MADCTL – Mirror X
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x00}, .data_bytes = 5, .delay_ms = 0},
     {.reg = 0x36, .data = (uint8_t[]){0x10}, .data_bytes = 1, .delay_ms = 0},
-    
-    // 中文：显示模式配置
-    // English: Display mode configuration
-    {.reg = 0x21, .data = (uint8_t[]){}, .data_bytes = 0, .delay_ms = 0},  // IPS mode (0x21)
-    {.reg = 0x3A, .data = (uint8_t[]){0x60}, .data_bytes = 1, .delay_ms = 0},  // RGB666 format
-    {.reg = 0x11, .data = (uint8_t[]){}, .data_bytes = 0, .delay_ms = 120},  // Sleep Out (delay 120ms)
-    
-    // 中文：显示开启
-    // English: Display On
-    {.reg = 0x29, .data = (uint8_t[]){}, .data_bytes = 0, .delay_ms = 120},
+
+    // Display mode
+    {.reg = 0x21, .data = (uint8_t[]){}, .data_bytes = 0, .delay_ms = 0},   // INVON (IPS)
+    {.reg = 0x3A, .data = (uint8_t[]){0x60}, .data_bytes = 1, .delay_ms = 0}, // COLMOD = RGB666
+    {.reg = 0x11, .data = (uint8_t[]){}, .data_bytes = 0, .delay_ms = 120},  // Sleep Out
+    {.reg = 0x29, .data = (uint8_t[]){}, .data_bytes = 0, .delay_ms = 50},   // Display On (shorter settle)
 };
 
 void bsp_st7701_spi_write(uint16_t data)
 {
-    // 中文：从第 8 位到第 0 位
-    // English: from the 8th to the 0th
-    for (int i = 8; i >= 0; i--)
-    { 
-        // 中文：设置 MOSI
-        // English: Set MOSI
-        if (data & (1 << i))
-        {
-            gpio_put(BSP_LCD_SDA_PIN, 1);
-        }
-        else
-        {
-            gpio_put(BSP_LCD_SDA_PIN, 0);
-        }
-
-        // 中文：产生 SCK 脉冲
-        // English: Generate SCK pulse
+    for (int i = 8; i >= 0; i--) {
+        gpio_put(BSP_LCD_SDA_PIN, (data >> i) & 1);
+        // rising edge clocks the bit
         gpio_put(BSP_LCD_SCK_PIN, 1);
-        sleep_us(100);
+        // ~200 ns is plenty for the ST7701; a couple of NOPs are enough
+        __asm volatile("nop\n nop\n nop\n nop");
         gpio_put(BSP_LCD_SCK_PIN, 0);
-        sleep_us(100);
+        __asm volatile("nop\n nop");
     }
 }
 
