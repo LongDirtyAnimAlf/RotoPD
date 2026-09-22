@@ -10,9 +10,6 @@
 #include "./src/bsp/bsp_st7701.h"
 #include "./src/bsp/bsp_buzzer.h"
 
-#include "./src/lvgl/lv_port/lv_port_disp.h"
-#include "./src/lvgl/lv_port/lv_port_indev.h"
-
 #include "ui.h"
 
 //#include "touch.h"
@@ -47,6 +44,7 @@ static Ticker datagetticker;
 static volatile bool GetData = false;
 
 #ifdef STANDALONE
+GT911_Lite tp; // touchscreen through TwoWire
 static Ticker datacollectticker;
 static Ticker datastartticker;
 static volatile bool GetBatteryData = false;
@@ -64,30 +62,29 @@ static uint32_t my_tick_get_cb(void) {
   return millis();
 }
 
+#ifdef STANDALONE
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-  if (touch_has_signal())
-  {
-    if (touch_touched())
-    {
-      data->state = LV_INDEV_STATE_PRESSED;
+  bool changed = tp.read();  
 
-      /*Set the coordinates*/
-      data->point.x = touch_last_x;
-      data->point.y = touch_last_y;
-      Serial.println(touch_last_x);
-      Serial.println("Touched");
-    }
-    else if (touch_released())
-    {
-      data->state = LV_INDEV_STATE_RELEASED;
-    }
+  if (changed)
+  {
+    data->point.x = tp.last_x;
+    data->point.y = tp.last_y;
+  }
+
+  //if (tp.isTouched)
+  if (tp.down)
+  {
+    data->state = LV_INDEV_STATE_PRESSED;
+    //Set the coordinates
   }
   else
   {
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
+#endif
 
 static void main_event_handler(lv_event_t * e)
 {
@@ -477,7 +474,7 @@ void setup()
   while (!Serial && cnt--) {delay(1);}
   Serial.println("Starting RP2350 init.");
 
-  bsp_i2c_init();
+  //bsp_i2c_init();
 
   bsp_buzzer_init();
   //bsp_buzzer_enable(true);
@@ -548,7 +545,12 @@ void setup()
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
-  touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
+
+  //tp.begin(&Wire1);
+  tp.begin(&Wire1,10,480,480);
+  tp.setRotate180(true,480,480);
+
+  //touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
