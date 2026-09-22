@@ -8,7 +8,7 @@
 
 #include <lvgl.h>
 #include "./src/lvgl/lv_port/lv_port_disp.h"
-//#include "./src/lvgl/lv_port/lv_port_indev.h"
+#include "./src/bsp/bsp_i2c.h"
 #include "./src/touch/gt911_lite.h"
 
 GT911_Lite tp;
@@ -22,24 +22,23 @@ static uint32_t my_tick_get_cb(void) {
 
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-  if (tp.read())
-  {
+  bool changed = tp.read();  
 
-    if (tp.isTouched)
-    {
-      data->state = LV_INDEV_STATE_PRESSED;
-      //Set the coordinates
-      data->point.x = tp.last_x;
-      data->point.y = tp.last_y;
-    }
-    else
-    {
-      data->state = LV_INDEV_STATE_RELEASED;
-    }
+  if (changed)
+  {
+    data->point.x = tp.last_x;
+    data->point.y = tp.last_y;
+  }
+
+  //if (tp.isTouched)
+  if (tp.down)
+  {
+    data->state = LV_INDEV_STATE_PRESSED;
+    //Set the coordinates
   }
   else
   {
-    data->state = LV_INDEV_STATE_RELEASED;    
+    data->state = LV_INDEV_STATE_RELEASED;
   }
 }
 
@@ -74,8 +73,10 @@ void setup() {
   Serial.printf("Free PSRAM heap: %d\n", rp2040.getFreePSRAMHeap());
 
   Serial.println("RP2350. Wire1 init.");
-  Wire1.setSDA(6);
-  Wire1.setSCL(7);
+  Wire1.setSDA(BSP_I2C_SDA_PIN);
+  Wire1.setSCL(BSP_I2C_SCL_PIN);
+  //Wire1.setSDA(6);
+  //Wire1.setSCL(7);
   Wire1.begin();
 
   Serial.println("RP2350. LVGL init.");

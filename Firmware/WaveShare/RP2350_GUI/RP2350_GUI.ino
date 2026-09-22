@@ -12,7 +12,6 @@
 
 #include "ui.h"
 
-//#include "touch.h"
 //#include <WiFi.h>
 
 #include "extras.h"
@@ -474,8 +473,6 @@ void setup()
   while (!Serial && cnt--) {delay(1);}
   Serial.println("Starting RP2350 init.");
 
-  //bsp_i2c_init();
-
   bsp_buzzer_init();
   //bsp_buzzer_enable(true);
 
@@ -550,7 +547,6 @@ void setup()
   tp.begin(&Wire1,10,480,480);
   tp.setRotate180(true,480,480);
 
-  //touch_init(HOR_RES, VER_RES, 0); // rotation will be handled by lvgl
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
@@ -564,28 +560,28 @@ void setup()
 
   #ifdef ARDUINO_ARCH_RP2040
   
-  Info_Add_Fmt("CPU Frequency: %d MHz",rp2040.f_cpu() / 1000000);
+  Info_Add_Fmt("CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
 
   Info_Add("GUI. RP2350 SRAM memory info.");
   // Internal SRAM heap
-  Info_Add_Fmt("SRAM free  : %u kb", (rp2040.getFreeHeap() / 1000));
-  Info_Add_Fmt("SRAM buffer: %u kb", (lv_port_get_buffer_heap_usage() / 1000));
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u kb", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1000) );
+  Info_Add_Fmt("SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
+  Info_Add_Fmt("SRAM buffer: %u KB.", (lv_port_get_buffer_heap_usage() / 1024));
+  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB.", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1024) );
 
   lv_mem_monitor_t mon;
   lv_mem_monitor(&mon);
-  Info_Add_Fmt("LVGL heap after init: used %u / total %u, max used %u",
-       mon.total_size - mon.free_size,
-       mon.total_size,
-       mon.max_used);
-
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u kb", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1000) );
+  Info_Add_Fmt("LVGL heap usage. Used: %u KB. Free: %u KB. Biggest free: %u KB.",
+       (mon.total_size - mon.free_size) / 1024,
+       mon.free_size / 1024,
+       mon.free_biggest_size / 1024);
+  Info_Add_Fmt("LVGL heap fragmentation: %u%%.", mon.frag_pct);
+  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1024) );
 
   Info_Add("GUI. RP2350 PSRAM memory info.");
   // PSRAM heap
-  Info_Add_Fmt("PSRAM free  : %u bytes", rp2040.getFreePSRAMHeap());
-  Info_Add_Fmt("PSRAM total : %u bytes", rp2040.getTotalPSRAMHeap());
-  Info_Add_Fmt("PSRAM size  : %u bytes", rp2040.getPSRAMSize());
+  Info_Add_Fmt("PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
+  Info_Add_Fmt("PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
+  Info_Add_Fmt("PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
 
   /*
   for (int i = 0; i < 16; i++) {
