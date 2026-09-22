@@ -5,26 +5,24 @@
 #include "./../../bsp/pio_rgb.h"
 #include "./../../bsp/bsp_st7701.h"
 
-#define DOUBLE_BUFFER
+#define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
+
 #define RENDER_MODE_DIRECT
 #define USE_PSRAM
 
-#define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
-
-#ifndef USE_PSRAM
-// No room in SRAM for double buffers
-#undef DOUBLE_BUFFER
+#ifdef USE_PSRAM
+// Always use double buffering: we have enough room for that
+#define DOUBLE_BUFFER
+#define PINGPONG_BUF_LINES  20 // number of display lines in each transfer buffer in SRAM
+#define LVGL_DRAW_BUF_LINES  40 // number of display lines in each draw buffer in partial mode
+#else
 // No room in SRAM for pingpong buffers
 #define PINGPONG_BUF_LINES  0  // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  8 // number of display lines in each draw buffer in partial mode
-#else
-#define PINGPONG_BUF_LINES  20 // number of display lines in each transfer buffer in SRAM
-#define LVGL_DRAW_BUF_LINES  40 // number of display lines in each draw buffer in partial mode
 #endif
 
 static uint32_t usedheapbytes = 0;
 
-// Prefer non-static pointers (or clear static carefully)
 static uint8_t *buf_data_1 = NULL;
 static uint8_t *buf_data_2 = NULL;
 

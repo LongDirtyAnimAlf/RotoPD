@@ -2,11 +2,16 @@
 
 #include <Arduino.h>
 
+#include "Wire.h"
+
 //#include "Adafruit_TinyUSB.h"
 
 #include <lvgl.h>
 #include "./src/lvgl/lv_port/lv_port_disp.h"
-#include "./src/lvgl/lv_port/lv_port_indev.h"
+//#include "./src/lvgl/lv_port/lv_port_indev.h"
+#include "./src/touch/gt911_lite.h"
+
+GT911_Lite tp;
 
 //#define Serial USBSerial
 
@@ -17,23 +22,24 @@ static uint32_t my_tick_get_cb(void) {
 
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-  if (touch_has_signal())
+  if (tp.read())
   {
-    if (touch_touched())
+
+    if (tp.isTouched)
     {
       data->state = LV_INDEV_STATE_PRESSED;
-      /*Set the coordinates*/
-      data->point.x = touch_last_x;
-      data->point.y = touch_last_y;
+      //Set the coordinates
+      data->point.x = tp.last_x;
+      data->point.y = tp.last_y;
     }
-    else if (touch_released())
+    else
     {
       data->state = LV_INDEV_STATE_RELEASED;
     }
   }
   else
   {
-    data->state = LV_INDEV_STATE_RELEASED;
+    data->state = LV_INDEV_STATE_RELEASED;    
   }
 }
 
@@ -67,13 +73,22 @@ void setup() {
   Serial.printf("PSRAM Size reported by core: %d\n", rp2040.getPSRAMSize());
   Serial.printf("Free PSRAM heap: %d\n", rp2040.getFreePSRAMHeap());
 
+  Serial.println("RP2350. Wire1 init.");
+  Wire1.setSDA(6);
+  Wire1.setSCL(7);
+  Wire1.begin();
+
   Serial.println("RP2350. LVGL init.");
   lv_init();
   lv_port_disp_init();
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
 
   Serial.println("RP2350. Touch init.");
-  touch_init(480, 480, 0); // rotation will be handled by lvgl
+
+  //tp.begin(&Wire1);
+  tp.begin(&Wire1,10,480,480);
+  tp.setRotate180(true,480,480);
+
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); //Touchpad should have POINTER type
   lv_indev_set_read_cb(indev, my_touchpad_read);
