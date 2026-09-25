@@ -16,6 +16,7 @@
 #include "./src/bsp/bsp_i2c.h"
 #include "./src/bsp/bsp_st7701.h"
 #include "./src/bsp/bsp_buzzer.h"
+#include "./src/bsp/bsp_xl2515.h"
 
 #include "ui.h"
 
@@ -536,11 +537,26 @@ void setup()
   byte index;
   char myHex[10] = "";
 
-  //vreg_set_voltage(VREG_VOLTAGE_1_20);   // or 1.25 / 1.30
-  //sleep_ms(5);
+  //delay(250);
+
+
+  // 1. STEP THE VOLTAGE UP INCREMENTALLY
+  // Stepping avoids sudden current spikes that trip brownout resets.
+  //vreg_set_voltage(VREG_VOLTAGE_1_20);
+  //delay(20);
+  //vreg_set_voltage(VREG_VOLTAGE_1_25);
+  //delay(20);
+  //vreg_set_voltage(VREG_VOLTAGE_1_30); // Max recommended safe internal voltage
+  //delay(20); // Allow LDO rail stabilization
+
+  //set_sys_clock_khz(400000, false);  
+  //delay(10);
 
   set_sys_clock_khz(266000, true);  
-  //sleep_ms(5);
+  delay(10);
+
+  set_psram_timing_auto();
+  delay(10);
 
   WireBattery.setSDA(BSP_I2C_SDA_PIN);
   WireBattery.setSCL(BSP_I2C_SCL_PIN);
@@ -617,6 +633,9 @@ void setup()
   else
     Info_Add("GUI. RotoPD not connected or not found.");
 
+  Info_Add("GUI. Setting up CAN.");
+  bsp_xl2515_init(KBPS100);
+
   Info_Add("GUI. Init timers.");      
 
   #ifdef STANDALONE
@@ -679,8 +698,6 @@ void setup()
 
   bsp_buzzer_enable(false);
 
-  set_psram_timing_auto();
-
   Info_Add("GUI. Init RP2350 ready.");
 }
 
@@ -703,6 +720,8 @@ void loop()
   WORD_VAL wv;
   DWORD_VAL dwv;
 
+  static uint32_t count = 0;
+
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
 
@@ -711,6 +730,22 @@ void loop()
     startTime = millis();
 
     Serial.println("Loop");
+
+    //bsp_xl2515_init(KBPS100);
+
+    uint32_t send_id = 0x123;
+    uint32_t rec_id = 0;
+    uint8_t len;
+    uint8_t data[8] = {0x03, 0x11, 0x22, 0x33, 0x00, 0x00, 0x00, 0x00};
+
+    if (bsp_xl2515_recv(&rec_id, data, &len))
+    {
+        Info_Add_Fmt("recv id: 0x%x, len: %d  data: ", rec_id, len);
+        Info_Add_Fmt("0x%2x ", data[0]);
+    }
+
+    //bsp_xl2515_send(send_id, data, 4);
+    //sprintf((char *)tx_msg.data, "C0:%04d", count++);
 
     PDOCount = taskRotoPDInit();
 
