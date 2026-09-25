@@ -6,7 +6,7 @@
 #include "./../../bsp/bsp_st7701.h"
 
 #define DOUBLE_BUFFER
-#define RENDER_MODE_DIRECT
+//#define RENDER_MODE_DIRECT
 #define USE_PSRAM
 
 #define MY_DISP_HOR_RES (480)
@@ -14,12 +14,13 @@
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
 
 #ifndef USE_PSRAM
-#undef DOUBLE_BUFFER
+#undef DOUBLE_BUFFER // No room for double buffer in 512KB SRAM
 #define PINGPONG_BUF_LINES  4  // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #else
+#define RENDER_MODE_DIRECT
 #define PINGPONG_BUF_LINES  20 // number of display lines in each transfer buffer in SRAM
-#define LVGL_DRAW_BUF_LINES  40 // number of display lines in each draw buffer in partial mode
+#define LVGL_DRAW_BUF_LINES  0 // number of display lines in each draw buffer in partial mode
 #endif
 
 static uint32_t usedheapbytes = 0;
@@ -32,7 +33,7 @@ static bsp_display_interface_t *display_if = NULL;
 
 static lv_display_t *disp_drv = NULL;                         /*Descriptor of a display driver*/
 
-void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
+void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
 {
     #ifndef RENDER_MODE_DIRECT
 
@@ -66,7 +67,7 @@ void disp_flush(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
     }
 }
 
-void disp_flush_done(void)
+void __not_in_flash_func(disp_flush_done)(void)
 {
     lv_display_flush_ready(disp_drv);
 }
@@ -112,10 +113,10 @@ void lv_screen_init(uint16_t W, uint16_t H)
 
     rgb_info.mode.enabled_psram = false;
 
-    rgb_info.framebuffer1 = (uint16_t *)malloc(W * H * BYTE_PER_PIXEL);
+    rgb_info.framebuffer1 = (uint16_t *)memalign(sizeof(void*), W * H * BYTE_PER_PIXEL);
     usedheapbytes += (W * H * BYTE_PER_PIXEL);
     #ifdef DOUBLE_BUFFER
-    rgb_info.framebuffer2 = (uint16_t *)malloc(W * H * BYTE_PER_PIXEL);
+    rgb_info.framebuffer2 = (uint16_t *)memalign(sizeof(void*), W * H * BYTE_PER_PIXEL);
     usedheapbytes += (W * H * BYTE_PER_PIXEL);
     #else
     rgb_info.framebuffer2 = NULL;
@@ -130,8 +131,8 @@ void lv_screen_init(uint16_t W, uint16_t H)
 
     if (rgb_info.mode.enabled_transfer)
     {
-        rgb_info.transfer_buffer1 = (uint16_t *)malloc(rgb_info.transfer_size * BYTE_PER_PIXEL);
-        rgb_info.transfer_buffer2 = (uint16_t *)malloc(rgb_info.transfer_size * BYTE_PER_PIXEL);
+        rgb_info.transfer_buffer1 = (uint16_t *)memalign(sizeof(void*), rgb_info.transfer_size * BYTE_PER_PIXEL);
+        rgb_info.transfer_buffer2 = (uint16_t *)memalign(sizeof(void*), rgb_info.transfer_size * BYTE_PER_PIXEL);
         usedheapbytes += (rgb_info.transfer_size * 2 * BYTE_PER_PIXEL);
     }    
     else
@@ -154,14 +155,14 @@ void lv_screen_init(uint16_t W, uint16_t H)
     #ifdef DOUBLE_BUFFER
     // Buffers are swapped, so painting starts on free buffer
     // Nice trick ... ;-)
-    buf_data_2 = (uint8_t *)rgb_info.framebuffer1;
     buf_data_1 = (uint8_t *)rgb_info.framebuffer2;
+    buf_data_2 = (uint8_t *)rgb_info.framebuffer1;
     #else
     buf_data_1 = (uint8_t *)rgb_info.framebuffer1;
     #endif
     #else
     // Only single buffer needed
-    buf_data_1 = (uint8_t *)malloc(W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
+    buf_data_1 = (uint8_t *)memalign(sizeof(void*), W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     usedheapbytes += (W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     #endif
 

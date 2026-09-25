@@ -1,9 +1,16 @@
 #define RP2350_PSRAM_CS 47
 #define LVGL_TICK_PERIOD_MS 5
 
-#include "waveshare_rp2350_touch_lcd_4.h"
+//#include "waveshare_rp2350_touch_lcd_4.h"
 
 #include <Arduino.h>
+
+#include "hardware/vreg.h"
+#include "hardware/powman.h"
+#include "hardware/structs/qmi.h"
+#include "hardware/sync.h"
+#include "hardware/clocks.h"
+
 #include <lvgl.h>
 #include "pico/stdlib.h"
 #include "./src/bsp/bsp_i2c.h"
@@ -55,6 +62,76 @@ void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
 
 dword GetMaxVData(PRunDatas RDS);
+
+// ---------------------------------------------------------------
+// Automatic PSRAM (QMI M1) timing calculator for RP2350
+// Tuned for common APS6404 / similar 133–166 MHz PSRAM chips
+// ---------------------------------------------------------------
+void set_psram_timing_auto()
+{
+    // Maximum safe SCK frequency for most common PSRAM chips (Hz)
+    const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
+
+    // Typical PSRAM timing requirements (from datasheets)
+    const uint32_t MAX_SELECT_NS   = 8000;   // max CS low time ≈ 8 µs
+    const uint32_t MIN_DESELECT_NS = 50;     // min CS high time ≈ 50 ns
+
+    uint32_t sys_hz = clock_get_hz(clk_sys);
+
+    // 1. Clock divider so that SCK ≤ MAX_PSRAM_SCK_HZ
+    uint32_t clkdiv = (sys_hz + MAX_PSRAM_SCK_HZ - 1) / MAX_PSRAM_SCK_HZ;
+    if (clkdiv < 1) clkdiv = 1;
+    if (clkdiv > 255) clkdiv = 255;          // hardware limit
+
+    // 2. RXDELAY – needs to increase at higher SCK frequencies
+    //    Rule of thumb used by many successful ports:
+    uint32_t rxdelay = 1;
+    if (sys_hz / clkdiv > 100000000) rxdelay = 2;
+    if (sys_hz / clkdiv > 130000000) rxdelay = 3;
+    if (rxdelay > 7) rxdelay = 7;
+
+    // 3. MAX_SELECT (in units of 64 system clocks)
+    //    Keep CS assertion under ~8 µs
+    uint32_t cycles_per_us = sys_hz / 1000000;
+    uint32_t max_select = (MAX_SELECT_NS * cycles_per_us) / (64 * 1000);
+    if (max_select > 63) max_select = 63;    // 6-bit field
+    if (max_select < 1)  max_select = 1;
+
+    // 4. MIN_DESELECT (extra system clocks after CS deassert)
+    uint32_t min_deselect = (MIN_DESELECT_NS * cycles_per_us + 999) / 1000;
+    // subtract the inherent half-SCK already provided by the hardware
+    if (min_deselect > (clkdiv + 1) / 2)
+        min_deselect -= (clkdiv + 1) / 2;
+    else
+        min_deselect = 0;
+    if (min_deselect > 31) min_deselect = 31; // 5-bit field
+
+    // 5. Other fixed / recommended values
+    const uint32_t cooldown    = 1;   // short cooldown
+    const uint32_t pagebreak   = 2;   // 1024-byte page break (value 2)
+    const uint32_t select_hold = 1;   // 1 extra hold cycle (good default)
+    const uint32_t select_setup = 0;
+
+    // Build the register value
+    uint32_t timing =
+        (cooldown      << 30) |
+        (pagebreak     << 28) |
+        (select_setup  << 25) |
+        (select_hold   << 23) |
+        (max_select    << 17) |
+        (min_deselect  << 12) |
+        (rxdelay       <<  8) |
+        (clkdiv        <<  0);
+
+    // Write it safely
+    uint32_t irq = save_and_disable_interrupts();
+    qmi_hw->m[1].timing = timing;
+    restore_interrupts(irq);
+
+    // Optional debug print
+    // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
+    //               timing, clkdiv, rxdelay, max_select, min_deselect);
+}
 
 // Callback that returns elapsed ms since boot
 static uint32_t my_tick_get_cb(void) {
@@ -459,6 +536,12 @@ void setup()
   byte index;
   char myHex[10] = "";
 
+  //vreg_set_voltage(VREG_VOLTAGE_1_20);   // or 1.25 / 1.30
+  //sleep_ms(5);
+
+  set_sys_clock_khz(266000, true);  
+  //sleep_ms(5);
+
   WireBattery.setSDA(BSP_I2C_SDA_PIN);
   WireBattery.setSCL(BSP_I2C_SCL_PIN);
   WireBattery.begin();
@@ -591,10 +674,12 @@ void setup()
   gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
   */
-
+  
   #endif
 
   bsp_buzzer_enable(false);
+
+  set_psram_timing_auto();
 
   Info_Add("GUI. Init RP2350 ready.");
 }
