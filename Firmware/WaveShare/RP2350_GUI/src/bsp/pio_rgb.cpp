@@ -358,7 +358,7 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
     // 中文：初始化pio 程序
     // English: Initialize pio program
     hsync_program_init(RGB_SYNC_PIO, hsync_sm, hsync_offset, pin->hsync_pin, pio_freq);
-    vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, pio_freq);
+    vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, 1.0f);
     rgb_de_program_init(RGB_COLOR_DATA_PIO, rgb_de_sm, rgb_de_offset, pin->de_pin, 1.0f);
     rgb_program_init(RGB_COLOR_DATA_PIO, rgb_sm, rgb_offset, pin->data0_pin, 1.0f);
 

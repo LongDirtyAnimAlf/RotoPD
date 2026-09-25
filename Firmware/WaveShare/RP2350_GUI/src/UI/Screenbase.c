@@ -39,8 +39,8 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 
   obj = lv_button_create(nav);
   backbutton = obj;
-  lv_obj_align(obj, LV_ALIGN_RIGHT_MID, 0, 0);
   lv_obj_set_size(obj, lv_pct(25), LV_SIZE_CONTENT);
+  lv_obj_align(obj, LV_ALIGN_RIGHT_MID, -6, 0);
   lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL);
   lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);      
 
@@ -50,8 +50,8 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 
   obj = lv_button_create(nav);
   morebutton = obj;
-  lv_obj_align(obj, LV_ALIGN_LEFT_MID, 0, 0);
   lv_obj_set_size(obj, lv_pct(25), LV_SIZE_CONTENT);
+  lv_obj_align(obj, LV_ALIGN_LEFT_MID, 6, 0);
   lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, NULL); 
   //lv_obj_add_event_cb(obj, event, LV_EVENT_CLICKED, &btn_next_state); 
   lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_INDIGO,4), LV_PART_MAIN);      
