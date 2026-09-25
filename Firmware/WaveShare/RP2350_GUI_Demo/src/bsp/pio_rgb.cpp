@@ -5,6 +5,7 @@
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
+#include "hardware/structs/busctrl.h"
 
 #define RGB_SYNC_PIO pio1
 #define RGB_COLOR_DATA_PIO pio2
@@ -33,29 +34,37 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
         uint16_t *next_chunk = &g_pio_rgb_info->_framebuffer[
             g_pio_rgb_info->transfer_index * g_pio_rgb_info->transfer_size];
 
-        // Ping-pong between the two small SRAM bounce buffers
-        // ready_buffer  = already filled → start DMA from it
-        // fill_buffer   = we will fill it now for the *next* transfer
-        uint16_t *ready_buffer;
-        uint16_t *fill_buffer;
-
-        if (g_pio_rgb_info->transfer_index % 2 == 0)
+        if (g_pio_rgb_info->mode.enabled_psram) 
         {
-            ready_buffer = g_pio_rgb_info->transfer_buffer1;
-            fill_buffer  = g_pio_rgb_info->transfer_buffer2;
+            // Ping-pong between the two small SRAM bounce buffers
+            // ready_buffer  = already filled → start DMA from it
+            // fill_buffer   = we will fill it now for the *next* transfer
+            uint16_t *ready_buffer;
+            uint16_t *fill_buffer;
+
+            if (g_pio_rgb_info->transfer_index % 2 == 0)
+            {
+                ready_buffer = g_pio_rgb_info->transfer_buffer1;
+                fill_buffer  = g_pio_rgb_info->transfer_buffer2;
+            }
+            else
+            {
+                ready_buffer = g_pio_rgb_info->transfer_buffer2;
+                fill_buffer  = g_pio_rgb_info->transfer_buffer1;
+            }
+
+            // 1. Start DMA from the buffer that already contains valid data
+            //    (SRAM → never stalls the DMA engine)
+            dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
+
+            // 2. Copy next chunk from PSRAM → SRAM bounce buffer.
+            memcpy(fill_buffer, next_chunk,
+                    g_pio_rgb_info->transfer_size * sizeof(uint16_t));
         }
         else
         {
-            ready_buffer = g_pio_rgb_info->transfer_buffer2;
-            fill_buffer  = g_pio_rgb_info->transfer_buffer1;
+            dma_channel_set_read_addr(rgb_dma_chan, next_chunk, true);
         }
-
-        // 1. Start DMA from the buffer that already contains valid data
-        dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
-
-        // 2. While DMA is running, copy the next chunk into the other buffer
-        memcpy(fill_buffer, next_chunk,
-                g_pio_rgb_info->transfer_size * sizeof(uint16_t));
 
         // Full frame finished ?
         if ((g_pio_rgb_info->change_framebuffer_flag || (!g_pio_rgb_info->mode.double_buffer)) &&
@@ -75,6 +84,7 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
         }
     }
     else
+    //if (!g_pio_rgb_info->mode.enabled_psram)
     {
         // No chunked transfer – whole frame at once
         dma_channel_set_read_addr(rgb_dma_chan, g_pio_rgb_info->_framebuffer, true);
@@ -98,7 +108,7 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
 
 /**
  * @brief 切换帧缓冲区
- * Switching frame buffers
+ * Signal switching frame buffers request
  */
 void pio_rgb_change_framebuffer(void)
 {
@@ -109,8 +119,7 @@ void pio_rgb_change_framebuffer(void)
  * @brief 获取空闲的帧缓冲区
  * Get free frame buffer
  */
-
-uint16_t *pio_rgb_get_free_framebuffer(void)
+uint16_t * pio_rgb_get_free_framebuffer(void)
 {
     if (g_pio_rgb_info->mode.double_buffer)
     {
@@ -132,14 +141,7 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
 
     for (size_t i = 0; i < color_height; i++)
     {
-        memcpy(&freeframebuffer[(i + y1) * g_pio_rgb_info->width + x1], &color_p[i * color_width], color_width  * sizeof(uint16_t));    
-
-        /*
-        for (size_t j = 0; j < color_width; j++)
-        {
-            freeframebuffer[(i + y1) * g_pio_rgb_info->width + (j + x1)] = color_p[i * color_width + j];
-        }
-        */
+        memcpy(&freeframebuffer[(i + y1) * g_pio_rgb_info->width + x1], &color_p[i * color_width], color_width * sizeof(uint16_t));    
     }
 }
 
@@ -285,9 +287,13 @@ void pio_rgb_dma_init(pio_rgb_info_t *info)
     channel_config_set_read_increment(&c0, true);
     channel_config_set_write_increment(&c0, false);
     channel_config_set_dreq(&c0, pio_get_dreq(RGB_COLOR_DATA_PIO, rgb_sm, true)); // set for pio2 sm 0
-    // channel_config_set_chain_to(&c0, rgb_chan_1);
 
-    //bus_ctrl_hw->priority = BUSCTRL_PRIORITY_DMA_R_BITS | BUSCTRL_PRIORITY_DMA_W_BITS;
+    // 1. Channel-level high priority
+    channel_config_set_high_priority(&c0, true);
+
+    // 2. Bus-fabric high priority for DMA
+    busctrl_hw->priority = BUSCTRL_BUS_PRIORITY_DMA_R_BITS |
+                        BUSCTRL_BUS_PRIORITY_DMA_W_BITS;
 
     uint transfer_count = (info->mode.enabled_transfer) ? info->transfer_size : (info->width * info->height);
 
@@ -331,6 +337,9 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
     // English: Get the system clock
     float sys_clk = clock_get_hz(clk_sys);
     float pio_freq = sys_clk / ((float)(info->pclk_freq * 2));
+    //float pio_freq = sys_clk / ((float)(info->pclk_freq));
+
+    //float pio_freq = 12.0f;
 
     pio_set_gpio_base(RGB_SYNC_PIO, RGB_PIO_BASE_PIN);
     pio_set_gpio_base(RGB_COLOR_DATA_PIO, RGB_PIO_BASE_PIN);
@@ -349,7 +358,7 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
     // 中文：初始化pio 程序
     // English: Initialize pio program
     hsync_program_init(RGB_SYNC_PIO, hsync_sm, hsync_offset, pin->hsync_pin, pio_freq);
-    vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, 1.0f);
+    vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, pio_freq);
     rgb_de_program_init(RGB_COLOR_DATA_PIO, rgb_de_sm, rgb_de_offset, pin->de_pin, 1.0f);
     rgb_program_init(RGB_COLOR_DATA_PIO, rgb_sm, rgb_offset, pin->data0_pin, 1.0f);
 

@@ -64,11 +64,11 @@ static void bsp_st7701_reset(void)
 bsp_st7701_cmd_t init_cmds[] = {
     // Command2 BK0
     {.reg = 0xFF, .data = (uint8_t[]){0x77, 0x01, 0x00, 0x00, 0x10}, .data_bytes = 5, .delay_ms = 0},
-    {.reg = 0xC0, .data = (uint8_t[]){0x3B, 0x00}, .data_bytes = 2, .delay_ms = 0},   // LNESET
-    {.reg = 0xC1, .data = (uint8_t[]){0x0D, 0x02}, .data_bytes = 2, .delay_ms = 0},   // PORCTRL
-    {.reg = 0xC2, .data = (uint8_t[]){0x31, 0x05}, .data_bytes = 2, .delay_ms = 0},   // INVSET
+    {.reg = 0xC0, .data = (uint8_t[]){0x3B, 0x00}, .data_bytes = 2, .delay_ms = 0},   // LNESET   // (59 + 1) * 8 = 480 lines
+    {.reg = 0xC1, .data = (uint8_t[]){0x0C, 0x01}, .data_bytes = 2, .delay_ms = 0},   // PORCTRL  // Display porch settings: 12 VBP, 1 VFP
+    {.reg = 0xC2, .data = (uint8_t[]){0x32, 0x01}, .data_bytes = 2, .delay_ms = 0},   // INVSET
     // Tuned C3: porch values that better match the PIO hsync/vsync generators
-    //{.reg = 0xC3, .data = (uint8_t[]){0x01, 0x28, 0x0C}, .data_bytes = 3, .delay_ms = 0},
+    //{.reg = 0xC3, .data = (uint8_t[]){0x80, 0x2E, 0x0D}, .data_bytes = 3, .delay_ms = 0}, // HV mode, H and V back porch + sync
     {.reg = 0xCD, .data = (uint8_t[]){0x08}, .data_bytes = 1, .delay_ms = 0},         // RGB format control
 
     // Positive / Negative Voltage Gamma (kept close to original, minor smoothing)
