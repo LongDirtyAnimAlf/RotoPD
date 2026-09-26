@@ -16,7 +16,8 @@
 #include "./src/bsp/bsp_i2c.h"
 #include "./src/bsp/bsp_st7701.h"
 #include "./src/bsp/bsp_buzzer.h"
-#include "./src/bsp/bsp_xl2515.h"
+
+#include "./src/CAN/mcp2515.h"
 
 #include "ui.h"
 
@@ -40,6 +41,9 @@ char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
+
+struct can_frame canMsg1;
+MCP2515 mcp2515(10 * 1000 * 1000);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
@@ -634,7 +638,23 @@ void setup()
     Info_Add("GUI. RotoPD not connected or not found.");
 
   Info_Add("GUI. Setting up CAN.");
-  bsp_xl2515_init(KBPS100);
+  canMsg1.can_id  = 0x0F6;
+  canMsg1.can_dlc = 8;
+  canMsg1.data[0] = 0x8E;
+  canMsg1.data[1] = 0x87;
+  canMsg1.data[2] = 0x32;
+  canMsg1.data[3] = 0xFA;
+  canMsg1.data[4] = 0x26;
+  canMsg1.data[5] = 0x8E;
+  canMsg1.data[6] = 0xBE;
+  canMsg1.data[7] = 0x86;
+
+  mcp2515.begin();
+  mcp2515.reset();
+  mcp2515.setBitrate(CAN_100KBPS);
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+
+  //bsp_xl2515_init(KBPS100);
 
   Info_Add("GUI. Init timers.");      
 
@@ -738,14 +758,19 @@ void loop()
     uint8_t len;
     uint8_t data[8] = {0x03, 0x11, 0x22, 0x33, 0x00, 0x00, 0x00, 0x00};
 
+    /*
     if (bsp_xl2515_recv(&rec_id, data, &len))
     {
         Info_Add_Fmt("recv id: 0x%x, len: %d  data: ", rec_id, len);
         Info_Add_Fmt("0x%2x ", data[0]);
     }
-
-    //bsp_xl2515_send(send_id, data, 4);
+    unsigned char senddata[8] = {7, 'D', 'F', 'R', 'O', 'B', 'O', 'T'};
+    bsp_xl2515_send(send_id, senddata, 8);
     //sprintf((char *)tx_msg.data, "C0:%04d", count++);
+    */
+
+    mcp2515.sendMessage(&canMsg1);
+
 
     PDOCount = taskRotoPDInit();
 
