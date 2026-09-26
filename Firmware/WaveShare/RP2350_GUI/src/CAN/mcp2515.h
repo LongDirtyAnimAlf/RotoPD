@@ -11,6 +11,8 @@
 #define MCP2515_ISR_ATTR
 #endif
 
+#define BSP_XL2515_INT_PIN 44
+
 template<typename T, size_t SIZE>
 class CircularQueue {
     static_assert(SIZE <= 255, "CircularQueue size exceeds uint8_t counter range");

@@ -42,6 +42,7 @@ char myFirmware[30];
 AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
+struct can_frame canMsg;
 struct can_frame canMsg1;
 MCP2515 mcp2515(10 * 1000 * 1000);
 
@@ -67,6 +68,10 @@ void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
 
 dword GetMaxVData(PRunDatas RDS);
+
+void canIsr() {
+    mcp2515.handleInterrupt();        // the method that is already in the library
+}
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -653,6 +658,7 @@ void setup()
   mcp2515.reset();
   mcp2515.setBitrate(CAN_100KBPS);
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+  mcp2515.enableInterrupt(BSP_XL2515_INT_PIN, canIsr);
 
   //bsp_xl2515_init(KBPS100);
 
@@ -745,11 +751,31 @@ void loop()
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
 
+  if (mcp2515.checkReceive())
+  {
+    while (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
+    {
+        Serial.print(canMsg.can_id, HEX);
+        Serial.print(" ");
+        Serial.print(canMsg.can_dlc, HEX);
+        Serial.print(" ");
+
+        for (int i = 0; i < canMsg.can_dlc; i++) {
+            Serial.print(canMsg.data[i], HEX);
+            Serial.print(" ");
+        }
+
+        Serial.println();
+    }
+  }
+
+
+
   if (millis() - startTime >= 1000)
   {
     startTime = millis();
 
-    Serial.println("Loop");
+    //Serial.println("Loop");
 
     //bsp_xl2515_init(KBPS100);
 
@@ -769,8 +795,7 @@ void loop()
     //sprintf((char *)tx_msg.data, "C0:%04d", count++);
     */
 
-    mcp2515.sendMessage(&canMsg1);
-
+    //mcp2515.sendMessage(&canMsg1);
 
     PDOCount = taskRotoPDInit();
 

@@ -7,7 +7,6 @@
 #define BSP_XL2515_MOSI_PIN 3
 #define BSP_XL2515_MISO_PIN 4
 #define BSP_XL2515_CS_PIN 5
-#define BSP_XL2515_INT_PIN 44
 
 const struct MCP2515::TXBn_REGS MCP2515::TXB[MCP2515::N_TXBUFFERS] = {
     {MCP_TXB0CTRL, MCP_TXB0SIDH, MCP_TXB0DATA},
@@ -112,13 +111,21 @@ MCP2515::ERROR MCP2515::reset(void)
     return ERROR_OK;
 }
 
-void MCP2515::enableInterrupt(int intPin, void (*callback)(void)) {
+void MCP2515::enableInterrupt(int intPin, void (*callback)(void))
+{
     _intPin = intPin;
     pinMode(intPin, INPUT_PULLUP);
+    // RP2040 / Arduino-Pico core supports the standard attachInterrupt API.
+    // The SPI driver uses beginTransaction/endTransaction, so no
+    // SPI.usingInterrupt() is required (and the method does not exist).
+    attachInterrupt(digitalPinToInterrupt(intPin), callback, FALLING);    
 }
 
-void MCP2515::disableInterrupt(void) {
-    if (_intPin >= 0) {
+void MCP2515::disableInterrupt(void)
+{
+    if (_intPin >= 0)
+    {
+        detachInterrupt(digitalPinToInterrupt(_intPin));        
         _intPin = -1;
     }
 }
@@ -630,9 +637,16 @@ bool MCP2515::checkReceive(void)
         return true;
     }
 
-    // Check hardware buffers
-    uint8_t res = getStatus();
-    return (res & STAT_RXIF_MASK) != 0;
+    // 3. Interrupts are not enabled → fall back to hardware polling    
+    if (_intPin < 0)
+    {
+        // Check hardware buffers
+        uint8_t res = getStatus();
+        return (res & STAT_RXIF_MASK) != 0;
+    }
+
+    // Pure interrupt-driven mode and nothing pending
+    return false;
 }
 
 bool MCP2515::checkError(void)
@@ -759,9 +773,7 @@ uint16_t MCP2515::getRxHardwareOverflowCount() const
 uint8_t MCP2515::readRegisterRaw(const REGISTER reg)
 {
     uint8_t data = 0;
-    uint8_t buf[2];
-    buf[0] = INSTRUCTION_READ;
-    buf[1] = reg;
+    uint8_t buf[2] = {INSTRUCTION_READ, reg};
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, 2);
     spi_read_blocking(BSP_XL2515_SPI_PORT, 0, &data, 1);
     return data;
@@ -769,9 +781,7 @@ uint8_t MCP2515::readRegisterRaw(const REGISTER reg)
 
 void MCP2515::readRegistersRaw(const REGISTER reg, uint8_t values[], const uint8_t n)
 {
-    uint8_t buf[2];
-    buf[0] = INSTRUCTION_READ;
-    buf[1] = reg;
+    uint8_t buf[2] = {INSTRUCTION_READ, reg};
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, 2);
     spi_read_blocking(BSP_XL2515_SPI_PORT, 0, values, n);
 }
@@ -787,11 +797,7 @@ void MCP2515::setRegistersRaw(const REGISTER reg, const uint8_t values[], const 
 
 void MCP2515::modifyRegisterRaw(const REGISTER reg, const uint8_t mask, const uint8_t data)
 {
-    uint8_t buf[4];
-    buf[0] = INSTRUCTION_BITMOD;
-    buf[1] = reg;
-    buf[2] = mask;
-    buf[3] = data;
+    uint8_t buf[4] = {INSTRUCTION_BITMOD, reg, mask, data};
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, 4);
 }
 
