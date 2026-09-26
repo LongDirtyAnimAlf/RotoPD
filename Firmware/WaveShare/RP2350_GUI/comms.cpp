@@ -26,6 +26,7 @@ extern USBCDC USBSerial;
 
 #ifdef ARDUINO_ARCH_RP2040
 #include "./src/UI/screenlogger.h"
+extern Adafruit_USBD_HID HID;
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
@@ -60,6 +61,9 @@ TBoardInfo BoardInfo =
   #endif
   #ifdef ARDUINO_ESP32S3_DEV
   false, // DataValid
+  #endif
+  #ifdef ARDUINO_ARCH_RP2040
+  true, // DataInValid
   #endif
   {0},  // Default BoardSerial
   {0},  // Default BoardCalDate  
@@ -796,4 +800,126 @@ bool process_command(void const *data, void *result)
   // Trivial: return true to indicate we have data to return.
   // Should always be true with this firmware !!
   return (DataToSend);
+}
+
+// Invoked when received SET_REPORT control request or
+// received data on OUT endpoint ( Report ID = 0, Type = 0 )
+#ifdef ARDUINO_ESP32S3_DEV
+void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize)
+#else
+void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize)
+#endif
+{
+  (void) report_id;
+  #ifndef ARDUINO_ESP32S3_DEV
+  (void) report_type;
+  #endif
+  (void) bufsize;
+
+  byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
+  byte j;
+
+  bool SendData = true;
+	byte cCmd = hid_report_out[0];
+
+	hid_report_in[0] = cCmd;
+
+	switch (cCmd)
+  {
+	  case 0:
+		{
+      // Should never happen !!
+      break;
+    }
+
+	  case USB_CMD_get_serial:
+		{
+      for ( j=0; j<12; j++ )
+      {
+        hid_report_in[j+1] = BoardInfo.BoardSerial[j];
+      }
+      break;
+    }
+
+		case USB_CMD_set_serial:
+		{
+      for ( j=0; j<12; j++ )
+      {
+        BoardInfo.BoardSerial[j] = hid_report_out[j+1];
+        hid_report_in[j+1] = BoardInfo.BoardSerial[j];
+      }
+      #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+      BoardInfo.InValid = false;
+      #endif
+      #if defined(ARDUINO_ARCH_SAMD)  
+      BoardInfo.Valid = true;
+      #endif
+      #if defined(ARDUINO_ESP32S3_DEV)  
+      BoardInfo.Valid = true;
+      #endif
+      //storePutBoardInfo(&BoardInfo);
+			break;
+		}
+
+		case USB_CMD_get_firmware:
+		{
+			hid_report_in[1]=FW_MAJOR;
+			hid_report_in[2]=FW_MINOR;
+			break;
+		}
+
+    case USB_CMD_get_board_number:
+    {
+      hid_report_in[1] = BoardInfo.BoardNumber;
+      break;
+    }
+
+    case USB_CMD_set_board_number:
+    {
+      BoardInfo.BoardNumber = hid_report_out[1];
+      #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+      BoardInfo.InValid = false;
+      #endif
+      #if defined(ARDUINO_ARCH_SAMD)  
+      BoardInfo.Valid = true;
+      #endif
+      #if defined(ARDUINO_ESP32S3_DEV)  
+      BoardInfo.Valid = true;
+      #endif
+      //storePutBoardInfo(&BoardInfo);
+      break;
+    }
+
+		default:
+		{
+      //byte cBat=hid_report_out[1];
+      byte cBat=0;
+      if (cBat<DAUGHTERBOARDCOUNT)
+      {
+        SendData = false;
+        for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) HIDData[cBat].HIDEPOUTData[j] = hid_report_out[j];
+        HIDData[cBat].DataReceived = true;
+      }
+      else
+      {
+        // Should never happen !!
+        Info_Add_Fmt("Comms. Severe error. Wrong battery number:%d.", cBat);
+      }
+    }
+  }
+
+  if (SendData)
+  {
+     // This delay seems necessary for communication with PC host
+     // I do not know why ... :-()
+    delayMicroseconds(1000U);
+
+    // Send report back to host
+    #ifdef ARDUINO_ESP32S3_DEV
+    HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    #else
+    HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    #endif
+
+  }
 }

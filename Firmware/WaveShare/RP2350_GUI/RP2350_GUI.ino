@@ -13,6 +13,7 @@
 
 #include <lvgl.h>
 #include "pico/stdlib.h"
+
 #include "./src/bsp/bsp_i2c.h"
 #include "./src/bsp/bsp_st7701.h"
 #include "./src/bsp/bsp_buzzer.h"
@@ -34,6 +35,9 @@
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
+
+// USB HID object
+Adafruit_USBD_HID HID;
 
 // Must be a global variable !!!
 char mySerial[30];
@@ -544,6 +548,7 @@ void dataupdatecb()
 void setup()
 {
   byte index;
+  word tempintcalc;
   char myHex[10] = "";
 
   //delay(250);
@@ -567,6 +572,75 @@ void setup()
   set_psram_timing_auto();
   delay(10);
 
+  // This will remove the unwanted default string descriptor
+  // And kill the unwanted (unneeded) serial port.
+  #ifndef DEBUG
+  //USBSerial.end();
+  #endif
+
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
+  
+  USBDevice.setID(0x04D8,0x003F);
+  USBDevice.setVersion(0x0002);
+  USBDevice.setDeviceVersion(0x0002);
+
+  USBDevice.setManufacturerDescriptor("Consulab for pleasure");
+  USBDevice.setProductDescriptor("USB PD controller with HID");
+
+  if (BoardInfo.InValid)
+  {
+    for (index=0; index<12;index++)
+    {
+      BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
+    }
+  }
+
+  index = 0;
+  mySerial[0] = '\0';  
+  while (index<12)
+  {
+    tempintcalc=(BoardInfo.BoardSerial[index]+(BoardInfo.BoardSerial[index+1]*256));
+    sprintf(myHex, "%04X", tempintcalc);    
+    strcat(mySerial,myHex);    
+    index += 2;
+    if (index<12) strcat(mySerial,"-");
+  }
+  mySerial[29] = '\0';  
+
+  USBDevice.setSerialDescriptor(mySerial);  
+  //USBDevice.addStringDescriptor(mySerial);
+
+  /*Init USB Device*/
+  //HID.setStringDescriptor("HIDI2C BATT_CTRL");
+
+  //HID.setReportCallback(get_report_callback, set_report_callback);
+  HID.setReportCallback(NULL, set_report_callback);
+
+  HID.enableOutEndpoint(true);
+  HID.setPollInterval(1);
+  HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
+
+
+  myFirmware[0] = '\0';  
+  sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
+  myFirmware[18] = '\0';   
+  //USBDevice.setSerialDescriptor(myFirmware);
+  USBDevice.addStringDescriptor(myFirmware);  
+
+  HID.begin();
+
+  // Enable serial (again) for programming and debugging
+  #ifdef DEBUG  
+  Serial.begin(115200);
+  int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
+  while (!Serial && cnt--) {delay(1);}
+  // Serial.setDebugOutput(true);
+  #endif
+  Serial.println("Starting RP2350 init.");
+
   WireBattery.setSDA(BSP_I2C_SDA_PIN);
   WireBattery.setSCL(BSP_I2C_SCL_PIN);
   WireBattery.begin();
@@ -575,11 +649,6 @@ void setup()
   //if (set_sys_clock_khz(266000, true)) {
   //      // Clock configured successfully
   //}
-
-  Serial.begin();
-  int cnt = 1500;     // Will wait for up to ~5 second for Serial to connect.
-  while (!Serial && cnt--) {delay(1);}
-  Serial.println("Starting RP2350 init.");
 
   bsp_buzzer_init();
   //bsp_buzzer_enable(true);
@@ -750,6 +819,11 @@ void loop()
 
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
+
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
+  #endif
 
   if (mcp2515.checkReceive())
   {

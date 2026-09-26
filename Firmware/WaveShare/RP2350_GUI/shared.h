@@ -257,6 +257,9 @@ typedef struct {
   #ifdef ARDUINO_ESP32S3_DEV
   bool Valid;
   #endif
+  #ifdef ARDUINO_ARCH_RP2040
+  bool InValid;
+  #endif
   byte BoardSerial[12];
   byte BoardCalDate[4];  // YYMD
   byte BoardNumber;
