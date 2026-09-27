@@ -84,7 +84,6 @@ void ClearStageData(PStageData SD);
 
 dword GetMaxVData(PRunDatas RDS);
 
-
 #ifdef ARDUINO_ARCH_RP2040
 void canIsr() {
     mcp2515.handleInterrupt();        // the method that is already in the library
@@ -634,6 +633,9 @@ void setup()
   word tempintcalc;
   char myHex[10] = "";
 
+  firmware.bytes.HB = FW_MAJOR;
+  firmware.bytes.LB = FW_MINOR;
+
   //delay(250);
 
 
@@ -718,7 +720,7 @@ void setup()
   // Enable serial (again) for programming and debugging
   #ifdef DEBUG  
   Serial.begin(115200);
-  int cnt = 5000;     // Will wait for up to ~1 second for Serial to connect.
+  int cnt = 1000;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
   // Serial.setDebugOutput(true);
   #endif

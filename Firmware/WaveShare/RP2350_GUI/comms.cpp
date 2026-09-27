@@ -38,6 +38,8 @@ extern COBSPacketSerial myPacketSerial; // for logging
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
+WORD_VAL firmware;
+
 extern TwoWire WireBattery;
 
 extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
@@ -785,7 +787,7 @@ bool process_command(void const *data, void *result)
 
   if (cCmd == CMD_get_firmware)
   {
-    LocalBatteryBoard->NeedsDataUpdate;
+    //LocalBatteryBoard->NeedsDataUpdate;
   }
 
   if (dataindexer == DATASTART)
@@ -874,8 +876,10 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
 		case USB_CMD_get_firmware:
 		{
-			hid_report_in[1]=FW_MAJOR;
-			hid_report_in[2]=FW_MINOR;
+      hid_report_in[1] = firmware.bytes.HB;
+      hid_report_in[2] = firmware.bytes.LB;
+			//hid_report_in[1]=FW_MAJOR;
+			//hid_report_in[2]=FW_MINOR;
 			break;
 		}
 
@@ -926,7 +930,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
   {
      // This delay seems necessary for communication with PC host
      // I do not know why ... :-()
-    delayMicroseconds(1000U);
+    //delayMicroseconds(1000U);
 
     // Send report back to host
     #ifdef ARDUINO_ARCH_ESP32

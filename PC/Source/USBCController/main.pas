@@ -973,7 +973,7 @@ begin
        begin
          SetEnable(Sender,false);
 
-         AllStop(Sender);
+         AllStop(nil);
 
          UpdateTimer.Enabled:=False;
 
@@ -1372,7 +1372,7 @@ begin
 
   SystemActive:=False;
 
-  DD.SetOutput(1,false);
+  if Assigned(Sender) then DD.SetOutput(1,false);
 
   SetEnable(Sender,true);
 
