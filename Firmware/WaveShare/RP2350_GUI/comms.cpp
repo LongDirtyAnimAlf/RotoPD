@@ -672,16 +672,15 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
 
   // Echo back command and index/number
-  //resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
-  //resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
-
   resultbuffer[COMMANDPOSITION]=cCmd;
-  resultbuffer[INDEXPOSITION]=BN;
+  //resultbuffer[INDEXPOSITION]=BN;
+  resultbuffer[INDEXPOSITION]=BoardInfo.BoardNumber;
 
   if (BN != BoardInfo.BoardNumber)
   {
     // Should never happen !!
-    Info_Add_Fmt("Comms. Severe error. Wrong boardnumber ! Received %d. Board has %d.", BN, BoardInfo.BoardNumber);
+    Info_Add("Comms. Severe error. Wrong boardnumber !!!");
+    Info_Add_Fmt("Comms. Received board %d. BoardInfo has %d.", BN, BoardInfo.BoardNumber);
   }
 
   // Skip length
@@ -876,10 +875,10 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
 		case USB_CMD_get_firmware:
 		{
-      hid_report_in[1] = firmware.bytes.HB;
-      hid_report_in[2] = firmware.bytes.LB;
-			//hid_report_in[1]=FW_MAJOR;
-			//hid_report_in[2]=FW_MINOR;
+      //hid_report_in[1] = firmware.bytes.HB;
+      //hid_report_in[2] = firmware.bytes.LB;
+			hid_report_in[1]=FW_MAJOR;
+			hid_report_in[2]=FW_MINOR;
 			break;
 		}
 
@@ -930,7 +929,9 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
   {
      // This delay seems necessary for communication with PC host
      // I do not know why ... :-()
-    //delayMicroseconds(1000U);
+    #ifdef ARDUINO_ARCH_ESP32
+    delayMicroseconds(1000U);
+    #endif
 
     // Send report back to host
     #ifdef ARDUINO_ARCH_ESP32

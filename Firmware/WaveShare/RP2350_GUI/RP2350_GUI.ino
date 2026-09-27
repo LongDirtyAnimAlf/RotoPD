@@ -1061,6 +1061,8 @@ void loop()
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
 
+  // Do we have a valid command ?
+  // This is a command coming from the USB HID interface
   if (HIDData[ActiveBatteryIndex].DataReceived)
   {
     #ifndef TINYUSB_NEED_POLLING_TASK
@@ -1108,6 +1110,7 @@ void loop()
   byte OUTData[COMMAND_SIZE] = {0};
 
   // Do we have a valid command ?
+  // This is a command coming from the touch-screen logic = main_event_handler()
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
   {
     // Fill the data
@@ -1129,6 +1132,13 @@ void loop()
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
+    if (BoardNumber != BoardInfo.BoardNumber)
+    {
+      // Should never happen !!
+      Info_Add("GUI. Severe error. Wrong boardnumber !!!");
+      Info_Add_Fmt("GUI. Received board %d. BoardInfo has %d.", BoardNumber, BoardInfo.BoardNumber);
+    }
+
     switch(cCmd)
     {
       case CMD_set_energy:
@@ -1144,7 +1154,10 @@ void loop()
 
         for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
 
-        Info_Add_Fmt("GUI. Setdata [%d] received ! %d.", Length, qw.Val);
+        if (cCmd == CMD_set_energy) Info_Add("GUI. CMD_set_energy received.");
+        if (cCmd == CMD_set_capacity) Info_Add("GUI. CMD_set_capacity received.");
+        if (cCmd == CMD_set_time) Info_Add("GUI. CMD_set_time received.");
+        Info_Add_Fmt("GUI. DataValue [length %d]: %d.", Length, qw.Val);
 
         if (cCmd == CMD_set_energy) RDS->Energy = qw.Val; // in nAh
         if (cCmd == CMD_set_capacity) RDS->Capacity = qw.Val; // in nWh
