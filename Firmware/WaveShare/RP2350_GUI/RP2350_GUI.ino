@@ -84,14 +84,18 @@ void ClearStageData(PStageData SD);
 
 dword GetMaxVData(PRunDatas RDS);
 
+
+#ifdef ARDUINO_ARCH_RP2040
 void canIsr() {
     mcp2515.handleInterrupt();        // the method that is already in the library
 }
+#endif
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
 // Tuned for common APS6404 / similar 133–166 MHz PSRAM chips
 // ---------------------------------------------------------------
+#ifdef ARDUINO_ARCH_RP2040
 void set_psram_timing_auto()
 {
     // Maximum safe SCK frequency for most common PSRAM chips (Hz)
@@ -157,6 +161,7 @@ void set_psram_timing_auto()
     // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
     //               timing, clkdiv, rxdelay, max_select, min_deselect);
 }
+#endif
 
 // Callback that returns elapsed ms since boot
 static uint32_t my_tick_get_cb(void) {
@@ -185,6 +190,73 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
+#endif
+
+#ifdef STANDALONE
+
+#ifdef ARDUINO_ARCH_RP2040
+static void __not_in_flash_func(storeSettings)(byte BI)
+{
+    PBatterySetting SET = &Batteries[BI];
+    storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
+    storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
+}
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+static void IRAM_ATTR storeSettings(byte BI)
+{
+  // At the moment 13-March-2025, this only works with ESP IDF 3.1.1 !!!
+  // So, be carefull
+  // See: https://github.com/moononournation/Arduino_GFX/issues/638
+
+  // ESP IDF version > 3.2.0 have these enabled
+  // CONFIG_GDMA_ISR_IRAM_SAFE=y
+  // CONFIG_LCD_RGB_ISR_IRAM_SAFE=y
+  // CONFIG_LCD_RGB_RESTART_IN_VSYNC=y
+
+  //(CONFIG_LCD_RGB_ISR_IRAM_SAFE && !(CONFIG_SPIRAM_RODATA && CONFIG_SPIRAM_FETCH_INSTRUCTIONS))
+
+  // See: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html#why-do-i-get-drift-overall-drift-of-the-display-when-esp32-s3-is-driving-an-rgb-lcd-screen
+
+  static DRAM_ATTR uint8_t v = 0;
+  static DRAM_ATTR uint16_t w = 0;
+  static DRAM_ATTR char stage[] = "#stage##";
+  static DRAM_ATTR esp_err_t ret = 0;
+  static DRAM_ATTR size_t length = sizeof(TStageData);
+
+    // disable flash cache
+    //spi_flash_guard_get()->start();
+    //esp_rom_delay_us(200000);
+
+    //lvgl_port_lock(-1);
+
+    PBatterySetting SET = &Batteries[BI];
+
+    v = BI;
+    stage[7] = '0'+ (uint8_t)(v%10);
+    v /= 10;
+    stage[6] = '0'+ (uint8_t)(v%10);
+
+    stage[0] = 'd';    
+    ret = indicator_nvs_write(stage, (void *)&StageDataTransporter[FIXEDDISCHARGESTAGENUMBER], length);
+    //ret = indicator_nvs_write(stage, (void *)&SET->Stages[FIXEDDISCHARGESTAGENUMBER], sizeof(TStageData));
+
+    stage[0] = 'c';
+    ret = indicator_nvs_write(stage, (void *)&StageDataTransporter[FIXEDCHARGESTAGENUMBER], length);
+    //ret = indicator_nvs_write(stage, (void *)&SET->Stages[FIXEDCHARGESTAGENUMBER], sizeof(TStageData));
+
+    #ifdef DEBUG  
+    //if( ret != ESP_OK ) USBSerial.println("NVM error !"); else USBSerial.println("NVM ok.");
+    #endif
+
+    // enable flash cache
+    //spi_flash_guard_get()->end();
+
+    //lvgl_port_unlock();    
+}
+#endif
+
 #endif
 
 static void main_event_handler(lv_event_t * e)
@@ -601,16 +673,13 @@ void setup()
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
   USBDevice.setProductDescriptor("USB PD controller with HID");
 
+  for (index=0; index<12;index++)
+  {
+    BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
+  }
+
   storeInit();
   storeGetBoardInfo(&BoardInfo);
-
-  if (BoardInfo.InValid)
-  {
-    for (index=0; index<12;index++)
-    {
-      BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
-    }
-  }
 
   index = 0;
   mySerial[0] = '\0';  
@@ -681,8 +750,6 @@ void setup()
   Info_Add("GUI. Init GUI.");      
   Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(ActiveBatteryIndex);
-  SET = &Batteries[ActiveBatteryIndex];
-  Screen1SetData(SET);
   #endif
 
   Info_Add("GUI. Controller startup");
@@ -712,8 +779,42 @@ void setup()
 
   SendCommand[COMMANDPOSITION] = CMD_unknown;
 
+  // Set and get defaults;
+  for(index = 0; index < DAUGHTERBOARDCOUNT; index++)
+  {
+    SET = &Batteries[index];
+
+    if (false)
+    {
+      // Default discharge
+      SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+      SD->Status = smCurrent; // a CC discharge
+      SD->SetValue = 250; // 500mA    
+      SD->ThresholdSettings[tmMINV].SetValue = 900; //900mV end value
+      SD->ThresholdSettings[tmMINV].Enabled = true;
+    }
+
+    SD = &SET->Stages[IDDLESTAGENUMBER];
+    ClearStageData(SD);
+    SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+    ClearStageData(SD);
+    SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
+    ClearStageData(SD);
+
+    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Enabled = true;
+    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Mode = tmMINV;
+
+    if (storeGetBatteryDischargeSetting(index, &SET->Stages[FIXEDDISCHARGESTAGENUMBER])) Info_Add("GUI. Reading discharge settings success.");
+    if (storeGetBatteryChargeSetting(index, &SET->Stages[FIXEDCHARGESTAGENUMBER])) Info_Add("GUI. Reading charge settings success.");
+  }
+
+  Info_Add("GUI. Reading stored presets done.");
+
   #endif
-  
+
+  SET = &Batteries[ActiveBatteryIndex];
+  Screen1SetData(SET);
+
     // INA238 setup
   if (initINA238())
     Info_Add("GUI. INA238 init success.");
@@ -742,8 +843,6 @@ void setup()
   mcp2515.setBitrate(CAN_100KBPS);
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
   mcp2515.enableInterrupt(BSP_XL2515_INT_PIN, canIsr);
-
-  //bsp_xl2515_init(KBPS100);
 
   Info_Add("GUI. Init timers.");      
 
@@ -1269,6 +1368,18 @@ void loop()
   //vTaskDelay( pdMS_TO_TICKS(task_delay_ms) );
   
   //vTaskDelayUntil( &xLastWakeTime, ( 5 / portTICK_PERIOD_MS ) );
+
+  #ifdef STANDALONE
+  if (StoreSettings)
+  {
+    StoreSettings = false;
+    #ifdef DEBUG
+    Serial.println("Storing setting in NVM !");
+    #endif
+    storeSettings(ActiveBatteryIndex);
+  }   
+  #endif
+
   #endif
 }
 

@@ -13,6 +13,7 @@
 #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
 #include "USB.h"
 #include "USBHID.h"
+#include "esp32-hal-tinyusb.h"
 #endif
 #endif
 

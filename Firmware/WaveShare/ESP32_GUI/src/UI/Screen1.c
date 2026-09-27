@@ -285,8 +285,6 @@ void Setup_Screen1(byte index)
     lv_label_set_text(ta, "0");
     lv_obj_set_size(ta, lv_pct(60), LV_SIZE_CONTENT);
     lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(ta, LV_OBJ_FLAG_SCROLLABLE);
-    lv_label_set_long_mode(ta, LV_LABEL_LONG_MODE_CLIP);    
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
     ta1 = ta;
     lv_obj_set_user_data(ta1, testdischargebutton);
@@ -318,8 +316,6 @@ void Setup_Screen1(byte index)
     lv_label_set_text(ta, "0");
     lv_obj_set_size(ta, lv_pct(60), LV_SIZE_CONTENT);
     lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(ta, LV_OBJ_FLAG_SCROLLABLE);
-    lv_label_set_long_mode(ta, LV_LABEL_LONG_MODE_CLIP);    
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
     ta2 = ta;
 

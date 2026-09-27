@@ -39,6 +39,8 @@
 
 #include <Ticker.h>
 
+#include "customhid.h"
+
 #define HOR_RES 480
 #define VER_RES 480
 
@@ -57,11 +59,16 @@
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
 
+#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+
+
+#endif
+#endif
+
 //HWCDC USBSerial;
 USBCDC USBSerial;
 //#define USBSerial Serial
-
-USBHID HID;
 
 // Must be a global variable !!!
 char mySerial[30];
@@ -99,37 +106,8 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
     #endif
 
-
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-
-class CustomHIDDevice : public USBHIDDevice {
-public:
-  CustomHIDDevice(void) {
-    static bool initialized = false;
-    if (!initialized) {
-      initialized = true;
-      HID.addDevice(this, sizeof(desc_hid_report));
-    }
-  }
-
-  void begin(void) {
-    HID.begin();
-  }
-
-  // Called by the USB stack to get the report descriptor
-  uint16_t _onGetDescriptor(uint8_t *buffer) {
-    memcpy(buffer, desc_hid_report, sizeof(desc_hid_report));
-    return sizeof(desc_hid_report);
-  }
-
-  // Called by the USB stack on set report 
-  void _onOutput(uint8_t report_id, const uint8_t *buffer, uint16_t len) {
-    set_report_callback(report_id, buffer, len);
-  }
-};
-
-CustomHIDDevice Device;
 
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
@@ -959,6 +937,8 @@ void loop()
   if (millis() - startTime >= 1000)
   {
     startTime = millis();
+
+    Info_Add("Loop");
 
     PDOCount = taskRotoPDInit();
 

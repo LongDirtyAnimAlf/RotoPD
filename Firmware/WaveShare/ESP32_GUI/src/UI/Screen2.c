@@ -10,6 +10,9 @@ static lv_obj_t * chart = NULL;
 static lv_chart_series_t * voltage_series = NULL;
 static lv_chart_series_t * current_series = NULL;
 
+static int32_t my_voltage_values[CHARTSIZE]; 
+static int32_t my_current_values[CHARTSIZE]; 
+
 void Setup_Screen2(byte index)
 {
   lv_obj_t * obj = NULL;
@@ -98,6 +101,7 @@ void Setup_Screen2(byte index)
     lv_obj_set_style_radius(chart, 0, 0);
     lv_chart_set_div_line_count(chart, 5, 0);
 
+    //lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_CIRCULAR);
     lv_chart_set_update_mode(chart, LV_CHART_UPDATE_MODE_SHIFT);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 20000);    
     lv_chart_set_point_count(chart, CHARTSIZE);  
@@ -105,7 +109,10 @@ void Setup_Screen2(byte index)
     voltage_series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
     //lv_obj_null_on_delete(&voltage_series);  
     current_series = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_GREEN), LV_CHART_AXIS_PRIMARY_Y);  
-    //lv_obj_null_on_delete(&current_series);    
+    //lv_obj_null_on_delete(&current_series);  
+    
+    lv_chart_set_ext_y_array(chart, voltage_series, my_voltage_values);    
+    lv_chart_set_ext_y_array(chart, current_series, my_current_values);    
 
     lv_obj_set_style_pad_ver(scale_y, lv_chart_get_first_point_center_offset(chart), 0);
 
@@ -139,8 +146,13 @@ void Screen2SetData(PRunDatas MAD)
   if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, 0);          
   if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, 0);
 
-  if (voltage_series != NULL) lv_chart_set_all_value(chart, voltage_series, LV_CHART_POINT_NONE);
-  if (current_series != NULL) lv_chart_set_all_value(chart, current_series, LV_CHART_POINT_NONE);
+  for(int i = 0; i < CHARTSIZE; i++) {
+    my_voltage_values[i] = LV_CHART_POINT_NONE;
+    my_current_values[i] = LV_CHART_POINT_NONE;
+  }
+
+  //if (voltage_series != NULL) lv_chart_set_all_value(chart, voltage_series, LV_CHART_POINT_NONE);
+  //if (current_series != NULL) lv_chart_set_all_value(chart, current_series, LV_CHART_POINT_NONE);
 
   if (MAD->Head != -1)
   {
