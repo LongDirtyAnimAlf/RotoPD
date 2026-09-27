@@ -3,6 +3,19 @@
 
 #define DEFAULTBOARDNUMBER 1
 
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef USE_TINYUSB
+#include "Adafruit_TinyUSB.h"
+#endif
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+#include "USB.h"
+#include "USBHID.h"
+#endif
+#endif
+
 #ifdef ARDUINO_WIO_TERMINAL
 #define USE_LCD 
 #define BUZZER_PIN WIO_BUZZER /* sig pin of the buzzer */
@@ -23,15 +36,11 @@
 #ifdef ARDUINO_SEEED_INDICATOR_RP2040
 #define PIN_WIRE_BATT_SDA  PIN_WIRE0_SDA
 #define PIN_WIRE_BATT_SCL  PIN_WIRE0_SCL
-#include "Adafruit_TinyUSB.h"
 #include "storage.h"
 #endif
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 #define USE_LCD 
-#include "USB.h"
-#include "USBHID.h"
-#include "storage.h"
 #endif
 
 #include <Arduino.h>
@@ -50,12 +59,11 @@
 #define WireBattery Wire
 #endif
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 #define WireBattery Wire
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-#include "Adafruit_TinyUSB.h"
 #include "storage.h"
 #define WireBattery Wire1
 #endif
@@ -84,7 +92,7 @@ int8_t taskRotoPDInit(void);
 void collectRotoPDData(void);
 void getRotoPDData(word* I,word* V,dword* P,word* T);
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize);
 #else
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize);

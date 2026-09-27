@@ -37,7 +37,18 @@
 #define ActiveBatteryIndex 0
 
 // USB HID object
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef USE_TINYUSB
 Adafruit_USBD_HID HID;
+#endif
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+USBHID HID;
+USBCDC USBSerial;
+#endif
+#endif
 
 // Must be a global variable !!!
 char mySerial[30];

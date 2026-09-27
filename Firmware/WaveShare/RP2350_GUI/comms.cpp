@@ -1,5 +1,18 @@
 #include "comms.h"
 
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef USE_TINYUSB
+extern Adafruit_USBD_HID HID;
+#endif
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+extern USBHID HID;
+extern USBCDC USBSerial;
+#endif
+#endif
+
 #if defined(ARDUINO_ARCH_SAMD)
 MYSERCOM mysercom(PIN_WIRE_SERCOM);
 TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
@@ -9,24 +22,19 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 #define DELAYUS(_us) busy_wait_us_32(_us)
 #define USBSerial Serial
 #include <PacketSerial.h>
-extern Adafruit_USBD_HID HID;
 extern COBSPacketSerial myPacketSerial; // for logging
 #endif
 #if defined(ARDUINO_ARCH_SAMD)  
 #define DELAYUS(_us) delayMicroseconds(_us)
 #define USBSerial Serial
 #endif
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 #include "./src/UI/screenlogger.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
-extern USBCDC USBSerial;
-extern USBHID HID;
-extern USBCDC USBSerial;
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
 #include "./src/UI/screenlogger.h"
-extern Adafruit_USBD_HID HID;
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
@@ -48,7 +56,7 @@ static float ina_T_c        = 0;
 #endif
 static int   ina_counter_c  = 0;
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 DRAM_ATTR 
 #endif
 TBoardInfo BoardInfo = 
@@ -59,7 +67,7 @@ TBoardInfo BoardInfo =
   #if defined(ARDUINO_ARCH_SAMD)  
   false, // DataValid
   #endif
-  #ifdef ARDUINO_ESP32S3_DEV
+  #ifdef ARDUINO_ARCH_ESP32
   false, // DataValid
   #endif
   #ifdef ARDUINO_ARCH_RP2040
@@ -91,7 +99,7 @@ void Info_Add(const char *txt)
   Serial.println(txt);
   #endif
 
-  #if defined(ARDUINO_ESP32S3_DEV) || defined(ARDUINO_ARCH_RP2040) 
+  #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040) 
   ScreenLogger_Add(txt,true);
   #endif
 
@@ -125,7 +133,7 @@ void Info_Add_Fmt(const char *format, ...)
 
 static inline bool CheckWireStuck(void)
 {
-  #if defined(ARDUINO_ESP32S3_DEV)
+  #if defined(ARDUINO_ARCH_ESP32)
   return WS_CH32_IO::checkI2CBus();
   #elif defined(ARDUINO_ARCH_RP2040) 
   return false; 
@@ -137,7 +145,7 @@ static inline bool CheckWireStuck(void)
   #endif
 }
 
-#if !defined(ARDUINO_ESP32S3_DEV) && !defined(ARDUINO_ARCH_RP2040) 
+#if !defined(ARDUINO_ARCH_ESP32) && !defined(ARDUINO_ARCH_RP2040) 
 
 // Emulate opendrain pins
 void PinLow(uint32_t ulPin)
@@ -154,7 +162,7 @@ void PinHigh(uint32_t ulPin)
 
 void ResetWire(void)
 {
-  #if defined(ARDUINO_ESP32S3_DEV)
+  #if defined(ARDUINO_ARCH_ESP32)
   return WS_CH32_IO::checkI2CBus();
   #elif defined(ARDUINO_ARCH_RP2040) 
   return;
@@ -804,14 +812,14 @@ bool process_command(void const *data, void *result)
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize)
 #else
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize)
 #endif
 {
   (void) report_id;
-  #ifndef ARDUINO_ESP32S3_DEV
+  #ifndef ARDUINO_ARCH_ESP32
   (void) report_type;
   #endif
   (void) bufsize;
@@ -854,7 +862,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       #if defined(ARDUINO_ARCH_SAMD)  
       BoardInfo.Valid = true;
       #endif
-      #if defined(ARDUINO_ESP32S3_DEV)  
+      #if defined(ARDUINO_ARCH_ESP32)  
       BoardInfo.Valid = true;
       #endif
       #ifdef ARDUINO_ARCH_RP2040
@@ -886,7 +894,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       #if defined(ARDUINO_ARCH_SAMD)  
       BoardInfo.Valid = true;
       #endif
-      #if defined(ARDUINO_ESP32S3_DEV)  
+      #if defined(ARDUINO_ARCH_ESP32)  
       BoardInfo.Valid = true;
       #endif
       #ifdef ARDUINO_ARCH_RP2040
@@ -921,7 +929,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
     delayMicroseconds(1000U);
 
     // Send report back to host
-    #ifdef ARDUINO_ESP32S3_DEV
+    #ifdef ARDUINO_ARCH_ESP32
     HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
     #else
     HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
