@@ -554,6 +554,62 @@ bool MCP2515::processTxQueue(void)
     return true;
 }
 
+MCP2515::ERROR MCP2515::abortMessage(const TXBn txbn)
+{
+    if (txbn > TXB2) {
+        return ERROR_FAIL;
+    }
+
+    const struct TXBn_REGS *txbuf = &TXB[txbn];
+    // Clear TXREQ to request abort of this buffer
+    modifyRegister(txbuf->CTRL, TXB_TXREQ, 0);
+    return ERROR_OK;
+}
+
+MCP2515::ERROR MCP2515::abortAllPending(void)
+{
+    // Request abort of all pending transmit buffers
+    modifyRegister(MCP_CANCTRL, CANCTRL_ABAT, CANCTRL_ABAT);
+
+    // Wait until all TXREQ bits are clear (short timeout)
+    unsigned long endTime = millis() + 10;
+    bool allClear = false;
+
+    while (millis() < endTime) {
+        uint8_t ctrl0 = readRegister(MCP_TXB0CTRL);
+        uint8_t ctrl1 = readRegister(MCP_TXB1CTRL);
+        uint8_t ctrl2 = readRegister(MCP_TXB2CTRL);
+
+        if (((ctrl0 | ctrl1 | ctrl2) & TXB_TXREQ) == 0) {
+            allClear = true;
+            break;
+        }
+    }
+
+    // MUST clear ABAT before new transmits are accepted
+    modifyRegister(MCP_CANCTRL, CANCTRL_ABAT, 0);
+
+    return allClear ? ERROR_OK : ERROR_FAIL;
+}
+
+// Static matcher used by removeQueuedMessage (function-pointer friendly)
+static uint32_t s_removeCanId;
+static bool matchCanId(const struct can_frame& f)
+{
+    return f.can_id == s_removeCanId;
+}
+
+bool MCP2515::removeQueuedMessage(uint32_t can_id)
+{
+    s_removeCanId = can_id;
+
+    noInterrupts();
+    bool removed = _txQueue.removeIf(matchCanId);
+    interrupts();
+
+    return removed;
+}
+
 MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
 {
     const struct RXBn_REGS *rxb = &RXB[rxbn];

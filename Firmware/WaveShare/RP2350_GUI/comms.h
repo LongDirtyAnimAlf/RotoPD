@@ -56,6 +56,7 @@
 
 #ifdef ARDUINO_ARCH_RP2040
 #include "Adafruit_TinyUSB.h"
+#include "storage.h"
 #define WireBattery Wire1
 #endif
 

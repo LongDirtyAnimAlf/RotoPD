@@ -857,7 +857,10 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       #if defined(ARDUINO_ESP32S3_DEV)  
       BoardInfo.Valid = true;
       #endif
-      //storePutBoardInfo(&BoardInfo);
+      #ifdef ARDUINO_ARCH_RP2040
+      BoardInfo.InValid = false;
+      #endif
+      storePutBoardInfo(&BoardInfo);
 			break;
 		}
 
@@ -886,7 +889,10 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       #if defined(ARDUINO_ESP32S3_DEV)  
       BoardInfo.Valid = true;
       #endif
-      //storePutBoardInfo(&BoardInfo);
+      #ifdef ARDUINO_ARCH_RP2040
+      BoardInfo.InValid = false;
+      #endif
+      storePutBoardInfo(&BoardInfo);
       break;
     }
 

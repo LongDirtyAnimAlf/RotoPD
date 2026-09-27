@@ -70,6 +70,40 @@ public:
         tail = 0;
         count = 0;
     }
+
+    // Remove the first element for which pred() returns true.
+    // Preserves relative order of remaining elements.
+    // Returns true if an element was removed.
+    bool removeIf(bool (*pred)(const T&)) {
+        if (count == 0 || pred == nullptr) {
+            return false;
+        }
+
+        uint8_t read  = head;
+        uint8_t write = head;
+        uint8_t newCount = 0;
+        bool removed = false;
+
+        for (uint8_t i = 0; i < count; i++) {
+            if (!removed && pred(frames[read])) {
+                // skip this element (first match only)
+                removed = true;
+            } else {
+                if (write != read) {
+                    frames[write] = frames[read];
+                }
+                write = (write + 1) % SIZE;
+                newCount++;
+            }
+            read = (read + 1) % SIZE;
+        }
+
+        if (removed) {
+            count = newCount;
+            tail  = write;
+        }
+        return removed;
+    }
 };
 
 /*
@@ -606,6 +640,25 @@ class MCP2515
         ERROR sendMessage(const struct can_frame *frame);
         ERROR readMessage(struct can_frame *frame);
         bool checkReceive(void);
+
+        //
+        // Abort pending transmissions
+        //
+        // Abort a single TX buffer by clearing its TXREQ bit.
+        // Safe to call even if the buffer is not pending.
+        ERROR abortMessage(const TXBn txbn);
+
+        // Abort all pending TX buffers via CANCTRL.ABAT.
+        // Waits (with short timeout) for TXREQ bits to clear, then
+        // clears ABAT so new transmits are allowed again.
+        // Does NOT clear the software TX queue.
+        ERROR abortAllPending(void);
+
+        // Remove the first frame in the software TX queue whose can_id
+        // matches exactly (including EFF/RTR/ERR flags).
+        // Returns true if a frame was removed.
+        // Does not touch hardware TX buffers.
+        bool removeQueuedMessage(uint32_t can_id);
 
         //
         // Diagnostics

@@ -1046,7 +1046,7 @@ void loop()
     #endif
 
     //Now perform the Data update  
-    DataOk = process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+    DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
     if (DataOk)
     {
       // Send report back to host
@@ -1076,13 +1076,15 @@ void loop()
     // Reset command
     SendCommand[COMMANDPOSITION] = CMD_unknown;
 
-    DataOk = process_command(&OUTData,&INData);
+    DataOk |= process_command(&OUTData,&INData);
   }
 
   #endif STANDALONE
 
   if (DataOk)
   {
+    DataOk = false;
+
     CommandType_t cCmd = (CommandType_t)INData[COMMANDPOSITION];
     byte BoardNumber = INData[INDEXPOSITION];
     byte Length = INData[LENGTHPOSITION];

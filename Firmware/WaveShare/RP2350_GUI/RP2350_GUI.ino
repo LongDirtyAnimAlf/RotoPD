@@ -590,6 +590,9 @@ void setup()
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
   USBDevice.setProductDescriptor("USB PD controller with HID");
 
+  storeInit();
+  storeGetBoardInfo(&BoardInfo);
+
   if (BoardInfo.InValid)
   {
     for (index=0; index<12;index++)
@@ -921,8 +924,15 @@ void loop()
             }  
           }
         }
-        // Send PDO data
-        hid_report_in[LENGTHPOSITION]=dataindexer;        
+        // Send PDO data to USB host
+        hid_report_in[LENGTHPOSITION]=dataindexer;   
+
+        #ifdef ARDUINO_ESP32S3_DEV
+        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+        #else
+        HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+        #endif      
+
       }
     }
   }  
@@ -939,6 +949,46 @@ void loop()
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
 
+  if (HIDData[ActiveBatteryIndex].DataReceived)
+  {
+    #ifndef TINYUSB_NEED_POLLING_TASK
+    // Make a local copy of the data 
+    // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
+    noInterrupts();
+    for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[ActiveBatteryIndex].HIDEPOUTData[j];
+    LocalHDCopy.DataReceived = HIDData[ActiveBatteryIndex].DataReceived;
+    HIDData[ActiveBatteryIndex].DataReceived = false;
+    interrupts();
+    PLocalHD = &LocalHDCopy; 
+    #else
+    PLocalHD = (THIDData*)&HIDData[ActiveBatteryIndex];
+    PLocalHD->DataReceived = false;
+    #endif
+
+    //Now perform the Data update  
+    DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+    if (DataOk)
+    {
+
+      //ARDUINO_GENERIC_RP2350
+      //ARDUINO_ARCH_RP2040
+
+      // Send report back to host
+      #ifdef ARDUINO_ESP32S3_DEV
+      HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+      #else
+      HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+      #endif      
+
+      for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
+
+      //#ifdef USE_LCD
+      //DataOk = false;
+      //Info_Add("Got HID data");
+      //#endif
+    }
+  }  
+
   #ifdef STANDALONE
 
   PBatteryBoard BB = NULL;
@@ -953,13 +1003,15 @@ void loop()
     // Reset command
     SendCommand[COMMANDPOSITION] = CMD_unknown;
 
-    DataOk = process_command(&OUTData,&INData);
+    DataOk |= process_command(&OUTData,&INData);
   }
 
   #endif //STANDALONE
 
   if (DataOk)
   {
+    DataOk = false;
+
     CommandType_t cCmd = (CommandType_t)INData[COMMANDPOSITION];
     byte BoardNumber = INData[INDEXPOSITION];
     byte Length = INData[LENGTHPOSITION];
@@ -1079,18 +1131,6 @@ void loop()
   {
     GetBatteryData = false;
 
-    /*
-    sendObdFrame(5); // For coolant temperature
-    // You can set custom timeout, default is 1000
-    if(ESP32Can.readFrame(rxFrame, 100)) {
-        // Comment out if too many frames
-        Serial.printf("Received frame: %03X  \r\n", rxFrame.identifier);
-        if(rxFrame.identifier == 0x7E8) {                                    // Standard OBD2 frame responce ID
-            Serial.printf("Collant temp: %3d°C \r\n", rxFrame.data[3] - 40); // Convert to °C
-        }
-    }
-    */
-
     #ifdef DEBUG
     //Serial.println("Getting data");
     #endif
@@ -1146,7 +1186,14 @@ void loop()
       w_data.Val = RDS->LastBatteryData.T;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
 
-      hid_report_in[LENGTHPOSITION]=dataindexer;        
+      hid_report_in[LENGTHPOSITION]=dataindexer;
+
+      // Send measurement data to host
+      #ifdef ARDUINO_ESP32S3_DEV
+      HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+      #else
+      HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+      #endif      
       
       if (SET->TestData.Active == bmActive)
       {
