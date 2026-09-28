@@ -22,6 +22,8 @@
 
 #include "ui.h"
 
+#include "touch.h"
+
 //#include <WiFi.h>
 
 #include "extras.h"
@@ -169,6 +171,30 @@ static uint32_t my_tick_get_cb(void) {
 
 #ifdef STANDALONE
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
+//static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
+{
+  if (touch_has_signal())
+  {
+    if (touch_touched())
+    {
+      data->state = LV_INDEV_STATE_PRESSED;
+
+      /*Set the coordinates*/
+      data->point.x = touch_last_x;
+      data->point.y = touch_last_y;
+    }
+    else if (touch_released())
+    {
+      data->state = LV_INDEV_STATE_RELEASED;
+    }
+  }
+  else
+  {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+/*
+static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
   bool changed = tp.read();  
 
@@ -189,6 +215,7 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
+*/
 #endif
 
 #ifdef STANDALONE
@@ -854,10 +881,9 @@ void setup()
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
-
-  //tp.begin(&Wire1);
-  tp.begin(&Wire1,10,480,480);
-  tp.setRotate180(true,480,480);
+  touch_init(HOR_RES, VER_RES, 0);
+  //tp.begin(&Wire1,10,480,480);
+  //tp.setRotate180(true,480,480);
 
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
@@ -1391,7 +1417,11 @@ void loop()
     #ifdef DEBUG
     Serial.println("Storing setting in NVM !");
     #endif
+    // Must disable interrupts, as interrupt handlers may be in flash, and we
+    // are about to temporarily disable flash access!
+    //uint32_t flags = save_and_disable_interrupts();    
     storeSettings(ActiveBatteryIndex);
+    //restore_interrupts(flags);
   }   
   #endif
 
