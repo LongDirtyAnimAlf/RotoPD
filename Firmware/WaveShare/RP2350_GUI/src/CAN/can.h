@@ -1,13 +1,13 @@
 #ifndef CAN_H_
 #define CAN_H_
 
+#include "Arduino.h"
+//#include <cstddef.h>
 #include <stdint.h>
-
 
 typedef unsigned char __u8;
 typedef unsigned short __u16;
 typedef unsigned long __u32;
-
 
 /* special address description flags for the CAN_ID */
 #define CAN_EFF_FLAG 0x80000000UL /* EFF/SFF is set in the MSB */
@@ -35,6 +35,9 @@ typedef __u32 canid_t;
 /* CAN payload length and DLC definitions according to ISO 11898-1 */
 #define CAN_MAX_DLC 8
 #define CAN_MAX_DLEN 8
+
+#define CAN_MSGAVAIL true
+#define CAN_OK true
 
 struct can_frame {
                canid_t can_id;  /* 32 bit CAN_ID + EFF/RTR/ERR flags */

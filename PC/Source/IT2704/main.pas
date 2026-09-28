@@ -35,7 +35,45 @@ implementation
 {$R *.lfm}
 
 uses
-  Tools;
+  Bits,Tools;
+
+
+type
+  //S-0-0011, Class 1 diagnostics
+  TDRIVEPARAMETER_0011 = bitpacked record
+      case integer of
+          1 : (  Data : record
+                   Reserved0                               : T1BITS;
+                   AmplifierOvertemperatureShutdown        : T1BITS;
+                   MotorOvertemperatureShutdown            : T1BITS;
+                   Reserved1                               : T1BITS;
+                   ControlVoltageError                     : T1BITS;
+                   FeedbackError                           : T1BITS;
+                   Reserved2                               : T1BITS;
+                   Overcurrent                             : T1BITS;
+                   Reserved3                               : T1BITS;
+                   UndervoltageError                       : T1BITS;
+                   Reserved4                               : T1BITS;
+                   ExcessiveDeviation                      : T1BITS;
+                   CommunicationError                      : T1BITS;
+                   TravelLimitSwitchExceeded               : T1BITS;
+                   Reserved5                               : T1BITS;
+                   ManufacturerSpecificError               : T1BITS;
+                 end
+              );
+          2 : (
+               Bits            : bitpacked array[0..15] of T1BITS;
+              );
+          3 : (
+               Raw             : Word;
+              );
+
+  end;
+
+
+
+const
+  IT2704_ADDRESS = 1;
 
 { TForm1 }
 
@@ -49,6 +87,15 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  // Command to stop the IT2704 going
+  // ID   = 00000000
+  // DLC  = 2
+  // Data = 0201  ; 02 = Disable CAN. 01 = Device instrument
+  // This stops a regular sending of data from IT2704 to PC over CAN.
+  comm.WriteString('t'+'000'+'2'+'0201'+#13);
+  comm.WriteString('O'+#13);
+
+  // Command to stop the Gravity CAN interface
   comm.WriteString('C'+#13);
 end;
 
@@ -103,8 +150,18 @@ begin
     comm.Async:=True;
     comm.Active:=True;
 
+    // Command to get the Gravity CAN interface going
     comm.WriteString('S5'+#13);
     comm.WriteString('O'+#13);
+
+    // Command to get the IT2704 going
+    // ID   = 00000000
+    // DLC  = 2
+    // Data = 0201  ; 01 = Enable CAN. 01 = Device instrument
+    // This starts a regular sending of data from IT2704 to PC over CAN.
+    comm.WriteString('t'+'000'+'2'+'0101'+#13);
+    comm.WriteString('O'+#13);
+
 
   end;
 end;

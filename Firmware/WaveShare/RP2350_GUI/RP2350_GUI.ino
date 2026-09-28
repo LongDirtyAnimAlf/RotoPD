@@ -18,7 +18,8 @@
 #include "./src/bsp/bsp_st7701.h"
 #include "./src/bsp/bsp_buzzer.h"
 
-#include "./src/CAN/mcp2515.h"
+//#include "./src/CAN/mcp2515.h"
+#include "./src/CANOpen/canOpenNode.h"
 
 #include "ui.h"
 
@@ -59,9 +60,11 @@ char myFirmware[30];
 AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
-struct can_frame canMsg;
-struct can_frame canMsg1;
-MCP2515 mcp2515(10 * 1000 * 1000);
+CanOpenNode node(0, 0, CAN_250KBPS);
+
+//struct can_frame canMsg;
+//struct can_frame canMsg1;
+//MCP2515 mcp2515(10 * 1000 * 1000);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
@@ -88,11 +91,13 @@ void ClearStageData(PStageData SD);
 
 dword GetMaxVData(PRunDatas RDS);
 
+/*
 #ifdef ARDUINO_ARCH_RP2040
 void canIsr() {
     mcp2515.handleInterrupt();        // the method that is already in the library
 }
 #endif
+*/
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -892,6 +897,8 @@ void setup()
     Info_Add("GUI. RotoPD not connected or not found.");
 
   Info_Add("GUI. Setting up CAN.");
+
+  /*
   canMsg1.can_id  = 0x0F6;
   canMsg1.can_dlc = 8;
   canMsg1.data[0] = 0x8E;
@@ -908,6 +915,23 @@ void setup()
   mcp2515.setBitrate(CAN_100KBPS);
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
   mcp2515.enableInterrupt(BSP_XL2515_INT_PIN, canIsr);
+  */
+
+  node.begin();
+
+  // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
+  /*
+  node.disableNMT(true); 
+  node.disableMapping(true);
+  
+  // Manually set PDOs here if mapping isn't used
+  node.set(PDO::Type::TX, 1, STATUS, 0x01, 0);
+  node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
+  node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
+  node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
+  node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
+  node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
+  */
 
   Info_Add("GUI. Init timers.");      
 
@@ -1000,6 +1024,9 @@ void loop()
   TinyUSBDevice.task();
   #endif
 
+  node.run();
+
+  /*
   if (mcp2515.checkReceive())
   {
     while (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
@@ -1017,6 +1044,7 @@ void loop()
         Serial.println();
     }
   }
+  */
 
   if (SoundButtonClick)
   {
