@@ -44,7 +44,7 @@ lv_obj_t * mylog_create(lv_obj_t * parent)
         log_text[i][0] = '\0';
         lv_label_set_text_static(log_labels[i], log_text[i]);
 
-        lv_obj_add_flag(log_labels[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(log_labels[i], true);
     }
 
     log_count = 0;
@@ -63,7 +63,7 @@ void mylog_add(const char * txt)
         lab = log_labels[log_count];
         buf = log_text[log_count];
         log_count++;
-        lv_obj_clear_flag(lab, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(lab, false);
     } else {
         /* Recycle oldest label (child 0) */
         lab = lv_obj_get_child(log_cont, 0);
@@ -96,7 +96,7 @@ void mylog_clear(void)
     for (uint16_t i = 0; i < MAX_LOG_LINES; i++) {
         log_text[i][0] = '\0';
         lv_label_set_text_static(log_labels[i], log_text[i]);
-        lv_obj_add_flag(log_labels[i], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(log_labels[i], true);
     }
     log_count = 0;
 }

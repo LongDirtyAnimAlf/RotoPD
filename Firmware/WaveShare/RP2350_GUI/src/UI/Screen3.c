@@ -86,8 +86,8 @@ void Screen3ClearPDOList(void)
     for (uint8_t i = 0; i < MAX_PDO_ENTRIES; i++) {
         lv_obj_t * cell = PDOCells[i];
         if (cell != NULL) {
-            if (!lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN))
-                lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
+            if (!lv_obj_is_hidden(cell))
+                lv_obj_set_hidden(cell, true);
             lv_obj_set_user_data(cell, NULL);
         }
     }
@@ -120,8 +120,8 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
     lv_obj_t * cell = lv_obj_create(parent);
     lv_obj_remove_style_all(cell);
     lv_obj_add_style(cell, &style_cell, 0);
-    lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_event_bubble(cell, true);
+    lv_obj_set_scrollable(cell, false);
     lv_obj_set_size(cell, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(cell, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -158,7 +158,8 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
 
     /* Child 4 – Select button */
     lv_obj_t * cell_button = lv_button_create(cell);
-    lv_obj_add_flag(cell_button, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_FLOATING);
+    lv_obj_set_event_bubble(cell_button, true);
+    lv_obj_set_floating(cell_button, true);
     lv_obj_set_size(cell_button, LV_SIZE_CONTENT, lv_pct(90));
     lv_obj_align(cell_button, LV_ALIGN_RIGHT_MID, -5, 0);
     lv_obj_add_style(cell_button, &style_btn, 0);
@@ -172,7 +173,7 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
     lv_obj_center(btn_label);
 
     /* Start hidden – shown only when a valid PDO is assigned */
-    lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_hidden(cell, true);
 
     return cell;
 }
@@ -265,15 +266,15 @@ void Screen3SetPDO(
     lv_palette_t p = isEPR ? DISCHARGECOLOR : CHARGECOLOR;
 
     if (!valid) {
-        if (!lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN))
-            lv_obj_add_flag(cell, LV_OBJ_FLAG_HIDDEN);
+        if (!lv_obj_is_hidden(cell))
+            lv_obj_set_hidden(cell, true);
         lv_obj_set_user_data(cell, NULL);
         return;
     }
 
     /* Show cell and store index */
-    if (lv_obj_has_flag(cell, LV_OBJ_FLAG_HIDDEN))
-        lv_obj_remove_flag(cell, LV_OBJ_FLAG_HIDDEN);
+    if (lv_obj_is_hidden(cell))
+        lv_obj_set_hidden(cell, false);
     lv_obj_set_user_data(cell, (void *)(uintptr_t)index);
 
     /* Child 0 – SPR / EPR */

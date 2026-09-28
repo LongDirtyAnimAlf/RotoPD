@@ -96,12 +96,12 @@ static void ChargeStatus(bool Status)
         lv_obj_add_state(testchargebutton, LV_STATE_DISABLED);
         lv_obj_add_state(startchargebutton, LV_STATE_DISABLED);
         lv_obj_add_state(ta2, LV_STATE_DISABLED);
-        lv_obj_clear_flag(ta2, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_set_click_focusable(ta2, false);
     } else {
         lv_obj_remove_state(testchargebutton, LV_STATE_DISABLED);
         lv_obj_remove_state(startchargebutton, LV_STATE_DISABLED);
         lv_obj_remove_state(ta2, LV_STATE_DISABLED);
-        lv_obj_add_flag(ta2, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_set_click_focusable(ta2, true);
     }
     lv_obj_remove_state(testchargebutton, LV_STATE_CHECKED);
     lv_obj_remove_state(startchargebutton, LV_STATE_CHECKED);
@@ -113,12 +113,12 @@ static void DischargeStatus(bool Status)
         lv_obj_add_state(testdischargebutton, LV_STATE_DISABLED);
         lv_obj_add_state(startdischargebutton, LV_STATE_DISABLED);
         lv_obj_add_state(ta1, LV_STATE_DISABLED);
-        lv_obj_clear_flag(ta1, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_set_click_focusable(ta1, false);
     } else {
         lv_obj_remove_state(testdischargebutton, LV_STATE_DISABLED);
         lv_obj_remove_state(startdischargebutton, LV_STATE_DISABLED);
         lv_obj_remove_state(ta1, LV_STATE_DISABLED);
-        lv_obj_add_flag(ta1, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+        lv_obj_set_click_focusable(ta1, true);
     }
     lv_obj_remove_state(testdischargebutton, LV_STATE_CHECKED);
     lv_obj_remove_state(startdischargebutton, LV_STATE_CHECKED);
@@ -147,8 +147,8 @@ static void setbuttons(lv_obj_t * btn, bool checked)
                         lv_obj_add_state(zerotimebutton, LV_STATE_DISABLED);
                     lv_obj_add_state(ta1, LV_STATE_DISABLED);
                     lv_obj_add_state(ta2, LV_STATE_DISABLED);
-                    lv_obj_clear_flag(ta1, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-                    lv_obj_clear_flag(ta2, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+                    lv_obj_set_click_focusable(ta1, false);
+                    lv_obj_set_click_focusable(ta2, false);
                 }
             }
         }
@@ -284,7 +284,7 @@ void Setup_Screen1(byte index)
     lv_obj_add_style(ta, &input_label_style, 0);
     lv_label_set_text(ta, "0");
     lv_obj_set_size(ta, lv_pct(60), LV_SIZE_CONTENT);
-    lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(ta, true);
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
     ta1 = ta;
     lv_obj_set_user_data(ta1, testdischargebutton);
@@ -315,7 +315,7 @@ void Setup_Screen1(byte index)
     lv_obj_add_style(ta, &input_label_style, 0);
     lv_label_set_text(ta, "0");
     lv_obj_set_size(ta, lv_pct(60), LV_SIZE_CONTENT);
-    lv_obj_add_flag(ta, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(ta, true);
     lv_obj_add_event_cb(ta, ta_event_cb_local, LV_EVENT_CLICKED, NULL);
     ta2 = ta;
 
@@ -376,7 +376,7 @@ void Setup_Screen1(byte index)
 
         /* Value display cell (col 1) */
         cell = lv_obj_create(grid);
-        lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(cell, false);
         lv_obj_add_style(cell, &style_grid_cell, 0);
         lv_obj_set_style_pad_left(cell, 10, 0);
         lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 1, 1,
@@ -396,7 +396,7 @@ void Setup_Screen1(byte index)
 
         /* Name cell (col 0) */
         cell = lv_obj_create(grid);
-        lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(cell, false);
         lv_obj_add_style(cell, &style_grid_cell, 0);
         lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 0, 1,
                                    LV_GRID_ALIGN_STRETCH, i, 1);
@@ -409,7 +409,7 @@ void Setup_Screen1(byte index)
         /* Zero / Auto button cell (col 2) */
         cell = lv_obj_create(grid);
         lv_obj_remove_style_all(cell);
-        lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(cell, false);
         lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 2, 1,
                                    LV_GRID_ALIGN_STRETCH, i, 1);
         lv_obj_set_style_pad_all(cell, 0, 0);
@@ -447,7 +447,7 @@ void Setup_Screen1(byte index)
     cell = lv_obj_create(grid);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 3, 1,
                                LV_GRID_ALIGN_STRETCH, 0, NUMBEROFDISPLAY);
-    lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(cell, false);
     lv_obj_set_style_pad_all(cell, 5, 0);
     lv_obj_set_style_pad_top(cell, 10, 0);
     lv_obj_add_style(cell, &style_grid_cell, 0);
@@ -477,7 +477,7 @@ void Setup_Screen1(byte index)
     /* ── Bottom buttons ───────────────────────────────────────────────── */
     lv_obj_t * bottom_cont = lv_obj_create(cont);
     lv_obj_remove_style_all(bottom_cont);
-    lv_obj_clear_flag(bottom_cont, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollable(bottom_cont, false);
     lv_obj_set_size(bottom_cont, lv_pct(100), lv_pct(15));
     lv_obj_align(bottom_cont, LV_ALIGN_BOTTOM_MID, 0, 0);
 
