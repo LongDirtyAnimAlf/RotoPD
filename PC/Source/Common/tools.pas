@@ -180,6 +180,9 @@ begin
                  PropertyRegDataType:=0;
                  RequiredSize:=0;
                  s:='';
+
+                 (*
+
                  if SetupDiGetDeviceRegistryProperty(hdev, DeviceInfoData, SPDRP_FRIENDLYNAME, PropertyRegDataType,  PBYTE(@PropertyBuffer[0]), SizeOf(PropertyBuffer), RequiredSize) then
                  begin
                    s:=s+PropertyBuffer;
@@ -198,6 +201,8 @@ begin
                  end;
                  s:=s+DefaultFormatSettings.ListSeparator;
 
+                 *)
+
                  Key := SetupDiOpenDevRegKey(hdev, DeviceInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE);
                  if (Key<>0) then
                  try
@@ -206,25 +211,30 @@ begin
                    Windows.RegQueryValueEx(Key, 'PortName', nil, @RegType, PByte(PChar(PortName)), @Count);
                    if (Count>0) AND (RegType=REG_SZ) then
                    begin
-                     SetLength(PortName, Count - 1);
+                     SetLength(PortName, Count);
                      s:=s+PortName;
                    end;
                  finally
                    Windows.RegCloseKey(Key);
                  end;
+
+                 (*
                  s:=s+DefaultFormatSettings.ListSeparator;
+
 
                  if SetupDiGetDeviceProperty(hdev, DeviceInfoData, @DEVPKEY_Device_BusReportedDeviceDesc, PropertyType, PBYTE(@PropertyBufferW[0]), SizeOf(PropertyBufferW), RequiredSize, 0) then
                  begin
                    s:=s+PropertyBufferW;
                  end;
                  s:=s+DefaultFormatSettings.ListSeparator;
+                 *)
 
                  if Length(s)>0 then
                  begin
                    SetLength(s,Length(s)-1);
                    ComList.Append(s);
                  end;
+
                 end
                 else
                 begin

@@ -151,9 +151,6 @@ type
 
     FAsync:boolean;
 
-    FSOP:AnsiString;
-    FEOP:AnsiString;
-
     procedure DeviceOpen;
     procedure DeviceClose;
 
@@ -162,9 +159,6 @@ type
   protected
     procedure SetActive(state: boolean);
     procedure SetAsync(state: boolean);
-
-    procedure SetSOP(value:ansistring);
-    procedure SetEOP(value:ansistring);
 
     procedure SetBaudRate(br: TBaudRate);
     procedure SetDataBits(db: TDataBits);
@@ -196,9 +190,6 @@ type
     property Active: boolean read FActive write SetActive;
 
     property Async: boolean read FAsync write SetAsync;
-
-    property SOP:AnsiString read FSOP write SetSOP;
-    property EOP:AnsiString read FEOP write SetEOP;
 
     property BaudRate: TBaudRate read FBaudRate write SetBaudRate; // default br115200;
     property DataBits: TDataBits read FDataBits write SetDataBits;
@@ -259,8 +250,6 @@ constructor TLazSerial.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FAsync:=false;
-  FSOP:='';
-  FEOP:='';
   InitCriticalSection(FCriticalSection);
   FCommandList:=TStringList.Create;
   //FHandle:=-1;
@@ -333,22 +322,6 @@ begin
   if (state<>FAsync) then
   begin
     FAsync:=state;
-  end;
-end;
-
-procedure TLazSerial.SetSOP(value:ansistring);
-begin
-  if ((value<>FSOP) AND (NOT FActive)) then
-  begin
-    FSOP:=value;
-  end;
-end;
-
-procedure TLazSerial.SetEOP(value:ansistring);
-begin
-  if ((value<>FEOP) AND (NOT FActive)) then
-  begin
-    FEOP:=value;
   end;
 end;
 
@@ -492,19 +465,7 @@ begin
 end;
 
 procedure TComPortReadThread.Execute;
-var
-  FBuffer:ansistring;
-  DataString:ansistring;
-  PreAmbleCounterPos,PostAmbleCounterPos:word;
-  x,y:word;
-  SOPNeeded,EOPNeeded:boolean;
-  DataOK:boolean;
 begin
-  DataString:='';
-  FBuffer:='';
-  SOPNeeded:=(Length(Owner.FSOP)>0);
-  EOPNeeded:=(Length(Owner.FEOP)>0);
-
   try
     Owner.FSynSer.Purge;
 
@@ -525,47 +486,10 @@ begin
       end;
       LeaveCriticalSection(Owner.FCriticalSection);
 
-      y:=0;
-      repeat
-        Inc(y);
-        FBuffer:=Owner.FSynSer.RecvPacket(10);
-        x:=Length(FBuffer);
-        if (x>0) then DataString:=DataString+FBuffer;
-        if (y>10) then break; // report at least every 100 ms in case of much data
-      until ((x=0) OR (Terminated));
-
-      x:=Length(DataString);
-
-      while true do
+      Owner.FData:=Owner.FSynSer.RecvTerminated(10,#13);
+      if (Owner.FSynSer.LastError<>ErrTimeout) then
       begin
-        if ((x>0) AND (NOT Terminated)) then
-        begin
-          PreAmbleCounterPos:=0;
-          if SOPNeeded then PreAmbleCounterPos:=Pos(Owner.FSOP,DataString);
-          PostAmbleCounterPos:=0;
-          if EOPNeeded then PostAmbleCounterPos:=Pos(Owner.FEOP,DataString);
-
-          DataOk:=True;
-          DataOK:=DataOK AND (SOPNeeded AND (PreAmbleCounterPos>0));
-          DataOK:=DataOK AND (EOPNeeded AND (PostAmbleCounterPos>0));
-
-          if DataOk then
-          begin
-            if (PreAmbleCounterPos=0) then PreAmbleCounterPos:=1;
-            if (PostAmbleCounterPos=0) then PostAmbleCounterPos:=Length(DataString)+1;
-            Owner.FData:=copy (DataString,PreAmbleCounterPos+Length(Owner.FSOP),PostAmbleCounterPos-PreAmbleCounterPos-Length(Owner.FSOP));
-            Delete(DataString,1,PostAmbleCounterPos+Length(Owner.FEOP)-1);
-            x:=Length(DataString);
-            Synchronize(@CallEvent);
-            continue;
-          end;
-        end
-        else
-        begin
-          // Prevent burning of CPU
-          sleep(1);
-        end;
-        break;
+        Synchronize(@CallEvent);
       end;
 
     end;
