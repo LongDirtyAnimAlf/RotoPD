@@ -665,6 +665,7 @@ void setup()
 
   //delay(250);
 
+  #ifdef ARDUINO_ARCH_RP2040
 
   // 1. STEP THE VOLTAGE UP INCREMENTALLY
   // Stepping avoids sudden current spikes that trip brownout resets.
@@ -678,11 +679,18 @@ void setup()
   //set_sys_clock_khz(400000, false);  
   //delay(10);
 
+
+  // Change system clock to exactly match the PSRAM clock (133MHz) by an integer factor
+  // This results in best LCD performance without glitches and noise
   set_sys_clock_khz(266000, true);  
   delay(10);
 
+  // Tune the PSRAM settings to match the system clock
+  // This results in best LCD performance without glitches and noise
   set_psram_timing_auto();
   delay(10);
+
+  #endif
 
   // This will remove the unwanted default string descriptor
   // And kill the unwanted (unneeded) serial port.
@@ -690,17 +698,28 @@ void setup()
   //USBSerial.end();
   #endif
 
+  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
   if (!TinyUSBDevice.isInitialized()) {
     TinyUSBDevice.begin(0);
   }
-  
   USBDevice.setID(0x04D8,0x003F);
-  USBDevice.setVersion(0x0002);
-  USBDevice.setDeviceVersion(0x0002);
-
+  USBDevice.setVersion(0x0200);        // USB 2.0
+  USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
   USBDevice.setProductDescriptor("USB PD controller with HID");
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32
+  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+  USB.VID(0x04D8);
+  USB.PID(0x003F);  
+  USB.usbVersion(0x0200);
+  USB.firmwareVersion(0x0100);
+  USB.manufacturerName("Consulab for pleasure");
+  USB.productName("USB PD controller with HID");
+  #endif
+  #endif
 
   for (index=0; index<12;index++)
   {
@@ -722,24 +741,16 @@ void setup()
   }
   mySerial[29] = '\0';  
 
-  USBDevice.setSerialDescriptor(mySerial);  
-  //USBDevice.addStringDescriptor(mySerial);
-
-  /*Init USB Device*/
-  //HID.setStringDescriptor("HIDI2C BATT_CTRL");
-
-  //HID.setReportCallback(get_report_callback, set_report_callback);
-  HID.setReportCallback(NULL, set_report_callback);
-
-  HID.enableOutEndpoint(true);
-  HID.setPollInterval(1);
-  HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
-
-
   myFirmware[0] = '\0';  
   sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
   myFirmware[18] = '\0';   
-  //USBDevice.setSerialDescriptor(myFirmware);
+
+  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
+  USBDevice.setSerialDescriptor(mySerial);  
+  HID.setReportCallback(NULL, set_report_callback);
+  HID.enableOutEndpoint(true);
+  HID.setPollInterval(1);
+  HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
   USBDevice.addStringDescriptor(myFirmware);  
 
   HID.begin();
@@ -747,20 +758,31 @@ void setup()
   // Enable serial (again) for programming and debugging
   #ifdef DEBUG  
   Serial.begin(115200);
+  #endif
+
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32
+  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+  USB.serialNumber(mySerial);  
+  tinyusb_add_string_descriptor(myFirmware);
+  Device.begin();
+  USBSerial.begin(115200);
+  USB.begin();
+  #endif
+  #endif
+
+  #ifdef DEBUG  
   int cnt = 1000;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
   // Serial.setDebugOutput(true);
   #endif
+
   Serial.println("Starting RP2350 init.");
 
   WireBattery.setSDA(BSP_I2C_SDA_PIN);
   WireBattery.setSCL(BSP_I2C_SCL_PIN);
   WireBattery.begin();
-  //WireBattery.begin(BSP_I2C_NUM,BSP_I2C_SDA_PIN,BSP_I2C_SCL_PIN);
-
-  //if (set_sys_clock_khz(266000, true)) {
-  //      // Clock configured successfully
-  //}
 
   bsp_buzzer_init();
   //bsp_buzzer_enable(true);

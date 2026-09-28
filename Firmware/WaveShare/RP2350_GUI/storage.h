@@ -3,8 +3,6 @@
 
 #include "shared.h"
 
-#include <EEPROM.h>
-
 void storeInit(void);
 void storePutBoardInfo(TBoardInfo * Info);
 bool storeGetBoardInfo(TBoardInfo * Info);
