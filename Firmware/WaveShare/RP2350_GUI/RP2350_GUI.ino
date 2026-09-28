@@ -76,7 +76,9 @@ static volatile bool GetData = false;
 GT911_Lite tp; // touchscreen through TwoWire
 static Ticker datacollectticker;
 static Ticker datastartticker;
+static Ticker SoundButtonTicker;
 static volatile bool GetBatteryData = false;
+static volatile bool SoundButtonClick = false;
 static volatile bool StoreSettings = false;
 static volatile byte SendCommand[COMMAND_SIZE] = {0};
 #endif
@@ -314,6 +316,8 @@ static void main_event_handler(lv_event_t * e)
     {
       if(code == LV_EVENT_VALUE_CHANGED)
       {
+        SoundButtonClick = true;
+
         //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
         bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
 
@@ -416,6 +420,8 @@ static void main_event_handler(lv_event_t * e)
       else
       if(code == LV_EVENT_CLICKED)
       {
+        SoundButtonClick = true;
+
         // Screen navigation
         if ((event_object == backbutton) || (event_object == morebutton))
         {
@@ -462,6 +468,7 @@ static void main_event_handler(lv_event_t * e)
         }
         else
         {
+          SoundButtonClick = false;
           #ifdef DEBUG                      
           Serial.println("Unknown button pressed");
           #endif
@@ -472,12 +479,13 @@ static void main_event_handler(lv_event_t * e)
             #endif
             if (object_user_data != NULL)
             {
+              SoundButtonClick = true;
+
               // WE got a PDO select click !!
               byte SelectPDOindex = ((byte)(uintptr_t)object_user_data);      
               #ifdef DEBUG
               Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
               #endif
-              bsp_buzzer_enable(true);
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
               SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
@@ -492,6 +500,7 @@ static void main_event_handler(lv_event_t * e)
 
     if ( (lv_obj_check_type(event_object, &lv_keyboard_class)) || (lv_obj_check_type(event_object, &lv_checkbox_class)) )
     {
+      SoundButtonClick = true;
 
       #ifdef DEBUG                      
       Serial.println("Event: keyboard/checkbox value event");
@@ -632,6 +641,12 @@ static void datacollectcb()
 {
   GetBatteryData = true;
 }
+
+static void StopClickCB()
+{
+  bsp_buzzer_enable(false);
+}
+
 
 static void datastartcb(byte index)
 {
@@ -785,7 +800,6 @@ void setup()
   WireBattery.begin();
 
   bsp_buzzer_init();
-  //bsp_buzzer_enable(true);
 
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();
@@ -954,8 +968,6 @@ void setup()
   
   #endif
 
-  bsp_buzzer_enable(false);
-
   Info_Add("GUI. Init RP2350 ready.");
 }
 
@@ -1006,7 +1018,12 @@ void loop()
     }
   }
 
-
+  if (SoundButtonClick)
+  {
+    SoundButtonClick = false;
+    bsp_buzzer_enable(true);
+    SoundButtonTicker.once_ms(100U, StopClickCB);
+  }
 
   if (millis() - startTime >= 1000)
   {
@@ -1244,8 +1261,6 @@ void loop()
         {
           Info_Add_Fmt("GUI. PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
         }
-
-        bsp_buzzer_enable(false);
 
         break;
       }

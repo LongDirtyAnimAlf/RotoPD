@@ -35,7 +35,7 @@ lv_obj_t * create_display(lv_obj_t * parent, lv_color_t c, bool size, byte count
     digitfont = &lv_font_dseg7_32;
   }
 
-  //lv_obj_add_flag(digits, LV_OBJ_FLAG_USER_1 );
+  //lv_obj_set_user_flag(digits, 0, true);
 
   lv_obj_align(digits, LV_ALIGN_CENTER, 0, 0);
   lv_obj_center(digits);

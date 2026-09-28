@@ -27,7 +27,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 
   lv_obj_t * nav = lv_obj_create(basescreen);
   lv_obj_remove_style_all(nav);
-  lv_obj_clear_flag(nav, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_scrollable(nav, false);
   lv_obj_set_style_pad_top(nav, 6, LV_PART_MAIN);
   lv_obj_set_style_pad_bottom(nav, 6, LV_PART_MAIN);
   lv_obj_set_style_pad_left(nav, 2, LV_PART_MAIN);
@@ -69,10 +69,10 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   obj = screen1;
   lv_obj_remove_style_all(obj);
   // Add flag, indicating its a screen !!
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_1);
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_user_flag(obj, 0, true);
+  lv_obj_set_hidden(obj, true);
   lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
-  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_scrollable(obj, false);
   lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   //lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_GREEN,4), LV_PART_MAIN);      
@@ -81,10 +81,10 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   obj = screen2;
   lv_obj_remove_style_all(obj);
   // Add flag, indicating its a screen !!
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_1);
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_user_flag(obj, 0, true);
+  lv_obj_set_hidden(obj, true);
   lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
-  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_scrollable(obj, false);
   lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   //lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_RED,4), LV_PART_MAIN);      
@@ -93,10 +93,10 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   obj = screen3;
   lv_obj_remove_style_all(obj);
   // Add flag, indicating its a screen !!
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_1);
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_user_flag(obj, 0, true);
+  lv_obj_set_hidden(obj, true);
   lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
-  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_scrollable(obj, false);
   lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   //lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_BLUE,4), LV_PART_MAIN);      
@@ -105,10 +105,10 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   obj = screenlogger;
   lv_obj_remove_style_all(obj);
   // Add flag, indicating its a screen !!
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_USER_1);
-  lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_user_flag(obj, 0, true);
+  lv_obj_set_hidden(obj, true);
   lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
-  lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_scrollable(obj, false);
   lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   
@@ -166,10 +166,10 @@ void NewKeyboardSetup(lv_obj_t * screen)
   lv_obj_t* newkeyboardbase = lv_obj_create(screen);
   //lv_obj_remove_style_all(newkeyboardbase);
   lv_obj_set_size(newkeyboardbase, lv_pct(100), lv_pct(100));
-  lv_obj_add_flag(newkeyboardbase, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_hidden(newkeyboardbase, true);
   //lv_obj_set_style_bg_opa(newkeyboardbase, LV_OPA_TRANSP, 0);
   //lv_obj_set_style_bg_color(newkeyboardbase, lv_palette_darken(LV_PALETTE_RED,4), LV_PART_MAIN);    
-  lv_obj_clear_flag(newkeyboardbase, LV_OBJ_FLAG_SCROLLABLE);    
+  lv_obj_set_scrollable(newkeyboardbase, false);
   lv_obj_add_style(newkeyboardbase, &modal_style, LV_PART_MAIN);
   lv_obj_set_pos(newkeyboardbase, 0, 0);
   //lv_obj_set_size(newkeyboardbase, LV_HOR_RES, LV_VER_RES);
@@ -246,7 +246,7 @@ void BaseKeyboardSetup(lv_obj_t * kb)
 
   lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_1, kb_map, kb_ctrl);
   lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_USER_1);  
-  lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_hidden(kb, true);
   //lv_obj_set_size(kb, LV_PCT(100), LV_PCT(100));
   lv_obj_set_size(kb, 250, 250);
   lv_obj_align(kb, LV_ALIGN_CENTER, 0, 0);  
@@ -306,11 +306,11 @@ void recursive_hide(lv_obj_t *parent, bool hide)
       child = lv_obj_get_child(parent, i);
       if (hide)
       {
-        if (!lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(child, LV_OBJ_FLAG_HIDDEN);
+        if (!lv_obj_is_hidden(child)) lv_obj_set_hidden(child, true);
       }
       else
       {
-        if (lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(child, LV_OBJ_FLAG_HIDDEN);    
+        if (lv_obj_is_hidden(child)) lv_obj_set_hidden(child, false);
       }
       recursive_hide(child,hide);
     }
@@ -352,9 +352,9 @@ void SetContentObject(lv_obj_t * content, bool show)
         if ((obj != NULL) && (obj != content))
         {
           // If an child has this flag, its a screen !!
-          if (lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1))
+          if (lv_obj_get_user_flag(obj, 0))
           {
-            if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+            if (!lv_obj_is_hidden(obj)) lv_obj_set_hidden(obj, true);
           }
         }
       }
@@ -363,7 +363,7 @@ void SetContentObject(lv_obj_t * content, bool show)
 
     if (content != NULL)
     {
-      if (lv_obj_has_flag(content, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(content, LV_OBJ_FLAG_HIDDEN);
+      if (lv_obj_is_hidden(content)) lv_obj_set_hidden(content, false);
     }
 
   }
@@ -387,9 +387,9 @@ lv_obj_t * GetContentObject(byte contentindexnumber)
     //if (obj != NULL)
     {
       //recursive_hide(obj,true);
-      if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN))
+      if (!lv_obj_is_hidden(obj))
       {
-        lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(obj, true);
         //lv_obj_set_local_style_prop(obj, LV_STYLE_OPA, 0, 0);   
         //lv_obj_invalidate(screenbase);      
       }
@@ -403,7 +403,7 @@ lv_obj_t * GetContentObject(byte contentindexnumber)
   if (obj != NULL)
   {
     //recursive_hide(obj,false);
-    if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) lv_obj_remove_flag(obj, LV_OBJ_FLAG_HIDDEN);        
+    if (lv_obj_is_hidden(obj)) lv_obj_set_hidden(obj, false);
     //lv_obj_remove_local_style_prop(obj, LV_STYLE_OPA, 0);    
     //lv_obj_move_foreground(obj);
     //lv_obj_invalidate(screenbase);
@@ -465,7 +465,7 @@ void ta_event_cb(lv_event_t * e)
             lv_align_t alignment = (lv_align_t)(uintptr_t)lv_obj_get_user_data(ta);
             lv_obj_align(kb, alignment, 0, 0);      
             lv_keyboard_set_textarea(kb, ta);
-            lv_obj_remove_flag(kb, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_hidden(kb, false);
             lv_obj_move_foreground(kb);
             //lv_obj_scroll_to_view_recursive(ta, LV_ANIM_OFF);
             lv_indev_wait_release((lv_indev_t *)lv_event_get_param(e));
@@ -473,13 +473,13 @@ void ta_event_cb(lv_event_t * e)
     }
     else if(code == LV_EVENT_DEFOCUSED) {
         lv_keyboard_set_textarea(kb, NULL);
-        lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_hidden(kb, true);
         lv_obj_align(kb, LV_ALIGN_DEFAULT, 0, 0);
         lv_indev_reset(NULL, ta);
     }
     else if(code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
       lv_keyboard_set_textarea(kb, NULL);
-      lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_hidden(kb, true);
       lv_obj_align(kb, LV_ALIGN_DEFAULT, 0, 0);
       lv_obj_clear_state(ta, LV_STATE_FOCUSED);
       lv_indev_reset(NULL, ta);
@@ -514,7 +514,7 @@ void ready_cb(lv_anim_t *anim)
   lv_obj_t * user = lv_anim_get_user_data(anim);  
   if (user != NULL)
   {
-    lv_obj_add_flag(user, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_hidden(user, true);
     //lv_obj_set_style_bg_opa(user, LV_OPA_TRANSP, 0);  
   }
 }
@@ -527,7 +527,7 @@ void NumpadShowLabel(lv_obj_t * label)
   lv_obj_t * user = lv_anim_get_user_data(&a);  
   if (user != NULL)
   {
-    lv_obj_remove_flag(user, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_hidden(user, false);
     lv_obj_t * ta = lv_obj_get_child(user, 0);
     if (ta != NULL)
     {
