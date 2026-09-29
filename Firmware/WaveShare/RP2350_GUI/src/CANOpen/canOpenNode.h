@@ -3,14 +3,15 @@
 
 #include "../CAN/mcp2515.h"
 
-#include "./config.h"
-#include "./message.hpp"
-#include "./receiver.hpp"
-#include "./pdo.hpp"
-#include "./sdo.hpp"
-#include "./nmt.hpp"
-#include "./emcy.hpp"
-#include "./object.hpp"
+#include "../../config.h"
+//#include "config.h"
+#include "message.hpp"
+#include "receiver.hpp"
+#include "pdo.hpp"
+#include "sdo.hpp"
+#include "nmt.hpp"
+#include "emcy.hpp"
+#include "object.hpp"
 
 class CanOpenNode {
 public:

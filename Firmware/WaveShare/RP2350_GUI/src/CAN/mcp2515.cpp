@@ -649,15 +649,11 @@ MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
 
 MCP2515::ERROR MCP2515::readMessage(struct can_frame *frame)
 {
-    Serial.println("1");
-
     // If interrupt flagged, drain HW buffers into queue
     if (_rxInterruptPending) {
         _rxInterruptPending = false;
         drainRxBuffers();
     }
-
-    Serial.println("2");
 
     // If TX buffer freed, drain software TX queue into hardware
     if (_txInterruptPending) {
@@ -665,20 +661,14 @@ MCP2515::ERROR MCP2515::readMessage(struct can_frame *frame)
         while (processTxQueue());
     }
 
-    Serial.println("3");
-
     // Read from software queue first
     noInterrupts();
     bool dequeued = _rxQueue.pop(*frame);
     interrupts();
 
-    Serial.println("4");
-
     if (dequeued) {
         return ERROR_OK;
     }
-
-    Serial.println("5");
 
     // Queue empty - try hardware directly
     uint8_t stat = getStatus();
@@ -687,8 +677,6 @@ MCP2515::ERROR MCP2515::readMessage(struct can_frame *frame)
     } else if ( stat & STAT_RX1IF ) {
         return readMessage(RXB1, frame);
     }
-
-    Serial.println("6");
 
     return ERROR_NOMSG;
 }

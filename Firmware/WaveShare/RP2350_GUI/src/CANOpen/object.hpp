@@ -5,7 +5,8 @@
 //#include <string.h>
 //#include <cstddef.h>
 #include <stdint.h>
-#include "config.h"
+#include "../../config.h"
+//#include "config.h"
 
 // Data type and size definitions
 enum class DataType : uint8_t {

@@ -4,8 +4,6 @@
 // Initialize static instance pointer for ISR
 CanOpenNode* CanOpenNode::instance = nullptr;
 
-struct can_frame cansendmessageframe;
-
 CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate) : 
     can(10 * 1000 * 1000),
     intPin(intPin),
@@ -112,9 +110,11 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
 
 // Send a CAN message
 bool CanOpenNode::sendMsg(const Message &msg) {
+    struct can_frame cansendmessageframe;
     cansendmessageframe.can_id = msg.id;
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
+    Serial.println("Sending !!!");
     if (MCP2515::ERROR_OK != can.sendMessage(&cansendmessageframe))
     {
         return false;
@@ -137,23 +137,23 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[8], uint8_t start) {
 
 // Controls NMT state transitions
 void CanOpenNode::nmtController() {
-    if (recv.id == 0x00) 
+    if (recv.id == 0x000) // NMT Master Command ID
     { 
         uint8_t command = recv.data[0];
         uint8_t nodeId = recv.data[1];
 
-        if (nodeId == NMT_ID || nodeId == 0x00) // 0x00 is broadcast
+        if (nodeId == NODE_ID || nodeId == 0x00) // 0x00 is broadcast
         {
             switch(command) 
             {
-                case 0x01: 
+                case StartNode: 
                     nmtState = NMT::Mode::OPERATIONAL; break;
-                case 0x02: 
+                case StopNode: 
                     nmtState = NMT::Mode::STOPPED; break;
-                case 0x80: 
+                case EnterPreOperational: 
                     nmtState = NMT::Mode::PRE_OPERATIONAL; break;
-                case 0x81: 
-                case 0x82: 
+                case ResetNode: 
+                case ResetCommunication: 
                     nmtState = NMT::Mode::BOOT; break;
             }
             nmt.changeMode(nmtState);

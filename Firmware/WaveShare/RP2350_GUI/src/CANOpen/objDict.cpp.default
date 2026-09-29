@@ -1,4 +1,4 @@
-#include "object.hpp"
+#include "./object.hpp"
 
 Object dictionary[] = {
 //  |              INDEX            | SUB |          DATA           |      TYPE      |          PERMISSIONS          |

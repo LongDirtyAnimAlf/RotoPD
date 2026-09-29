@@ -8,6 +8,13 @@
 #define CAN_INT   2
 #define CAN_CS    9
 
+#define StartNode               0x01
+#define StopNode                0x02
+#define EnterPreOperational     0x80
+#define ResetNode               0x81
+#define ResetCommunication      0x82
+
+
 // Standard CANopen Object Dictionary Indices (CiA 301) (Rename as needed)
 #define DEVICE_TYPE_INDEX              0x1000 // Communication Parameters
 #define ERROR_REGISTER_INDEX           0x1001

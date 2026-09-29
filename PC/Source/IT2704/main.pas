@@ -90,7 +90,7 @@ begin
   // Command to stop the IT2704 going
   // ID   = 00000000
   // DLC  = 2
-  // Data = 0201  ; 02 = Disable CAN. 01 = Device instrument
+  // Data = 0201  ; 02 = Stop Remote Node. 01 = Device instrument address
   // This stops a regular sending of data from IT2704 to PC over CAN.
   comm.WriteString('t'+'000'+'2'+'0201'+#13);
   comm.WriteString('O'+#13);
@@ -157,7 +157,7 @@ begin
     // Command to get the IT2704 going
     // ID   = 00000000
     // DLC  = 2
-    // Data = 0201  ; 01 = Enable CAN. 01 = Device instrument
+    // Data = 0101  ; 01 = Start Remote Node. 01 = Device instrument address
     // This starts a regular sending of data from IT2704 to PC over CAN.
     comm.WriteString('t'+'000'+'2'+'0101'+#13);
     comm.WriteString('O'+#13);
