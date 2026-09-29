@@ -2,37 +2,39 @@
 #define PDO_H
 
 #include "message.hpp"
+
 class PDO : public Message {
-  public:
-  uint8_t numObjects;  // number of objects mapped to PDO message data field
-  // Internal timer for PDO transmission
-  uint32_t timer; 
-  uint16_t cycleTime;
-  // PDO type: RX for Receive PDO, TX for Transmit PDO
+public:
+  uint8_t numObjects;       // number of objects mapped to PDO message data field
+  uint32_t timer;           // last transmission / reception timestamp
+  uint16_t cycleTime;       // Event Timer (ms) – sub-index 05h
+  uint8_t  transmissionType;// Transmission type – sub-index 02h (CiA 301)
+  uint16_t inhibitTime;     // Inhibit time (units of 100 µs) – sub-index 03h
+
   enum class Type {
-    RX, 
+    RX,
     TX
   };
   const Type type;
 
-  PDO(uint16_t id, Type type, uint16_t cycleTime) : 
-    Message(id, PDO_LEN), 
-    type(type), 
-    cycleTime(cycleTime), 
-    timer(0), 
+  PDO(uint16_t id, Type type, uint16_t cycleTime) :
+    Message(id, PDO_LEN),
+    type(type),
+    cycleTime(cycleTime),
+    transmissionType(0xFF),   // default: event-driven (CiA 301)
+    inhibitTime(0),            // default: disabled
+    timer(0),
     numObjects(0)
   {
-    for (int i = 0; i < 8; i++)
-    {
-      objList[i] = nullptr; // initialize object list to nullptr
-    } // unused bytes and non-starting bytes will be nullptr values
-  };
+    for (int i = 0; i < 8; i++) {
+      objList[i] = nullptr;
+    }
+  }
 
-  bool set(Object &obj, uint8_t position); // Map object to PDO object list at specified byte position
-  bool set(uint16_t index, uint8_t subIndex, uint8_t position); // Map object at index and subindex to PDO object list at specified byte position
-  void updateData(); // Update PDO data buffer to match object dictionary values
+  bool set(Object &obj, uint8_t position);
+  bool set(uint16_t index, uint8_t subIndex, uint8_t position);
+  void updateData();
 
-  // Getters
   Object *getObject(uint8_t position) const {
     if (position < 8)
       return objList[position];

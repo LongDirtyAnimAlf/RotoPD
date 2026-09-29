@@ -58,7 +58,8 @@ char myFirmware[30];
 AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
-CanOpenNode node(0, 0, CAN_250KBPS, 5);
+//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ 5);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -918,19 +919,22 @@ void setup()
   node.begin();
 
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
-  //node.disableNMT(true); 
+  node.disableNMT(false); 
   node.disableMapping(true);
   
   // Manually set PDOs here if mapping isn't used
-  node.set(PDO::Type::TX, 1, STATUS, 0x01, 0);
-  node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
-  node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
-  node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
+
+  node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
+  node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
+
+  //node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
+  //node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
+  //node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
   //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
-  node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
+  //node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
 
 
-  node.setHeartbeatTime(5000);      // 1 s heartbeat
+  node.setHeartbeatTime(5000);      // 5 s heartbeat
   //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
   //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
   //node.setRxPdoCycleTime(1, 500);   // RPDO1 timeout 500 ms

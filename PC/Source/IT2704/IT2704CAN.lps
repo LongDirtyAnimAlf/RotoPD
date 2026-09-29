@@ -24,8 +24,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="26"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="81"/>
-        <CursorPos X="189" Y="115"/>
+        <TopLine Value="139"/>
+        <CursorPos X="41" Y="162"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\tools.pas"/>

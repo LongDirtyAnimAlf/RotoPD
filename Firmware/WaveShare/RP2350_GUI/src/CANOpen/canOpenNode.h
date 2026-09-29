@@ -51,6 +51,12 @@ public:
     /** Set RPDO application timeout (ms). num = 1…4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
     void setRxPdoCycleTime(uint8_t num, uint16_t ms);
 
+    /** Set TPDO/RPDO Transmission Type (CiA 301). num = 1…4. */
+    void setPdoTransmissionType(PDO::Type type, uint8_t num, uint8_t transmissionType);
+
+    /** Set TPDO/RPDO Inhibit Time (units of 100 µs). num = 1…4. 0 = disabled. */
+    void setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibitTime);
+
     // EMCY – Getters/Setters
     EMCY getEmcy() const { return emcy; }
     void setEmcyErr(const Error &err) { emcy.setError(err); }
@@ -123,6 +129,9 @@ private:
     // Helpers to read / write cycle times from Object Dictionary
     uint16_t getProducerHeartbeatTime() const;
     uint16_t getPdoEventTimer(uint16_t commIndex) const;
+    uint8_t  getPdoTransmissionType(uint16_t commIndex) const;
+    uint16_t getPdoInhibitTime(uint16_t commIndex) const;
+    void     updateOdUint8 (uint16_t index, uint8_t sub, uint8_t  value);
     void     updateOdUint16(uint16_t index, uint8_t sub, uint16_t value);
 
     // ISR Handling

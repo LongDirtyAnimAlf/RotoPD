@@ -10,9 +10,10 @@
 
 // Application-specific Object Dictionary indices
 #define DISPLAYED_CHARGE               0x2520
-#define STATUS                         0x2000
-#define CURRENT                        0x2005
-#define VOLTAGE                        0x2005
+#define VOLTAGE                        0x2002
+#define CURRENT                        0x2003
+#define POWER                          0x2004
+#define STATUS                         0x2005
 #define TEMPERATURE                    0x6010
 #define MIN_VOLTAGE                    0x2006
 
@@ -37,7 +38,7 @@
 #define ERROR_BEHAVIOR_INDEX           0x1029
 
 // TPDO Communication Parameter indices (CiA 301)
-// Sub-index 5 = Event Timer (ms) � used as cyclic transmission period
+// Sub-index 5 = Event Timer (ms) � used as cyclic transmission period
 #define TX_PDO1_COMM_INDEX             0x1800
 #define TX_PDO2_COMM_INDEX             0x1801
 #define TX_PDO3_COMM_INDEX             0x1802
@@ -48,6 +49,13 @@
 #define RX_PDO2_COMM_INDEX             0x1401
 #define RX_PDO3_COMM_INDEX             0x1402
 #define RX_PDO4_COMM_INDEX             0x1403
+
+
+#define SUBIDX_DEFAULT                 0x00   // single-value objects (recommended)
+#define SUBIDX_1                       0x01   // first data entry of a record
+#define SUBIDX_2                       0x02
+#define SUBIDX_3                       0x03
+#define SUBIDX_4                       0x04
 
 // ------------------------------------------------------------------
 // Standard CiA 301 sub-indexes
@@ -60,7 +68,7 @@
 // PDO Communication Parameter record (0x1400.. / 0x1800..)
 #define SUBIDX_PDO_COB_ID              0x01   // COB-ID used by PDO
 #define SUBIDX_PDO_TRANSMISSION_TYPE   0x02   // Transmission type
-#define SUBIDX_PDO_INHIBIT_TIME        0x03   // Inhibit time (multiples of 100 �s)
+#define SUBIDX_PDO_INHIBIT_TIME        0x03   // Inhibit time (multiples of 100 �s)
 #define SUBIDX_PDO_RESERVED            0x04   // Reserved
 #define SUBIDX_PDO_EVENT_TIMER         0x05   // Event timer (ms)
 #define SUBIDX_PDO_SYNC_START_VALUE    0x06   // SYNC start value
@@ -77,6 +85,7 @@
 #define SUBIDX_PDO_MAP_8               0x08
 
 // Identity Object (0x1018)
+#define SUBIDX_IDENTITY_COUNT          0x00   // Number of identity objects
 #define SUBIDX_IDENTITY_VENDOR_ID      0x01
 #define SUBIDX_IDENTITY_PRODUCT_CODE   0x02
 #define SUBIDX_IDENTITY_REVISION       0x03
@@ -99,6 +108,29 @@
 #define EMCY_TEMP_ERR_BIT            0x08  // Bit 3
 #define EMCY_COMM_ERR_BIT            0x20  // Bit 5
 #define EMCY_DEVICE_ERR_BIT          0x80  // Bit 7
+
+
+// ------------------------------------------------------------------
+// PDO Transmission Types (CiA 301, sub-index 02h)
+// ------------------------------------------------------------------
+// Synchronous
+#define PDO_TXTYPE_SYNC_ACYCLIC           0x00   // 0   – after SYNC only if event occurred
+#define PDO_TXTYPE_SYNC_CYCLIC_1          0x01   // 1   – every SYNC
+#define PDO_TXTYPE_SYNC_CYCLIC_2          0x02   // 2   – every 2nd SYNC
+// … values 3 … 240 are “every n-th SYNC”
+#define PDO_TXTYPE_SYNC_CYCLIC_MAX        0xF0   // 240 – every 240th SYNC
+// Reserved
+// 0xF1 … 0xFB (241 … 251) – reserved by CiA
+// RTR-related
+#define PDO_TXTYPE_SYNC_RTR_ONLY          0xFC   // 252 – SYNC + remote request only
+#define PDO_TXTYPE_ASYNC_RTR_ONLY         0xFD   // 253 – remote request only
+// Event-driven / asynchronous
+#define PDO_TXTYPE_ASYNC_MANUFACTURER     0xFE   // 254 – manufacturer-specific event
+#define PDO_TXTYPE_ASYNC_DEVICE_PROFILE   0xFF  // 255 – device-profile / application event (most common default)
+
+#define PDO_TXTYPE_EVENT_DRIVEN           PDO_TXTYPE_ASYNC_DEVICE_PROFILE  // 255
+#define PDO_TXTYPE_CYCLIC_EVERY_SYNC      PDO_TXTYPE_SYNC_CYCLIC_1         // 1
+
 
 // Manufacturer-specific error field templates (5 bytes)
 #define MFG_ERROR_GENERIC            {0x00, 0x00, 0x00, 0x00, 0x01}
@@ -128,6 +160,24 @@
 #define BASE_SDO_RX_ID    0x600
 #define BASE_NMT_ID       0x700   // Heartbeat / Boot-up
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Default Node-ID (can be overridden at runtime via CanOpenNode constructor)
 #define DEFAULT_NODE_ID   0x01
 
@@ -143,7 +193,7 @@
 #define WRITE_RESP_SUCCESS_CMD  0x60
 #define WRITE_RESP_FAIL_CMD     0x80
 
-// Default cycle times (ms) � used as initial / fallback values
+// Default cycle times (ms) � used as initial / fallback values
 // Actual values are taken from Object Dictionary and can be changed at runtime
 #define HEARTBEAT_CYCLE_TIME    500   // ms  (OD 0x1017)
 #define PDO1_TX_CYCLE_TIME      500   // ms  (OD 0x1800:05 Event Timer)

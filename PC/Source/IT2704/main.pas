@@ -92,7 +92,7 @@ begin
   // DLC  = 2
   // Data = 0201  ; 02 = Stop Remote Node. 01 = Device instrument address
   // This stops a regular sending of data from IT2704 to PC over CAN.
-  comm.WriteString('t'+'000'+'2'+'0201'+#13);
+  comm.WriteString('t'+'000'+'2'+'0205'+#13);
   comm.WriteString('O'+#13);
 
   // Command to stop the Gravity CAN interface
@@ -159,7 +159,7 @@ begin
     // DLC  = 2
     // Data = 0101  ; 01 = Start Remote Node. 01 = Device instrument address
     // This starts a regular sending of data from IT2704 to PC over CAN.
-    comm.WriteString('t'+'000'+'2'+'0101'+#13);
+    comm.WriteString('t'+'000'+'2'+'0105'+#13);
     comm.WriteString('O'+#13);
 
 
