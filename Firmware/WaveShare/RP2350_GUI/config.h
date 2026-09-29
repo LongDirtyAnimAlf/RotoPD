@@ -56,6 +56,17 @@
 #define SUBIDX_2                       0x02
 #define SUBIDX_3                       0x03
 #define SUBIDX_4                       0x04
+#define SUBIDX_5                       0x05
+#define SUBIDX_6                       0x06
+#define SUBIDX_7                       0x07
+#define SUBIDX_8                       0x08
+#define SUBIDX_9                       0x09
+#define SUBIDX_10                      0x0A
+#define SUBIDX_11                      0x0B
+#define SUBIDX_12                      0x0C
+#define SUBIDX_13                      0x0D
+#define SUBIDX_14                      0x0E
+#define SUBIDX_15                      0x0F
 
 // ------------------------------------------------------------------
 // Standard CiA 301 sub-indexes
@@ -126,7 +137,7 @@
 #define PDO_TXTYPE_ASYNC_RTR_ONLY         0xFD   // 253 – remote request only
 // Event-driven / asynchronous
 #define PDO_TXTYPE_ASYNC_MANUFACTURER     0xFE   // 254 – manufacturer-specific event
-#define PDO_TXTYPE_ASYNC_DEVICE_PROFILE   0xFF  // 255 – device-profile / application event (most common default)
+#define PDO_TXTYPE_ASYNC_DEVICE_PROFILE   0xFF   // 255 – device-profile / application event (most common default)
 
 #define PDO_TXTYPE_EVENT_DRIVEN           PDO_TXTYPE_ASYNC_DEVICE_PROFILE  // 255
 #define PDO_TXTYPE_CYCLIC_EVERY_SYNC      PDO_TXTYPE_SYNC_CYCLIC_1         // 1

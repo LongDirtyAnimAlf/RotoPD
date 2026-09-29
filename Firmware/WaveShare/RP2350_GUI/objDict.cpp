@@ -3,16 +3,9 @@
 Object dictionary[] = {
 //  |             INDEX             | SUB |          DATA          |       TYPE       |      PERMISSIONS      |
     // Application objects
-
-    {VOLTAGE,                        SUBIDX_1, {0xC0, 0x12, 0x00, 0x00}, DataType::INT32, ObjectPermissions::READ},
-    {CURRENT,                        SUBIDX_1, {0xD0, 0x22, 0x00, 0x00}, DataType::INT32, ObjectPermissions::READ},
-    {POWER,                          SUBIDX_1, {0xD0, 0x22, 0x00, 0x00}, DataType::INT32, ObjectPermissions::READ},
-
-
-    //{METER_RMSVOLTAGE,               SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::INT32, ObjectPermissions::READ},
-    //{METER_RMSCURRENT,               SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::INT32, ObjectPermissions::READ},
-    //{METER_RMSPOWER,                 SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::INT32, ObjectPermissions::READ},
-    //{METER_RMSCAP,                   SUBIDX_1, {0xC0, 0x12, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ},
+    {VOLTAGE,                        SUBIDX_1, {0xC0, 0x12, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    {CURRENT,                        SUBIDX_1, {0xD0, 0x22, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    {POWER,                          SUBIDX_1, {0xD0, 0x22, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
     {DISPLAYED_CHARGE,               SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
     {STATUS,                         SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
     {TEMPERATURE,                    SUBIDX_1, {0x2C, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ},

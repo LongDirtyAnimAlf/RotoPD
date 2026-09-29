@@ -2,8 +2,8 @@
 #define OBJDICT_H
 
 #include "Arduino.h"
-//#include <string.h>
-//#include <cstddef.h>
+#include <cstring>
+#include <cstdint>
 #include <stdint.h>
 #include "../../config.h"
 //#include "config.h"
@@ -30,7 +30,27 @@ struct Object {
   uint8_t data[4];                // data buffer
   const DataType type;            // data type
   const ObjectPermissions access; // read/write permissions
- 
+
+  // --- Helper Getters ---
+  uint16_t getWord(size_t offset = 0) const {
+      uint16_t val;
+      std::memcpy(&val, &data[offset], sizeof(val));
+      return val;
+  }
+  uint32_t getDword() const {
+      uint32_t val;
+      std::memcpy(&val, data, sizeof(val));
+      return val;
+  }
+
+  // --- Helper Setters ---
+  void setWord(uint16_t val, size_t offset = 0) {
+      std::memcpy(&data[offset], &val, sizeof(val));
+  }
+  void setDword(uint32_t val) {
+      std::memcpy(data, &val, sizeof(val));
+  }  
+  
   uint8_t getTypeSize() const { return static_cast<uint8_t>(type); }; // Return uint/int size of object
   static int32_t findIndex(uint16_t index, uint8_t subIndex); // Return object index position in dictionary array
 

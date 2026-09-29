@@ -59,7 +59,7 @@ AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ 5);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ 1);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -926,6 +926,7 @@ void setup()
 
   node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
   node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
+  node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/2, /*Index#=*/POWER, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
 
   //node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
   //node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
@@ -1011,7 +1012,7 @@ void loop()
 
   static unsigned long startTime = millis();
 
-  static const uint32_t index = Object::findIndex(DISPLAYED_CHARGE, 0x01);
+  static const uint32_t index = Object::findIndex(VOLTAGE, 0x01);
 
   bool DataOk = false;
   byte INData[COMMAND_SIZE] = {0};
@@ -1065,7 +1066,8 @@ void loop()
   {
     startTime = millis();
 
-    dictionary[index].data[0] = dummycount++; // update displayed charge
+    //dictionary[index].data[0] = dummycount++; // update displayed charge
+    dictionary[index].setDword(dummycount++);
 
     //Serial.println("Loop");
 
