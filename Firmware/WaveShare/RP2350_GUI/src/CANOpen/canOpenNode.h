@@ -38,16 +38,10 @@ public:
     // NMT - Getters/Setters
     NMT getNMT() const {return nmt;};
     // PDO - Getters/Setters
-    // Non-const overload (for modifying the PDO)
-    PDO* getPDO(PDO::Type type, uint8_t num) {
-        if (num < 1 || num > 4) return nullptr;
-        return (type == PDO::Type::TX) ? &txPdo[num - 1] : &rxPdo[num - 1];
-    }
-    // Const overload (for read-only access)
     const PDO* getPDO(PDO::Type type, uint8_t num) const {
         if (num < 1 || num > 4) return nullptr;
         return (type == PDO::Type::TX) ? &txPdo[num - 1] : &rxPdo[num - 1];
-    }
+    };
     // SDO - Getters/Setters
     SDO getSDO() const {return sdo;};
     // Enable/Disable Boolean flags (Default is enabled)

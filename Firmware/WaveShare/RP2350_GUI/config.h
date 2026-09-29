@@ -8,12 +8,19 @@
 #define CAN_INT   2
 #define CAN_CS    9
 
-#define StartNode               0x01
-#define StopNode                0x02
-#define EnterPreOperational     0x80
-#define ResetNode               0x81
-#define ResetCommunication      0x82
+// Object dictionary indices
+#define DISPLAYED_CHARGE               0x2520
+#define STATUS                         0x2000
+#define CURRENT                        0x2005
+#define VOLTAGE                        0x2005
+#define TEMPERATURE                    0x6010
+#define MIN_VOLTAGE                    0x2006
 
+#define StartNode                      0x01
+#define StopNode                       0x02
+#define EnterPreOperational            0x80
+#define ResetNode                      0x81
+#define ResetCommunication             0x82
 
 // Standard CANopen Object Dictionary Indices (CiA 301) (Rename as needed)
 #define DEVICE_TYPE_INDEX              0x1000 // Communication Parameters
@@ -44,6 +51,7 @@
 #define EMCY_TEMP_ERR_BIT            0x08  // Bit 3
 #define EMCY_COMM_ERR_BIT            0x20  // Bit 5
 #define EMCY_DEVICE_ERR_BIT          0x80  // Bit 7
+
 // Manufacturer-specific error field templates (5 bytes)
 #define MFG_ERROR_GENERIC            {0x00, 0x00, 0x00, 0x00, 0x01}
 #define MFG_ERROR_OVERCURRENT        {0x00, 0x00, 0x00, 0x02, 0x02}
@@ -89,7 +97,7 @@
 #define BASE_NMT_ID       0x700
 
 // Message IDs
-#define NODE_ID      0x001
+#define NODE_ID      0x01
 
 #define PDO1_RX_ID   (BASE_PDO1_RX_ID + NODE_ID)
 #define PDO2_RX_ID   (BASE_PDO2_RX_ID + NODE_ID)
@@ -107,25 +115,27 @@
 #define EMCY_ID      (BASE_EMCY_ID + NODE_ID)
 
 // Read command bytes
-#define READ_REQ_ANY_CMD     0x40
-#define READ_REQ_1BYTE_CMD   0x4F // or response
-#define READ_REQ_2BYTE_CMD   0x4B // or response
-#define READ_REQ_4BYTE_CMD   0x43 // or response
+#define READ_REQ_ANY_CMD        0x40
+#define READ_REQ_1BYTE_CMD      0x4F // or response
+#define READ_REQ_2BYTE_CMD      0x4B // or response
+#define READ_REQ_4BYTE_CMD      0x43 // or response
+
 // Write command bytes
-#define WRITE_REQ_1BYTE_CMD      0x2F
-#define WRITE_REQ_2BYTE_CMD      0x2B
-#define WRITE_REQ_4BYTE_CMD      0x23
-#define WRITE_RESP_SUCCESS_CMD   0x60
-#define WRITE_RESP_FAIL_CMD      0x80
+#define WRITE_REQ_1BYTE_CMD     0x2F
+#define WRITE_REQ_2BYTE_CMD     0x2B
+#define WRITE_REQ_4BYTE_CMD     0x23
+#define WRITE_RESP_SUCCESS_CMD  0x60
+#define WRITE_RESP_FAIL_CMD     0x80
+
 // Cycle time values
-#define HEARTBEAT_CYCLE_TIME   100  // ms
-#define PDO1_TX_CYCLE_TIME     100  // ms
-#define PDO2_TX_CYCLE_TIME     100  // ms
-#define PDO3_TX_CYCLE_TIME     100  // ms
-#define PDO4_TX_CYCLE_TIME     100  // ms
-#define PDO1_RX_CYCLE_TIME     140  // ms
-#define PDO2_RX_CYCLE_TIME     140  // ms
-#define PDO3_RX_CYCLE_TIME     140  // ms
-#define PDO4_RX_CYCLE_TIME     140  // ms
+#define HEARTBEAT_CYCLE_TIME    500  // ms
+#define PDO1_TX_CYCLE_TIME      500  // ms
+#define PDO2_TX_CYCLE_TIME      500  // ms
+#define PDO3_TX_CYCLE_TIME      500  // ms
+#define PDO4_TX_CYCLE_TIME      500  // ms
+#define PDO1_RX_CYCLE_TIME      1400  // ms
+#define PDO2_RX_CYCLE_TIME      1400  // ms
+#define PDO3_RX_CYCLE_TIME      1400  // ms
+#define PDO4_RX_CYCLE_TIME      1400  // ms
 
 #endif 

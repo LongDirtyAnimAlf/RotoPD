@@ -23,8 +23,6 @@
 
 #include "ui.h"
 
-#include "touch.h"
-
 //#include <WiFi.h>
 
 #include "extras.h"
@@ -76,7 +74,7 @@ static Ticker datagetticker;
 static volatile bool GetData = false;
 
 #ifdef STANDALONE
-GT911_Lite tp; // touchscreen through TwoWire
+//GT911_Lite tp; // touchscreen through TwoWire
 static Ticker datacollectticker;
 static Ticker datastartticker;
 static Ticker SoundButtonTicker;
@@ -920,8 +918,7 @@ void setup()
   node.begin();
 
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
-  /*
-  node.disableNMT(true); 
+  //node.disableNMT(true); 
   node.disableMapping(true);
   
   // Manually set PDOs here if mapping isn't used
@@ -929,9 +926,8 @@ void setup()
   node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
   node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
   node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
-  node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
+  //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
   node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
-  */
 
   Info_Add("GUI. Init timers.");      
 
@@ -1005,6 +1001,8 @@ void loop()
 
   static unsigned long startTime = millis();
 
+  static const uint32_t index = Object::findIndex(DISPLAYED_CHARGE, 0x01);
+
   bool DataOk = false;
   byte INData[COMMAND_SIZE] = {0};
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
@@ -1014,7 +1012,7 @@ void loop()
   WORD_VAL wv;
   DWORD_VAL dwv;
 
-  static uint32_t count = 0;
+  static uint32_t dummycount = 0;
 
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
@@ -1056,6 +1054,8 @@ void loop()
   if (millis() - startTime >= 1000)
   {
     startTime = millis();
+
+    dictionary[index].data[0] = dummycount++; // update displayed charge
 
     //Serial.println("Loop");
 

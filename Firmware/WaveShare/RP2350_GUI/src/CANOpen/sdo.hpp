@@ -28,7 +28,7 @@ struct SDO : public Message {
 
     SDO(uint16_t id) : Message(id, SDO_LEN), obj(nullptr), sendType(SendType::INVALID) {};
 
-    Object *getObject() { return obj; };
+    Object* getObject() { return obj; }
     const Object *getObject() const { return obj; };
     
     bool setResponse(const Receiver &recv); // Smartly set the SDO object data fields based on the received message

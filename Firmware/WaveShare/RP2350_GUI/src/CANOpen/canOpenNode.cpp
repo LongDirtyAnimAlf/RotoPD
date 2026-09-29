@@ -94,14 +94,16 @@ void CanOpenNode::run() {
 
 // Manually set PDO mapping
 void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex, uint8_t position) {
-    if (num < 1 || num > 4) return;
+    PDO* pdo;
+    uint8_t pdoNum = num - 1; 
+    if (pdoNum > 3) return; // PDO num is not between 1 to 4
 
-    const uint8_t pdoIdx = num - 1;
-    PDO* pdo = (type == PDO::Type::RX) ? &rxPdo[pdoIdx] : &txPdo[pdoIdx];
+    if (type == PDO::Type::RX) pdo = &(rxPdo[pdoNum]);
+    else if (type == PDO::Type::TX) pdo = &(txPdo[pdoNum]); 
 
     pdo->set(index, subIndex, position);
     pdo->numObjects = 0; 
-    
+    // update numObjects count
     for (int i = 0; i < 8; i++) 
     {
         if (pdo->getObject(i) != nullptr) pdo->numObjects++;
@@ -114,7 +116,6 @@ bool CanOpenNode::sendMsg(const Message &msg) {
     cansendmessageframe.can_id = msg.id;
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
-    Serial.println("Sending !!!");
     if (MCP2515::ERROR_OK != can.sendMessage(&cansendmessageframe))
     {
         return false;
