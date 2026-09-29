@@ -58,7 +58,7 @@ char myFirmware[30];
 AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
-CanOpenNode node(0, 0, CAN_250KBPS);
+CanOpenNode node(0, 0, CAN_250KBPS, 5);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -928,6 +928,12 @@ void setup()
   node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
   //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
   node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
+
+
+  node.setHeartbeatTime(5000);      // 1 s heartbeat
+  //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
+  //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
+  //node.setRxPdoCycleTime(1, 500);   // RPDO1 timeout 500 ms
 
   Info_Add("GUI. Init timers.");      
 

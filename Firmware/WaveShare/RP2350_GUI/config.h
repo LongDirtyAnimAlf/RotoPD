@@ -8,7 +8,7 @@
 #define CAN_INT   2
 #define CAN_CS    9
 
-// Object dictionary indices
+// Application-specific Object Dictionary indices
 #define DISPLAYED_CHARGE               0x2520
 #define STATUS                         0x2000
 #define CURRENT                        0x2005
@@ -16,14 +16,15 @@
 #define TEMPERATURE                    0x6010
 #define MIN_VOLTAGE                    0x2006
 
+// NMT command specifiers (CiA 301)
 #define StartNode                      0x01
 #define StopNode                       0x02
 #define EnterPreOperational            0x80
 #define ResetNode                      0x81
 #define ResetCommunication             0x82
 
-// Standard CANopen Object Dictionary Indices (CiA 301) (Rename as needed)
-#define DEVICE_TYPE_INDEX              0x1000 // Communication Parameters
+// Standard CANopen Object Dictionary Indices (CiA 301)
+#define DEVICE_TYPE_INDEX              0x1000
 #define ERROR_REGISTER_INDEX           0x1001
 #define SYNC_COBID_INDEX               0x1005
 #define COMM_CYCLE_PERIOD_INDEX        0x1006
@@ -35,7 +36,54 @@
 #define IDENTITY_OBJECT_INDEX          0x1018
 #define ERROR_BEHAVIOR_INDEX           0x1029
 
-#define TX_PDO1_MAPPING_INDEX          0x1A00 // PDO Mappings
+// TPDO Communication Parameter indices (CiA 301)
+// Sub-index 5 = Event Timer (ms) – used as cyclic transmission period
+#define TX_PDO1_COMM_INDEX             0x1800
+#define TX_PDO2_COMM_INDEX             0x1801
+#define TX_PDO3_COMM_INDEX             0x1802
+#define TX_PDO4_COMM_INDEX             0x1803
+
+// RPDO Communication Parameter indices (CiA 301)
+#define RX_PDO1_COMM_INDEX             0x1400
+#define RX_PDO2_COMM_INDEX             0x1401
+#define RX_PDO3_COMM_INDEX             0x1402
+#define RX_PDO4_COMM_INDEX             0x1403
+
+// ------------------------------------------------------------------
+// Standard CiA 301 sub-indexes
+// ------------------------------------------------------------------
+
+// Generic / common
+#define SUBIDX_HIGHEST_SUPPORTED       0x00   // Number of entries / highest sub-index
+#define SUBIDX_VALUE                   0x00   // For simple VAR objects (the value itself)
+
+// PDO Communication Parameter record (0x1400.. / 0x1800..)
+#define SUBIDX_PDO_COB_ID              0x01   // COB-ID used by PDO
+#define SUBIDX_PDO_TRANSMISSION_TYPE   0x02   // Transmission type
+#define SUBIDX_PDO_INHIBIT_TIME        0x03   // Inhibit time (multiples of 100 µs)
+#define SUBIDX_PDO_RESERVED            0x04   // Reserved
+#define SUBIDX_PDO_EVENT_TIMER         0x05   // Event timer (ms)
+#define SUBIDX_PDO_SYNC_START_VALUE    0x06   // SYNC start value
+
+// PDO Mapping Parameter record (0x1600.. / 0x1A00..)
+#define SUBIDX_PDO_MAP_COUNT           0x00   // Number of mapped application objects
+#define SUBIDX_PDO_MAP_1               0x01   // 1st mapped object
+#define SUBIDX_PDO_MAP_2               0x02
+#define SUBIDX_PDO_MAP_3               0x03
+#define SUBIDX_PDO_MAP_4               0x04
+#define SUBIDX_PDO_MAP_5               0x05
+#define SUBIDX_PDO_MAP_6               0x06
+#define SUBIDX_PDO_MAP_7               0x07
+#define SUBIDX_PDO_MAP_8               0x08
+
+// Identity Object (0x1018)
+#define SUBIDX_IDENTITY_VENDOR_ID      0x01
+#define SUBIDX_IDENTITY_PRODUCT_CODE   0x02
+#define SUBIDX_IDENTITY_REVISION       0x03
+#define SUBIDX_IDENTITY_SERIAL         0x04
+
+
+#define TX_PDO1_MAPPING_INDEX          0x1A00
 #define TX_PDO2_MAPPING_INDEX          0x1A01
 #define TX_PDO3_MAPPING_INDEX          0x1A02
 #define TX_PDO4_MAPPING_INDEX          0x1A03
@@ -44,7 +92,7 @@
 #define RX_PDO3_MAPPING_INDEX          0x1602
 #define RX_PDO4_MAPPING_INDEX          0x1603
 
-// Standard EMCY Error Register Bits
+// Standard EMCY Error Register Bits (CiA 301)
 #define EMCY_GENERIC_ERR_BIT         0x01  // Bit 0
 #define EMCY_VOLTAGE_ERR_BIT         0x02  // Bit 1
 #define EMCY_CURRENT_ERR_BIT         0x04  // Bit 2
@@ -60,27 +108,11 @@
 #define MFG_ERROR_COMM               {0x00, 0x00, 0x00, 0x05, 0x05}
 #define MFG_ERROR_DEVICE             {0x00, 0x00, 0x00, 0x06, 0x06}
 
-// Message lengths
+// Message lengths (CiA 301)
 #define PDO_LEN   8
 #define SDO_LEN   8
 #define EMCY_LEN  8
 #define NMT_LEN   1
-// Message IDs
-
-/*
-#define PDO1_RX_ID   0xFFF 
-#define PDO2_RX_ID   0xFFF 
-#define PDO3_RX_ID   0xFFF
-#define PDO4_RX_ID   0xFFF 
-#define PDO1_TX_ID   0xFFF 
-#define PDO2_TX_ID   0xFFF
-#define PDO3_TX_ID   0xFFF 
-#define PDO4_TX_ID   0xFFF
-#define NMT_ID       0xFFF 
-#define SDO_RX_ID    0xFFF
-#define SDO_TX_ID    0xFFF
-#define EMCY_ID      0xFFF
-*/
 
 // Base COB-ID Offsets (CiA 301 Pre-defined Connection Set)
 #define BASE_EMCY_ID      0x080
@@ -94,48 +126,33 @@
 #define BASE_PDO4_RX_ID   0x500
 #define BASE_SDO_TX_ID    0x580
 #define BASE_SDO_RX_ID    0x600
-#define BASE_NMT_ID       0x700
+#define BASE_NMT_ID       0x700   // Heartbeat / Boot-up
 
-// Message IDs
-#define NODE_ID      0x01
+// Default Node-ID (can be overridden at runtime via CanOpenNode constructor)
+#define DEFAULT_NODE_ID   0x01
 
-#define PDO1_RX_ID   (BASE_PDO1_RX_ID + NODE_ID)
-#define PDO2_RX_ID   (BASE_PDO2_RX_ID + NODE_ID)
-#define PDO3_RX_ID   (BASE_PDO3_RX_ID + NODE_ID)
-#define PDO4_RX_ID   (BASE_PDO4_RX_ID + NODE_ID)
-
-#define PDO1_TX_ID   (BASE_PDO1_TX_ID + NODE_ID)
-#define PDO2_TX_ID   (BASE_PDO2_TX_ID + NODE_ID)
-#define PDO3_TX_ID   (BASE_PDO3_TX_ID + NODE_ID)
-#define PDO4_TX_ID   (BASE_PDO4_TX_ID + NODE_ID)
-
-#define NMT_ID       (BASE_NMT_ID + NODE_ID) // Heartbeat / NMT node ID
-#define SDO_RX_ID    (BASE_SDO_RX_ID + NODE_ID) // Master write / RX SDO
-#define SDO_TX_ID    (BASE_SDO_TX_ID + NODE_ID) // Slave response / TX SDO
-#define EMCY_ID      (BASE_EMCY_ID + NODE_ID)
-
-// Read command bytes
+// SDO command bytes (CiA 301)
 #define READ_REQ_ANY_CMD        0x40
-#define READ_REQ_1BYTE_CMD      0x4F // or response
-#define READ_REQ_2BYTE_CMD      0x4B // or response
-#define READ_REQ_4BYTE_CMD      0x43 // or response
+#define READ_REQ_1BYTE_CMD      0x4F
+#define READ_REQ_2BYTE_CMD      0x4B
+#define READ_REQ_4BYTE_CMD      0x43
 
-// Write command bytes
 #define WRITE_REQ_1BYTE_CMD     0x2F
 #define WRITE_REQ_2BYTE_CMD     0x2B
 #define WRITE_REQ_4BYTE_CMD     0x23
 #define WRITE_RESP_SUCCESS_CMD  0x60
 #define WRITE_RESP_FAIL_CMD     0x80
 
-// Cycle time values
-#define HEARTBEAT_CYCLE_TIME    500  // ms
-#define PDO1_TX_CYCLE_TIME      500  // ms
-#define PDO2_TX_CYCLE_TIME      500  // ms
-#define PDO3_TX_CYCLE_TIME      500  // ms
-#define PDO4_TX_CYCLE_TIME      500  // ms
-#define PDO1_RX_CYCLE_TIME      1400  // ms
+// Default cycle times (ms) – used as initial / fallback values
+// Actual values are taken from Object Dictionary and can be changed at runtime
+#define HEARTBEAT_CYCLE_TIME    500   // ms  (OD 0x1017)
+#define PDO1_TX_CYCLE_TIME      500   // ms  (OD 0x1800:05 Event Timer)
+#define PDO2_TX_CYCLE_TIME      500   // ms  (OD 0x1801:05)
+#define PDO3_TX_CYCLE_TIME      500   // ms  (OD 0x1802:05)
+#define PDO4_TX_CYCLE_TIME      500   // ms  (OD 0x1803:05)
+#define PDO1_RX_CYCLE_TIME      1400  // ms  (application timeout, not standard)
 #define PDO2_RX_CYCLE_TIME      1400  // ms
 #define PDO3_RX_CYCLE_TIME      1400  // ms
 #define PDO4_RX_CYCLE_TIME      1400  // ms
 
-#endif 
+#endif

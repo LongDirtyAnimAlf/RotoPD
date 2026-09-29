@@ -4,7 +4,6 @@
 #include "../CAN/mcp2515.h"
 
 #include "../../config.h"
-//#include "config.h"
 #include "message.hpp"
 #include "receiver.hpp"
 #include "pdo.hpp"
@@ -15,69 +14,118 @@
 
 class CanOpenNode {
 public:
-    CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate);
+    /**
+     * @param csPin    MCP2515 chip-select pin
+     * @param intPin   MCP2515 interrupt pin
+     * @param baudRate (kept for future use / compatibility)
+     * @param nodeId   CANopen Node-ID (1 … 127). Defaults to DEFAULT_NODE_ID.
+     */
+    CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate,
+                uint8_t nodeId = DEFAULT_NODE_ID);
 
-    // Initialize the MCP2515 CAN controller and sets up the node
+    // Initialize the MCP2515 CAN controller and set up the node
     void begin();
+
     // Run core communication loop
     void run();
+
     // Manually set PDO mapping
     void set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex, uint8_t position);
 
-    // Public - Core communication functions
+    // Public – Core communication functions
     bool sendMsg(const Message &msg);
     void writeData(Object &obj, uint8_t data[4]);
-    // EMCY - Getters/Setters
-    EMCY getEmcy() const {return emcy;};
-    void setEmcyErr(const Error &err) {emcy.setError(err);};
-    void setEmcyErr(const uint16_t code) {emcy.setError(code);};
-    uint16_t getEmcyCode() const {return emcy.getErrCode();};
-    // Receiver - Getters/Setters
-    Receiver getReceiver() const {return recv;};
-    bool isActive() const {return recv.active;};
-    // NMT - Getters/Setters
-    NMT getNMT() const {return nmt;};
-    // PDO - Getters/Setters
+
+    // Node-ID accessor
+    uint8_t getNodeId() const { return nodeId; }
+
+    // ------------------------------------------------------------------
+    // Runtime setters for cycle times (also writable via SDO)
+    // ------------------------------------------------------------------
+    /** Set Producer Heartbeat Time (ms). 0 = disabled. Also updates OD 0x1017. */
+    void setHeartbeatTime(uint16_t ms);
+
+    /** Set TPDO Event Timer (ms). num = 1…4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
+    void setTxPdoCycleTime(uint8_t num, uint16_t ms);
+
+    /** Set RPDO application timeout (ms). num = 1…4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
+    void setRxPdoCycleTime(uint8_t num, uint16_t ms);
+
+    // EMCY – Getters/Setters
+    EMCY getEmcy() const { return emcy; }
+    void setEmcyErr(const Error &err) { emcy.setError(err); }
+    void setEmcyErr(const uint16_t code) { emcy.setError(code); }
+    uint16_t getEmcyCode() const { return emcy.getErrCode(); }
+
+    // Receiver – Getters/Setters
+    Receiver getReceiver() const { return recv; }
+    bool isActive() const { return recv.active; }
+
+    // NMT – Getters/Setters
+    NMT getNMT() const { return nmt; }
+
+    // PDO – Getters/Setters
     const PDO* getPDO(PDO::Type type, uint8_t num) const {
         if (num < 1 || num > 4) return nullptr;
         return (type == PDO::Type::TX) ? &txPdo[num - 1] : &rxPdo[num - 1];
-    };
-    // SDO - Getters/Setters
-    SDO getSDO() const {return sdo;};
+    }
+
+    // SDO – Getters/Setters
+    SDO getSDO() const { return sdo; }
+
     // Enable/Disable Boolean flags (Default is enabled)
-    void disableNMT(bool disable) { nmtOn = !disable; };
-    void disableMapping(bool disable) { mappingOn = !disable; };
+    void disableNMT(bool disable) { nmtOn = !disable; }
+    void disableMapping(bool disable) { mappingOn = !disable; }
+
 private:
     MCP2515 can;
-    //MCP2515 can(10 * 1000 * 1000);
     const uint8_t intPin;
     const uint8_t baudRate;
+    uint8_t nodeId;                     // runtime Node-ID (1-127)
+
+    // Calculated COB-IDs (CiA 301 pre-defined connection set)
+    uint16_t cobIdEmcy;
+    uint16_t cobIdSdoTx;                // slave ? master (response)
+    uint16_t cobIdSdoRx;                // master ? slave (request)
+    uint16_t cobIdNmt;                  // heartbeat / boot-up
+    uint16_t cobIdTxPdo[4];
+    uint16_t cobIdRxPdo[4];
+
     volatile bool flagRecv;
-    // Boolean flags 
-    bool nmtOn; // NMT handling enabled
-    bool mappingOn; // PDO mapping enabled
+
+    // Boolean flags
+    bool nmtOn;                         // NMT handling enabled
+    bool mappingOn;                     // PDO mapping enabled
+
     // Current NMT state
     NMT::Mode nmtState;
+
     // CANopen message objects
     Receiver recv;
     SDO sdo;
     NMT nmt;
     EMCY emcy;
     PDO txPdo[4];
-    PDO rxPdo[4];   
-    // Private - Core communication functions
-    // NMT
+    PDO rxPdo[4];
+
+    // Private – Core communication functions
     void nmtController();
     void heartBeat();
-    // PDO
+
     void mapPDOArray(PDO* pdoArray, uint16_t baseIndex);
     void mapPDOs();
     void sendPDO(PDO &txPdo);
     void receivePDO(PDO &rxPdo);
     void writeData(Object &obj, uint8_t data[8], uint8_t start);
-    // SDO
+
     void sdoHandler();
-    // ISR Handling 
+
+    // Helpers to read / write cycle times from Object Dictionary
+    uint16_t getProducerHeartbeatTime() const;
+    uint16_t getPdoEventTimer(uint16_t commIndex) const;
+    void     updateOdUint16(uint16_t index, uint8_t sub, uint16_t value);
+
+    // ISR Handling
     static CanOpenNode* instance;
     void MCP2515_ISR();
     static void ISRhandler();
