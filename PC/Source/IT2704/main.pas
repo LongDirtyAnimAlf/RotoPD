@@ -14,9 +14,13 @@ type
 
   TForm1 = class(TForm)
     btnConnect: TButton;
+    btnAskVoltageData: TButton;
+    Button1: TButton;
     cmboSerialPorts: TComboBox;
     Memo1: TMemo;
+    procedure btnAskVoltageDataClick(Sender: TObject);
     procedure btnConnectClick({%H-}Sender: TObject);
+    procedure Button1Click(Sender: TObject);
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
@@ -159,11 +163,29 @@ begin
     // DLC  = 2
     // Data = 0101  ; 01 = Start Remote Node. 01 = Device instrument address
     // This starts a regular sending of data from IT2704 to PC over CAN.
-    comm.WriteString('t'+'000'+'2'+'0105'+#13);
-    comm.WriteString('O'+#13);
+    comm.WriteString('t'+'000'+'2'+'0101'+#13);
+    //comm.WriteString('O'+#13);
 
 
   end;
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  // Send a Node Guarding Request
+  //comm.WriteString('t'+'701'+'0'+'00'+'0000'+'00'+'00000000'+#13);
+  comm.WriteString('t'+'701'+'0'+#13);
+end;
+
+procedure TForm1.btnAskVoltageDataClick(Sender: TObject);
+begin
+  // This will only work in pre-operational and operational mode !!
+
+  // Force set pre-operational mode !!
+  comm.WriteString('t'+'000'+'2'+'8001'+#13);
+
+  // Ask for data through correct SDO
+  comm.WriteString('t'+'601'+'8'+'40'+'0220'+'01'+'00000000'+#13);
 end;
 
 procedure TForm1.SerialRxData(Sender: TObject);

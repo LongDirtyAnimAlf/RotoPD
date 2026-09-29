@@ -246,7 +246,7 @@ void CanOpenNode::run() {
                 break;
         }
     } else {
-        // NMT handling disabled � force Operational behaviour
+        // NMT handling disabled - force Operational behaviour
         if (mappingOn) mapPDOs();
         nmt.changeMode(NMT::Mode::OPERATIONAL);
         heartBeat();
@@ -347,7 +347,10 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[8], uint8_t start) {
 
 // Controls NMT state transitions
 void CanOpenNode::nmtController() {
-    if (recv.id == 0x000) { // NMT Master Command ID
+
+    static bool toggleBit = false;
+
+    if (recv.id == 0x0000) { // NMT Master Command ID
         uint8_t command = recv.data[0];
         uint8_t target  = recv.data[1];
 
@@ -361,6 +364,25 @@ void CanOpenNode::nmtController() {
             }
             nmt.changeMode(nmtState);
         }
+        recv.clearMsg();
+    }
+    else
+    {
+        bool ext = (recv.id & CAN_EFF_FLAG);
+        bool rtr = (recv.id & CAN_RTR_FLAG);
+        uint32_t id = (recv.id & (ext ? CAN_EFF_MASK : CAN_SFF_MASK));
+
+        if ( (rtr) && (id == cobIdNmt) ){ // NMT Node Guarding Request ; Uses an RTR frame\
+            // Send back the NMT Mode
+            Message nmtmsg;
+            nmtmsg.id = id;
+            nmtmsg.dlc = 1;
+            nmtmsg.data[0] = static_cast<uint8_t>(nmtState);             
+            toggleBit = !toggleBit;
+            if (toggleBit) nmtmsg.data[0] += 0x80;
+            sendMsg(nmtmsg);
+        }
+
         recv.clearMsg();
     }
 }
