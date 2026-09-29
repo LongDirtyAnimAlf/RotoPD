@@ -21,8 +21,7 @@ bool SDO::setResponse(const Receiver &recv) {
     }
     setObject(index);
 
-    // Just ignore Expedited Transfer bit and Size Indicator bit
-    uint8_t ccsMasked = (recv.data[COMMAND] & 0xE0);
+    uint8_t recvCmd = recv.data[COMMAND];
 
     // Fill index / sub-index fields of the response
     data[INDEX_LOW]  = obj->index & 0xFF;
@@ -30,7 +29,7 @@ bool SDO::setResponse(const Receiver &recv) {
     data[SUB_INDEX]  = obj->subIndex;
 
     // Determine direction and fill data / command byte
-    switch (ccsMasked) {
+    switch (recvCmd) {
         case WRITE_REQ_1BYTE_CMD:
         case WRITE_REQ_2BYTE_CMD:
         case WRITE_REQ_4BYTE_CMD:
