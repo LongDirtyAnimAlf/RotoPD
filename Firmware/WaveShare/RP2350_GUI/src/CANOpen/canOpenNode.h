@@ -32,7 +32,7 @@ public:
     // Manually set PDO mapping
     void set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex, uint8_t position);
 
-    // Public � Core communication functions
+    // Public - Core communication functions
     bool sendMsg(const Message &msg);
     void writeData(Object &obj, uint8_t data[4]);
 

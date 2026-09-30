@@ -212,10 +212,11 @@ void CanOpenNode::begin() {
 
 // Run function to handle the core communication loop with NMT handling
 void CanOpenNode::run() {
-    recv.read();
+    bool messageavailable = recv.read();
 
     if (nmtOn) {
-        nmtController();
+
+        if (messageavailable) nmtController();
 
         switch (nmtState) {
             case NMT::Mode::BOOT:
@@ -230,7 +231,7 @@ void CanOpenNode::run() {
                     mapPDOs();
                 }
                 // Handle SDO Read (Upload Request)
-                sdoHandler();
+                if (messageavailable) sdoHandler();
                 // Heartbeat is allowed in Pre-Operational (CiA 301)
                 heartBeat();
                 break;
@@ -242,10 +243,10 @@ void CanOpenNode::run() {
                 heartBeat();
                 for (int i = 0; i < 4; ++i) {
                     sendPDO(txPdo[i]);
-                    receivePDO(rxPdo[i]);
+                    if (messageavailable) receivePDO(rxPdo[i]);
                 }
                 // Handle SDO Read (Upload Request)
-                sdoHandler();
+                if (messageavailable) sdoHandler();
                 break;
 
             case NMT::Mode::STOPPED:
@@ -262,14 +263,13 @@ void CanOpenNode::run() {
         heartBeat();
         for (int i = 0; i < 4; ++i) {
             sendPDO(txPdo[i]);
-            receivePDO(rxPdo[i]);
+            if (messageavailable) receivePDO(rxPdo[i]);
         }
         // Handle SDO Read (Upload Request)
-        sdoHandler();
+        if (messageavailable) sdoHandler();
     }
 
-    if (recv.active) 
-    //if (isActive())
+    if (messageavailable) 
     {
         if ( (nmtState == NMT::Mode::OPERATIONAL) || (nmtState == NMT::Mode::PRE_OPERATIONAL) )
         {

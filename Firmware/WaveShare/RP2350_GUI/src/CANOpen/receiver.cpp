@@ -4,13 +4,14 @@ static struct can_frame canmessageframe;
 
 // Update read message buffer
 bool Receiver::read(void) {
+  
+  bool active = false;
+
   if (CAN->checkReceive())
   {
-    Serial.println("Got frame.");
     active = true;
     if (CAN->readMessage(&canmessageframe) == MCP2515::ERROR_OK)
     {
-      Serial.println("Processing frame.");
       id = canmessageframe.can_id;
       dlc = canmessageframe.can_dlc;
       memcpy(data, canmessageframe.data, 8);
@@ -18,16 +19,10 @@ bool Receiver::read(void) {
         printBuf(); 
       #endif
     }
-    else
-    {
-      Serial.println("Processing frame error !!");
-      active = false;
-    }
+    else active = false;
   }
-  else
-  {
-    active = false; 
-  } 
+  else active = false; 
+  
   return active;
 }
 

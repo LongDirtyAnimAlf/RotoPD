@@ -574,6 +574,9 @@ class MCP2515
         void startSPI() const;
         void endSPI() const;
 
+        void disableInterrupts();
+        void enableInterrupts();
+
         ERROR setMode(const CANCTRL_REQOP_MODE mode);
 
         uint8_t readRegister(const REGISTER reg) const;
@@ -591,6 +594,8 @@ class MCP2515
         uint16_t _rxQueueDropCount;
         uint16_t _rxHardwareOverflowCount;
         int8_t _intPin;
+
+        uint32_t irq;
 
         ERROR sendMessage(const TXBn txbn, const struct can_frame *frame);
         ERROR sendMessageDirect(const struct can_frame *frame);

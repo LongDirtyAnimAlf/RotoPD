@@ -6,11 +6,9 @@
 // Receiver message type
 struct Receiver : public Message {
   MCP2515 *CAN;
-  bool active;
   // specify CAN bus for receiver message
   Receiver(MCP2515 *CAN) : 
-    CAN(CAN), 
-    active(false)
+    CAN(CAN)
   {};
 
   bool read(void); // read message from CAN bus

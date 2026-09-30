@@ -55,6 +55,17 @@ void MCP2515_ISR_ATTR MCP2515::endSPI() const {
     gpio_put(BSP_XL2515_CS_PIN, 1);
 }
 
+void MCP2515_ISR_ATTR MCP2515::disableInterrupts()
+{
+    //noInterrupts();
+    irq = save_and_disable_interrupts();
+}
+void MCP2515_ISR_ATTR MCP2515::enableInterrupts()
+{
+    //interrupts();
+    restore_interrupts(irq);
+}
+
 MCP2515::ERROR MCP2515::reset(void)
 {
     startSPI();
@@ -511,9 +522,9 @@ MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
     }
 
     // Hardware buffers full - enqueue if room
-    noInterrupts();
+    disableInterrupts();
     bool enqueued = _txQueue.push(*frame);
-    interrupts();
+    enableInterrupts();
 
     if (enqueued) {
         return ERROR_OK;
@@ -603,9 +614,9 @@ bool MCP2515::removeQueuedMessage(uint32_t can_id)
 {
     s_removeCanId = can_id;
 
-    noInterrupts();
+    disableInterrupts();
     bool removed = _txQueue.removeIf(matchCanId);
-    interrupts();
+    enableInterrupts();
 
     return removed;
 }
@@ -662,9 +673,9 @@ MCP2515::ERROR MCP2515::readMessage(struct can_frame *frame)
     }
 
     // Read from software queue first
-    noInterrupts();
+    disableInterrupts();
     bool dequeued = _rxQueue.pop(*frame);
-    interrupts();
+    enableInterrupts();
 
     if (dequeued) {
         return ERROR_OK;
@@ -722,9 +733,9 @@ uint8_t MCP2515::drainRxBuffers(void)
     struct can_frame frame;
 
     while (true) {
-        noInterrupts();
+        disableInterrupts();
         bool queueFull = _rxQueue.isFull();
-        interrupts();
+        enableInterrupts();
 
         if (queueFull) break;
 
@@ -739,15 +750,15 @@ uint8_t MCP2515::drainRxBuffers(void)
 
         if (rc != ERROR_OK) break;
 
-        noInterrupts();
+        disableInterrupts();
         if (_rxQueue.push(frame)) {
             drained++;
         } else {
             _rxQueueDropCount++;
-            interrupts();
+            enableInterrupts();
             break;
         }
-        interrupts();
+        enableInterrupts();
     }
 
     return drained;
