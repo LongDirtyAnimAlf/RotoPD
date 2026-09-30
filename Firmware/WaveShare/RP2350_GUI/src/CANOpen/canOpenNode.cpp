@@ -29,7 +29,8 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
         PDO(0, PDO::Type::RX, PDO4_RX_CYCLE_TIME)
     },
     nmtOn(true),
-    mappingOn(true)
+    mappingOn(true),
+    pdoMapped(false)
 {
     // Calculate all COB-IDs from the runtime Node-ID (CiA 301 pre-defined connection set)
     cobIdEmcy   = BASE_EMCY_ID    + this->nodeId;
@@ -222,16 +223,22 @@ void CanOpenNode::run() {
                 sendMsg(nmt);                       // Boot-up message
                 nmtState = NMT::Mode::PRE_OPERATIONAL;
                 nmt.changeMode(nmtState);
+                pdoMapped = false;                 // Trigger re-map on boot transition
                 break;
 
             case NMT::Mode::PRE_OPERATIONAL:
-                if (mappingOn) mapPDOs();
+                if (mappingOn && !pdoMapped) {
+                    mapPDOs();
+                }
                 sdoHandler();
                 // Heartbeat is allowed in Pre-Operational (CiA 301)
                 heartBeat();
                 break;
 
             case NMT::Mode::OPERATIONAL:
+                if (mappingOn && !pdoMapped) {
+                    mapPDOs();
+                }
                 heartBeat();
                 for (int i = 0; i < 4; ++i) {
                     sendPDO(txPdo[i]);
@@ -247,7 +254,9 @@ void CanOpenNode::run() {
         }
     } else {
         // NMT handling disabled - force Operational behaviour
-        if (mappingOn) mapPDOs();
+        if (mappingOn && !pdoMapped) {
+            mapPDOs();
+        }
         nmt.changeMode(NMT::Mode::OPERATIONAL);
         heartBeat();
         for (int i = 0; i < 4; ++i) {
@@ -292,6 +301,11 @@ bool CanOpenNode::sendMsg(const Message &msg) {
 void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
     if (obj.access == ObjectPermissions::READ) return;
     memcpy(obj.data, data, obj.getTypeSize());
+
+    // Invalidate PDO mapping cache if mapping objects are modified
+    if ((obj.index >= RX_PDO1_MAPPING_INDEX && obj.index <= RX_PDO4_MAPPING_INDEX) || (obj.index >= TX_PDO1_MAPPING_INDEX && obj.index <= TX_PDO4_MAPPING_INDEX)) {
+        pdoMapped = false;
+    }
 
     // Keep runtime parameters in sync when the corresponding OD entries are written
     if (obj.index == PRODUCER_HEARTBEAT_INDEX && obj.subIndex == SUBIDX_VALUE) {
@@ -348,9 +362,9 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[8], uint8_t start) {
 // Controls NMT state transitions
 void CanOpenNode::nmtController() {
 
-    static bool toggleBit = false;
+    static bool toggleBit = true;
 
-    if (recv.id == 0x0000) { // NMT Master Command ID
+    if (recv.id == BROADCAST) { // NMT Master Command ID
         uint8_t command = recv.data[0];
         uint8_t target  = recv.data[1];
 
@@ -372,18 +386,29 @@ void CanOpenNode::nmtController() {
         bool rtr = (recv.id & CAN_RTR_FLAG);
         uint32_t id = (recv.id & (ext ? CAN_EFF_MASK : CAN_SFF_MASK));
 
-        if ( (rtr) && (id == cobIdNmt) ){ // NMT Node Guarding Request ; Uses an RTR frame\
-            // Send back the NMT Mode
-            Message nmtmsg;
-            nmtmsg.id = id;
-            nmtmsg.dlc = 1;
-            nmtmsg.data[0] = static_cast<uint8_t>(nmtState);             
-            toggleBit = !toggleBit;
-            if (toggleBit) nmtmsg.data[0] += 0x80;
-            sendMsg(nmtmsg);
-        }
+        if (rtr){
 
-        recv.clearMsg();
+            if (id == cobIdNmt){ // NMT Node Guarding Request ; Uses an RTR frame
+                // Send back the NMT Mode
+                Message nmtmsg;
+                nmtmsg.id = id;
+                nmtmsg.dlc = 1;
+                nmtmsg.data[0] = static_cast<uint8_t>(nmtState);             
+                toggleBit = !toggleBit;
+                if (toggleBit) nmtmsg.data[0] += 0x80;
+                sendMsg(nmtmsg);
+
+                recv.clearMsg();
+            }
+            for (int i = 0; i < 4; ++i) {
+                if (id == cobIdTxPdo[i]){
+                    txPdo[i].updateData();
+                    sendMsg(txPdo[i]);
+                    recv.clearMsg();
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -443,8 +468,9 @@ void CanOpenNode::mapPDOArray(PDO* pdoArray, uint16_t baseIndex) {
 
 // Map Tx and Rx PDOs
 void CanOpenNode::mapPDOs() {
-    mapPDOArray(txPdo, 0x1A00); // TPDOs
-    mapPDOArray(rxPdo, 0x1600); // RPDOs
+    mapPDOArray(txPdo, TX_PDO1_MAPPING_INDEX); // TPDOs
+    mapPDOArray(rxPdo, RX_PDO1_MAPPING_INDEX); // RPDOs
+    pdoMapped = true;
 }
 
 // Send txPDOs at specified cycle times

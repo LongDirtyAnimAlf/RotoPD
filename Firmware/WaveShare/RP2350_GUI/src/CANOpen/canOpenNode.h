@@ -18,7 +18,7 @@ public:
      * @param csPin    MCP2515 chip-select pin
      * @param intPin   MCP2515 interrupt pin
      * @param baudRate (kept for future use / compatibility)
-     * @param nodeId   CANopen Node-ID (1 … 127). Defaults to DEFAULT_NODE_ID.
+     * @param nodeId   CANopen Node-ID (1 ï¿½ 127). Defaults to DEFAULT_NODE_ID.
      */
     CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate,
                 uint8_t nodeId = DEFAULT_NODE_ID);
@@ -32,7 +32,7 @@ public:
     // Manually set PDO mapping
     void set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex, uint8_t position);
 
-    // Public – Core communication functions
+    // Public ï¿½ Core communication functions
     bool sendMsg(const Message &msg);
     void writeData(Object &obj, uint8_t data[4]);
 
@@ -45,38 +45,38 @@ public:
     /** Set Producer Heartbeat Time (ms). 0 = disabled. Also updates OD 0x1017. */
     void setHeartbeatTime(uint16_t ms);
 
-    /** Set TPDO Event Timer (ms). num = 1…4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
+    /** Set TPDO Event Timer (ms). num = 1ï¿½4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
     void setTxPdoCycleTime(uint8_t num, uint16_t ms);
 
-    /** Set RPDO application timeout (ms). num = 1…4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
+    /** Set RPDO application timeout (ms). num = 1ï¿½4. Also updates OD Event Timer (SUBIDX_PDO_EVENT_TIMER). */
     void setRxPdoCycleTime(uint8_t num, uint16_t ms);
 
-    /** Set TPDO/RPDO Transmission Type (CiA 301). num = 1…4. */
+    /** Set TPDO/RPDO Transmission Type (CiA 301). num = 1ï¿½4. */
     void setPdoTransmissionType(PDO::Type type, uint8_t num, uint8_t transmissionType);
 
-    /** Set TPDO/RPDO Inhibit Time (units of 100 µs). num = 1…4. 0 = disabled. */
+    /** Set TPDO/RPDO Inhibit Time (units of 100 ï¿½s). num = 1ï¿½4. 0 = disabled. */
     void setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibitTime);
 
-    // EMCY – Getters/Setters
+    // EMCY ï¿½ Getters/Setters
     EMCY getEmcy() const { return emcy; }
     void setEmcyErr(const Error &err) { emcy.setError(err); }
     void setEmcyErr(const uint16_t code) { emcy.setError(code); }
     uint16_t getEmcyCode() const { return emcy.getErrCode(); }
 
-    // Receiver – Getters/Setters
+    // Receiver ï¿½ Getters/Setters
     Receiver getReceiver() const { return recv; }
     bool isActive() const { return recv.active; }
 
-    // NMT – Getters/Setters
+    // NMT ï¿½ Getters/Setters
     NMT getNMT() const { return nmt; }
 
-    // PDO – Getters/Setters
+    // PDO ï¿½ Getters/Setters
     const PDO* getPDO(PDO::Type type, uint8_t num) const {
         if (num < 1 || num > 4) return nullptr;
         return (type == PDO::Type::TX) ? &txPdo[num - 1] : &rxPdo[num - 1];
     }
 
-    // SDO – Getters/Setters
+    // SDO ï¿½ Getters/Setters
     SDO getSDO() const { return sdo; }
 
     // Enable/Disable Boolean flags (Default is enabled)
@@ -102,6 +102,7 @@ private:
     // Boolean flags
     bool nmtOn;                         // NMT handling enabled
     bool mappingOn;                     // PDO mapping enabled
+    bool pdoMapped;
 
     // Current NMT state
     NMT::Mode nmtState;
@@ -114,7 +115,7 @@ private:
     PDO txPdo[4];
     PDO rxPdo[4];
 
-    // Private – Core communication functions
+    // Private ï¿½ Core communication functions
     void nmtController();
     void heartBeat();
 

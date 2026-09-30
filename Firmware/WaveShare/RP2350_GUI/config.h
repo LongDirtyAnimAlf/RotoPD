@@ -158,6 +158,10 @@
 #define NMT_LEN   1
 
 // Base COB-ID Offsets (CiA 301 Pre-defined Connection Set)
+#define BROADCAST         0x000
+#define SYNCHRONIZE       0x080
+#define TIMESTAMP         0x100
+
 #define BASE_EMCY_ID      0x080
 #define BASE_PDO1_TX_ID   0x180
 #define BASE_PDO1_RX_ID   0x200
@@ -170,20 +174,6 @@
 #define BASE_SDO_TX_ID    0x580
 #define BASE_SDO_RX_ID    0x600
 #define BASE_NMT_ID       0x700   // Heartbeat / Boot-up
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
