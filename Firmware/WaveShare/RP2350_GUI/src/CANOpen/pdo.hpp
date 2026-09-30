@@ -7,9 +7,9 @@ class PDO : public Message {
 public:
   uint8_t numObjects;       // number of objects mapped to PDO message data field
   uint32_t timer;           // last transmission / reception timestamp
-  uint16_t cycleTime;       // Event Timer (ms) – sub-index 05h
-  uint8_t  transmissionType;// Transmission type – sub-index 02h (CiA 301)
-  uint16_t inhibitTime;     // Inhibit time (units of 100 µs) – sub-index 03h
+  uint16_t cycleTime;       // Event Timer (ms) ï¿½ sub-index 05h
+  uint8_t  transmissionType;// Transmission type ï¿½ sub-index 02h (CiA 301)
+  uint16_t inhibitTime;     // Inhibit time (units of 100 ï¿½s) ï¿½ sub-index 03h
 
   enum class Type {
     RX,
@@ -18,7 +18,7 @@ public:
   const Type type;
 
   PDO(uint16_t id, Type type, uint16_t cycleTime) :
-    Message(id, PDO_LEN),
+    Message(id, CO_PDO_MAX_SIZE),
     type(type),
     cycleTime(cycleTime),
     transmissionType(0xFF),   // default: event-driven (CiA 301)

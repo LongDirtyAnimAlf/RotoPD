@@ -1,13 +1,13 @@
 #include "emcy.hpp"
 
 constexpr Error errorTable[] = {
-//  |   ERROR CODE   |     ERROR REGISTER     |    MANUFACTURER DATA    |
-    {0x1000,         EMCY_GENERIC_ERR_BIT,    MFG_ERROR_GENERIC        },
-    {0x2310,         EMCY_CURRENT_ERR_BIT,    MFG_ERROR_OVERCURRENT    },
-    {0x3210,         EMCY_VOLTAGE_ERR_BIT,    MFG_ERROR_VOLTAGE        },
-    {0x4210,         EMCY_TEMP_ERR_BIT,       MFG_ERROR_TEMPERATURE    },
-    {0x5110,         EMCY_COMM_ERR_BIT,       MFG_ERROR_COMM           },
-    {0x8110,         EMCY_DEVICE_ERR_BIT,     MFG_ERROR_DEVICE         }
+//  |   ERROR CODE   |     ERROR REGISTER            |  MANUFACTURER DATA    |
+    {CO_EMC_GENERIC,       CO_ERR_REG_GENERIC_ERR,   MFG_ERROR_GENERIC        },
+    {CO_EMC_CURRENT,       CO_ERR_REG_CURRENT,       MFG_ERROR_OVERCURRENT    },
+    {CO_EMC_VOLTAGE,       CO_ERR_REG_VOLTAGE,       MFG_ERROR_VOLTAGE        },
+    {CO_EMC_TEMPERATURE,   CO_ERR_REG_TEMPERATURE,   MFG_ERROR_TEMPERATURE    },
+    {CO_EMC_COMMUNICATION, CO_ERR_REG_COMMUNICATION, MFG_ERROR_COMM           },
+    {0x8110,               CO_ERR_REG_MANUFACTURER,  MFG_ERROR_DEVICE         }
 };
 
 constexpr uint8_t NUM_EMCYS = sizeof(errorTable) / sizeof(Error);

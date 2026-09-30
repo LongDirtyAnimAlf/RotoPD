@@ -18,7 +18,7 @@ class NMT : public Message {
     };
 
     NMT(uint16_t id, uint16_t cycleTime) : 
-        Message(id, NMT_LEN), 
+        Message(id, CO_NMT_MAX_SIZE), 
         cycleTime(cycleTime), 
         timer(0) 
     {

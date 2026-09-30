@@ -27,7 +27,7 @@ class EMCY : public Message {
     };
 
     EMCY(uint16_t id) : 
-        Message(id, EMCY_LEN), 
+        Message(id, CO_EMC_MAX_SIZE), 
         error(&(errorTable[0])) 
     { 
         updateEmcy(); 

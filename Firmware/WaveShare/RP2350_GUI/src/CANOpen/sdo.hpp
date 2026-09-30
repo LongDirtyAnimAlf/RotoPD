@@ -28,7 +28,7 @@ public:
         DATA_7     = 7
     };
 
-    SDO(uint16_t id) : Message(id, SDO_LEN), obj(nullptr), sendType(SendType::INVALID) {}
+    SDO(uint16_t id) : Message(id, CO_SDO_MAX_SIZE), obj(nullptr), sendType(SendType::INVALID) {}
 
     Object* getObject() { return obj; }
     const Object* getObject() const { return obj; }

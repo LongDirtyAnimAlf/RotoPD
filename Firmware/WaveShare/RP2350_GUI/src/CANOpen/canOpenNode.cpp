@@ -9,7 +9,6 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     intPin(intPin),
     baudRate(baudRate),
     nodeId((nodeId >= 1 && nodeId <= 127) ? nodeId : DEFAULT_NODE_ID),
-    flagRecv(false),
     nmtState(NMT::Mode::BOOT),
     recv(&can),
     // Temporary placeholders - real COB-IDs & cycle times assigned below
@@ -33,20 +32,20 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     pdoMapped(false)
 {
     // Calculate all COB-IDs from the runtime Node-ID (CiA 301 pre-defined connection set)
-    cobIdEmcy   = BASE_EMCY_ID    + this->nodeId;
-    cobIdSdoTx  = BASE_SDO_TX_ID  + this->nodeId;   // slave response
-    cobIdSdoRx  = BASE_SDO_RX_ID  + this->nodeId;   // master request
-    cobIdNmt    = BASE_NMT_ID     + this->nodeId;   // heartbeat / boot-up
+    cobIdEmcy   = CO_CAN_ID_EMERGENCY    + this->nodeId;
+    cobIdSdoTx  = CO_CAN_ID_SDO_SRV  + this->nodeId;   // slave response
+    cobIdSdoRx  = CO_CAN_ID_SDO_CLI  + this->nodeId;   // master request
+    cobIdNmt    = CO_CAN_ID_HEARTBEAT     + this->nodeId;   // heartbeat / boot-up
 
-    cobIdTxPdo[0] = BASE_PDO1_TX_ID + this->nodeId;
-    cobIdTxPdo[1] = BASE_PDO2_TX_ID + this->nodeId;
-    cobIdTxPdo[2] = BASE_PDO3_TX_ID + this->nodeId;
-    cobIdTxPdo[3] = BASE_PDO4_TX_ID + this->nodeId;
+    cobIdTxPdo[0] = CO_CAN_ID_TPDO_1 + this->nodeId;
+    cobIdTxPdo[1] = CO_CAN_ID_TPDO_2 + this->nodeId;
+    cobIdTxPdo[2] = CO_CAN_ID_TPDO_3 + this->nodeId;
+    cobIdTxPdo[3] = CO_CAN_ID_TPDO_4 + this->nodeId;
 
-    cobIdRxPdo[0] = BASE_PDO1_RX_ID + this->nodeId;
-    cobIdRxPdo[1] = BASE_PDO2_RX_ID + this->nodeId;
-    cobIdRxPdo[2] = BASE_PDO3_RX_ID + this->nodeId;
-    cobIdRxPdo[3] = BASE_PDO4_RX_ID + this->nodeId;
+    cobIdRxPdo[0] = CO_CAN_ID_RPDO_1 + this->nodeId;
+    cobIdRxPdo[1] = CO_CAN_ID_RPDO_2 + this->nodeId;
+    cobIdRxPdo[2] = CO_CAN_ID_RPDO_3 + this->nodeId;
+    cobIdRxPdo[3] = CO_CAN_ID_RPDO_4 + this->nodeId;
 
     // Assign calculated IDs to the message objects
     sdo.id  = cobIdSdoTx;
@@ -213,7 +212,7 @@ void CanOpenNode::begin() {
 
 // Run function to handle the core communication loop with NMT handling
 void CanOpenNode::run() {
-    recv.read(&flagRecv);
+    recv.read();
 
     if (nmtOn) {
         nmtController();
@@ -230,6 +229,7 @@ void CanOpenNode::run() {
                 if (mappingOn && !pdoMapped) {
                     mapPDOs();
                 }
+                // Handle SDO Read (Upload Request)
                 sdoHandler();
                 // Heartbeat is allowed in Pre-Operational (CiA 301)
                 heartBeat();
@@ -244,6 +244,7 @@ void CanOpenNode::run() {
                     sendPDO(txPdo[i]);
                     receivePDO(rxPdo[i]);
                 }
+                // Handle SDO Read (Upload Request)
                 sdoHandler();
                 break;
 
@@ -263,8 +264,21 @@ void CanOpenNode::run() {
             sendPDO(txPdo[i]);
             receivePDO(rxPdo[i]);
         }
+        // Handle SDO Read (Upload Request)
         sdoHandler();
     }
+
+    if (recv.active) 
+    //if (isActive())
+    {
+        if ( (nmtState == NMT::Mode::OPERATIONAL) || (nmtState == NMT::Mode::PRE_OPERATIONAL) )
+        {
+            // We might not have handle the message
+            // Delete it always in these modes to prevent endless loops and CPU burn
+            recv.clearMsg();
+        }
+    }
+
 }
 
 // Manually set PDO mapping
@@ -364,7 +378,7 @@ void CanOpenNode::nmtController() {
 
     static bool toggleBit = true;
 
-    if (recv.id == BROADCAST) { // NMT Master Command ID
+    if (recv.id == CO_CAN_ID_NMT_SERVICE) { // NMT Master Command ID
         uint8_t command = recv.data[0];
         uint8_t target  = recv.data[1];
 
@@ -440,7 +454,7 @@ void CanOpenNode::mapPDOArray(PDO* pdoArray, uint16_t baseIndex) {
 
         uint8_t currentBytePosition = 0;
         for (uint8_t sub = 1; sub <= numMappedObjects; ++sub) {
-            if (currentBytePosition >= PDO_LEN) break;
+            if (currentBytePosition >= CO_PDO_MAX_SIZE) break;
 
             int entryIndex = Object::findIndex(baseMapIndex, sub);
             if (entryIndex < 0) continue;
@@ -452,7 +466,7 @@ void CanOpenNode::mapPDOArray(PDO* pdoArray, uint16_t baseIndex) {
 
             uint8_t byteLength = bitLength / 8;
 
-            if (currentBytePosition + byteLength > PDO_LEN) break;
+            if (currentBytePosition + byteLength > CO_PDO_MAX_SIZE) break;
 
             if (pdo->set(objIndex, subIndex, currentBytePosition)) {
                 currentBytePosition += byteLength;
@@ -535,14 +549,11 @@ void CanOpenNode::sdoHandler() {
 
 // Interrupt Service Routine logic
 void CanOpenNode::MCP2515_ISR() {
-    Serial.println("Got frame interrupt.");
     can.handleInterrupt();
-    flagRecv = true;
 }
 
 void CanOpenNode::ISRhandler() {
     if (instance != nullptr) {
-        Serial.println("Set ISRhandler interrupt.");
         instance->MCP2515_ISR();
     }
 }

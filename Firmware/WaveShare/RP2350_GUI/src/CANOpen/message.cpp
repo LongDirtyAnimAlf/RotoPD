@@ -3,7 +3,7 @@
 // Clear all message fields
 void Message::clearMsg() {
   id = 0; 
-  dlc = 0; 
+  dlc = 0;
   clearData();
 }
 

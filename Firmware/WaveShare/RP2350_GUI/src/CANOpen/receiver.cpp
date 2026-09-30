@@ -3,8 +3,7 @@
 static struct can_frame canmessageframe;
 
 // Update read message buffer
-void Receiver::read(volatile bool *flagRecv) {
-
+bool Receiver::read(void) {
   if (CAN->checkReceive())
   {
     Serial.println("Got frame.");
@@ -12,7 +11,6 @@ void Receiver::read(volatile bool *flagRecv) {
     if (CAN->readMessage(&canmessageframe) == MCP2515::ERROR_OK)
     {
       Serial.println("Processing frame.");
-
       id = canmessageframe.can_id;
       dlc = canmessageframe.can_dlc;
       memcpy(data, canmessageframe.data, 8);
@@ -23,29 +21,14 @@ void Receiver::read(volatile bool *flagRecv) {
     else
     {
       Serial.println("Processing frame error !!");
+      active = false;
     }
   }
-  else active = false; 
-
-  if (*flagRecv)
+  else
   {
-    *flagRecv = 0;
-    //active = true;
-    /*
-    while (CAN_MSGAVAIL == CAN->checkReceive())
-    {
-      CAN->readMessage(&frame); // Pass address of local frame
-      id = frame.can_id;
-      dlc = frame.can_dlc;
-      memcpy(data, frame.data, 8);
-      
-      #ifndef PRINT
-        printBuf(); 
-      #endif
-    }
-    */
-  }
-  //else active = false; 
+    active = false; 
+  } 
+  return active;
 }
 
 // Print read message buffer to serial

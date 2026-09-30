@@ -3,8 +3,8 @@
 // Map object to PDO object list at specified byte position
 bool PDO::set(Object &obj, uint8_t position) {
   uint8_t size = obj.getTypeSize(); // object data byte size
-  if (position > PDO_LEN) return false; // position is past array bounds
-  if (position + size > PDO_LEN) return false; // PDO data size extends past array bounds
+  if (position > CO_PDO_MAX_SIZE) return false; // position is past array bounds
+  if (position + size > CO_PDO_MAX_SIZE) return false; // PDO data size extends past array bounds
 
   objList[position] = &obj; // set object list index value to object pointer
   for (int i = position; i < (position + size); i++)
@@ -23,8 +23,8 @@ bool PDO::set(uint16_t index, uint8_t subIndex, uint8_t position) {
   if (objIndex < 0) return false; // object not found in dictionary
 
   uint8_t size = dictionary[objIndex].getTypeSize(); // object data byte size
-  if (position > PDO_LEN) return false; // position is past array bounds
-  if (position + size > PDO_LEN) return false; // PDO data size extends past array bounds
+  if (position > CO_PDO_MAX_SIZE) return false; // position is past array bounds
+  if (position + size > CO_PDO_MAX_SIZE) return false; // PDO data size extends past array bounds
 
   objList[position] = &(dictionary[objIndex]); // set object list index value to object pointer
   for (int i = position; i < (position + size); i++)

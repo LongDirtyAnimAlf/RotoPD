@@ -57,26 +57,19 @@ public:
     /** Set TPDO/RPDO Inhibit Time (units of 100 �s). num = 1�4. 0 = disabled. */
     void setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibitTime);
 
-    // EMCY � Getters/Setters
+    // EMCY - Getters/Setters
     EMCY getEmcy() const { return emcy; }
     void setEmcyErr(const Error &err) { emcy.setError(err); }
     void setEmcyErr(const uint16_t code) { emcy.setError(code); }
     uint16_t getEmcyCode() const { return emcy.getErrCode(); }
 
-    // Receiver � Getters/Setters
-    Receiver getReceiver() const { return recv; }
-    bool isActive() const { return recv.active; }
-
-    // NMT � Getters/Setters
-    NMT getNMT() const { return nmt; }
-
-    // PDO � Getters/Setters
+    // PDO - Getters/Setters
     const PDO* getPDO(PDO::Type type, uint8_t num) const {
         if (num < 1 || num > 4) return nullptr;
         return (type == PDO::Type::TX) ? &txPdo[num - 1] : &rxPdo[num - 1];
     }
 
-    // SDO � Getters/Setters
+    // SDO - Getters/Setters
     SDO getSDO() const { return sdo; }
 
     // Enable/Disable Boolean flags (Default is enabled)
@@ -96,8 +89,6 @@ private:
     uint16_t cobIdNmt;                  // heartbeat / boot-up
     uint16_t cobIdTxPdo[4];
     uint16_t cobIdRxPdo[4];
-
-    volatile bool flagRecv;
 
     // Boolean flags
     bool nmtOn;                         // NMT handling enabled

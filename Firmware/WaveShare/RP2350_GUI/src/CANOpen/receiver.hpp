@@ -13,7 +13,7 @@ struct Receiver : public Message {
     active(false)
   {};
 
-  void read(volatile bool *flagRecv); // read message from CAN bus
+  bool read(void); // read message from CAN bus
   void printBuf(); // print message to serial monitor
 };
 
