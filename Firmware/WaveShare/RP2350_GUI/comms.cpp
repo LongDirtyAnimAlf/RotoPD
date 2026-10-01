@@ -417,7 +417,7 @@ int8_t taskRotoPDInit(void)
       PDOCount = 0;
 
       Info_Add("Comms. RotoPD Pro started.");
-      Info_Add_Fmt("Comms. Status:= 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+      Info_Add_Fmt("Comms. Status = 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
 
       PDOCount = pd.getValidPDOCount();
 

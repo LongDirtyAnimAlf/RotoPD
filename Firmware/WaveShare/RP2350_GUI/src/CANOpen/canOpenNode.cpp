@@ -294,7 +294,7 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
     pdo->set(index, subIndex, position);
     pdo->numObjects = 0;
     // update numObjects count
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < CO_PDO_MAX_SIZE; i++) {
         if (pdo->getObject(i) != nullptr) pdo->numObjects++;
     }
 }
@@ -406,7 +406,7 @@ void CanOpenNode::nmtController() {
                 // Send back the NMT Mode
                 Message nmtmsg;
                 nmtmsg.id = id;
-                nmtmsg.dlc = 1;
+                nmtmsg.dlc = CO_NMT_MAX_SIZE;
                 nmtmsg.data[0] = static_cast<uint8_t>(nmtState);             
                 toggleBit = !toggleBit;
                 if (toggleBit) nmtmsg.data[0] += 0x80;
@@ -494,7 +494,7 @@ void CanOpenNode::sendPDO(PDO &txPdo) {
 
     // Only event-driven / manufacturer event types use the Event Timer path
     // (254/255). Synchronous types would need SYNC handling (not implemented).
-    if (txPdo.transmissionType < 254) return;
+    if (txPdo.transmissionType < PDO_TXTYPE_ASYNC_MANUFACTURER) return;
 
     if (txPdo.cycleTime == 0) return;   // Event Timer disabled
 
@@ -516,7 +516,7 @@ void CanOpenNode::receivePDO(PDO &rxPdo) {
     if (recv.id != rxPdo.id) return;
     if (rxPdo.type != PDO::Type::RX) return;
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < CO_PDO_MAX_SIZE; i++) {
         if (rxPdo.getObject(i) != nullptr) {
             writeData(*(rxPdo.getObject(i)), recv.data, i);
         }

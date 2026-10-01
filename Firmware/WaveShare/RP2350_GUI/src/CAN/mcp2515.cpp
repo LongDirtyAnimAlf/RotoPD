@@ -55,15 +55,14 @@ void MCP2515_ISR_ATTR MCP2515::endSPI() const {
     gpio_put(BSP_XL2515_CS_PIN, 1);
 }
 
-void MCP2515_ISR_ATTR MCP2515::disableInterrupts()
+void MCP2515_ISR_ATTR MCP2515::maskInterrupt(bool Mask)
 {
-    //noInterrupts();
-    irq = save_and_disable_interrupts();
-}
-void MCP2515_ISR_ATTR MCP2515::enableInterrupts()
-{
-    //interrupts();
-    restore_interrupts(irq);
+    if (_intPin >= 0)
+    {
+        //noInterrupts();
+        //irq = save_and_disable_interrupts();
+        gpio_set_irq_enabled(BSP_XL2515_INT_PIN, GPIO_IRQ_EDGE_FALL, !Mask);
+    }
 }
 
 MCP2515::ERROR MCP2515::reset(void)
@@ -522,9 +521,9 @@ MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
     }
 
     // Hardware buffers full - enqueue if room
-    disableInterrupts();
+    maskInterrupt(true);
     bool enqueued = _txQueue.push(*frame);
-    enableInterrupts();
+    maskInterrupt(false);
 
     if (enqueued) {
         return ERROR_OK;
@@ -614,9 +613,9 @@ bool MCP2515::removeQueuedMessage(uint32_t can_id)
 {
     s_removeCanId = can_id;
 
-    disableInterrupts();
+    maskInterrupt(true);
     bool removed = _txQueue.removeIf(matchCanId);
-    enableInterrupts();
+    maskInterrupt(false);
 
     return removed;
 }
@@ -673,9 +672,9 @@ MCP2515::ERROR MCP2515::readMessage(struct can_frame *frame)
     }
 
     // Read from software queue first
-    disableInterrupts();
+    maskInterrupt(true);
     bool dequeued = _rxQueue.pop(*frame);
-    enableInterrupts();
+    maskInterrupt(false);
 
     if (dequeued) {
         return ERROR_OK;
@@ -733,9 +732,9 @@ uint8_t MCP2515::drainRxBuffers(void)
     struct can_frame frame;
 
     while (true) {
-        disableInterrupts();
+        maskInterrupt(true);
         bool queueFull = _rxQueue.isFull();
-        enableInterrupts();
+        maskInterrupt(false);
 
         if (queueFull) break;
 
@@ -750,15 +749,15 @@ uint8_t MCP2515::drainRxBuffers(void)
 
         if (rc != ERROR_OK) break;
 
-        disableInterrupts();
+        maskInterrupt(true);
         if (_rxQueue.push(frame)) {
             drained++;
         } else {
             _rxQueueDropCount++;
-            enableInterrupts();
+            maskInterrupt(false);
             break;
         }
-        enableInterrupts();
+        maskInterrupt(false);
     }
 
     return drained;
