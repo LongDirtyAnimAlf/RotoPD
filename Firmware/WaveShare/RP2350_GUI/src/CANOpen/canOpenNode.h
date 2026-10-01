@@ -29,8 +29,15 @@ public:
     // Run core communication loop
     void run();
 
+    void clear(PDO::Type type, uint8_t num, uint8_t position);
+    void clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);
+    void clearAll(PDO::Type type, uint8_t num);
+
     // Manually set PDO mapping
     void set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex, uint8_t position);
+
+    // Free-slot version – auto-places object in first available contiguous region
+    void set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);    
 
     // Public - Core communication functions
     bool sendMsg(const Message &msg);

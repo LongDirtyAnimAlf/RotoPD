@@ -101,6 +101,11 @@
 #define SUBIDX_IDENTITY_REVISION       0x03
 #define SUBIDX_IDENTITY_SERIAL         0x04
 
+#define SIZE_BIT_INT32                 32  // 0x20 bits
+#define SIZE_BIT_UINT32                32  // 0x20 bits
+#define SIZE_BIT_UINT16                16  // 0x10 bits
+#define SIZE_BIT_UINT8                 8   // 0x08 bits
+
 #define TX_PDO1_MAPPING_INDEX          0x1A00
 #define TX_PDO2_MAPPING_INDEX          0x1A01
 #define TX_PDO3_MAPPING_INDEX          0x1A02

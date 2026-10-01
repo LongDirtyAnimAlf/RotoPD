@@ -93,21 +93,31 @@ Object dictionary[] = {
     // TPDO mapping parameters examples
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     // Map 32-bit VOLTAGE at Sub-index 1 -> { 0x20, 0x01, 0x02, 0x20 } ; Index (Byte 2 & Byte 3): Resolves to 0x2002 (in little-endian: {0x02, 0x20})
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x20, SUBIDX_1, (uint8_t)(VOLTAGE & 0xFF), (uint8_t)(VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_1, (uint8_t)(VOLTAGE & 0xFF), (uint8_t)(VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
     // Map 32-bit CURRENT at Sub-index 1 -> { 0x20, 0x01, 0x03, 0x20 }
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x20, SUBIDX_1, (uint8_t)(CURRENT & 0xFF), (uint8_t)(CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT32, SUBIDX_1, (uint8_t)(CURRENT & 0xFF), (uint8_t)(CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
 
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // Map 32-bit POWER
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_1, (uint8_t)(POWER & 0xFF), (uint8_t)(POWER >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     // RPDO mapping parameters
     {RX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},

@@ -281,7 +281,59 @@ void CanOpenNode::run() {
 
 }
 
-// Manually set PDO mapping
+// In canOpenNode.cpp
+void CanOpenNode::clear(PDO::Type type, uint8_t num, uint8_t position)
+{
+    if (num < 1 || num > 4) return;
+    PDO* pdo = (type == PDO::Type::TX) ? &txPdo[num-1] : &rxPdo[num-1];
+
+    if (pdo->clear(position)) {
+        // recount
+        pdo->numObjects = 0;
+        for (int i = 0; i < CO_PDO_MAX_SIZE; ++i)
+            if (pdo->getObject(i) != nullptr) pdo->numObjects++;
+
+        uint16_t base = (type == PDO::Type::TX)
+                            ? TX_PDO1_MAPPING_INDEX + (num-1)
+                            : RX_PDO1_MAPPING_INDEX + (num-1);
+        updateOdUint8(base, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
+        pdoMapped = false;
+    }
+}
+
+void CanOpenNode::clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex)
+{
+    if (num < 1 || num > 4) return;
+    PDO* pdo = (type == PDO::Type::TX) ? &txPdo[num-1] : &rxPdo[num-1];
+
+    if (pdo->clear(index, subIndex)) {
+        pdo->numObjects = 0;
+        for (int i = 0; i < CO_PDO_MAX_SIZE; ++i)
+            if (pdo->getObject(i) != nullptr) pdo->numObjects++;
+
+        uint16_t base = (type == PDO::Type::TX)
+                            ? TX_PDO1_MAPPING_INDEX + (num-1)
+                            : RX_PDO1_MAPPING_INDEX + (num-1);
+        updateOdUint8(base, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
+        pdoMapped = false;
+    }
+}
+
+void CanOpenNode::clearAll(PDO::Type type, uint8_t num)
+{
+    if (num < 1 || num > 4) return;
+    PDO* pdo = (type == PDO::Type::TX) ? &txPdo[num-1] : &rxPdo[num-1];
+
+    pdo->clearAll();
+
+    uint16_t base = (type == PDO::Type::TX)
+                        ? TX_PDO1_MAPPING_INDEX + (num-1)
+                        : RX_PDO1_MAPPING_INDEX + (num-1);
+    updateOdUint8(base, SUBIDX_PDO_MAP_COUNT, 0);
+    pdoMapped = false;
+}
+
+// Manually set PDO mapping at runtime
 void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex, uint8_t position) {
     PDO* pdo;
     uint8_t pdoNum = num - 1;
@@ -302,6 +354,40 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
     uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO1_MAPPING_INDEX + pdoNum) 
                                                     : (RX_PDO1_MAPPING_INDEX + pdoNum);
     updateOdUint8(baseMapIndex, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
+
+    // Force re-map on next run() so internal pointers stay consistent
+    pdoMapped = false;
+}
+
+// Free-slot version – automatically places the object in the first contiguous
+// free region of the PDO data field.  Also keeps the Object Dictionary
+// mapping count (sub-index 0) in sync.
+void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex)
+{
+    PDO* pdo;
+    uint8_t pdoNum = num - 1;
+    if (pdoNum > 3) return; // PDO num is not between 1 and 4
+
+    if (type == PDO::Type::RX) pdo = &rxPdo[pdoNum];
+    else if (type == PDO::Type::TX) pdo = &txPdo[pdoNum];
+    else return;
+
+    // Use the free-slot overload of PDO::set
+    if (!pdo->set(index, subIndex)) return;
+
+    // Recount mapped objects
+    pdo->numObjects = 0;
+    for (int i = 0; i < CO_PDO_MAX_SIZE; i++) {
+        if (pdo->getObject(i) != nullptr) pdo->numObjects++;
+    }
+
+    // Keep Object Dictionary Sub-Index 0 (Map Count) in sync
+    uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO1_MAPPING_INDEX + pdoNum)
+                                                    : (RX_PDO1_MAPPING_INDEX + pdoNum);
+    updateOdUint8(baseMapIndex, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
+
+    // Force re-map on next run() so internal pointers stay consistent
+    pdoMapped = false;
 }
 
 // Send a CAN message
@@ -482,6 +568,10 @@ void CanOpenNode::mapPDOArray(PDO* pdoArray, uint16_t baseIndex) {
 
             Object& entry = dictionary[entryIndex];
             uint8_t bitLength  = entry.data[0]; // in bits
+            
+            // FIX: Skip empty mapping records instead of attempting to look up index 0x0000 or breaking
+            if (bitLength == 0) continue;
+
             uint8_t subIndex   = entry.data[1];
             uint16_t objIndex  = (entry.data[3] << 8) | entry.data[2];
 

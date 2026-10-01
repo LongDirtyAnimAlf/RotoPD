@@ -31,9 +31,18 @@ public:
     }
   }
 
+  // Free / clear mapping
+  bool clear(uint8_t position);                       // free the object that starts at this byte
+  bool clear(uint16_t index, uint8_t subIndex);       // free by OD index/sub-index
+  void clearAll();                                    // remove every mapped object  
+
+  // Absolute position
   bool set(Object &obj, uint8_t position);
   bool set(uint16_t index, uint8_t subIndex, uint8_t position);
-  void updateData();
+
+  // Free-slot (auto-place in first contiguous free region)
+  bool set(Object &obj);
+  bool set(uint16_t index, uint8_t subIndex);  void updateData();
 
   Object *getObject(uint8_t position) const {
     if (position < CO_PDO_MAX_SIZE)

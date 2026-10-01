@@ -925,15 +925,17 @@ void setup()
 
   node.begin();
 
+  node.setHeartbeatTime(5000);      // 5 s heartbeat
+
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
   node.disableNMT(false); 
   node.disableMapping(true);
   
   // Manually set PDOs here if mapping isn't used
 
-  node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
-  node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
-  node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/2, /*Index#=*/POWER, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
+  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
+  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
+  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/2, /*Index#=*/POWER, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
 
   //node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
   //node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
@@ -941,8 +943,22 @@ void setup()
   //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
   //node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
 
+  // Free-slot (new)
+  node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);       // auto-places in first free region
+  node.set(PDO::Type::TX, 1, VOLTAGE,   SUBIDX_1);       // auto-places after the previous one
 
-  node.setHeartbeatTime(5000);      // 5 s heartbeat
+
+  // Remove the old mapping
+  node.clear(PDO::Type::TX, 1, VOLTAGE, SUBIDX_1);
+
+  // Or free a concrete byte offset
+  node.clear(PDO::Type::TX, 1, 0);
+
+  // Then place the new one (free-slot or absolute)
+  node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);          // free-slot
+  // or
+  node.set(PDO::Type::TX, 1, POWER, SUBIDX_1, 0);       // absolute
+
   //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
   //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
   //node.setRxPdoCycleTime(1, 500);   // RPDO1 timeout 500 ms
