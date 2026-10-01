@@ -297,6 +297,11 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
     for (int i = 0; i < CO_PDO_MAX_SIZE; i++) {
         if (pdo->getObject(i) != nullptr) pdo->numObjects++;
     }
+
+    // Keep Object Dictionary Sub-Index 0 (Map Count) in sync
+    uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO1_MAPPING_INDEX + pdoNum) 
+                                                    : (RX_PDO1_MAPPING_INDEX + pdoNum);
+    updateOdUint8(baseMapIndex, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
 }
 
 // Send a CAN message
@@ -317,8 +322,24 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
     memcpy(obj.data, data, obj.getTypeSize());
 
     // Invalidate PDO mapping cache if mapping objects are modified
-    if ((obj.index >= RX_PDO1_MAPPING_INDEX && obj.index <= RX_PDO4_MAPPING_INDEX) || (obj.index >= TX_PDO1_MAPPING_INDEX && obj.index <= TX_PDO4_MAPPING_INDEX)) {
+    bool isRxMapping = (obj.index >= RX_PDO1_MAPPING_INDEX && obj.index <= RX_PDO4_MAPPING_INDEX);
+    bool isTxMapping = (obj.index >= TX_PDO1_MAPPING_INDEX && obj.index <= TX_PDO4_MAPPING_INDEX);
+
+    if (isRxMapping || isTxMapping) {
+        // Drop the cached mapping status flag so mapPDOs() re-evaluates the array next loop
         pdoMapped = false;
+
+        // If the master writes to sub-index 0 (Map Count), sync the matching runtime PDO object count
+        if (obj.subIndex == SUBIDX_PDO_MAP_COUNT) {
+            uint8_t pdoNum = 0;
+            if (isTxMapping) {
+                pdoNum = obj.index - TX_PDO1_MAPPING_INDEX;
+                if (pdoNum < 4) txPdo[pdoNum].numObjects = obj.data[0];
+            } else {
+                pdoNum = obj.index - RX_PDO1_MAPPING_INDEX;
+                if (pdoNum < 4) rxPdo[pdoNum].numObjects = obj.data[0];
+            }
+        }
     }
 
     // Keep runtime parameters in sync when the corresponding OD entries are written

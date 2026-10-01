@@ -38,30 +38,30 @@ Object dictionary[] = {
     // sub 03h = Inhibit time (units of 100 µs, default 0 = disabled)
     // sub 05h = Event timer (ms, default 500ms)
     // ------------------------------------------------------------------
-    {TX_PDO1_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {TX_PDO1_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     // Bit 31: Valid/Invalid (0=Valid, 1=Invalid)
     // Bit 30: RTR Enable (0=RTR allowed, 1=RTR forbidden)
     // Bit 29: Frame Type (0=11-bit, 1=29-bit) 
     // Bits 0-10: Actual CAN Identifier = NodeID.
     // COB-ID (e.g., 40000181h: rtr invalid/disabled by default until operational at NodeID = 1)    
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_COB_ID,            {0x81, 0x01, 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_COB_ID,            {0x81, 0x01, 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ},
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},  // Transmission Type
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},  // Inhibit Time (in 100 µs steps)
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_RESERVED,          {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Compatibility entry (Reserved / 0x00)
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}   // Event Timer (500 milliseconds)
+    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_RESERVED,          {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Compatibility entry (Reserved / 0x00)
+    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},   // Event Timer (500 milliseconds)
 
 
-    {TX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {TX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO2_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO2_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {TX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
-    {TX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {TX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO3_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO3_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {TX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
-    {TX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {TX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO4_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO4_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {TX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
@@ -69,22 +69,22 @@ Object dictionary[] = {
     // ------------------------------------------------------------------
     // RPDO Communication Parameters (CiA 301)
     // ------------------------------------------------------------------
-    {RX_PDO1_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {RX_PDO1_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO1_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO1_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {RX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
-    {RX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {RX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO2_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO2_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {RX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
-    {RX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {RX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO3_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO3_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {RX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
-    {RX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_ONLY},   // Highest sub-index supported
+    {RX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
