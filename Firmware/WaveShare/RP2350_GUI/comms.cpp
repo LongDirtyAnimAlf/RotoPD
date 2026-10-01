@@ -1,5 +1,7 @@
 #include "comms.h"
 
+#ifdef ENABLEUSB
+
 #ifdef ARDUINO_ARCH_RP2040
 #ifdef USE_TINYUSB
 extern Adafruit_USBD_HID HID;
@@ -12,6 +14,8 @@ extern USBHID HID;
 extern USBCDC USBSerial;
 #endif
 #endif
+
+#endif //ENABLEUSB
 
 #if defined(ARDUINO_ARCH_SAMD)
 MYSERCOM mysercom(PIN_WIRE_SERCOM);
@@ -813,6 +817,7 @@ bool process_command(void const *data, void *result)
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
+#ifdef ENABLEUSB
 #ifdef ARDUINO_ARCH_ESP32
 void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize)
 #else
@@ -942,3 +947,4 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
   }
 }
+#endif // ENABLEUSB

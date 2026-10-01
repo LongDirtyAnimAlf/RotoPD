@@ -310,6 +310,8 @@ static inline void rgb_program_init(PIO pio, uint sm, uint offset, uint pin, flo
 
 void pio_rgb_dma_init(pio_rgb_info_t *info)
 {
+    rgb_dma_chan = dma_claim_unused_channel(true);
+
     dma_channel_config c0 = dma_channel_get_default_config(rgb_dma_chan);
     channel_config_set_transfer_data_size(&c0, DMA_SIZE_16); // 16-bit transfers
     channel_config_set_read_increment(&c0, true);

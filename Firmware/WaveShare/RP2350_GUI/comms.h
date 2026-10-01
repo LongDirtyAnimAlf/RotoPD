@@ -1,7 +1,12 @@
 #ifndef _COMMS_H_
 #define _COMMS_H_
 
+#include <Arduino.h>
+#include "shared.h"
+
 #define DEFAULTBOARDNUMBER 1
+
+#ifdef ENABLEUSB
 
 #ifdef ARDUINO_ARCH_RP2040
 #ifdef USE_TINYUSB
@@ -16,6 +21,8 @@
 #include "esp32-hal-tinyusb.h"
 #endif
 #endif
+
+#endif //ENABLEUSB
 
 #ifdef ARDUINO_WIO_TERMINAL
 #define USE_LCD 
@@ -44,8 +51,6 @@
 #define USE_LCD 
 #endif
 
-#include <Arduino.h>
-#include "shared.h"
 #include "extras.h"
 
 #ifdef ARDUINO_SEEED_INDICATOR_RP2040
@@ -69,11 +74,13 @@
 #define WireBattery Wire1
 #endif
 
+#ifdef ENABLEUSB
 // USB HID report descriptor.
 uint8_t const desc_hid_report[] = 
 {
   TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
 };
+#endif
 
 const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
 const byte DefaultCalDate[4] = {20,26,01,01};
@@ -95,11 +102,12 @@ int8_t taskRotoPDInit(void);
 void collectRotoPDData(void);
 void getRotoPDData(word* I,word* V,dword* P,word* T);
 
+#ifdef ENABLEUSB
 #ifdef ARDUINO_ARCH_ESP32
 void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize);
 #else
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize);
 #endif
-
+#endif
 
 #endif

@@ -56,5 +56,6 @@ void bsp_dma_channel_irq1_init(void)
 
     // Configure the processor to run dma_handler() when DMA IRQ 0 is asserted
     irq_set_exclusive_handler(DMA_IRQ_1, dma_iqr1_handler);
+    irq_set_priority(DMA_IRQ_1, 0x40);   // higher than typical USB (0x80)
     irq_set_enabled(DMA_IRQ_1, true);
 }

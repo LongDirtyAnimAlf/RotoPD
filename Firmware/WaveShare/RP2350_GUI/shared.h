@@ -6,6 +6,8 @@
 
 #define    DEBUG
 
+#define    ENABLEUSB
+
 #ifndef ARDUINO_ARCH_SAMD
 // Only SenseCap can be standalone !!
 #define    STANDALONE

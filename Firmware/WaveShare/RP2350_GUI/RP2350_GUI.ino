@@ -1,5 +1,4 @@
 #define RP2350_PSRAM_CS 47
-#define LVGL_TICK_PERIOD_MS 5
 
 //#include "waveshare_rp2350_touch_lcd_4.h"
 
@@ -40,13 +39,17 @@
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
 #ifdef USE_TINYUSB
+#ifdef ENABLEUSB
 Adafruit_USBD_HID HID;
+#endif
 #endif
 #endif
 
 #ifdef ARDUINO_ARCH_ESP32
 #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+#ifdef ENABLEUSB
 USBHID HID;
+#endif
 USBCDC USBSerial;
 #endif
 #endif
@@ -708,36 +711,6 @@ void setup()
   // This results in best LCD performance without glitches and noise
   set_psram_timing_auto();
   delay(10);
-
-  #endif
-
-  // This will remove the unwanted default string descriptor
-  // And kill the unwanted (unneeded) serial port.
-  #ifndef DEBUG
-  //USBSerial.end();
-  #endif
-
-  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
-  // Manual begin() is required on core without built-in support e.g. mbed rp2040
-  if (!TinyUSBDevice.isInitialized()) {
-    TinyUSBDevice.begin(0);
-  }
-  USBDevice.setID(0x04D8,0x003F);
-  USBDevice.setVersion(0x0200);        // USB 2.0
-  USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
-  USBDevice.setManufacturerDescriptor("Consulab for pleasure");
-  USBDevice.setProductDescriptor("USB PD controller with HID");
-  #endif
-
-  #ifdef ARDUINO_ARCH_ESP32
-  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
-  USB.VID(0x04D8);
-  USB.PID(0x003F);  
-  USB.usbVersion(0x0200);
-  USB.firmwareVersion(0x0100);
-  USB.manufacturerName("Consulab for pleasure");
-  USB.productName("USB PD controller with HID");
-  #endif
   #endif
 
   for (index=0; index<12;index++)
@@ -763,6 +736,37 @@ void setup()
   myFirmware[0] = '\0';  
   sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
   myFirmware[18] = '\0';   
+
+  #ifdef ENABLEUSB
+
+  #ifndef DEBUG
+  // This will remove the unwanted default string descriptor
+  // And kill the unwanted (unneeded) serial port.
+  //USBSerial.end();
+  #endif
+
+  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
+  USBDevice.setID(0x04D8,0x003F);
+  USBDevice.setVersion(0x0200);        // USB 2.0
+  USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
+  USBDevice.setManufacturerDescriptor("Consulab for pleasure");
+  USBDevice.setProductDescriptor("USB PD controller with HID");
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32
+  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+  USB.VID(0x04D8);
+  USB.PID(0x003F);  
+  USB.usbVersion(0x0200);
+  USB.firmwareVersion(0x0100);
+  USB.manufacturerName("Consulab for pleasure");
+  USB.productName("USB PD controller with HID");
+  #endif
+  #endif
 
   #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
   USBDevice.setSerialDescriptor(mySerial);  
@@ -791,6 +795,8 @@ void setup()
   #endif
   #endif
 
+  #endif // ENABLEUSB
+
   #ifdef DEBUG  
   int cnt = 1000;     // Will wait for up to ~1 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
@@ -801,6 +807,7 @@ void setup()
 
   WireBattery.setSDA(BSP_I2C_SDA_PIN);
   WireBattery.setSCL(BSP_I2C_SCL_PIN);
+  //WireBattery.setClock(400000);   // or even 50000
   WireBattery.begin();
 
   bsp_buzzer_init();
@@ -1002,11 +1009,20 @@ void setup()
   Info_Add("GUI. Init RP2350 ready.");
 }
 
+void loop55()
+{
+  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
+  lv_timer_periodic_handler();
+}
+
 void loop()
 {
   #ifdef LVGLDEMOS
-  uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
+  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
+  lv_timer_periodic_handler();
   #else
+
+  lv_timer_periodic_handler();
 
   uint8_t j;
 
@@ -1071,26 +1087,6 @@ void loop()
 
     //Serial.println("Loop");
 
-    //bsp_xl2515_init(KBPS100);
-
-    uint32_t send_id = 0x123;
-    uint32_t rec_id = 0;
-    uint8_t len;
-    uint8_t data[8] = {0x03, 0x11, 0x22, 0x33, 0x00, 0x00, 0x00, 0x00};
-
-    /*
-    if (bsp_xl2515_recv(&rec_id, data, &len))
-    {
-        Info_Add_Fmt("recv id: 0x%x, len: %d  data: ", rec_id, len);
-        Info_Add_Fmt("0x%2x ", data[0]);
-    }
-    unsigned char senddata[8] = {7, 'D', 'F', 'R', 'O', 'B', 'O', 'T'};
-    bsp_xl2515_send(send_id, senddata, 8);
-    //sprintf((char *)tx_msg.data, "C0:%04d", count++);
-    */
-
-    //mcp2515.sendMessage(&canMsg1);
-
     PDOCount = taskRotoPDInit();
 
     if (PDOCount != -1)
@@ -1144,11 +1140,13 @@ void loop()
         // Send PDO data to USB host
         hid_report_in[LENGTHPOSITION]=dataindexer;   
 
+        #ifdef ENABLEUSB
         #ifdef ARDUINO_ESP32S3_DEV
         HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
         #else
         HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
         #endif      
+        #endif
 
       }
     }
@@ -1193,11 +1191,13 @@ void loop()
       //ARDUINO_ARCH_RP2040
 
       // Send report back to host
+      #ifdef ENABLEUSB
       #ifdef ARDUINO_ESP32S3_DEV
       HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
       #else
       HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
-      #endif      
+      #endif
+      #endif
 
       for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
 
@@ -1417,11 +1417,13 @@ void loop()
       hid_report_in[LENGTHPOSITION]=dataindexer;
 
       // Send measurement data to host
+      #ifdef ENABLEUSB
       #ifdef ARDUINO_ESP32S3_DEV
       HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #else
       HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #endif      
+      #endif
       
       if (SET->TestData.Active == bmActive)
       {
@@ -1436,7 +1438,6 @@ void loop()
       }
     }
   }
-
   #endif //STANDALONE
 
   if (CalcBatteryData)
@@ -1481,7 +1482,8 @@ void loop()
     Screen1AddTData(RDS->Time);
   }
 
-  uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
+  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
+  //lv_timer_periodic_handler();
   //uint32_t task_delay_ms = lv_task_handler();
   //vTaskDelay( pdMS_TO_TICKS(task_delay_ms) );
   
