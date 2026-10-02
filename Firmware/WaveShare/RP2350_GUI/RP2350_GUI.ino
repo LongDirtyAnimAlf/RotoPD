@@ -928,8 +928,8 @@ void setup()
   node.setHeartbeatTime(5000);      // 5 s heartbeat
 
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
-  node.disableNMT(false); 
-  node.disableMapping(true);
+  ///node.disableNMT(true); 
+  //node.disableMapping(true);
   
   // Manually set PDOs here if mapping isn't used
 
@@ -944,20 +944,20 @@ void setup()
   //node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
 
   // Free-slot (new)
-  node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);       // auto-places in first free region
-  node.set(PDO::Type::TX, 1, VOLTAGE,   SUBIDX_1);       // auto-places after the previous one
+  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);       // auto-places in first free region
+  //node.set(PDO::Type::TX, 1, VOLTAGE,   SUBIDX_1);       // auto-places after the previous one
 
 
   // Remove the old mapping
-  node.clear(PDO::Type::TX, 1, VOLTAGE, SUBIDX_1);
+  //node.clear(PDO::Type::TX, 1, VOLTAGE, SUBIDX_1);
 
   // Or free a concrete byte offset
-  node.clear(PDO::Type::TX, 1, 0);
+  //node.clear(PDO::Type::TX, 1, 0);
 
   // Then place the new one (free-slot or absolute)
-  node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);          // free-slot
+  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);          // free-slot
   // or
-  node.set(PDO::Type::TX, 1, POWER, SUBIDX_1, 0);       // absolute
+  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1, 0);       // absolute
 
   //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
   //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
@@ -1044,7 +1044,7 @@ void loop()
 
   static unsigned long startTime = millis();
 
-  static const uint32_t index = Object::findIndex(VOLTAGE, 0x01);
+  static const uint32_t index = Object::findIndex(ACTUAL_VOLTAGE, 0x01);
 
   bool DataOk = false;
   byte INData[COMMAND_SIZE] = {0};

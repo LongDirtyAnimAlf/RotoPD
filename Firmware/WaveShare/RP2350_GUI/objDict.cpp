@@ -3,13 +3,32 @@
 Object dictionary[] = {
 //  |             INDEX             | SUB |          DATA          |       TYPE       |      PERMISSIONS      |
     // Application objects
-    {VOLTAGE,                        SUBIDX_1, {0xC0, 0x12, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
-    {CURRENT,                        SUBIDX_1, {0xD0, 0x22, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
-    {POWER,                          SUBIDX_1, {0xD0, 0x22, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
-    {DISPLAYED_CHARGE,               SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
-    {STATUS,                         SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
-    {TEMPERATURE,                    SUBIDX_1, {0x2C, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ},
-    {MIN_VOLTAGE,                    SUBIDX_1, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // ------------------------------------------------------------------
+    // Application Objects (CiA 453 DC Electronic Load)
+    // ------------------------------------------------------------------
+    // Operating Mode (1 = Constant Current)
+    {OPERATING_MODE,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::INT8,   ObjectPermissions::READ_WRITE},
+    // Controlword
+    {CONTROLWORD,                    SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
+    // Statusword
+    {STATUSWORD,                     SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ},
+    // Load Output Enable
+    {LOAD_OUTPUT_ENABLE,             SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // Target Current
+    {TARGET_CURRENT,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
+    // Target Voltage
+    {TARGET_VOLTAGE,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
+    // Target Power
+    {TARGET_POWER,                   SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
+    // Actual Voltage
+    {ACTUAL_VOLTAGE,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    // Actual Current
+    {ACTUAL_CURRENT,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    // Actual Power
+    {ACTUAL_POWER,                   SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    // Voltage Limits
+    {VOLTAGE_LIMITS,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
+    {VOLTAGE_LIMITS,                 SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE}, // 3000 mV (0x0BB8)
     
     // Communication profile area (CiA 301)
     {DEVICE_TYPE_INDEX,              SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ},
@@ -92,45 +111,37 @@ Object dictionary[] = {
 
     // TPDO mapping parameters examples
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    // Map 32-bit VOLTAGE at Sub-index 1 -> { 0x20, 0x01, 0x02, 0x20 } ; Index (Byte 2 & Byte 3): Resolves to 0x2002 (in little-endian: {0x02, 0x20})
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_1, (uint8_t)(VOLTAGE & 0xFF), (uint8_t)(VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    // Map 32-bit CURRENT at Sub-index 1 -> { 0x20, 0x01, 0x03, 0x20 }
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT32, SUBIDX_1, (uint8_t)(CURRENT & 0xFF), (uint8_t)(CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    // TPDO1 Mapping -> ACTUAL_VOLTAGE (0x6080:00) + ACTUAL_CURRENT (0x6081:00)
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_VOLTAGE & 0xFF), (uint8_t)(ACTUAL_VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_CURRENT & 0xFF), (uint8_t)(ACTUAL_CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    // Map 32-bit POWER
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_1, (uint8_t)(POWER & 0xFF), (uint8_t)(POWER >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x03, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // TPDO2 Mapping -> ACTUAL_POWER (0x6082:00) + STATUSWORD (0x6041:00) + LOAD_OUTPUT_ENABLE (0x6044:00)
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_POWER & 0xFF), (uint8_t)(ACTUAL_POWER >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_UINT16, SUBIDX_DEFAULT, (uint8_t)(STATUSWORD & 0xFF), (uint8_t)(STATUSWORD >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_UINT8, SUBIDX_DEFAULT, (uint8_t)(LOAD_OUTPUT_ENABLE & 0xFF), (uint8_t)(LOAD_OUTPUT_ENABLE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-    // RPDO mapping parameters
-    {RX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {RX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-    {RX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {RX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    // ------------------------------------------------------------------
+    // RPDO Mapping Parameters
+    // ------------------------------------------------------------------
+    // RPDO1 Mapping -> TARGET_CURRENT (0x6070:00, 32-bit = 0x20)
+    {RX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {RX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(TARGET_CURRENT & 0xFF), (uint8_t)(TARGET_CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-    {RX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {RX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    // RPDO2 Mapping -> LOAD_OUTPUT_ENABLE (0x6044:00, 8-bit = 0x08)
+    {RX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {RX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_UINT8, SUBIDX_DEFAULT, (uint8_t)(LOAD_OUTPUT_ENABLE & 0xFF), (uint8_t)(LOAD_OUTPUT_ENABLE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-    {RX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {RX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ_WRITE}
+    // RPDO3 Mapping -> CONTROLWORD (0x6040:00, 16-bit = 0x10)
+    {RX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {RX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_UINT16, SUBIDX_DEFAULT, (uint8_t)(CONTROLWORD & 0xFF), (uint8_t)(CONTROLWORD >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+
+    {RX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE}
 };
 
 constexpr uint8_t NUM_OBJS = sizeof(dictionary) / sizeof(Object);
