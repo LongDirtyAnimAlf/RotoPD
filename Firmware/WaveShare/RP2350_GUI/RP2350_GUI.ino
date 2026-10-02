@@ -820,6 +820,11 @@ void setup()
   PBatterySetting SET;
 
   #ifndef LVGLDEMOS
+
+  //img = lv_img_create(obj);
+  //lv_img_set_src(img, &lv_logo_wx);
+
+
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
   Setup_ScreenLogger(ActiveBatteryIndex,false);
@@ -1044,7 +1049,7 @@ void loop()
 
   static unsigned long startTime = millis();
 
-  static const uint32_t index = Object::findIndex(ACTUAL_VOLTAGE, 0x01);
+  static const uint32_t index = Object::findIndex(ACTUAL_VOLTAGE, SUBIDX_VALUE);
 
   bool DataOk = false;
   byte INData[COMMAND_SIZE] = {0};

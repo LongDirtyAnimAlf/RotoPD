@@ -8,14 +8,18 @@
 #define CAN_INT   2
 #define CAN_CS    9
 
-// Application-specific Object Dictionary indices
-#define DISPLAYED_CHARGE               0x2520
-#define VOLTAGE                        0x2002
-#define CURRENT                        0x2003
-#define POWER                          0x2004
-#define STATUS                         0x2005
-#define TEMPERATURE                    0x6010
-#define MIN_VOLTAGE                    0x2006
+// Application-specific Object Dictionary indices (CiA 453 Electronic Load)
+#define OPERATING_MODE                 0x6000
+#define CONTROLWORD                    0x6040
+#define STATUSWORD                     0x6041
+#define LOAD_OUTPUT_ENABLE             0x6044
+#define TARGET_CURRENT                 0x6070
+#define TARGET_VOLTAGE                 0x6071
+#define TARGET_POWER                   0x6072
+#define ACTUAL_VOLTAGE                 0x6080
+#define ACTUAL_CURRENT                 0x6081
+#define ACTUAL_POWER                   0x6082
+#define VOLTAGE_LIMITS                 0x6090
 
 // NMT command specifiers (CiA 301)
 #define StartNode                      0x01

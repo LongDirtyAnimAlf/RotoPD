@@ -6,7 +6,7 @@ CanOpenNode* CanOpenNode::instance = nullptr;
 
 CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_t nodeId) :
     can(10 * 1000 * 1000),
-    intPin(intPin),
+    intPin(BSP_XL2515_INT_PIN),
     baudRate(baudRate),
     nodeId((nodeId >= 1 && nodeId <= 127) ? nodeId : DEFAULT_NODE_ID),
     nmtState(NMT::Mode::BOOT),
@@ -74,6 +74,44 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     }
 
     instance = this;
+}
+
+// ------------------------------------------------------------------
+// Lightweight error recovery – call periodically from run()
+// ------------------------------------------------------------------
+bool CanOpenNode::recoverFromBusErrors() {
+
+    uint8_t eflg = 0;
+    eflg = can.getErrorFlags();
+
+    if ( eflg & (MCP2515::EFLG_RX1OVR | MCP2515::EFLG_RX0OVR | MCP2515::EFLG_TXBO | MCP2515::EFLG_TXEP | MCP2515::EFLG_RXEP) )
+    {
+
+        // Bus-Off recovery sequence (required by MCP2515 datasheet)
+        if (eflg & MCP2515::EFLG_TXBO) {
+            can.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+            delay(5);                                   // short settle time
+            can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+            delay(1);
+        }
+
+        // Clear sticky flags that otherwise keep reception blocked
+        can.clearRXnOVRFlags();
+        delay(1);
+        can.clearERRIF();
+        delay(1);
+        can.clearMERR();
+        delay(1);
+
+        can.clearInterrupts();
+        delay(1);
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 // ------------------------------------------------------------------
@@ -201,7 +239,7 @@ void CanOpenNode::begin() {
     if (MCP2515::ERROR_OK == can.reset()) {
         can.setBitrate(CAN_250KBPS);
         can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-        can.enableInterrupt(BSP_XL2515_INT_PIN, ISRhandler);
+        can.enableInterrupt(intPin, ISRhandler);
         Serial.println("MCP2515 Initialized Successfully.");
         Serial.print("CANopen Node-ID = 0x");
         Serial.println(nodeId, HEX);
@@ -212,6 +250,10 @@ void CanOpenNode::begin() {
 
 // Run function to handle the core communication loop with NMT handling
 void CanOpenNode::run() {
+
+    // Recover from Bus-Off / error-passive as early as possible
+    recoverFromBusErrors();
+
     bool messageavailable = recv.read();
 
     if (nmtOn) {
@@ -392,14 +434,20 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
 
 // Send a CAN message
 bool CanOpenNode::sendMsg(const Message &msg) {
+
+    // Never queue pure NMT / heartbeat traffic when the controller is already
+    // in an error state – prevents the “NMT flood” after the bus recovers.
+    const bool isHeartbeat = (msg.id & 0x780) == CO_CAN_ID_HEARTBEAT;
+    if (isHeartbeat && can.checkError()) {
+        return false;
+    }
+
     struct can_frame cansendmessageframe;
     cansendmessageframe.can_id  = msg.id;
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
-    if (MCP2515::ERROR_OK != can.sendMessage(&cansendmessageframe)) {
-        return false;
-    }
-    return true;
+
+    return (MCP2515::ERROR_OK == can.sendMessage(&cansendmessageframe));    
 }
 
 // Write data to an object in the Object Dictionary
@@ -537,6 +585,9 @@ void CanOpenNode::nmtController() {
 void CanOpenNode::heartBeat() {
     // According to CiA 301: if 0x1017 == 0 the producer is disabled
     if (nmt.cycleTime == 0) return;
+
+    // Drop heartbeat instead of queuing when the MCP is in error state
+    if (can.checkError()) return;
 
     if ((millis() - nmt.timer) > nmt.cycleTime) {
         sendMsg(nmt);
