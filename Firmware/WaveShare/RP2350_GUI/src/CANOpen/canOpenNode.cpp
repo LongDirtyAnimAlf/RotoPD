@@ -81,6 +81,43 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
 // ------------------------------------------------------------------
 bool CanOpenNode::recoverFromBusErrors() {
 
+    if (!can.isTxBusError())
+        return false;
+
+    if (MCP2515::ERROR_OK == can.reset()) {
+        can.setBitrate(CAN_250KBPS);
+        can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+        can.enableInterrupt(intPin, ISRhandler);
+        Serial.println("MCP2515 Initialized Successfully.");
+        Serial.print("CANopen Node-ID = 0x");
+        Serial.println(nodeId, HEX);
+    }
+    else
+    {
+        Serial.println("MCP2515 Initialize Failure !!!");
+    }
+
+    //can.clearTxBusError();
+
+    //can.abortAllPending();
+
+    // 2. Force a clean exit from Bus-Off / Error-Passive
+    //    (mode change resets TEC/REC and clears TXBO)
+    //can.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+    //can.clearErrorFlags();          // clears RX0OVR / RX1OVR
+    //can.clearRXnOVRFlags();         // extra safety
+    //can.clearInterrupts();          // clear CANINTF
+    //can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);    
+
+    /*
+    uint16_t drops = can.getRxQueueDropCount();    
+    uint16_t overflows  = can.getRxHardwareOverflowCount();
+
+    if (drops > 0 || overflows > 0) {
+        // We have a buserror
+        // What to do ?
+
+    }
     uint8_t eflg = 0;
     eflg = can.getErrorFlags();
 
@@ -89,22 +126,21 @@ bool CanOpenNode::recoverFromBusErrors() {
 
         // Bus-Off recovery sequence (required by MCP2515 datasheet)
         if (eflg & MCP2515::EFLG_TXBO) {
+
             can.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
-            delay(5);                                   // short settle time
+            can.clearErrorFlags();
             can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-            delay(1);
         }
 
         // Clear sticky flags that otherwise keep reception blocked
         can.clearRXnOVRFlags();
-        delay(1);
+        delay(5);
         can.clearERRIF();
-        delay(1);
+        delay(5);
         can.clearMERR();
-        delay(1);
-
+        delay(5);
         can.clearInterrupts();
-        delay(1);
+        delay(5);
 
         return true;
     }
@@ -112,6 +148,10 @@ bool CanOpenNode::recoverFromBusErrors() {
     {
         return false;
     }
+
+    */
+
+    return true;
 }
 
 // ------------------------------------------------------------------
@@ -437,9 +477,10 @@ bool CanOpenNode::sendMsg(const Message &msg) {
 
     // Never queue pure NMT / heartbeat traffic when the controller is already
     // in an error state – prevents the “NMT flood” after the bus recovers.
-    const bool isHeartbeat = (msg.id & 0x780) == CO_CAN_ID_HEARTBEAT;
-    if (isHeartbeat && can.checkError()) {
-        return false;
+    const bool isHeartbeat = ((msg.id & 0x780) == CO_CAN_ID_HEARTBEAT);
+
+    if (isHeartbeat) {
+        //if (can.checkError()) return false;
     }
 
     struct can_frame cansendmessageframe;
@@ -447,7 +488,15 @@ bool CanOpenNode::sendMsg(const Message &msg) {
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
 
-    return (MCP2515::ERROR_OK == can.sendMessage(&cansendmessageframe));    
+    if (MCP2515::ERROR_OK == can.sendMessage(&cansendmessageframe)){
+        Serial.println("Send message ok");
+        return true;
+    }
+    else
+    {
+        Serial.println("Send message error!");
+        return false;
+    }
 }
 
 // Write data to an object in the Object Dictionary
@@ -586,12 +635,13 @@ void CanOpenNode::heartBeat() {
     // According to CiA 301: if 0x1017 == 0 the producer is disabled
     if (nmt.cycleTime == 0) return;
 
-    // Drop heartbeat instead of queuing when the MCP is in error state
-    if (can.checkError()) return;
-
     if ((millis() - nmt.timer) > nmt.cycleTime) {
-        sendMsg(nmt);
         nmt.timer = millis();
+
+        // Drop heartbeat instead of queuing when the MCP is in error state
+        //if (can.checkError()) return;
+
+        sendMsg(nmt);
     }
 }
 

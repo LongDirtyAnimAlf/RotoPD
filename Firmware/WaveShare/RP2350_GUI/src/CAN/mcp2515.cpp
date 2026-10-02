@@ -27,6 +27,7 @@ MCP2515::MCP2515(const uint32_t _SPI_CLOCK)
     _txInterruptPending = false;
     _rxQueueDropCount = 0;
     _rxHardwareOverflowCount = 0;
+    _txBusError = false;
     _intPin = -1;
 }
 
@@ -55,16 +56,6 @@ void MCP2515_ISR_ATTR MCP2515::endSPI() const {
     gpio_put(BSP_XL2515_CS_PIN, 1);
 }
 
-void MCP2515_ISR_ATTR MCP2515::maskInterrupt(bool Mask)
-{
-    if (_intPin >= 0)
-    {
-        //noInterrupts();
-        //irq = save_and_disable_interrupts();
-        gpio_set_irq_enabled(BSP_XL2515_INT_PIN, GPIO_IRQ_EDGE_FALL, !Mask);
-    }
-}
-
 MCP2515::ERROR MCP2515::reset(void)
 {
     startSPI();
@@ -82,7 +73,9 @@ MCP2515::ERROR MCP2515::reset(void)
     setRegister(MCP_RXB0CTRL, 0);
     setRegister(MCP_RXB1CTRL, 0);
 
-    setRegister(MCP_CANINTE, CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF | CANINTF_MERRF);
+    //setRegister(MCP_CANINTE, CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF | CANINTF_MERRF);
+    setRegister(MCP_CANINTE, CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF);
+    //setRegister(MCP_CANINTE, CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF | CANINTF_ERRIF | CANINTF_MERRF);
 
     // receives all valid messages using either Standard or Extended Identifiers that
     // meet filter criteria. RXF0 is applied for RXB0, RXF1 is applied for RXB1
@@ -117,18 +110,34 @@ MCP2515::ERROR MCP2515::reset(void)
     _rxQueue.clear();
     _rxQueueDropCount = 0;
     _rxHardwareOverflowCount = 0;
+    _txBusError = false;
 
     return ERROR_OK;
+}
+
+void MCP2515_ISR_ATTR MCP2515::maskInterrupt(bool Mask)
+{
+    if (_intPin >= 0)
+    {
+        //noInterrupts();
+        //irq = save_and_disable_interrupts();
+        gpio_set_irq_enabled(_intPin, GPIO_IRQ_EDGE_FALL, !Mask);
+        //gpio_set_irq_enabled(_intPin, GPIO_IRQ_LEVEL_LOW, !Mask);
+    }
 }
 
 void MCP2515::enableInterrupt(int intPin, void (*callback)(void))
 {
     _intPin = intPin;
-    pinMode(intPin, INPUT_PULLUP);
-    // RP2040 / Arduino-Pico core supports the standard attachInterrupt API.
-    // The SPI driver uses beginTransaction/endTransaction, so no
-    // SPI.usingInterrupt() is required (and the method does not exist).
-    attachInterrupt(digitalPinToInterrupt(intPin), callback, FALLING);    
+    if (_intPin >= 0)
+    {
+        pinMode(_intPin, INPUT_PULLUP);
+        // RP2040 / Arduino-Pico core supports the standard attachInterrupt API.
+        // The SPI driver uses beginTransaction/endTransaction, so no
+        // SPI.usingInterrupt() is required (and the method does not exist).
+        attachInterrupt(digitalPinToInterrupt(_intPin), callback, FALLING);    
+        //attachInterrupt(digitalPinToInterrupt(_intPin), callback, LOW);
+    }
 }
 
 void MCP2515::disableInterrupt(void)
@@ -142,38 +151,117 @@ void MCP2515::disableInterrupt(void)
 
 void MCP2515_ISR_ATTR MCP2515::handleInterrupt(void)
 {
+    Serial.println("Inside handleInterrupt !!");
+
     startSPI();
 
     uint8_t canintf = readRegisterRaw(MCP_CANINTF);
 
     if (canintf & (CANINTF_RX0IF | CANINTF_RX1IF)) {
         _rxInterruptPending = true;
+        Serial.println("RX interrupt.");
     }
 
     if (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF)) {
         modifyRegisterRaw(MCP_CANINTF,
             CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF, 0);
         _txInterruptPending = true;
+        Serial.println("TX interrupt.");
     }
 
-    if (canintf & (CANINTF_ERRIF | CANINTF_MERRF)) {
-        uint8_t eflg = readRegisterRaw(MCP_EFLG);
-        if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR)) {
-            _rxHardwareOverflowCount++;
-            modifyRegisterRaw(MCP_EFLG, eflg & (EFLG_RX0OVR | EFLG_RX1OVR), 0);
-        }
+    if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
+    {
+        if (canintf & CANINTF_MERRF) Serial.println("Message error interrupt.");
+        if (canintf & CANINTF_ERRIF) Serial.println("General Error interrupt.");
         modifyRegisterRaw(MCP_CANINTF, canintf & (CANINTF_ERRIF | CANINTF_MERRF), 0);
     }
 
     endSPI();
+
+    if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
+    //if (canintf & CANINTF_ERRIF)
+    {
+        uint8_t eflg = readRegister(MCP_EFLG);
+
+        if(eflg & EFLG_RX1OVR){
+            Serial.println("RX1OVR: receive buffer 1 overflow");
+        }
+
+        if(eflg & EFLG_RX0OVR){
+            Serial.println("RX0OVR: receive buffer 0 overflow");
+        }
+
+        if(eflg & EFLG_TXBO){
+            Serial.println("TXBO: bus off");
+        }
+
+        if(eflg & EFLG_TXEP){
+            Serial.println("TXEP: transmit error-passive");
+        }
+            
+        if(eflg & EFLG_RXEP){
+            Serial.println("RXEP: receive error-passive");
+        }
+
+        if(eflg & EFLG_TXWAR){
+            Serial.println("TXWAR: transmit error warning");
+        }
+
+        if(eflg & EFLG_RXWAR){
+            Serial.println("RXWAR: receive error warning");
+        }
+
+        if(eflg & EFLG_EWARN){
+            Serial.println("EWARN: error warning");
+        }
+
+        if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR))
+        {
+            _rxHardwareOverflowCount++;
+            modifyRegister(MCP_EFLG, eflg & (EFLG_RX0OVR | EFLG_RX1OVR), 0);
+        }
+
+        if (eflg & (EFLG_RXEP | EFLG_TXEP | EFLG_TXBO | EFLG_RXWAR | EFLG_TXWAR))
+        {
+            //uint8_t tec  = errorCountTX();
+            //uint8_t rec  = errorCountRX();
+
+            // TXEP / RXEP (error-passive, TEC/REC ≥ 128)
+            // TXWAR / RXWAR / EWARN (warning, TEC/REC ≥ 96)
+            // EFLG_TXBO (bus-off, TEC ≥ 256)
+            if (eflg & EFLG_TXBO)
+            {
+                // Very severe error
+                // Might need a system reset !
+                Serial.println("Severe recovering");
+                _txBusError = true;                
+            } 
+            abortAllPending();
+            if (eflg & EFLG_TXBO) setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+            //modifyRegister(MCP_EFLG, EFLG_RXWAR | EFLG_EWARN, 0);
+            clearErrorFlags();
+            clearRXnOVRFlags();
+            clearInterrupts();
+            if (eflg & EFLG_TXBO) setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+        }        
+
+        if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR)) {
+            Serial.println("Clearing overflow flags");
+            _rxHardwareOverflowCount++;            
+            clearRXnOVRFlags();
+        }        
+    }
+
 }
 
 uint8_t MCP2515::readRegister(const REGISTER reg) const
 {
     uint8_t data = 0;
+    uint8_t buf[2];
+    buf[0] = INSTRUCTION_READ;
+    buf[1] = reg;
     startSPI();
-    spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){INSTRUCTION_READ}, 1);
-    spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){reg}, 1);
+    spi_write_blocking(BSP_XL2515_SPI_PORT, buf, 2);
     spi_read_blocking(BSP_XL2515_SPI_PORT, 0, &data, 1);
     endSPI();
     return data;
@@ -512,6 +600,9 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
 MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
 {
     // Try to drain any pending queued messages first
+
+    getErrorFlags();
+
     processTxQueue();
 
     // Try direct hardware transmission
@@ -717,9 +808,9 @@ bool MCP2515::checkReceive(void)
 
 bool MCP2515::checkError(void)
 {
-    uint8_t eflg = getErrorFlags();
+    uint8_t u8ErrorFlag = getErrorFlags();
 
-    if ( eflg & EFLG_ERRORMASK ) {
+    if ( u8ErrorFlag & EFLG_ERRORMASK ) {
         return true;
     } else {
         return false;
@@ -765,7 +856,46 @@ uint8_t MCP2515::drainRxBuffers(void)
 
 uint8_t MCP2515::getErrorFlags(void) const
 {
-    return readRegister(MCP_EFLG);
+    uint8_t u8ErrorFlag = readRegister(MCP_EFLG);
+
+    if(u8ErrorFlag & MCP2515::EFLG_RX1OVR){
+        Serial.println("CanShield error RX1OVR: receive buffer 1 overflow");
+    }
+
+    if(u8ErrorFlag & MCP2515::EFLG_RX0OVR){
+        Serial.println("CanShield error RX0OVR: receive buffer 0 overflow");
+    }
+
+    if(u8ErrorFlag & MCP2515::EFLG_TXBO){
+        Serial.println("CanShield error TXBO: bus off");
+    }
+
+    if(u8ErrorFlag & MCP2515::EFLG_TXEP){
+        Serial.println("CanShield error TXEP: transmit error-passive");
+    }
+        
+    if(u8ErrorFlag & MCP2515::EFLG_RXEP){
+        Serial.println("CanShield error RXEP: receive error-passive");
+    }
+
+    if(u8ErrorFlag & MCP2515::EFLG_TXWAR){
+        Serial.println("CanShield error TXWAR: transmit error warning");
+    }
+
+    if(u8ErrorFlag & MCP2515::EFLG_RXWAR){
+        Serial.println("CanShield error RXWAR: receive error warning ");
+    }
+
+    if(u8ErrorFlag & MCP2515::EFLG_EWARN){
+        Serial.println("CanShield error EWARN: error warning ");
+    }
+
+    return u8ErrorFlag;
+}
+
+void MCP2515::clearErrorFlags(void)
+{
+    return setRegister(MCP_EFLG, 0);
 }
 
 uint8_t MCP2515::getControlRegister(void) 

@@ -590,8 +590,10 @@ class MCP2515
         CircularQueue<struct can_frame, MCP2515_RX_QUEUE_SIZE> _rxQueue;
         volatile bool _rxInterruptPending;
         volatile bool _txInterruptPending;
+      
         uint16_t _rxQueueDropCount;
         uint16_t _rxHardwareOverflowCount;
+        bool _txBusError;
         int8_t _intPin;
 
         ERROR sendMessage(const TXBn txbn, const struct can_frame *frame);
@@ -667,6 +669,7 @@ class MCP2515
         //
         bool checkError(void);
         uint8_t getErrorFlags(void) const;
+        void clearErrorFlags(void);
         uint8_t getControlRegister(void);
         uint8_t getInterrupts(void);
         uint8_t getInterruptMask(void);
@@ -677,6 +680,9 @@ class MCP2515
         uint8_t getRxQueueDepth(void) const { return _rxQueue.getCount(); }
         uint16_t getRxQueueDropCount() const;
         uint16_t getRxHardwareOverflowCount() const;
+
+        bool isTxBusError() const { return _txBusError; }
+        void clearTxBusError()    { _txBusError = false; }
 
         //
         // Error clearing
