@@ -41,7 +41,7 @@ Object dictionary[] = {
     {CONSUMER_HEARTBEAT_INDEX,       SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
 
     // 0x1017 Producer Heartbeat Time : default 500 ms (0x01F4)
-    {PRODUCER_HEARTBEAT_INDEX,       SUBIDX_DEFAULT, {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
+    {PRODUCER_HEARTBEAT_INDEX,       SUBIDX_DEFAULT, {(uint8_t)(HEARTBEAT_CYCLE_TIME & 0xFF), (uint8_t)(HEARTBEAT_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
 
     {IDENTITY_OBJECT_INDEX,          SUBIDX_IDENTITY_COUNT, {0x04, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ}, // Number of entries (1…4). Default usually 4.
     {IDENTITY_OBJECT_INDEX,          SUBIDX_IDENTITY_VENDOR_ID, {0x34, 0x12, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ},  // Vendor ID
@@ -62,51 +62,52 @@ Object dictionary[] = {
     // Bit 30: RTR Enable (0=RTR allowed, 1=RTR forbidden)
     // Bit 29: Frame Type (0=11-bit, 1=29-bit) 
     // Bits 0-10: Actual CAN Identifier = NodeID.
-    // COB-ID (e.g., 40000181h: rtr invalid/disabled by default until operational at NodeID = 1)    
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_COB_ID,            {0x81, 0x01, 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ},
+    // COB-ID (e.g., 40000181h: rtr invalid/disabled by default until operational at NodeID = 1)   
+    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_COB_ID,            {(uint8_t)((CO_CAN_ID_TPDO_1 + DEFAULT_NODE_ID) & 0xFF), (uint8_t)((CO_CAN_ID_TPDO_1 + DEFAULT_NODE_ID) >> 8), 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ},
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},  // Transmission Type
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},  // Inhibit Time (in 100 µs steps)
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_RESERVED,          {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Compatibility entry (Reserved / 0x00)
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},   // Event Timer (500 milliseconds)
+    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO1_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO1_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},   // Event Timer (500 milliseconds)
 
 
     {TX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO2_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO2_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
+    {TX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO2_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO2_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
     {TX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO3_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO3_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {TX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
+    {TX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO3_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO3_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
     {TX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO4_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {TX_PDO4_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0xF4, 0x01, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
+    {TX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO4_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO4_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
     // ------------------------------------------------------------------
     // RPDO Communication Parameters (CiA 301)
     // ------------------------------------------------------------------
     {RX_PDO1_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
+    {RX_PDO1_COMM_INDEX, SUBIDX_PDO_COB_ID,            {(uint8_t)((CO_CAN_ID_RPDO_1 + DEFAULT_NODE_ID) & 0xFF), (uint8_t)((CO_CAN_ID_RPDO_1 + DEFAULT_NODE_ID) >> 8), 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ},
     {RX_PDO1_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO1_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {RX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
+    {RX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO1_RX_CYCLE_TIME & 0xFF), (uint8_t)(PDO1_RX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
     {RX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO2_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO2_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {RX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
+    {RX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO2_RX_CYCLE_TIME & 0xFF), (uint8_t)(PDO2_RX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
     {RX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO3_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO3_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {RX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
+    {RX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO3_RX_CYCLE_TIME & 0xFF), (uint8_t)(PDO3_RX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
     {RX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {RX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {0x78, 0x05, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
+    {RX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO4_RX_CYCLE_TIME & 0xFF), (uint8_t)(PDO4_RX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
 
     // TPDO mapping parameters examples

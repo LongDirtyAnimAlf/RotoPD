@@ -319,9 +319,9 @@ typedef enum {
 #define PDO2_TX_CYCLE_TIME      500   // ms  (OD 0x1801:05)
 #define PDO3_TX_CYCLE_TIME      500   // ms  (OD 0x1802:05)
 #define PDO4_TX_CYCLE_TIME      500   // ms  (OD 0x1803:05)
-#define PDO1_RX_CYCLE_TIME      1400  // ms  (application timeout, not standard)
-#define PDO2_RX_CYCLE_TIME      1400  // ms
-#define PDO3_RX_CYCLE_TIME      1400  // ms
-#define PDO4_RX_CYCLE_TIME      1400  // ms
+#define PDO1_RX_CYCLE_TIME      0  // ms  (application timeout, not standard)
+#define PDO2_RX_CYCLE_TIME      0  // ms
+#define PDO3_RX_CYCLE_TIME      0  // ms
+#define PDO4_RX_CYCLE_TIME      0  // ms
 
 #endif

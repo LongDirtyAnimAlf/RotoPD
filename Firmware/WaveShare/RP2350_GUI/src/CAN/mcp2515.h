@@ -590,6 +590,7 @@ class MCP2515
         CircularQueue<struct can_frame, MCP2515_RX_QUEUE_SIZE> _rxQueue;
         volatile bool _rxInterruptPending;
         volatile bool _txInterruptPending;
+        volatile bool _errorInterruptPending;
       
         uint16_t _rxQueueDropCount;
         uint16_t _rxHardwareOverflowCount;
@@ -600,13 +601,7 @@ class MCP2515
         ERROR sendMessageDirect(const struct can_frame *frame);
         ERROR readMessage(const RXBn rxbn, struct can_frame *frame);
         bool processTxQueue(void);
-        uint8_t drainRxBuffers(void);
-
-        uint8_t readRegisterRaw(const REGISTER reg);
-        void readRegistersRaw(const REGISTER reg, uint8_t values[], const uint8_t n);
-        void setRegistersRaw(const REGISTER reg, const uint8_t values[], const uint8_t n);
-        void modifyRegisterRaw(const REGISTER reg, const uint8_t mask, const uint8_t data);
-        uint8_t getStatusRaw(void);
+        uint8_t drainRxBuffers(bool insideInterupt = false);
 
     public:
         //
@@ -644,6 +639,8 @@ class MCP2515
         ERROR sendMessage(const struct can_frame *frame);
         ERROR readMessage(struct can_frame *frame);
         bool checkReceive(void);
+        bool checkError(void);
+
 
         //
         // Abort pending transmissions
@@ -667,7 +664,6 @@ class MCP2515
         //
         // Diagnostics
         //
-        bool checkError(void);
         uint8_t getErrorFlags(void) const;
         void clearErrorFlags(void);
         uint8_t getControlRegister(void);
