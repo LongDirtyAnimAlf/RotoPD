@@ -29,6 +29,12 @@ Object dictionary[] = {
     // Voltage Limits
     {VOLTAGE_LIMITS,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
     {VOLTAGE_LIMITS,                 SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE}, // 3000 mV (0x0BB8)
+
+    {DMM_READINGS,                   SUBIDX_HIGHEST_SUPPORTED, {0x04, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
+    {DMM_READINGS,                   SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Voltage
+    {DMM_READINGS,                   SUBIDX_2,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Current
+    {DMM_READINGS,                   SUBIDX_3,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Power
+    {DMM_READINGS,                   SUBIDX_4,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Temperature
     
     // Communication profile area (CiA 301)
     {DEVICE_TYPE_INDEX,              SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ},

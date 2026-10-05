@@ -33,9 +33,9 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
 {
     // Calculate all COB-IDs from the runtime Node-ID (CiA 301 pre-defined connection set)
     cobIdEmcy   = CO_CAN_ID_EMERGENCY    + this->nodeId;
-    cobIdSdoTx  = CO_CAN_ID_SDO_SRV  + this->nodeId;   // slave response
-    cobIdSdoRx  = CO_CAN_ID_SDO_CLI  + this->nodeId;   // master request
-    cobIdNmt    = CO_CAN_ID_HEARTBEAT     + this->nodeId;   // heartbeat / boot-up
+    cobIdSdoTx  = CO_CAN_ID_SDO_SRV      + this->nodeId;   // slave response
+    cobIdSdoRx  = CO_CAN_ID_SDO_CLI      + this->nodeId;   // master request
+    cobIdNmt    = CO_CAN_ID_HEARTBEAT    + this->nodeId;   // heartbeat / boot-up
 
     cobIdTxPdo[0] = CO_CAN_ID_TPDO_1 + this->nodeId;
     cobIdTxPdo[1] = CO_CAN_ID_TPDO_2 + this->nodeId;
@@ -74,84 +74,6 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     }
 
     instance = this;
-}
-
-// ------------------------------------------------------------------
-// Lightweight error recovery – call periodically from run()
-// ------------------------------------------------------------------
-bool CanOpenNode::recoverFromBusErrors() {
-
-    if (!can.isTxBusError())
-        return false;
-
-    if (MCP2515::ERROR_OK == can.reset()) {
-        can.setBitrate(CAN_250KBPS);
-        can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-        can.enableInterrupt(intPin, ISRhandler);
-        Serial.println("MCP2515 Initialized Successfully.");
-        Serial.print("CANopen Node-ID = 0x");
-        Serial.println(nodeId, HEX);
-    }
-    else
-    {
-        Serial.println("MCP2515 Initialize Failure !!!");
-    }
-
-    //can.clearTxBusError();
-
-    //can.abortAllPending();
-
-    // 2. Force a clean exit from Bus-Off / Error-Passive
-    //    (mode change resets TEC/REC and clears TXBO)
-    //can.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
-    //can.clearErrorFlags();          // clears RX0OVR / RX1OVR
-    //can.clearRXnOVRFlags();         // extra safety
-    //can.clearInterrupts();          // clear CANINTF
-    //can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);    
-
-    /*
-    uint16_t drops = can.getRxQueueDropCount();    
-    uint16_t overflows  = can.getRxHardwareOverflowCount();
-
-    if (drops > 0 || overflows > 0) {
-        // We have a buserror
-        // What to do ?
-
-    }
-    uint8_t eflg = 0;
-    eflg = can.getErrorFlags();
-
-    if ( eflg & (MCP2515::EFLG_RX1OVR | MCP2515::EFLG_RX0OVR | MCP2515::EFLG_TXBO | MCP2515::EFLG_TXEP | MCP2515::EFLG_RXEP) )
-    {
-
-        // Bus-Off recovery sequence (required by MCP2515 datasheet)
-        if (eflg & MCP2515::EFLG_TXBO) {
-
-            can.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
-            can.clearErrorFlags();
-            can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-        }
-
-        // Clear sticky flags that otherwise keep reception blocked
-        can.clearRXnOVRFlags();
-        delay(5);
-        can.clearERRIF();
-        delay(5);
-        can.clearMERR();
-        delay(5);
-        can.clearInterrupts();
-        delay(5);
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-
-    */
-
-    return true;
 }
 
 // ------------------------------------------------------------------
@@ -291,10 +213,7 @@ void CanOpenNode::begin() {
 // Run function to handle the core communication loop with NMT handling
 void CanOpenNode::run() {
 
-    // Recover from Bus-Off / error-passive as early as possible
-    recoverFromBusErrors();
-
-    bool messageavailable = recv.read();
+    bool messageavailable = recv.run();
 
     if (nmtOn) {
 
@@ -632,15 +551,58 @@ void CanOpenNode::nmtController() {
 
 // Send an NMT heartbeat message at regular intervals
 void CanOpenNode::heartBeat() {
+    
+    /*
+    static unsigned long checkTime = millis();
+
+    if (millis() - checkTime >= 100)
+    {
+        checkTime = millis();
+
+        // Check the canbus error state every 100ms
+        uint8_t eflg = can.getErrorFlags();        
+        if ( eflg & (MCP2515::EFLG_RX1OVR | MCP2515::EFLG_RX0OVR | MCP2515::EFLG_TXBO | MCP2515::EFLG_TXEP | MCP2515::EFLG_RXEP) )
+        {
+            // We have an error, so do something
+                Serial.println("Hearbeat check errorflag.");
+        }
+
+        uint8_t canintf = can.getInterrupts();
+        if (canintf != 0)
+        {
+            // We have a stray interrupt
+
+            if (canintf & (MCP2515::CANINTF_RX0IF | MCP2515::CANINTF_RX1IF)) {
+                if (canintf & MCP2515::CANINTF_RX0IF) Serial.println("Hearbeat check RX0 interrupt.");
+                if (canintf & MCP2515::CANINTF_RX1IF) Serial.println("Hearbeat check RX1 interrupt.");
+                //can.modifyRegister(MCP2515::MCP_CANINTF, canintf & (MCP2515::CANINTF_RX0IF | MCP2515::CANINTF_RX1IF), 0);
+            }
+
+            if (canintf & (MCP2515::CANINTF_TX0IF | MCP2515::CANINTF_TX1IF | MCP2515::CANINTF_TX2IF)) {
+                if (canintf & MCP2515::CANINTF_TX0IF) Serial.println("Hearbeat check TX0 interrupt.");
+                if (canintf & MCP2515::CANINTF_TX1IF) Serial.println("Hearbeat check TX1 interrupt.");
+                if (canintf & MCP2515::CANINTF_TX2IF) Serial.println("Hearbeat check TX2 interrupt.");
+                //can.modifyRegister(MCP2515::MCP_CANINTF,canintf & (MCP2515::CANINTF_TX0IF | MCP2515::CANINTF_TX1IF | MCP2515::CANINTF_TX2IF), 0);
+            }
+
+            if (canintf & (MCP2515::CANINTF_ERRIF | MCP2515::CANINTF_MERRF))
+            {
+                if (canintf & MCP2515::CANINTF_MERRF) Serial.println("Hearbeat check Message Error interrupt.");
+                if (canintf & MCP2515::CANINTF_ERRIF) Serial.println("Hearbeat check General Error interrupt.");
+                //can.modifyRegister(MCP2515::MCP_CANINTF, canintf & (MCP2515::CANINTF_ERRIF | MCP2515::CANINTF_MERRF), 0);
+            }
+
+        }
+    }
+    */
+
     // According to CiA 301: if 0x1017 == 0 the producer is disabled
     if (nmt.cycleTime == 0) return;
 
     if ((millis() - nmt.timer) > nmt.cycleTime) {
         nmt.timer = millis();
-
         // Drop heartbeat instead of queuing when the MCP is in error state
         //if (can.checkError()) return;
-
         sendMsg(nmt);
     }
 }
@@ -761,11 +723,7 @@ void CanOpenNode::sdoHandler() {
 
 // Interrupt Service Routine logic
 void CanOpenNode::MCP2515_ISR() {
-    can.handleInterrupt();
 }
 
 void CanOpenNode::ISRhandler() {
-    if (instance != nullptr) {
-        instance->MCP2515_ISR();
-    }
 }

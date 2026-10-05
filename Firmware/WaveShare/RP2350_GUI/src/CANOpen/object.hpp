@@ -15,7 +15,8 @@ enum class DataType : uint8_t {
   UINT32 = 4,
   INT8 = 1,
   INT16 = 2,
-  INT32 = 4
+  INT32 = 4,
+  FLOAT32 = 4
 };
 
 enum class ObjectPermissions : uint8_t {

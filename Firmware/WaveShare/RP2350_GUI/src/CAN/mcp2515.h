@@ -309,11 +309,11 @@ enum CAN_CLKOUT {
 };
 
 #ifndef MCP2515_TX_QUEUE_SIZE
-#define MCP2515_TX_QUEUE_SIZE 6
+#define MCP2515_TX_QUEUE_SIZE 128
 #endif
 
 #ifndef MCP2515_RX_QUEUE_SIZE
-#define MCP2515_RX_QUEUE_SIZE 8
+#define MCP2515_RX_QUEUE_SIZE 128
 #endif
 
 class MCP2515
@@ -557,6 +557,7 @@ class MCP2515
             REGISTER CTRL;
             REGISTER SIDH;
             REGISTER DATA;
+            CANINTF  CANINTF_TXnIF;
         } TXB[N_TXBUFFERS];
 
         static const struct RXBn_REGS {
@@ -588,13 +589,10 @@ class MCP2515
 
         CircularQueue<struct can_frame, MCP2515_TX_QUEUE_SIZE> _txQueue;
         CircularQueue<struct can_frame, MCP2515_RX_QUEUE_SIZE> _rxQueue;
-        volatile bool _rxInterruptPending;
-        volatile bool _txInterruptPending;
-        volatile bool _errorInterruptPending;
       
         uint16_t _rxQueueDropCount;
         uint16_t _rxHardwareOverflowCount;
-        bool _txBusError;
+
         int8_t _intPin;
 
         ERROR sendMessage(const TXBn txbn, const struct can_frame *frame);
@@ -610,13 +608,13 @@ class MCP2515
         MCP2515(const uint32_t _SPI_CLOCK = DEFAULT_SPI_CLOCK);
         void begin();
         ERROR reset(void);
+        bool run(void);
 
         //
         // Interrupt
         //
         void enableInterrupt(int intPin, void (*callback)(void));
         void disableInterrupt(void);
-        void handleInterrupt(void);
 
         //
         // Mode & configuration
@@ -638,9 +636,7 @@ class MCP2515
         //
         ERROR sendMessage(const struct can_frame *frame);
         ERROR readMessage(struct can_frame *frame);
-        bool checkReceive(void);
         bool checkError(void);
-
 
         //
         // Abort pending transmissions
@@ -676,9 +672,6 @@ class MCP2515
         uint8_t getRxQueueDepth(void) const { return _rxQueue.getCount(); }
         uint16_t getRxQueueDropCount() const;
         uint16_t getRxHardwareOverflowCount() const;
-
-        bool isTxBusError() const { return _txBusError; }
-        void clearTxBusError()    { _txBusError = false; }
 
         //
         // Error clearing

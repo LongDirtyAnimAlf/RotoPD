@@ -1030,12 +1030,6 @@ void setup()
   Info_Add("GUI. Init RP2350 ready.");
 }
 
-void loop55()
-{
-  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
-  lv_timer_periodic_handler();
-}
-
 void loop()
 {
   #ifdef LVGLDEMOS

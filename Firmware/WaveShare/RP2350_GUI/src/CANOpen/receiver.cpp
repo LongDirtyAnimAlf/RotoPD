@@ -2,12 +2,12 @@
 
 static struct can_frame canmessageframe;
 
-// Update read message buffer
-bool Receiver::read(void) {
+// Handle canbus activity
+bool Receiver::run(void) {
   
   bool active = false;
 
-  if (CAN->checkReceive())
+  if (CAN->run())
   {
     active = true;
     if (CAN->readMessage(&canmessageframe) == MCP2515::ERROR_OK)

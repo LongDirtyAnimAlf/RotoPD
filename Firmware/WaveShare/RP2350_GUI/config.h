@@ -21,6 +21,9 @@
 #define ACTUAL_POWER                   0x6082
 #define VOLTAGE_LIMITS                 0x6090
 
+#define DMM_READINGS                   0x6130 // Readings from INA238 on RotoPD board
+
+
 // NMT command specifiers (CiA 301)
 #define StartNode                      0x01
 #define StopNode                       0x02

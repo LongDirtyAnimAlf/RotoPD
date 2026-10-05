@@ -125,9 +125,6 @@ private:
 
     void sdoHandler();
 
-    // Helpers to read / write cycle times from Object Dictionary
-    bool recoverFromBusErrors();
-
     uint16_t getProducerHeartbeatTime() const;
     uint16_t getPdoEventTimer(uint16_t commIndex) const;
     uint8_t  getPdoTransmissionType(uint16_t commIndex) const;

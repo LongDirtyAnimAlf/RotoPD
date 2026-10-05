@@ -11,7 +11,7 @@ struct Receiver : public Message {
     CAN(CAN)
   {};
 
-  bool read(void); // read message from CAN bus
+  bool run(void);  // handle canbus activity
   void printBuf(); // print message to serial monitor
 };
 
