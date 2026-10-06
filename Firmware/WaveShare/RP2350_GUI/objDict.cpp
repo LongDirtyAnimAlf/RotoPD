@@ -2,40 +2,7 @@
 
 Object dictionary[] = {
 //  |             INDEX             | SUB |          DATA          |       TYPE       |      PERMISSIONS      |
-    // Application objects
-    // ------------------------------------------------------------------
-    // Application Objects (CiA 453 DC Electronic Load)
-    // ------------------------------------------------------------------
-    // Operating Mode (1 = Constant Current)
-    {OPERATING_MODE,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::INT8,   ObjectPermissions::READ_WRITE},
-    // Controlword
-    {CONTROLWORD,                    SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    // Statusword
-    {STATUSWORD,                     SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ},
-    // Load Output Enable
-    {LOAD_OUTPUT_ENABLE,             SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    // Target Current
-    {TARGET_CURRENT,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
-    // Target Voltage
-    {TARGET_VOLTAGE,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
-    // Target Power
-    {TARGET_POWER,                   SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
-    // Actual Voltage
-    {ACTUAL_VOLTAGE,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
-    // Actual Current
-    {ACTUAL_CURRENT,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
-    // Actual Power
-    {ACTUAL_POWER,                   SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
-    // Voltage Limits
-    {VOLTAGE_LIMITS,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
-    {VOLTAGE_LIMITS,                 SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE}, // 3000 mV (0x0BB8)
-
-    {DMM_READINGS,                   SUBIDX_HIGHEST_SUPPORTED, {0x04, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
-    {DMM_READINGS,                   SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Voltage
-    {DMM_READINGS,                   SUBIDX_2,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Current
-    {DMM_READINGS,                   SUBIDX_3,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Power
-    {DMM_READINGS,                   SUBIDX_4,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Temperature
-    
+  
     // Communication profile area (CiA 301)
     {DEVICE_TYPE_INDEX,              SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT32, ObjectPermissions::READ},
     {ERROR_REGISTER_INDEX,           SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
@@ -74,7 +41,6 @@ Object dictionary[] = {
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},  // Inhibit Time (in 100 µs steps)
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_RESERVED,          {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Compatibility entry (Reserved / 0x00)
     {TX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO1_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO1_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},   // Event Timer (500 milliseconds)
-
 
     {TX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     {TX_PDO2_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
@@ -115,8 +81,44 @@ Object dictionary[] = {
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
     {RX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO4_RX_CYCLE_TIME & 0xFF), (uint8_t)(PDO4_RX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 1400 ms
 
+    // Application objects
+    // ------------------------------------------------------------------
+    // Application Objects (CiA 453 DC Electronic Load)
+    // ------------------------------------------------------------------
+    // Operating Mode (1 = Constant Current)
+    {OPERATING_MODE,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::INT8,   ObjectPermissions::READ_WRITE},
+    // Controlword
+    {CONTROLWORD,                    SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
+    // Statusword
+    {STATUSWORD,                     SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ},
+    // Load Output Enable
+    {LOAD_OUTPUT_ENABLE,             SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // Target Current
+    {TARGET_CURRENT,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
+    // Target Voltage
+    {TARGET_VOLTAGE,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
+    // Target Power
+    {TARGET_POWER,                   SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE},
+    // Actual Voltage
+    {ACTUAL_VOLTAGE,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    // Actual Current
+    {ACTUAL_CURRENT,                 SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    // Actual Power
+    {ACTUAL_POWER,                   SUBIDX_DEFAULT, {0x00, 0x00, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ},
+    // Voltage Limits
+    {VOLTAGE_LIMITS,                 SUBIDX_DEFAULT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
+    {VOLTAGE_LIMITS,                 SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::INT32,  ObjectPermissions::READ_WRITE}, // 3000 mV (0x0BB8)
 
-    // TPDO mapping parameters examples
+    {DMM_READINGS,                   SUBIDX_HIGHEST_SUPPORTED, {0x04, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
+    {DMM_READINGS,                   SUBIDX_1,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Voltage
+    {DMM_READINGS,                   SUBIDX_2,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Current
+    {DMM_READINGS,                   SUBIDX_3,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE}, // Power
+    {DMM_READINGS,                   SUBIDX_4,       {0xB8, 0x0B, 0x00, 0x00}, DataType::FLOAT32,  ObjectPermissions::READ_WRITE},  // Temperature
+
+
+    // ------------------------------------------------------------------
+    // Device specific TPDO mapping parameters
+    // ------------------------------------------------------------------
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
     // TPDO1 Mapping -> ACTUAL_VOLTAGE (0x6080:00) + ACTUAL_CURRENT (0x6081:00)
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_VOLTAGE & 0xFF), (uint8_t)(ACTUAL_VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
@@ -132,9 +134,8 @@ Object dictionary[] = {
 
     {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
 
-
     // ------------------------------------------------------------------
-    // RPDO Mapping Parameters
+    // Device specific RPDO mapping parameters
     // ------------------------------------------------------------------
     // RPDO1 Mapping -> TARGET_CURRENT (0x6070:00, 32-bit = 0x20)
     {RX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
@@ -149,6 +150,7 @@ Object dictionary[] = {
     {RX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_UINT16, SUBIDX_DEFAULT, (uint8_t)(CONTROLWORD & 0xFF), (uint8_t)(CONTROLWORD >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     {RX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE}
+
 };
 
 constexpr uint8_t NUM_OBJS = sizeof(dictionary) / sizeof(Object);

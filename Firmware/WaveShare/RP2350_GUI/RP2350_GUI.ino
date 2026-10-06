@@ -62,7 +62,7 @@ AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ 2);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ 1);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;

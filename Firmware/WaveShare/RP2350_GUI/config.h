@@ -4,32 +4,12 @@
 // #define DEBUG // Uncomment to print debug messages
 #define PRINT // Uncomment to print CAN messages 
 
-// Interrupt pin on MCP2515
-#define CAN_INT   2
-#define CAN_CS    9
-
-// Application-specific Object Dictionary indices (CiA 453 Electronic Load)
-#define OPERATING_MODE                 0x6000
-#define CONTROLWORD                    0x6040
-#define STATUSWORD                     0x6041
-#define LOAD_OUTPUT_ENABLE             0x6044
-#define TARGET_CURRENT                 0x6070
-#define TARGET_VOLTAGE                 0x6071
-#define TARGET_POWER                   0x6072
-#define ACTUAL_VOLTAGE                 0x6080
-#define ACTUAL_CURRENT                 0x6081
-#define ACTUAL_POWER                   0x6082
-#define VOLTAGE_LIMITS                 0x6090
-
-#define DMM_READINGS                   0x6130 // Readings from INA238 on RotoPD board
-
-
 // NMT command specifiers (CiA 301)
-#define StartNode                      0x01
-#define StopNode                       0x02
-#define EnterPreOperational            0x80
-#define ResetNode                      0x81
-#define ResetCommunication             0x82
+#define STARTREMOTENODE                0x01
+#define STOPREMOTENODE                 0x02
+#define ENTERPREOPREMOTENODE           0x80
+#define RESETREMOTENODE                0x81
+#define RESETCOMMSREMOTENODE           0x82
 
 // Standard CANopen Object Dictionary Indices (CiA 301)
 #define DEVICE_TYPE_INDEX              0x1000
@@ -57,8 +37,8 @@
 #define RX_PDO3_COMM_INDEX             0x1402
 #define RX_PDO4_COMM_INDEX             0x1403
 
-#define SUBIDX_DEFAULT                 0x00   // single-value objects (recommended)
-#define SUBIDX_1                       0x01   // first data entry of a record
+#define SUBIDX_0                       0x00   
+#define SUBIDX_1                       0x01  // first data entry of a record
 #define SUBIDX_2                       0x02
 #define SUBIDX_3                       0x03
 #define SUBIDX_4                       0x04
@@ -79,34 +59,35 @@
 // ------------------------------------------------------------------
 
 // Generic / common
-#define SUBIDX_HIGHEST_SUPPORTED       0x00   // Number of entries / highest sub-index
-#define SUBIDX_VALUE                   0x00   // For simple VAR objects (the value itself)
+#define SUBIDX_DEFAULT                 SUBIDX_0   // single-value objects (recommended)
+#define SUBIDX_HIGHEST_SUPPORTED       SUBIDX_0   // Number of entries / highest sub-index
+#define SUBIDX_VALUE                   SUBIDX_0   // For simple VAR objects (the value itself)
 
 // PDO Communication Parameter record (0x1400.. / 0x1800..)
-#define SUBIDX_PDO_COB_ID              0x01   // COB-ID used by PDO
-#define SUBIDX_PDO_TRANSMISSION_TYPE   0x02   // Transmission type
-#define SUBIDX_PDO_INHIBIT_TIME        0x03   // Inhibit time (multiples of 100 �s)
-#define SUBIDX_PDO_RESERVED            0x04   // Reserved
-#define SUBIDX_PDO_EVENT_TIMER         0x05   // Event timer (ms)
-#define SUBIDX_PDO_SYNC_START_VALUE    0x06   // SYNC start value
+#define SUBIDX_PDO_COB_ID              SUBIDX_1   // COB-ID used by PDO
+#define SUBIDX_PDO_TRANSMISSION_TYPE   SUBIDX_2   // Transmission type
+#define SUBIDX_PDO_INHIBIT_TIME        SUBIDX_3   // Inhibit time (multiples of 100 �s)
+#define SUBIDX_PDO_RESERVED            SUBIDX_4   // Reserved
+#define SUBIDX_PDO_EVENT_TIMER         SUBIDX_5   // Event timer (ms)
+#define SUBIDX_PDO_SYNC_START_VALUE    SUBIDX_6   // SYNC start value
 
 // PDO Mapping Parameter record (0x1600.. / 0x1A00..)
-#define SUBIDX_PDO_MAP_COUNT           0x00   // Number of mapped application objects
-#define SUBIDX_PDO_MAP_1               0x01   // 1st mapped object
-#define SUBIDX_PDO_MAP_2               0x02
-#define SUBIDX_PDO_MAP_3               0x03
-#define SUBIDX_PDO_MAP_4               0x04
-#define SUBIDX_PDO_MAP_5               0x05
-#define SUBIDX_PDO_MAP_6               0x06
-#define SUBIDX_PDO_MAP_7               0x07
-#define SUBIDX_PDO_MAP_8               0x08
+#define SUBIDX_PDO_MAP_COUNT           SUBIDX_HIGHEST_SUPPORTED   // Number of mapped application objects
+#define SUBIDX_PDO_MAP_1               SUBIDX_1   // 1st mapped object
+#define SUBIDX_PDO_MAP_2               SUBIDX_2
+#define SUBIDX_PDO_MAP_3               SUBIDX_3
+#define SUBIDX_PDO_MAP_4               SUBIDX_4
+#define SUBIDX_PDO_MAP_5               SUBIDX_5
+#define SUBIDX_PDO_MAP_6               SUBIDX_6
+#define SUBIDX_PDO_MAP_7               SUBIDX_7
+#define SUBIDX_PDO_MAP_8               SUBIDX_8
 
 // Identity Object (0x1018)
-#define SUBIDX_IDENTITY_COUNT          0x00   // Number of identity objects
-#define SUBIDX_IDENTITY_VENDOR_ID      0x01
-#define SUBIDX_IDENTITY_PRODUCT_CODE   0x02
-#define SUBIDX_IDENTITY_REVISION       0x03
-#define SUBIDX_IDENTITY_SERIAL         0x04
+#define SUBIDX_IDENTITY_COUNT          SUBIDX_HIGHEST_SUPPORTED   // Number of identity objects
+#define SUBIDX_IDENTITY_VENDOR_ID      SUBIDX_1
+#define SUBIDX_IDENTITY_PRODUCT_CODE   SUBIDX_2
+#define SUBIDX_IDENTITY_REVISION       SUBIDX_3
+#define SUBIDX_IDENTITY_SERIAL         SUBIDX_4
 
 #define SIZE_BIT_INT32                 32  // 0x20 bits
 #define SIZE_BIT_UINT32                32  // 0x20 bits
@@ -322,9 +303,29 @@ typedef enum {
 #define PDO2_TX_CYCLE_TIME      500   // ms  (OD 0x1801:05)
 #define PDO3_TX_CYCLE_TIME      500   // ms  (OD 0x1802:05)
 #define PDO4_TX_CYCLE_TIME      500   // ms  (OD 0x1803:05)
-#define PDO1_RX_CYCLE_TIME      0  // ms  (application timeout, not standard)
+#define PDO1_RX_CYCLE_TIME      0  // ms    (application receive timeout)
 #define PDO2_RX_CYCLE_TIME      0  // ms
 #define PDO3_RX_CYCLE_TIME      0  // ms
 #define PDO4_RX_CYCLE_TIME      0  // ms
+
+
+
+// This device !!
+// Application-specific Object Dictionary indices (CiA 453 Electronic Load)
+#define OPERATING_MODE                 0x6000
+#define CONTROLWORD                    0x6040
+#define STATUSWORD                     0x6041
+#define LOAD_OUTPUT_ENABLE             0x6044
+#define TARGET_CURRENT                 0x6070
+#define TARGET_VOLTAGE                 0x6071
+#define TARGET_POWER                   0x6072
+#define ACTUAL_VOLTAGE                 0x6080
+#define ACTUAL_CURRENT                 0x6081
+#define ACTUAL_POWER                   0x6082
+#define VOLTAGE_LIMITS                 0x6090
+
+#define DMM_READINGS                   0x6130 // Readings from INA238 on RotoPD board
+
+
 
 #endif

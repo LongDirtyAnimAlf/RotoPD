@@ -44,25 +44,25 @@ uses
 
 type
   //S-0-0011, Class 1 diagnostics
-  TDRIVEPARAMETER_0011 = bitpacked record
+  TOperationStatus = bitpacked record
       case integer of
           1 : (  Data : record
-                   Reserved0                               : T1BITS;
-                   AmplifierOvertemperatureShutdown        : T1BITS;
-                   MotorOvertemperatureShutdown            : T1BITS;
-                   Reserved1                               : T1BITS;
-                   ControlVoltageError                     : T1BITS;
-                   FeedbackError                           : T1BITS;
-                   Reserved2                               : T1BITS;
-                   Overcurrent                             : T1BITS;
-                   Reserved3                               : T1BITS;
-                   UndervoltageError                       : T1BITS;
-                   Reserved4                               : T1BITS;
-                   ExcessiveDeviation                      : T1BITS;
-                   CommunicationError                      : T1BITS;
-                   TravelLimitSwitchExceeded               : T1BITS;
-                   Reserved5                               : T1BITS;
-                   ManufacturerSpecificError               : T1BITS;
+                   ACQ_WTG          : T1BITS; // 0, no meaning, to be defined
+                   ARB_WTG          : T1BITS; // ARB waiting trigger
+                   DLOG_WTG         : T1BITS; // 0, no meaning, to be defined
+                   ACQ_Active       : T1BITS; // 0, no meaning, to be defined
+                   ARB_Active       : T1BITS; // ARB has triggered, executing
+                   DLOG_Active      : T1BITS; // 0, no meaning, to be defined
+                   OUTPUT_ENABLED   : T1BITS; // ON/OFF state, on:1, off:0
+                   MODE_CC          : T1BITS; // Current working mode: CC mode, plus current
+                   MODE_CV          : T1BITS; // Current working mode: CV mode, plus voltage
+                   MODE_CW          : T1BITS; // Current working mode: CW mode, plus power
+                   MODE_CR          : T1BITS; // Current working mode: CR mode
+                   MODE_CC_NOTUSED  : T1BITS;
+                   MODE_CP_NOTUSED  : T1BITS;
+                   CAL_STATUS       : T1BITS; // Calibration state, executing: 1, unexecuted: 0
+                   Priority         : T1BITS; // Working priority, CV: 0, CC: 1.
+                   Reserved         : T1BITS;
                  end
               );
           2 : (
@@ -73,6 +73,36 @@ type
               );
 
   end;
+
+  TQuestionableStatus = bitpacked record
+      case integer of
+          1 : (  Data : record
+                    OV         : T1BITS; //  Overvoltage Protection
+                    OCPos      : T1BITS; //  Positive Overcurrent Protection
+                    OCNeg      : T1BITS; //  Negative Overcurrent Protection
+                    OPPos      : T1BITS; //  Positive Overpower Protection
+                    OPNeg      : T1BITS; //  Negative Overpower Protection
+                    UV         : T1BITS; //  Undervoltage Protection
+                    OT         : T1BITS; //  Over Temperature Protection
+                    UC         : T1BITS; //  Undercurrent Protection
+                    Errsense   : T1BITS; //  Sense Fault
+                    Share      : T1BITS; //  Current sharing fault
+                    Rvs        : T1BITS; //  The output is reversed
+                    INH        : T1BITS; //  Externally inhibited output
+                    PS         : T1BITS; //  Fault protection bit (protect shutdown)
+                    OSC        : T1BITS; //  Loop oscillation failure
+                    Hardware   : T1BITS; //  Unknown internal fault of the instrument (Hardware)
+                    Reserved   : T1BITS;
+                 end
+               );
+           2 : (
+                Bits            : bitpacked array[0..15] of T1BITS;
+               );
+           3 : (
+                Raw             : Word;
+               );
+
+   end;
 
 
 

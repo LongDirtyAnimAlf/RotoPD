@@ -507,11 +507,11 @@ void CanOpenNode::nmtController() {
 
         if (target == nodeId || target == 0x00) { // 0x00 = broadcast
             switch (command) {
-                case StartNode:            nmtState = NMT::Mode::OPERATIONAL;     break;
-                case StopNode:             nmtState = NMT::Mode::STOPPED;         break;
-                case EnterPreOperational:  nmtState = NMT::Mode::PRE_OPERATIONAL; break;
-                case ResetNode:
-                case ResetCommunication:   nmtState = NMT::Mode::BOOT;            break;
+                case STARTREMOTENODE:            nmtState = NMT::Mode::OPERATIONAL;     break;
+                case STOPREMOTENODE:             nmtState = NMT::Mode::STOPPED;         break;
+                case ENTERPREOPREMOTENODE:       nmtState = NMT::Mode::PRE_OPERATIONAL; break;
+                case RESETREMOTENODE:
+                case RESETCOMMSREMOTENODE:       nmtState = NMT::Mode::BOOT;            break;
             }
             nmt.changeMode(nmtState);
         }
