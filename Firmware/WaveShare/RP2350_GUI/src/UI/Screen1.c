@@ -227,11 +227,11 @@ void Setup_Screen1(byte index)
 
     obj = GetInfoObject();
     if (obj != NULL)
-        lv_label_set_text(obj, "DATA");
+        lv_label_set_text_fmt(obj, "CHANNEL %d", index);
 
     obj = GetButtonLabelObject();
     if (obj != NULL)
-        lv_label_set_text(obj, "Chart");
+        lv_label_set_text(obj, "Power");
 
     SetContentObject(screen1, true);
     cont = screen1;

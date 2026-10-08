@@ -49,7 +49,7 @@ void Setup_Screen2(byte index)
     lv_style_set_bg_opa(&style2, LV_OPA_COVER);
     lv_style_set_bg_color(&style2, lv_palette_lighten(LV_PALETTE_GREY, 1));
     // Add a shadow
-    lv_style_set_shadow_width(&style2, 30);
+    lv_style_set_shadow_width(&style2, 6);
     lv_style_set_shadow_color(&style2, lv_palette_main(LV_PALETTE_BLUE));
 
     lv_obj_t * cell = NULL;

@@ -1,11 +1,11 @@
 object Form1: TForm1
   Left = 346
-  Height = 354
+  Height = 587
   Top = 139
-  Width = 465
+  Width = 756
   Caption = 'Form1'
-  ClientHeight = 354
-  ClientWidth = 465
+  ClientHeight = 587
+  ClientWidth = 756
   LCLVersion = '4.99.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -58,5 +58,32 @@ object Form1: TForm1
     Caption = 'Button1'
     TabOrder = 4
     OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 499
+    Height = 37
+    Top = 18
+    Width = 131
+    Caption = 'Button2'
+    TabOrder = 5
+    OnClick = Button2Click
+  end
+  object Button3: TButton
+    Left = 501
+    Height = 48
+    Top = 121
+    Width = 139
+    Caption = 'Button3'
+    TabOrder = 6
+    OnClick = Button3Click
+  end
+  object Button4: TButton
+    Left = 507
+    Height = 64
+    Top = 198
+    Width = 124
+    Caption = 'Button4'
+    TabOrder = 7
+    OnClick = Button4Click
   end
 end

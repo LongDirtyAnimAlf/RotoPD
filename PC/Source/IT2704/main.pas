@@ -16,11 +16,17 @@ type
     btnConnect: TButton;
     btnAskVoltageData: TButton;
     Button1: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    Button4: TButton;
     cmboSerialPorts: TComboBox;
     Memo1: TMemo;
     procedure btnAskVoltageDataClick(Sender: TObject);
     procedure btnConnectClick({%H-}Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
@@ -109,6 +115,40 @@ type
 const
   IT2704_ADDRESS = 1;
 
+function SwapBytes32(const Value: Cardinal): Cardinal;
+begin
+  Result := ((Value and $000000FF) shl 24) or
+            ((Value and $0000FF00) shl  8) or
+            ((Value and $00FF0000) shr  8) or
+            ((Value and $FF000000) shr 24);
+end;
+
+
+function HexToSingle(const HexValue: Cardinal): Single;
+var
+  Converter: record
+    case Boolean of
+      False: (AsCardinal: Cardinal);
+      True:  (AsSingle:   Single);
+  end;
+begin
+  Converter.AsCardinal := HexValue;
+  Result := Converter.AsSingle;
+end;
+
+function SingleToHex(const Value: Single): string;
+var
+  Converter: record
+    case Boolean of
+      False: (AsSingle:   Single);
+      True:  (AsCardinal: Cardinal);
+  end;
+begin
+  Converter.AsSingle := Value;
+  Result := IntToHex(SwapBytes32(Converter.AsCardinal), 8);  // always 8 hex digits
+end;
+
+
 { TForm1 }
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -185,15 +225,15 @@ begin
     comm.Active:=True;
 
     // Command to get the Gravity CAN interface going
-    comm.WriteString('S5'+#13);
-    comm.WriteString('O'+#13);
+    //comm.WriteString('S5'+#13);
+    //comm.WriteString('O'+#13);
 
     // Command to get the IT2704 going
     // ID   = 00000000
     // DLC  = 2
     // Data = 0101  ; 01 = Start Remote Node. 01 = Device instrument address
     // This starts a regular sending of data from IT2704 to PC over CAN.
-    comm.WriteString('t'+'000'+'2'+'0101'+#13);
+    //comm.WriteString('t'+'000'+'2'+'0101'+#13);
     //comm.WriteString('O'+#13);
 
 
@@ -207,15 +247,52 @@ begin
   comm.WriteString('t'+'701'+'0'+#13);
 end;
 
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+  // Set IT2700 CANopen remote control mode on
+  comm.WriteString('t'+'000'+'2'+'0101'+#13);
+  // Set Set the transmission type of TPDO1 to 254
+  comm.WriteString('t'+'601'+'8'+'2F001802FE000000'+#13);
+  //Modify TPDO1 timer cycle as 0ms
+  comm.WriteString('t'+'601'+'8'+'2B00180500000000'+#13);
+
+
+  comm.WriteString('t'+'601'+'8'+'2F011802FE000000'+#13);
+  comm.WriteString('t'+'601'+'8'+'2B01180500000000'+#13);
+  comm.WriteString('t'+'601'+'8'+'2F021802FE000000'+#13);
+  comm.WriteString('t'+'601'+'8'+'2B02180500000000'+#13);
+  comm.WriteString('t'+'601'+'8'+'2F031802FE000000'+#13);
+  comm.WriteString('t'+'601'+'8'+'2B03180500000000'+#13);
+
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+
+begin
+  Memo1.Lines.Append(SingleToHex(2.5));
+  comm.WriteString('t'+'601'+'8'+'23023001'+SingleToHex(0.2)+#13);
+  comm.WriteString('t'+'601'+'8'+'2F08300101000000'+#13);
+end;
+
+procedure TForm1.Button4Click(Sender: TObject);
+begin
+  comm.WriteString('t'+'601'+'8'+'2F08300100000000'+#13);
+end;
+
 procedure TForm1.btnAskVoltageDataClick(Sender: TObject);
 begin
   // This will only work in pre-operational and operational mode !!
 
   // Force set pre-operational mode !!
-  comm.WriteString('t'+'000'+'2'+'8001'+#13);
+  //comm.WriteString('t'+'000'+'2'+'8001'+#13);
 
   // Ask for data through correct SDO
-  comm.WriteString('t'+'601'+'8'+'40'+'0220'+'01'+'00000000'+#13);
+  //comm.WriteString('t'+'601'+'8'+'40'+'0220'+'01'+'00000000'+#13);
+
+
+  comm.WriteString('t'+'601'+'8'+'40'+'0B30'+'01'+'00000000'+#13);
+
+
 end;
 
 procedure TForm1.SerialRxData(Sender: TObject);

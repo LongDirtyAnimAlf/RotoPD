@@ -2,6 +2,7 @@
 #include "Screen1.h"
 #include "Screen2.h"
 #include "Screen3.h"
+#include "ScreenPower.h"
 #include "ScreenLogger.h"
 
 lv_obj_t * screenbase = NULL;
@@ -111,12 +112,24 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   lv_obj_set_scrollable(obj, false);
   lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
+
+  screenpower = lv_obj_create(basescreen);
+  obj = screenpower;
+  lv_obj_remove_style_all(obj);
+  // Add flag, indicating its a screen !!
+  lv_obj_set_user_flag(obj, 0, true);
+  lv_obj_set_hidden(obj, true);
+  lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
+  lv_obj_set_scrollable(obj, false);
+  lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
+  lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   
   lv_obj_move_to_index(nav, 0);
   lv_obj_move_to_index(screen1, 1);
-  lv_obj_move_to_index(screen2, 2);
-  lv_obj_move_to_index(screen3, 3);    
-  lv_obj_move_to_index(screenlogger, 4);    
+  lv_obj_move_to_index(screenpower, 2);    
+  lv_obj_move_to_index(screen2, 3);
+  lv_obj_move_to_index(screen3, 4);    
+  lv_obj_move_to_index(screenlogger, 5);
 
   lv_obj_move_to_index(morebutton, 0);
   lv_obj_move_to_index(basescreeninfo, 1);

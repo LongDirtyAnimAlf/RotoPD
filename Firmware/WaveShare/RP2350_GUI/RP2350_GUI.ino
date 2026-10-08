@@ -35,6 +35,7 @@
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
+#define LocalNodeIndex 2
 
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
@@ -62,7 +63,7 @@ AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ 1);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ LocalNodeIndex);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -434,18 +435,19 @@ static void main_event_handler(lv_event_t * e)
         {
           if ( (event_object == backbutton) && (screenindex>1) ) screenindex--; // back button
           #ifndef STANDALONE
-          if ( (event_object == morebutton) && (screenindex<2) ) screenindex++; // forwards button
+          if ( (event_object == morebutton) && (screenindex<3) ) screenindex++; // forwards button
           #else
-          if ( (event_object == morebutton) && (screenindex<4) ) screenindex++; // forwards button              
+          if ( (event_object == morebutton) && (screenindex<5) ) screenindex++; // forwards button              
           #endif
 
           switch(screenindex)
           {
-            case 1: {Setup_Screen1(ActiveBatteryIndex);Screen1SetData(SET);break;}
-            case 2: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
+            case 1: {Setup_Screen1(LocalNodeIndex);Screen1SetData(SET);break;}
+            case 2: {Setup_ScreenPower(LocalNodeIndex);ScreenPowerSetData(RDS);break;}
+            case 3: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
             #ifdef STANDALONE
-            case 3: {Setup_Screen3(ActiveBatteryIndex,true);break;}
-            case 4: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
+            case 4: {Setup_Screen3(ActiveBatteryIndex,true);break;}
+            case 5: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
             #endif
           }
         }
@@ -830,7 +832,7 @@ void setup()
   Setup_ScreenLogger(ActiveBatteryIndex,false);
   Info_Add("GUI. Init GUI.");      
   Setup_Screen3(ActiveBatteryIndex,false);
-  Setup_Screen1(ActiveBatteryIndex);
+  Setup_Screen1(LocalNodeIndex);
   #endif
 
   Info_Add("GUI. Controller startup");

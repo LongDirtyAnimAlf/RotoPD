@@ -326,6 +326,32 @@ typedef enum {
 
 #define DMM_READINGS                   0x6130 // Readings from INA238 on RotoPD board
 
+/* ---- controlword (6040h) bits ------------------------------------------ */
+#define CW_SWITCH_ON            0x0001u
+#define CW_ENABLE_VOLTAGE       0x0002u
+#define CW_QUICK_STOP           0x0004u
+#define CW_ENABLE_OPERATION     0x0008u
+#define CW_OP_MODE_CC           0x0010u
+#define CW_OP_MODE_CR           0x0020u
+#define CW_OP_MODE_CP           0x0040u
+#define CW_FAULT                0x0080u
+#define CW_HALT                 0x0100u
+
+/* ---- statusword (6041h) bits ------------------------------------------- */
+#define SW_READY_TO_SWITCH_ON   0x0001u
+#define SW_SWITCHED_ON          0x0002u
+#define SW_OPERATION_ENABLED    0x0004u
+#define SW_FAULT                0x0008u
+#define SW_VOLTAGE_ENABLED      0x0010u
+#define SW_QUICK_STOP           0x0020u
+#define SW_SWITCH_ON_DISABLED   0x0040u
+#define SW_WARNING              0x0080u
+#define SW_REMOTE               0x0200u
+#define SW_TARGET_REACHED       0x0400u
+#define SW_INTERNAL_LIMIT       0x0800u
+#define SW_OP_MODE_CC           0x1000u
+#define SW_OP_MODE_CR           0x2000u
+#define SW_OP_MODE_CP           0x4000u
 
 
 #endif
