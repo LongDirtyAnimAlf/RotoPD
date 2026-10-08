@@ -140,7 +140,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   //lv_style_set_height(&input_label_style, LV_SIZE_CONTENT);
   lv_style_set_border_side(&input_label_style, LV_BORDER_SIDE_FULL);    
   lv_style_set_border_color(&input_label_style, lv_palette_main(LV_PALETTE_GREY));
-  lv_style_set_text_color(&input_label_style, lv_color_black());
+  //lv_style_set_text_color(&input_label_style, lv_color_black());
   lv_style_set_text_font(&input_label_style, &lv_font_montserrat_24);    
   lv_style_set_text_align(&input_label_style, LV_TEXT_ALIGN_CENTER);  
   lv_style_set_border_width(&input_label_style, 4);

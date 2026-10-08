@@ -76,7 +76,8 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_style_init(&style2);
     //lv_style_set_radius(&style, LV_RADIUS_CIRCLE); 
     lv_style_set_bg_opa(&style2, LV_OPA_COVER);
-    lv_style_set_bg_color(&style2, lv_color_hex(0x0f172a));
+    //lv_style_set_bg_color(&style2, lv_color_hex(0x0f172a));
+    //lv_style_set_bg_color(&style2, lv_color_hex(0xcccccccc));
     lv_style_set_shadow_width(&style2, 40);
     lv_style_set_shadow_spread(&style2, 5);
     lv_style_set_shadow_color(&style2, lv_palette_main(LV_PALETTE_CYAN));
@@ -271,13 +272,13 @@ void create_3d_gauge(lv_obj_t * parent)
     // ---------- Digital ----------
     label_value = lv_label_create(cont);
     lv_label_set_text(label_value, "0");
-    lv_obj_set_style_text_font(label_value, &lv_font_montserrat_32, 0);
+    lv_obj_set_style_text_font(label_value, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(label_value, lv_color_hex(0xf8fafc), 0);
-    lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -42);
+    lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
 
     label_unit = lv_label_create(cont);
     lv_label_set_text(label_unit, "Watt");
-    lv_obj_set_style_text_font(label_unit, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(label_unit, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(label_unit, lv_color_hex(0x94a3b8), 0);
     lv_obj_align(label_unit, LV_ALIGN_CENTER, 0, 36);
 

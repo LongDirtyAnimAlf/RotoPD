@@ -22,6 +22,8 @@
 
 #include "ui.h"
 
+#include "matrix_screen.h"
+
 //#include <WiFi.h>
 
 #include "extras.h"
@@ -677,6 +679,32 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
+void switch_to_dark_theme(bool use_dark_mode)
+{
+    /* 1. Get the current active display */
+    lv_display_t * disp = lv_display_get_default();
+    //lv_display_t * disp = screenbase;
+    if(disp == NULL) return;
+
+    /* 2. Re-initialize the default theme with your preferred color palettes and the dark flag */
+    lv_theme_t * th = lv_theme_default_init(
+        disp, 
+        lv_palette_main(LV_PALETTE_BLUE),  /* Primary palette color */
+        lv_palette_main(LV_PALETTE_CYAN),  /* Secondary palette color */
+        use_dark_mode,                     /* true = Dark Theme, false = Light Theme */
+        LV_FONT_DEFAULT                    /* Default system font */
+    );
+
+    /* 3. Assign the new theme configuration to the display */
+    lv_display_set_theme(disp, th);
+
+    /* 4. Force all existing widgets on the active screen to refresh their styles */
+    lv_obj_t * act_scr = lv_screen_active();
+    if(act_scr) {
+        lv_obj_send_event(act_scr, LV_EVENT_STYLE_CHANGED, NULL);
+    }
+}
+
 
 void setup()
 {
@@ -833,6 +861,9 @@ void setup()
   Info_Add("GUI. Init GUI.");      
   Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(LocalNodeIndex);
+
+  switch_to_dark_theme(true);
+
   #endif
 
   Info_Add("GUI. Controller startup");
@@ -910,25 +941,6 @@ void setup()
     Info_Add("GUI. RotoPD not connected or not found.");
 
   Info_Add("GUI. Setting up CAN.");
-
-  /*
-  canMsg1.can_id  = 0x0F6;
-  canMsg1.can_dlc = 8;
-  canMsg1.data[0] = 0x8E;
-  canMsg1.data[1] = 0x87;
-  canMsg1.data[2] = 0x32;
-  canMsg1.data[3] = 0xFA;
-  canMsg1.data[4] = 0x26;
-  canMsg1.data[5] = 0x8E;
-  canMsg1.data[6] = 0xBE;
-  canMsg1.data[7] = 0x86;
-
-  mcp2515.begin();
-  mcp2515.reset();
-  mcp2515.setBitrate(CAN_100KBPS);
-  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-  mcp2515.enableInterrupt(BSP_XL2515_INT_PIN, canIsr);
-  */
 
   node.begin();
 
@@ -1030,6 +1042,8 @@ void setup()
   #endif
 
   Info_Add("GUI. Init RP2350 ready.");
+
+  navigate_to_matrix_screen();  
 }
 
 void loop()
