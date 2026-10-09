@@ -32,6 +32,9 @@ public:
     const Message& getMessage() const { return recv; }
     void clearMessage() { recv.clearMsg(); }
 
+    const MCP2515& getCAN() const { return can; }
+    MCP2515& getCAN() { return can; }  
+
     void clear(PDO::Type type, uint8_t num, uint8_t position);
     void clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);
     void clearAll(PDO::Type type, uint8_t num);

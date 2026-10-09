@@ -946,6 +946,39 @@ void setup()
 
   node.setHeartbeatTime(5000);      // 5 s heartbeat
 
+  MCP2515& mcp2515 = node.getCAN();
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+
+  // =========================================================================
+  // BUFFER 0: Filter for NMT Master Commands (COB-ID: 0x000)
+  // =========================================================================
+  // MASK0: Check all 11 bits of the standard ID (0 = standard frame, 0x7FF = all bits)
+  mcp2515.setFilterMask(MCP2515::MASK0, 0, 0x7FF);
+  
+  // FILTER0 & FILTER1: Must match 0x000 exactly
+  mcp2515.setFilter(MCP2515::RXF0, 0, 0x000);
+  mcp2515.setFilter(MCP2515::RXF1, 0, 0x000);
+
+  // =========================================================================
+  // BUFFER 1: Filter for Node 1 and Node 2
+  // =========================================================================
+  // MASK1: 0x07F filters only the lower 7 bits (the Node ID field) 
+  // and ignores the upper 4 bits (the CANopen function code).
+  mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
+
+  // FILTER2: Match any CANopen frame belonging to Node ID 1
+  mcp2515.setFilter(MCP2515::RXF2, 0, LocalNodeIndex);
+  
+  // FILTER3: Match any CANopen frame belonging to Node ID 2
+  mcp2515.setFilter(MCP2515::RXF3, 0, IT2704_NODEID);
+
+  // FILTER4 & FILTER5: Tie them off to Node 1 and 2 to prevent unwanted open leaks
+  mcp2515.setFilter(MCP2515::RXF4, 0, LocalNodeIndex);
+  mcp2515.setFilter(MCP2515::RXF5, 0, IT2704_NODEID);
+
+  // Switch back to normal operation mode
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
   ///node.disableNMT(true); 
   //node.disableMapping(true);
@@ -1092,7 +1125,7 @@ void loop()
 
     // ---- process the message ----
     Serial.print("External app message ID = 0x");
-    Serial.println(rxmsg.id, HEX);
+    Serial.printf("%04X.\r\n",rxmsg.id);
 
     if (rxmsg.id == (CO_CAN_ID_SDO_SRV + IT2704_NODEID))
     {
@@ -1102,8 +1135,10 @@ void loop()
       {
         Serial.print("IT2704. Writing data success. ");
         Serial.print("Index 0x");
-        Serial.print(rxmsg.data[SDO::INDEX_HIGH], HEX);
-        Serial.print(rxmsg.data[SDO::INDEX_LOW], HEX);
+
+        Serial.printf("%02X",rxmsg.data[SDO::INDEX_HIGH]);
+        Serial.printf("%02X",rxmsg.data[SDO::INDEX_LOW]);
+
         Serial.printf(". SubIndex %d.\r\n",rxmsg.data[SDO::SUB_INDEX]);
       }
     }
