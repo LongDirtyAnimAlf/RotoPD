@@ -3,7 +3,14 @@
 
 #include <lvgl.h>
 
-/* Call this function from your main UI controller to navigate to the Matrix screen */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void navigate_to_matrix_screen(void);
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
 
 #endif // MATRIX_SCREEN_H

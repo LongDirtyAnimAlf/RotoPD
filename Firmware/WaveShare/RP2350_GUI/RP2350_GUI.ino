@@ -22,8 +22,6 @@
 
 #include "ui.h"
 
-#include "matrix_screen.h"
-
 //#include <WiFi.h>
 
 #include "extras.h"
@@ -37,7 +35,7 @@
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
-#define LocalNodeIndex 2
+#define LocalNodeIndex 1
 
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
@@ -862,7 +860,7 @@ void setup()
   Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(LocalNodeIndex);
 
-  switch_to_dark_theme(true);
+  //switch_to_dark_theme(true);
 
   #endif
 
@@ -1043,7 +1041,8 @@ void setup()
 
   Info_Add("GUI. Init RP2350 ready.");
 
-  navigate_to_matrix_screen();  
+  //navigate_to_matrix_screen();  
+  init_screensaver_controller(10000U);
 }
 
 void loop()
@@ -1054,6 +1053,8 @@ void loop()
   #else
 
   lv_timer_periodic_handler();
+
+  check_screensaver_timeout();
 
   uint8_t j;
 

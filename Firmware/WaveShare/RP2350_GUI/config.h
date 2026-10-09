@@ -11,6 +11,20 @@
 #define RESETREMOTENODE                0x81
 #define RESETCOMMSREMOTENODE           0x82
 
+#define CO_NMT_NO_COMMAND              0x00
+#define CO_NMT_ENTER_OPERATIONAL       0x01
+#define CO_NMT_ENTER_STOPPED           0x02
+#define CO_NMT_ENTER_PRE_OPERATIONAL   0x80
+#define CO_NMT_RESET_NODE              0x81
+#define CO_NMT_RESET_COMMUNICATION     0x82
+
+#define CO_NMT_UNKNOWN                 -1
+#define CO_NMT_INITIALIZING            0x00
+#define CO_NMT_PRE_OPERATIONAL         0x7F
+#define CO_NMT_OPERATIONAL             0x05
+#define CO_NMT_STOPPED                 0x04
+
+
 // Standard CANopen Object Dictionary Indices (CiA 301)
 #define DEVICE_TYPE_INDEX              0x1000
 #define ERROR_REGISTER_INDEX           0x1001
