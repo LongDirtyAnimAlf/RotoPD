@@ -960,21 +960,16 @@ void setup()
   mcp2515.setFilter(MCP2515::RXF1, 0, 0x000);
 
   // =========================================================================
-  // BUFFER 1: Filter for Node 1 and Node 2
+  // BUFFER 1: Filter for Target Nodes (Node 10, Node 20, and Node 50)
   // =========================================================================
-  // MASK1: 0x07F filters only the lower 7 bits (the Node ID field) 
-  // and ignores the upper 4 bits (the CANopen function code).
+  // MASK 1: 0x07F tells the hardware to only evaluate the lower 7 bits (Node ID)
+  // and completely ignore the upper 4 bits (CANopen function codes like SDO/PDO).
   mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
 
-  // FILTER2: Match any CANopen frame belonging to Node ID 1
-  mcp2515.setFilter(MCP2515::RXF2, 0, LocalNodeIndex);
-  
-  // FILTER3: Match any CANopen frame belonging to Node ID 2
-  mcp2515.setFilter(MCP2515::RXF3, 0, IT2704_NODEID);
-
-  // FILTER4 & FILTER5: Tie them off to Node 1 and 2 to prevent unwanted open leaks
-  mcp2515.setFilter(MCP2515::RXF4, 0, LocalNodeIndex);
-  mcp2515.setFilter(MCP2515::RXF5, 0, IT2704_NODEID);
+  mcp2515.setFilter(MCP2515::RXF2, 0, MASTER_NODEID);
+  mcp2515.setFilter(MCP2515::RXF3, 0, LocalNodeIndex);
+  mcp2515.setFilter(MCP2515::RXF4, 0, IT2704_NODEID);
+  mcp2515.setFilter(MCP2515::RXF5, 0, LocalNodeIndex);
 
   // Switch back to normal operation mode
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
@@ -1077,7 +1072,7 @@ void setup()
   Info_Add("GUI. Init RP2350 ready.");
 
   //navigate_to_matrix_screen();  
-  init_screensaver_controller(1000 * 60 * 60);
+  init_screensaver_controller(SAVERTIME);
 }
 
 void loop()

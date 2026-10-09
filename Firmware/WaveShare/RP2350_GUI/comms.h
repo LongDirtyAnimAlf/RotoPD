@@ -4,8 +4,6 @@
 #include <Arduino.h>
 #include "shared.h"
 
-#define DEFAULTBOARDNUMBER 1
-
 #ifdef ENABLEUSB
 
 #ifdef ARDUINO_ARCH_RP2040

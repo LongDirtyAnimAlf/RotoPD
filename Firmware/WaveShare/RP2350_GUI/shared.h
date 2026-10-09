@@ -33,13 +33,18 @@
 
 #define    DATASIZE                   600u
 
+#define    SAVERTIME                  (1000u * 60u * 10u) // 10 minutes in ms
 #define    DVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
 #define    PVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
 
 #define INA238_ADDRESS                0x40
 
-#define IT2704_NODEID                 0x04
-#define BIAS_NODEID                   0x00
+#define DEFAULTBOARDNUMBER            1
+
+#define IT2704_NODEID                 0x01
+#define BIAS_NODEID                   0x11
+#define MASTER_NODEID                 (BIAS_NODEID - 1)
+#define LOCAL_NODEID                  (BIAS_NODEID + DEFAULTBOARDNUMBER)
 
 #ifdef CFG_TUD_ENDPOINT0_SIZE
 #undef CFG_TUD_ENDPOINT0_SIZE
