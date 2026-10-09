@@ -99,7 +99,7 @@ uint16_t CanOpenNode::getPdoEventTimer(uint16_t commIndex) const {
             case RX_PDO2_COMM_INDEX: return PDO2_RX_CYCLE_TIME;
             case RX_PDO3_COMM_INDEX: return PDO3_RX_CYCLE_TIME;
             case RX_PDO4_COMM_INDEX: return PDO4_RX_CYCLE_TIME;
-            default: return 500;
+            default: return 0;
         }
     }
     return static_cast<uint16_t>(dictionary[idx].data[0] |
@@ -201,7 +201,8 @@ void CanOpenNode::begin() {
     if (MCP2515::ERROR_OK == can.reset()) {
         can.setBitrate(CAN_250KBPS);
         can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-        can.enableInterrupt(intPin, ISRhandler);
+        //can.enableInterrupt(intPin, ISRhandler);
+        can.enableInterrupt(intPin, NULL);
         Serial.println("MCP2515 Initialized Successfully.");
         Serial.print("CANopen Node-ID = 0x");
         Serial.println(nodeId, HEX);
@@ -211,7 +212,7 @@ void CanOpenNode::begin() {
 }
 
 // Run function to handle the core communication loop with NMT handling
-void CanOpenNode::run() {
+bool CanOpenNode::run() {
 
     bool messageavailable = recv.run();
 
@@ -274,11 +275,13 @@ void CanOpenNode::run() {
     {
         if ( (nmtState == NMT::Mode::OPERATIONAL) || (nmtState == NMT::Mode::PRE_OPERATIONAL) )
         {
-            // We might not have handle the message
-            // Delete it always in these modes to prevent endless loops and CPU burn
-            recv.clearMsg();
+            // If the message was not cleared, we did not handle it !!
+            // Report back
+            return (recv.id != 0);
         }
     }
+
+    return false;
 
 }
 
@@ -502,20 +505,28 @@ void CanOpenNode::nmtController() {
     static bool toggleBit = true;
 
     if (recv.id == CO_CAN_ID_NMT_SERVICE) { // NMT Master Command ID
+        
         uint8_t command = recv.data[0];
-        uint8_t target  = recv.data[1];
 
-        if (target == nodeId || target == 0x00) { // 0x00 = broadcast
-            switch (command) {
-                case STARTREMOTENODE:            nmtState = NMT::Mode::OPERATIONAL;     break;
-                case STOPREMOTENODE:             nmtState = NMT::Mode::STOPPED;         break;
-                case ENTERPREOPREMOTENODE:       nmtState = NMT::Mode::PRE_OPERATIONAL; break;
-                case RESETREMOTENODE:
-                case RESETCOMMSREMOTENODE:       nmtState = NMT::Mode::BOOT;            break;
+        if (command != CO_NMT_NO_COMMAND)
+        {
+            uint8_t target  = recv.data[1];
+
+            if (target == nodeId || target == 0x00) { // 0x00 = broadcast
+                switch (command) {
+                    case CO_NMT_ENTER_OPERATIONAL:       nmtState = NMT::Mode::OPERATIONAL;     break;
+                    case CO_NMT_ENTER_STOPPED:           nmtState = NMT::Mode::STOPPED;         break;
+                    case CO_NMT_ENTER_PRE_OPERATIONAL:   nmtState = NMT::Mode::PRE_OPERATIONAL; break;
+                    case CO_NMT_RESET_NODE:
+                    case CO_NMT_RESET_COMMUNICATION:     nmtState = NMT::Mode::BOOT;            break;
+                }
+                nmt.changeMode(nmtState);
+
+                recv.clearMsg();
             }
-            nmt.changeMode(nmtState);
+
         }
-        recv.clearMsg();
+
     }
     else
     {
@@ -523,9 +534,10 @@ void CanOpenNode::nmtController() {
         bool rtr = (recv.id & CAN_RTR_FLAG);
         uint32_t id = (recv.id & (ext ? CAN_EFF_MASK : CAN_SFF_MASK));
 
-        if (rtr){
-
-            if (id == cobIdNmt){ // NMT Node Guarding Request ; Uses an RTR frame
+        if (rtr)
+        {
+            if (id == cobIdNmt)  // NMT Node Guarding Request ; Uses an RTR frame
+            {
                 // Send back the NMT Mode
                 Message nmtmsg;
                 nmtmsg.id = id;
@@ -534,11 +546,13 @@ void CanOpenNode::nmtController() {
                 toggleBit = !toggleBit;
                 if (toggleBit) nmtmsg.data[0] += 0x80;
                 sendMsg(nmtmsg);
-
                 recv.clearMsg();
             }
-            for (int i = 0; i < 4; ++i) {
-                if (id == cobIdTxPdo[i]){
+
+            for (int i = 0; i < 4; ++i)
+            {
+                if (id == cobIdTxPdo[i])
+                {
                     txPdo[i].updateData();
                     sendMsg(txPdo[i]);
                     recv.clearMsg();
@@ -719,11 +733,4 @@ void CanOpenNode::sdoHandler() {
             recv.clearMsg();
         }
     }
-}
-
-// Interrupt Service Routine logic
-void CanOpenNode::MCP2515_ISR() {
-}
-
-void CanOpenNode::ISRhandler() {
 }

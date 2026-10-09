@@ -27,7 +27,10 @@ public:
     void begin();
 
     // Run core communication loop
-    void run();
+    bool run();
+
+    const Message& getMessage() const { return recv; }
+    void clearMessage() { recv.clearMsg(); }
 
     void clear(PDO::Type type, uint8_t num, uint8_t position);
     void clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);
@@ -41,7 +44,6 @@ public:
 
     // Public - Core communication functions
     bool sendMsg(const Message &msg);
-    void writeData(Object &obj, uint8_t data[4]);
 
     // Node-ID accessor
     uint8_t getNodeId() const { return nodeId; }
@@ -121,6 +123,8 @@ private:
     void mapPDOs();
     void sendPDO(PDO &txPdo);
     void receivePDO(PDO &rxPdo);
+
+    void writeData(Object &obj, uint8_t data[4]);
     void writeData(Object &obj, uint8_t data[8], uint8_t start);
 
     void sdoHandler();
@@ -135,8 +139,6 @@ private:
 
     // ISR Handling
     static CanOpenNode* instance;
-    void MCP2515_ISR();
-    static void ISRhandler();
 };
 
 #endif

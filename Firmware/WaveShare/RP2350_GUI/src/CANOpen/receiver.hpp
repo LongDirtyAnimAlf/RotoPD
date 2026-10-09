@@ -1,7 +1,7 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
-#include "./message.hpp"
+#include "message.hpp"
 
 // Receiver message type
 struct Receiver : public Message {

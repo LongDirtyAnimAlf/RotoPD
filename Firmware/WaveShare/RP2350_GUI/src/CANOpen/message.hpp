@@ -1,7 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#include "./object.hpp"
+#include "object.hpp"
 #include "../CAN/mcp2515.h"
 
 // Generic message type
@@ -9,7 +9,6 @@ class Message {
   public:
   uint32_t id;  
   uint8_t  dlc; // data length code
-
   uint8_t data[8];
   
   Message() : 

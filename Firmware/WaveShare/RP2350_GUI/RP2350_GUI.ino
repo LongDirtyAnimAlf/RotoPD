@@ -19,6 +19,8 @@
 
 //#include "./src/CAN/mcp2515.h"
 #include "./src/CANOpen/canOpenNode.h"
+#include "./src/CANOpen/sdo.hpp"
+#include "./src/CANOpen/message.hpp"
 
 #include "ui.h"
 
@@ -35,7 +37,7 @@
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
-#define LocalNodeIndex 1
+#define LocalNodeIndex  (BIAS_NODEID + 1)
 
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
@@ -47,7 +49,7 @@ Adafruit_USBD_HID HID;
 #endif
 
 #ifdef ARDUINO_ARCH_ESP32
-#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+#if defined(ARDUINO_USB_MODE) && (ARDUINO_USB_MODE == 0)  // USB-OTG / TinyUSB
 #ifdef ENABLEUSB
 USBHID HID;
 #endif
@@ -1042,7 +1044,7 @@ void setup()
   Info_Add("GUI. Init RP2350 ready.");
 
   //navigate_to_matrix_screen();  
-  init_screensaver_controller(10000U);
+  init_screensaver_controller(1000 * 60 * 60);
 }
 
 void loop()
@@ -1055,6 +1057,8 @@ void loop()
   lv_timer_periodic_handler();
 
   check_screensaver_timeout();
+
+  Message Msg;
 
   uint8_t j;
 
@@ -1081,27 +1085,80 @@ void loop()
   TinyUSBDevice.task();
   #endif
 
-  node.run();
-
-  /*
-  if (mcp2515.checkReceive())
+  if (node.run())
   {
-    while (mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK)
-    {
-        Serial.print(canMsg.can_id, HEX);
-        Serial.print(" ");
-        Serial.print(canMsg.can_dlc, HEX);
-        Serial.print(" ");
+    // We did receive a message that was not handled by ourselves
+    const Message& rxmsg = node.getMessage();
 
-        for (int i = 0; i < canMsg.can_dlc; i++) {
-            Serial.print(canMsg.data[i], HEX);
-            Serial.print(" ");
+    // ---- process the message ----
+    Serial.print("External app message ID = 0x");
+    Serial.println(rxmsg.id, HEX);
+
+    if (rxmsg.id == (CO_CAN_ID_SDO_SRV + IT2704_NODEID))
+    {
+      Serial.println("IT2704. Receiving response from writing data.");
+
+      if (rxmsg.data[SDO::COMMAND] == WRITE_RESP_SUCCESS_CMD)
+      {
+        Serial.print("IT2704. Writing data success. ");
+        Serial.print("Index 0x");
+        Serial.print(rxmsg.data[SDO::INDEX_HIGH], HEX);
+        Serial.print(rxmsg.data[SDO::INDEX_LOW], HEX);
+        Serial.printf(". SubIndex %d.\r\n",rxmsg.data[SDO::SUB_INDEX]);
+      }
+    }
+
+    if (rxmsg.id == (CO_CAN_ID_HEARTBEAT + IT2704_NODEID))
+    {
+      // We got a hearbeat message from the IT2704
+      if (rxmsg.data[0] == CO_NMT_PRE_OPERATIONAL)
+      //if (rxmsg.data[0] != CO_NMT_OPERATIONAL)
+      {
+        Serial.println("Sending config to IT2704.");
+
+        Msg.id        = (CO_CAN_ID_SDO_CLI + IT2704_NODEID);
+        Msg.dlc       = 8;
+
+        for (j = 0; j < 4; j++)
+        {
+          // Set Set the transmission type of TPDO#j to 254
+          Msg.clearData();
+          Msg.data[SDO::COMMAND]      = WRITE_REQ_1BYTE_CMD;
+          Msg.data[SDO::INDEX_LOW]    = (uint8_t)((TX_PDO1_COMM_INDEX + j) & 0xFF);
+          Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((TX_PDO1_COMM_INDEX + j) >> 8);
+          Msg.data[SDO::SUB_INDEX]    = SUBIDX_PDO_TRANSMISSION_TYPE;
+          Msg.data[SDO::DATA_4]       = PDO_TXTYPE_ASYNC_MANUFACTURER;
+          node.sendMsg(Msg);
+          // This message will be confirmed
+          // We might have a look at it
+
+          //Modify TPDO#j timer cycle as 0ms
+          Msg.clearData();
+          Msg.data[SDO::COMMAND]      = WRITE_REQ_2BYTE_CMD;
+          Msg.data[SDO::INDEX_LOW]    = (uint8_t)((TX_PDO1_COMM_INDEX + j) & 0xFF);
+          Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((TX_PDO1_COMM_INDEX + j) >> 8);
+          Msg.data[SDO::SUB_INDEX]    = SUBIDX_PDO_EVENT_TIMER;
+          Msg.data[SDO::DATA_4]       = 0;
+          Msg.data[SDO::DATA_5]       = 0;
+          node.sendMsg(Msg);
+          // This message will be confirmed
+          // We might have a look at it
         }
 
-        Serial.println();
+        // We need to set the IT2704 into operation mode
+        // If not, it will not receive any command !!
+        // Set IT2700 CANopen remote control mode on
+        Msg.clearMsg();
+        Msg.id        = 0;
+        Msg.dlc       = 2;
+        Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
+        Msg.data[1]   = IT2704_NODEID;
+        node.sendMsg(Msg);
+      }
     }
+
+    node.clearMessage();
   }
-  */
 
   if (SoundButtonClick)
   {
@@ -1116,6 +1173,21 @@ void loop()
 
     //dictionary[index].data[0] = dummycount++; // update displayed charge
     dictionary[index].setDword(dummycount++);
+
+    /*
+    SDO SDOMessage(0);
+    
+    Message Msg;
+
+    Msg.id = 0;
+    Msg.dlc = 0;    
+    Msg.data[SDO::COMMAND] = 0;
+
+    node.sendMsg(SDOMessage);
+    node.sendMsg(Msg);
+    */
+
+    //SDOMessage
 
     //Serial.println("Loop");
 

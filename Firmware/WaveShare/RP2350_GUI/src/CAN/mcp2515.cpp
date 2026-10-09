@@ -620,9 +620,16 @@ MCP2515::ERROR MCP2515::sendMessageDirect(const struct can_frame *frame)
         return ERROR_FAILTX;
     }
 
-    TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
+    //TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
+    // Priority ; TXB2 first ... TXB0 last 
+    TXBn txBuffers[N_TXBUFFERS] = {TXB2, TXB1, TXB0};
 
     for (int i=0; i<N_TXBUFFERS; i++) {
+
+        //if (i == 0) txBuffers[i] = TXB0;
+        //if (i == 1) txBuffers[i] = TXB1;
+        //if (i == 2) txBuffers[i] = TXB2;
+
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
         uint8_t ctrlval = readRegister(txbuf->CTRL);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {

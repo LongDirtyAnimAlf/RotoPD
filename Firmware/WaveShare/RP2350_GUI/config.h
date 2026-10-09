@@ -5,12 +5,6 @@
 #define PRINT // Uncomment to print CAN messages 
 
 // NMT command specifiers (CiA 301)
-#define STARTREMOTENODE                0x01
-#define STOPREMOTENODE                 0x02
-#define ENTERPREOPREMOTENODE           0x80
-#define RESETREMOTENODE                0x81
-#define RESETCOMMSREMOTENODE           0x82
-
 #define CO_NMT_NO_COMMAND              0x00
 #define CO_NMT_ENTER_OPERATIONAL       0x01
 #define CO_NMT_ENTER_STOPPED           0x02
@@ -23,7 +17,6 @@
 #define CO_NMT_PRE_OPERATIONAL         0x7F
 #define CO_NMT_OPERATIONAL             0x05
 #define CO_NMT_STOPPED                 0x04
-
 
 // Standard CANopen Object Dictionary Indices (CiA 301)
 #define DEVICE_TYPE_INDEX              0x1000
@@ -312,15 +305,20 @@ typedef enum {
 
 // Default cycle times (ms) � used as initial / fallback values
 // Actual values are taken from Object Dictionary and can be changed at runtime
+
 #define HEARTBEAT_CYCLE_TIME    500   // ms  (OD 0x1017)
-#define PDO1_TX_CYCLE_TIME      500   // ms  (OD 0x1800:05 Event Timer)
-#define PDO2_TX_CYCLE_TIME      500   // ms  (OD 0x1801:05)
-#define PDO3_TX_CYCLE_TIME      500   // ms  (OD 0x1802:05)
-#define PDO4_TX_CYCLE_TIME      500   // ms  (OD 0x1803:05)
-#define PDO1_RX_CYCLE_TIME      0  // ms    (application receive timeout)
-#define PDO2_RX_CYCLE_TIME      0  // ms
-#define PDO3_RX_CYCLE_TIME      0  // ms
-#define PDO4_RX_CYCLE_TIME      0  // ms
+
+#define DEFAULT_TX_CYCLE_TIME   500   // ms
+#define DEFAULT_RX_CYCLE_TIME   0     // ms
+
+#define PDO1_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1800:05 Event Timer)
+#define PDO2_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1801:05)
+#define PDO3_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1802:05)
+#define PDO4_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1803:05)
+#define PDO1_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms    (application receive timeout)
+#define PDO2_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
+#define PDO3_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
+#define PDO4_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
 
 
 

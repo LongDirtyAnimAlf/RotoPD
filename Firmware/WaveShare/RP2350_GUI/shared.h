@@ -38,6 +38,9 @@
 
 #define INA238_ADDRESS                0x40
 
+#define IT2704_NODEID                 0x04
+#define BIAS_NODEID                   0x00
+
 #ifdef CFG_TUD_ENDPOINT0_SIZE
 #undef CFG_TUD_ENDPOINT0_SIZE
 #endif
