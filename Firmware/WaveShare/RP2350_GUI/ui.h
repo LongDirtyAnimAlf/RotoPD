@@ -10,6 +10,7 @@
 #include "./src/UI/screen3.h"
 #include "./src/UI/ScreenPower.h"
 #include "./src/UI/ScreenLogger.h"
+#include "./src/UI/ScreenSettings.h"
 #include "./src/UI/sevensegment.h"
 #include "./src/UI/matrix_screen.h"
 #include "./src/UI/screensaver.h"

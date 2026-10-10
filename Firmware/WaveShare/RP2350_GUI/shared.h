@@ -13,10 +13,14 @@
 #define    STANDALONE
 #endif
 
-#define DATAGETTIME 50 // ms
-#define DATACOLLECTTIMEFAST 500 // ms
-#define DATACOLLECTTIMENORMAL 10000 // ms
-#define CALCULATIONTIME 100 // ms
+#define DATAGETTIME                   50 // ms
+#define DATACOLLECTTIMEFAST           500 // ms
+#define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
+#define CALCULATIONTIME               100 // ms
+
+#define SAVERTIME                     (1000u * 60u * 10u) // 10 minutes in ms
+#define DVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
+#define PVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 
 // RotoPD
 #define WITHINA238TEMPERATURE
@@ -33,15 +37,12 @@
 
 #define    DATASIZE                   600u
 
-#define    SAVERTIME                  (1000u * 60u * 10u) // 10 minutes in ms
-#define    DVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
-#define    PVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
 
 #define INA238_ADDRESS                0x40
 
 #define DEFAULTBOARDNUMBER            1
 
-#define IT2704_NODEID                 0x01
+#define IT2704_NODEID                 0x04
 #define BIAS_NODEID                   0x11
 #define MASTER_NODEID                 (BIAS_NODEID - 1)
 #define LOCAL_NODEID                  (BIAS_NODEID + DEFAULTBOARDNUMBER)
@@ -176,17 +177,20 @@ typedef struct
 
 typedef struct
 {
-  word V;
-  word I;
-  dword P;
-  //dword E;
-  word T;
+  word  V;   // voltage
+  word  I;   // current
+  dword P;   // power
+  word  T;   // temperature
+  dword E;   // energy
+  qword S;   // timestamp ms
 } TMeasurementData,*PMeasurementData;
 
 typedef struct
 {
   TMeasurementData *BatteryDatas;
   TMeasurementData LastBatteryData;
+  TMeasurementData *IT2704Datas;
+  TMeasurementData LastIT2704Data;
   qword Capacity; // in nAh
   qword Energy; // in nWh
   qword Time;  // in deci-seconds = 100ms

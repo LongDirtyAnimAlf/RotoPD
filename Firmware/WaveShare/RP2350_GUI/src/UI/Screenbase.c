@@ -3,6 +3,7 @@
 #include "Screen2.h"
 #include "Screen3.h"
 #include "ScreenPower.h"
+#include "ScreenSettings.h"
 #include "ScreenLogger.h"
 
 lv_obj_t * screenbase = NULL;
@@ -102,6 +103,17 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   //lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_BLUE,4), LV_PART_MAIN);      
 
+  screensettings = lv_obj_create(basescreen);
+  obj = screensettings;
+  lv_obj_remove_style_all(obj);
+  // Add flag, indicating its a screen !!
+  lv_obj_set_user_flag(obj, 0, true);
+  lv_obj_set_hidden(obj, true);
+  lv_obj_set_style_bg_opa(obj, LV_OPA_TRANSP, 0);  
+  lv_obj_set_scrollable(obj, false);
+  lv_obj_set_size(obj, lv_pct(100), lv_pct(90));
+  lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
+
   screenlogger = lv_obj_create(basescreen);
   obj = screenlogger;
   lv_obj_remove_style_all(obj);
@@ -129,7 +141,8 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   lv_obj_move_to_index(screenpower, 2);    
   lv_obj_move_to_index(screen2, 3);
   lv_obj_move_to_index(screen3, 4);    
-  lv_obj_move_to_index(screenlogger, 5);
+  lv_obj_move_to_index(screensettings, 5);
+  lv_obj_move_to_index(screenlogger, 6);
 
   lv_obj_move_to_index(morebutton, 0);
   lv_obj_move_to_index(basescreeninfo, 1);

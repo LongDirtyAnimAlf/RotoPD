@@ -60,6 +60,22 @@
 #define SUBIDX_13                      0x0D
 #define SUBIDX_14                      0x0E
 #define SUBIDX_15                      0x0F
+#define SUBIDX_16                      0x10
+#define SUBIDX_17                      0x11
+#define SUBIDX_18                      0x12
+#define SUBIDX_19                      0x13
+#define SUBIDX_20                      0x14
+#define SUBIDX_21                      0x15
+#define SUBIDX_22                      0x16
+#define SUBIDX_23                      0x17
+#define SUBIDX_24                      0x18
+#define SUBIDX_25                      0x19
+#define SUBIDX_26                      0x1A
+#define SUBIDX_27                      0x1B
+#define SUBIDX_28                      0x1C
+#define SUBIDX_29                      0x1D
+#define SUBIDX_30                      0x1E
+#define SUBIDX_31                      0x1F
 
 // ------------------------------------------------------------------
 // Standard CiA 301 sub-indexes
@@ -100,6 +116,7 @@
 #define SIZE_BIT_UINT32                32  // 0x20 bits
 #define SIZE_BIT_UINT16                16  // 0x10 bits
 #define SIZE_BIT_UINT8                 8   // 0x08 bits
+#define SIZE_BIT_INT8                  8   // 0x08 bits
 
 #define TX_PDO1_MAPPING_INDEX          0x1A00
 #define TX_PDO2_MAPPING_INDEX          0x1A01

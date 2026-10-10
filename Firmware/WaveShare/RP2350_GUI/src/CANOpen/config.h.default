@@ -4,29 +4,19 @@
 // #define DEBUG // Uncomment to print debug messages
 #define PRINT // Uncomment to print CAN messages 
 
-// Interrupt pin on MCP2515
-#define CAN_INT   2
-#define CAN_CS    9
-
-// Application-specific Object Dictionary indices (CiA 453 Electronic Load)
-#define OPERATING_MODE                 0x6000
-#define CONTROLWORD                    0x6040
-#define STATUSWORD                     0x6041
-#define LOAD_OUTPUT_ENABLE             0x6044
-#define TARGET_CURRENT                 0x6070
-#define TARGET_VOLTAGE                 0x6071
-#define TARGET_POWER                   0x6072
-#define ACTUAL_VOLTAGE                 0x6080
-#define ACTUAL_CURRENT                 0x6081
-#define ACTUAL_POWER                   0x6082
-#define VOLTAGE_LIMITS                 0x6090
-
 // NMT command specifiers (CiA 301)
-#define StartNode                      0x01
-#define StopNode                       0x02
-#define EnterPreOperational            0x80
-#define ResetNode                      0x81
-#define ResetCommunication             0x82
+#define CO_NMT_NO_COMMAND              0x00
+#define CO_NMT_ENTER_OPERATIONAL       0x01
+#define CO_NMT_ENTER_STOPPED           0x02
+#define CO_NMT_ENTER_PRE_OPERATIONAL   0x80
+#define CO_NMT_RESET_NODE              0x81
+#define CO_NMT_RESET_COMMUNICATION     0x82
+
+#define CO_NMT_UNKNOWN                 -1
+#define CO_NMT_INITIALIZING            0x00
+#define CO_NMT_PRE_OPERATIONAL         0x7F
+#define CO_NMT_OPERATIONAL             0x05
+#define CO_NMT_STOPPED                 0x04
 
 // Standard CANopen Object Dictionary Indices (CiA 301)
 #define DEVICE_TYPE_INDEX              0x1000
@@ -54,8 +44,8 @@
 #define RX_PDO3_COMM_INDEX             0x1402
 #define RX_PDO4_COMM_INDEX             0x1403
 
-#define SUBIDX_DEFAULT                 0x00   // single-value objects (recommended)
-#define SUBIDX_1                       0x01   // first data entry of a record
+#define SUBIDX_0                       0x00   
+#define SUBIDX_1                       0x01  // first data entry of a record
 #define SUBIDX_2                       0x02
 #define SUBIDX_3                       0x03
 #define SUBIDX_4                       0x04
@@ -70,40 +60,57 @@
 #define SUBIDX_13                      0x0D
 #define SUBIDX_14                      0x0E
 #define SUBIDX_15                      0x0F
+#define SUBIDX_16                      0x10
+#define SUBIDX_17                      0x11
+#define SUBIDX_18                      0x12
+#define SUBIDX_19                      0x13
+#define SUBIDX_20                      0x14
+#define SUBIDX_21                      0x15
+#define SUBIDX_22                      0x16
+#define SUBIDX_23                      0x17
+#define SUBIDX_24                      0x18
+#define SUBIDX_25                      0x19
+#define SUBIDX_26                      0x1A
+#define SUBIDX_27                      0x1B
+#define SUBIDX_28                      0x1C
+#define SUBIDX_29                      0x1D
+#define SUBIDX_30                      0x1E
+#define SUBIDX_31                      0x1F
 
 // ------------------------------------------------------------------
 // Standard CiA 301 sub-indexes
 // ------------------------------------------------------------------
 
 // Generic / common
-#define SUBIDX_HIGHEST_SUPPORTED       0x00   // Number of entries / highest sub-index
-#define SUBIDX_VALUE                   0x00   // For simple VAR objects (the value itself)
+#define SUBIDX_DEFAULT                 SUBIDX_0   // single-value objects (recommended)
+#define SUBIDX_HIGHEST_SUPPORTED       SUBIDX_0   // Number of entries / highest sub-index
+#define SUBIDX_VALUE                   SUBIDX_0   // For simple VAR objects (the value itself)
 
 // PDO Communication Parameter record (0x1400.. / 0x1800..)
-#define SUBIDX_PDO_COB_ID              0x01   // COB-ID used by PDO
-#define SUBIDX_PDO_TRANSMISSION_TYPE   0x02   // Transmission type
-#define SUBIDX_PDO_INHIBIT_TIME        0x03   // Inhibit time (multiples of 100 �s)
-#define SUBIDX_PDO_RESERVED            0x04   // Reserved
-#define SUBIDX_PDO_EVENT_TIMER         0x05   // Event timer (ms)
-#define SUBIDX_PDO_SYNC_START_VALUE    0x06   // SYNC start value
+#define SUBIDX_PDO_COB_ID              SUBIDX_1   // COB-ID used by PDO
+#define SUBIDX_PDO_TRANSMISSION_TYPE   SUBIDX_2   // Transmission type
+#define SUBIDX_PDO_INHIBIT_TIME        SUBIDX_3   // Inhibit time (multiples of 100 �s)
+#define SUBIDX_PDO_RESERVED            SUBIDX_4   // Reserved
+#define SUBIDX_PDO_EVENT_TIMER         SUBIDX_5   // Event timer (ms)
+#define SUBIDX_PDO_SYNC_START_VALUE    SUBIDX_6   // SYNC start value
 
 // PDO Mapping Parameter record (0x1600.. / 0x1A00..)
-#define SUBIDX_PDO_MAP_COUNT           0x00   // Number of mapped application objects
-#define SUBIDX_PDO_MAP_1               0x01   // 1st mapped object
-#define SUBIDX_PDO_MAP_2               0x02
-#define SUBIDX_PDO_MAP_3               0x03
-#define SUBIDX_PDO_MAP_4               0x04
-#define SUBIDX_PDO_MAP_5               0x05
-#define SUBIDX_PDO_MAP_6               0x06
-#define SUBIDX_PDO_MAP_7               0x07
-#define SUBIDX_PDO_MAP_8               0x08
+#define SUBIDX_PDO_MAP_COUNT           SUBIDX_HIGHEST_SUPPORTED   // Number of mapped application objects
+#define SUBIDX_PDO_MAP_1               SUBIDX_1   // 1st mapped object
+#define SUBIDX_PDO_MAP_2               SUBIDX_2
+#define SUBIDX_PDO_MAP_3               SUBIDX_3
+#define SUBIDX_PDO_MAP_4               SUBIDX_4
+#define SUBIDX_PDO_MAP_5               SUBIDX_5
+#define SUBIDX_PDO_MAP_6               SUBIDX_6
+#define SUBIDX_PDO_MAP_7               SUBIDX_7
+#define SUBIDX_PDO_MAP_8               SUBIDX_8
 
 // Identity Object (0x1018)
-#define SUBIDX_IDENTITY_COUNT          0x00   // Number of identity objects
-#define SUBIDX_IDENTITY_VENDOR_ID      0x01
-#define SUBIDX_IDENTITY_PRODUCT_CODE   0x02
-#define SUBIDX_IDENTITY_REVISION       0x03
-#define SUBIDX_IDENTITY_SERIAL         0x04
+#define SUBIDX_IDENTITY_COUNT          SUBIDX_HIGHEST_SUPPORTED   // Number of identity objects
+#define SUBIDX_IDENTITY_VENDOR_ID      SUBIDX_1
+#define SUBIDX_IDENTITY_PRODUCT_CODE   SUBIDX_2
+#define SUBIDX_IDENTITY_REVISION       SUBIDX_3
+#define SUBIDX_IDENTITY_SERIAL         SUBIDX_4
 
 #define SIZE_BIT_INT32                 32  // 0x20 bits
 #define SIZE_BIT_UINT32                32  // 0x20 bits
@@ -314,14 +321,65 @@ typedef enum {
 
 // Default cycle times (ms) � used as initial / fallback values
 // Actual values are taken from Object Dictionary and can be changed at runtime
+
 #define HEARTBEAT_CYCLE_TIME    500   // ms  (OD 0x1017)
-#define PDO1_TX_CYCLE_TIME      500   // ms  (OD 0x1800:05 Event Timer)
-#define PDO2_TX_CYCLE_TIME      500   // ms  (OD 0x1801:05)
-#define PDO3_TX_CYCLE_TIME      500   // ms  (OD 0x1802:05)
-#define PDO4_TX_CYCLE_TIME      500   // ms  (OD 0x1803:05)
-#define PDO1_RX_CYCLE_TIME      1400  // ms  (application timeout, not standard)
-#define PDO2_RX_CYCLE_TIME      1400  // ms
-#define PDO3_RX_CYCLE_TIME      1400  // ms
-#define PDO4_RX_CYCLE_TIME      1400  // ms
+
+#define DEFAULT_TX_CYCLE_TIME   500   // ms
+#define DEFAULT_RX_CYCLE_TIME   0     // ms
+
+#define PDO1_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1800:05 Event Timer)
+#define PDO2_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1801:05)
+#define PDO3_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1802:05)
+#define PDO4_TX_CYCLE_TIME      DEFAULT_TX_CYCLE_TIME   // ms  (OD 0x1803:05)
+#define PDO1_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms    (application receive timeout)
+#define PDO2_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
+#define PDO3_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
+#define PDO4_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
+
+
+
+// This device !!
+// Application-specific Object Dictionary indices (CiA 453 Electronic Load)
+#define OPERATING_MODE                 0x6000
+#define CONTROLWORD                    0x6040
+#define STATUSWORD                     0x6041
+#define LOAD_OUTPUT_ENABLE             0x6044
+#define TARGET_CURRENT                 0x6070
+#define TARGET_VOLTAGE                 0x6071
+#define TARGET_POWER                   0x6072
+#define ACTUAL_VOLTAGE                 0x6080
+#define ACTUAL_CURRENT                 0x6081
+#define ACTUAL_POWER                   0x6082
+#define VOLTAGE_LIMITS                 0x6090
+
+#define DMM_READINGS                   0x6130 // Readings from INA238 on RotoPD board
+
+/* ---- controlword (6040h) bits ------------------------------------------ */
+#define CW_SWITCH_ON            0x0001u
+#define CW_ENABLE_VOLTAGE       0x0002u
+#define CW_QUICK_STOP           0x0004u
+#define CW_ENABLE_OPERATION     0x0008u
+#define CW_OP_MODE_CC           0x0010u
+#define CW_OP_MODE_CR           0x0020u
+#define CW_OP_MODE_CP           0x0040u
+#define CW_FAULT                0x0080u
+#define CW_HALT                 0x0100u
+
+/* ---- statusword (6041h) bits ------------------------------------------- */
+#define SW_READY_TO_SWITCH_ON   0x0001u
+#define SW_SWITCHED_ON          0x0002u
+#define SW_OPERATION_ENABLED    0x0004u
+#define SW_FAULT                0x0008u
+#define SW_VOLTAGE_ENABLED      0x0010u
+#define SW_QUICK_STOP           0x0020u
+#define SW_SWITCH_ON_DISABLED   0x0040u
+#define SW_WARNING              0x0080u
+#define SW_REMOTE               0x0200u
+#define SW_TARGET_REACHED       0x0400u
+#define SW_INTERNAL_LIMIT       0x0800u
+#define SW_OP_MODE_CC           0x1000u
+#define SW_OP_MODE_CR           0x2000u
+#define SW_OP_MODE_CP           0x4000u
+
 
 #endif

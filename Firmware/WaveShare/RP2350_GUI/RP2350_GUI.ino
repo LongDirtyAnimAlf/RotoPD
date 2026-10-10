@@ -80,6 +80,8 @@ static Ticker dataupdateticker;
 static Ticker datagetticker;
 static volatile bool GetData = false;
 
+static uint8_t IT2704_NMT_Status = CO_NMT_UNKNOWN;
+
 #ifdef STANDALONE
 //GT911_Lite tp; // touchscreen through TwoWire
 static Ticker datacollectticker;
@@ -436,21 +438,16 @@ static void main_event_handler(lv_event_t * e)
         if ((event_object == backbutton) || (event_object == morebutton))
         {
           if ( (event_object == backbutton) && (screenindex>1) ) screenindex--; // back button
-          #ifndef STANDALONE
-          if ( (event_object == morebutton) && (screenindex<3) ) screenindex++; // forwards button
-          #else
-          if ( (event_object == morebutton) && (screenindex<5) ) screenindex++; // forwards button              
-          #endif
+          if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
 
           switch(screenindex)
           {
             case 1: {Setup_Screen1(LocalNodeIndex);Screen1SetData(SET);break;}
             case 2: {Setup_ScreenPower(LocalNodeIndex);ScreenPowerSetData(RDS);break;}
             case 3: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
-            #ifdef STANDALONE
             case 4: {Setup_Screen3(ActiveBatteryIndex,true);break;}
-            case 5: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
-            #endif
+            case 5: {Setup_ScreenSettings(ActiveBatteryIndex,true);break;}
+            case 6: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
           }
         }
         else
@@ -673,6 +670,11 @@ static void datastartcb(byte index)
 
 #endif
 
+void getIT2704Data(byte channel)
+{
+
+}
+
 void dataupdatecb()
 {
   // Inform the loop to collect the battery data
@@ -730,7 +732,6 @@ void setup()
 
   //set_sys_clock_khz(400000, false);  
   //delay(10);
-
 
   // Change system clock to exactly match the PSRAM clock (133MHz) by an integer factor
   // This results in best LCD performance without glitches and noise
@@ -881,6 +882,7 @@ void setup()
 
     RDS = &SET->TestData.RunDatas;
     RDS->BatteryDatas = (TMeasurementData*)pmalloc(DATASIZE * sizeof(TMeasurementData));
+    RDS->IT2704Datas = (TMeasurementData*)pmalloc(DATASIZE * sizeof(TMeasurementData));
     ClearRunData(RDS);
   
     SET->TestData.Active = bmIdle;
@@ -946,6 +948,9 @@ void setup()
 
   node.setHeartbeatTime(5000);      // 5 s heartbeat
 
+  // =========================================================================
+  // Start config of MCP2515 filters to limit can pressure
+  // =========================================================================
   MCP2515& mcp2515 = node.getCAN();
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
 
@@ -954,7 +959,6 @@ void setup()
   // =========================================================================
   // MASK0: Check all 11 bits of the standard ID (0 = standard frame, 0x7FF = all bits)
   mcp2515.setFilterMask(MCP2515::MASK0, 0, 0x7FF);
-  
   // FILTER0 & FILTER1: Must match 0x000 exactly
   mcp2515.setFilter(MCP2515::RXF0, 0, 0x000);
   mcp2515.setFilter(MCP2515::RXF1, 0, 0x000);
@@ -965,7 +969,6 @@ void setup()
   // MASK 1: 0x07F tells the hardware to only evaluate the lower 7 bits (Node ID)
   // and completely ignore the upper 4 bits (CANopen function codes like SDO/PDO).
   mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
-
   mcp2515.setFilter(MCP2515::RXF2, 0, MASTER_NODEID);
   mcp2515.setFilter(MCP2515::RXF3, 0, LocalNodeIndex);
   mcp2515.setFilter(MCP2515::RXF4, 0, IT2704_NODEID);
@@ -1071,7 +1074,6 @@ void setup()
 
   Info_Add("GUI. Init RP2350 ready.");
 
-  //navigate_to_matrix_screen();  
   init_screensaver_controller(SAVERTIME);
 }
 
@@ -1141,8 +1143,11 @@ void loop()
     if (rxmsg.id == (CO_CAN_ID_HEARTBEAT + IT2704_NODEID))
     {
       // We got a hearbeat message from the IT2704
-      if (rxmsg.data[0] == CO_NMT_PRE_OPERATIONAL)
-      //if (rxmsg.data[0] != CO_NMT_OPERATIONAL)
+      Serial.println("IT2704. Receiving heartbeat.");
+      IT2704_NMT_Status = rxmsg.data[0];
+
+      if (IT2704_NMT_Status == CO_NMT_PRE_OPERATIONAL)
+      //if (IT2704_NMT_Status != CO_NMT_OPERATIONAL)
       {
         Serial.println("Sending config to IT2704.");
 
@@ -1522,6 +1527,10 @@ void loop()
 
       RDS = &SET->TestData.RunDatas;        
 
+
+      getIT2704Data(/*Channel=*/DEFAULTBOARDNUMBER);
+
+
       getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 
       //Serial.println("Got RotoPD data");        
@@ -1652,15 +1661,20 @@ unsigned long TicksBetween(unsigned long InitTicks, unsigned long EndTicks)
 void ClearRunData(PRunDatas RDS)
 {
   memset(RDS->BatteryDatas, 0, DATASIZE * sizeof(TMeasurementData));
+  memset(RDS->IT2704Datas, 0, DATASIZE * sizeof(TMeasurementData));
+
   RDS->CurrentStageNumber = 0;
   RDS->Capacity = 0;
   RDS->Energy = 0;
   RDS->Time = 0;
-  //RDS->Temperature = 0;
+  
   RDS->LastBatteryData.V = 0;
   RDS->LastBatteryData.I = 0;
   RDS->LastBatteryData.P = 0;
   RDS->LastBatteryData.T = 0;
+  RDS->LastBatteryData.E = 0;
+  RDS->LastBatteryData.S = 0;
+
   RDS->Head = -1;
   RDS->Tail = -1;  
 
