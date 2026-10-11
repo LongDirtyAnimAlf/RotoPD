@@ -3,9 +3,6 @@
 
 lv_obj_t * screenpower = NULL;
 
-static lv_obj_t * ScreenPowerPowerDisplay = NULL;
-static lv_obj_t * ScreenPowerEnergyDisplay = NULL;
-
 void Setup_ScreenPower(byte index)
 {
   lv_obj_t * obj = NULL;
@@ -27,8 +24,10 @@ void Setup_ScreenPower(byte index)
   }
 }
 
-void ScreenPowerAddData(word P, word E)
+void ScreenPowerAddEPData(dword E, dword P)
 {
+  gauge_set_energy(E);  
+  gauge_set_power(P);
 }
 
 byte ScreenPowerGetActive(void)
@@ -38,6 +37,5 @@ byte ScreenPowerGetActive(void)
 
 void ScreenPowerSetData(PRunDatas MAD)
 {
-  //if (ScreenPowerPowerDisplay != NULL) SetDisplaymV(ScreenPowerPowerDisplay, 0);          
-  //if (ScreenPowerEnergyDisplay != NULL) SetDisplaymV(ScreenPowerEnergyDisplay, 0);
+  ScreenPowerAddEPData(MAD->LastBatteryData.E / 1000, MAD->LastBatteryData.P);
 }

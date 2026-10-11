@@ -1,14 +1,14 @@
 #ifndef LV_POWERMETER_H
 #define LV_POWERMETER_H
 
-#include <Arduino.h>
 #include <lvgl.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void gauge_set_value(int32_t power);
+void gauge_set_power(int32_t P);
+void gauge_set_energy(int32_t E);
 void create_3d_gauge(lv_obj_t * parent);
 
 #ifdef __cplusplus

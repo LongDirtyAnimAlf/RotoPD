@@ -1104,6 +1104,9 @@ void loop()
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
 
+  static uint32_t te = 0;
+  static uint32_t tp = 0;
+
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
   TinyUSBDevice.task();
@@ -1202,6 +1205,9 @@ void loop()
 
     //dictionary[index].data[0] = dummycount++; // update displayed charge
     dictionary[index].setDword(dummycount++);
+
+    ScreenPowerAddEPData(te++,tp++);
+    if (tp>240) tp = 0;
 
     /*
     SDO SDOMessage(0);

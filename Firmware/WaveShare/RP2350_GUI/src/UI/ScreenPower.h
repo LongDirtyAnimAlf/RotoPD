@@ -11,7 +11,7 @@ extern "C" {
 extern lv_obj_t * screenpower;
 
 void Setup_ScreenPower(byte index);
-void ScreenPowerAddData(word P, word E);
+void ScreenPowerAddEPData(dword E, dword P);
 void ScreenPowerSetData(PRunDatas MAD);
 byte ScreenPowerGetActive(void);
 

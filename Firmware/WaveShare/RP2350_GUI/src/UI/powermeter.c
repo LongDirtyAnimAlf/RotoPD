@@ -18,50 +18,30 @@ static lv_obj_t * arc_glow_inner;
 static lv_obj_t * arc_indicator;
 static lv_obj_t * needle_glow;      // thicker soft glow
 static lv_obj_t * needle_line;      // sharp main needle
-static lv_obj_t * needle_tip;       // bright red tip
 static lv_obj_t * label_value;
 static lv_obj_t * label_unit;
 static lv_obj_t * digital_display;
 
-// ============== Helper: place the red tip ==============
-static void update_needle_tip(int32_t power)
+void gauge_set_energy(int32_t E)
 {
-    // LVGL angle: 0° = 3 o'clock, positive = clockwise
-    float angle_deg = (float)GAUGE_ROTATION +
-                      ((float)power * ANGLE_RANGE) / (float)GAUGE_MAX;
-
-    float rad = angle_deg * (float)(M_PI / 180.0f);
-
-    // Center of the scale
-    int32_t cx = (GAUGE_SIZE - 8) / 2;   // scale size is GAUGE_SIZE-8
-    int32_t cy = (GAUGE_SIZE - 8) / 2;
-
-    // Correct formula for LVGL coordinate system (Y positive downward)
-    int32_t tip_x = cx + (int32_t)(cosf(rad) * (NEEDLE_LENGTH + 4));
-    int32_t tip_y = cy + (int32_t)(sinf(rad) * (NEEDLE_LENGTH + 4));
-
-    lv_obj_set_pos(needle_tip,
-                   tip_x - TIP_RADIUS - 1,
-                   tip_y - TIP_RADIUS - 1);
+    if (digital_display != NULL) SetDisplaymV(digital_display, (E));    
 }
 
 // ============== Update ==============
-void gauge_set_value(int32_t power)
+void gauge_set_power(int32_t P)
 {
-    if(power < 0)         power = 0;
-    if(power > GAUGE_MAX) power = GAUGE_MAX;
+    if(P < 0)         P = 0;
+    if(P > GAUGE_MAX) P = GAUGE_MAX;
 
-    lv_arc_set_value(arc_indicator, power);
-    lv_arc_set_value(arc_glow_outer, power);
-    lv_arc_set_value(arc_glow_inner, power);
+    lv_arc_set_value(arc_indicator, P);
+    lv_arc_set_value(arc_glow_outer, P);
+    lv_arc_set_value(arc_glow_inner, P);
 
     // Both needle layers must be updated
-    lv_scale_set_line_needle_value(scale, needle_glow, NEEDLE_LENGTH + 4, power);
-    lv_scale_set_line_needle_value(scale, needle_line, NEEDLE_LENGTH, power);
+    lv_scale_set_line_needle_value(scale, needle_glow, NEEDLE_LENGTH + 4, P);
+    lv_scale_set_line_needle_value(scale, needle_line, NEEDLE_LENGTH, P);
 
-    update_needle_tip(power);          // move the red tip
-
-    lv_label_set_text_fmt(label_value, "%d", (int)power);
+    lv_label_set_text_fmt(label_value, "%d", (int)P);
 }
 
 // ============== Create ==============
@@ -229,19 +209,6 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_line_color(needle_line, lv_color_hex(0xfde68a), 0); // slightly brighter
     lv_obj_set_style_line_rounded(needle_line, true, 0);
 
-    // ---------- Bright red tip ----------
-    needle_tip = lv_obj_create(scale);
-    lv_obj_set_size(needle_tip, TIP_RADIUS * 2, TIP_RADIUS * 2);
-    lv_obj_set_style_radius(needle_tip, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(needle_tip, lv_color_hex(0xff2020), 0);   // bright red
-    lv_obj_set_style_bg_opa(needle_tip, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(needle_tip, 0, 0);
-    lv_obj_set_style_pad_all(needle_tip, 0, 0);
-    // Tiny glow around the tip
-    lv_obj_set_style_shadow_width(needle_tip, 8, 0);
-    lv_obj_set_style_shadow_color(needle_tip, lv_color_hex(0xff2020), 0);
-    lv_obj_set_style_shadow_opa(needle_tip, LV_OPA_50, 0);
-
     // ---------- Glowing pivot (outer soft circle) ----------
     lv_obj_t * pivot_glow = lv_obj_create(cont);
     lv_obj_set_size(pivot_glow, 32, 32);                     // larger
@@ -277,5 +244,5 @@ void create_3d_gauge(lv_obj_t * parent)
     digital_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);
     lv_obj_align(digital_display, LV_ALIGN_CENTER, 0, 136);
 
-    gauge_set_value(150);
+    gauge_set_power(150);
 }
