@@ -31,24 +31,68 @@ static const node_spinbox_cfg_t node_cfgs[] = {
     { "IT2704 Channel Number:", 0,  0,   7,  &spinbox_node4 },
 };
 
+bool GetDarkTheme(void) {return (lv_obj_has_state(sw_theme, LV_STATE_CHECKED));}
+bool GetButtonBeep(void) {return (lv_obj_has_state(sw_beep, LV_STATE_CHECKED));}
+bool GetHeartbeat(void) {return (lv_obj_has_state(sw_heartbeat, LV_STATE_CHECKED));}
+
+static void SetSW(lv_obj_t * sw, bool datavalue)
+{
+    if (datavalue && (!lv_obj_has_state(sw, LV_STATE_CHECKED))) lv_obj_add_state(sw, LV_STATE_CHECKED);
+    if (!datavalue && (lv_obj_has_state(sw, LV_STATE_CHECKED))) lv_obj_remove_state(sw, LV_STATE_CHECKED);
+}
+void SetDarkTheme(bool datavalue)
+{
+    SetSW(sw_theme, datavalue);
+}
+void SetButtonBeep(bool datavalue)
+{
+    SetSW(sw_beep, datavalue);
+}
+void SetHeartbeat(bool datavalue)
+{
+    SetSW(sw_heartbeat, datavalue);
+}
+
+static int32_t GetSBValue(lv_obj_t * sb)
+{
+    if (sb == NULL) return 0;
+    return lv_spinbox_get_value(sb);
+}
 int32_t GetNodeAdress(void)
 {
-    if (spinbox_node1 == NULL) return 0;
-    return lv_spinbox_get_value(spinbox_node1);
+    return GetSBValue(spinbox_node1);
 }
 int32_t GetMasterAdress(void)
 {
-    if (spinbox_node2 == NULL) return 0;
-    return lv_spinbox_get_value(spinbox_node2);
+    return GetSBValue(spinbox_node2);
 }
 int32_t GetIT2704Adress(void)
 {
-    if (spinbox_node3 == NULL) return 0;
-    return lv_spinbox_get_value(spinbox_node3);
+    return GetSBValue(spinbox_node3);
+}
+int32_t GetIT2704Channel(void)
+{
+    return GetSBValue(spinbox_node4);
 }
 
+void SetNodeAdress(byte datavalue)
+{
+    if (spinbox_node1 != NULL) lv_spinbox_set_value(spinbox_node1, datavalue);
+}
+void SetMasterAdress(byte datavalue)
+{
+    if (spinbox_node2 != NULL) lv_spinbox_set_value(spinbox_node2, datavalue);
+}
+void SetIT2704Adress(byte datavalue)
+{
+    if (spinbox_node3 != NULL) lv_spinbox_set_value(spinbox_node3, datavalue);
+}
+void SetIT2704Channel(byte datavalue)
+{
+    if (spinbox_node4 != NULL) lv_spinbox_set_value(spinbox_node4, datavalue);
+}
 
-static void switch_to_dark(bool use_dark_mode)
+void switch_to_dark(bool use_dark_mode)
 {
     /* 1. Get the current active display */
     lv_display_t * disp = lv_display_get_default();
