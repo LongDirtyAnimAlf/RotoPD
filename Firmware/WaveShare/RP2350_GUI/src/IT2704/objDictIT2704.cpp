@@ -169,14 +169,14 @@ Object dictionaryIT2704[] = {
 
     // TPDO1 Mapping (0x1A00) - Channel 1..8 Onoff State
     {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x08, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)(IT2704_OUTPUT & 0xFF), (uint8_t)(IT2704_OUTPUT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x100) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x100) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x200) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x200) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x300) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x300) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_5,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x400) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x400) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_6,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x500) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x500) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_7,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x600) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x600) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_8,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + 0x700) & 0xFF), (uint8_t)((IT2704_OUTPUT + 0x700) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL0) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL0) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL1) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL1) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL2) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL2) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL3) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL3) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_5,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL4) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL4) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_6,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL5) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL5) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_7,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL6) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL6) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_8,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_OUTPUT + CHANNEL7) & 0xFF), (uint8_t)((IT2704_OUTPUT + CHANNEL7) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
     // TPDO2 Mapping (0x1A01) - Operation Register & Questionable Register
     {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
@@ -190,14 +190,14 @@ Object dictionaryIT2704[] = {
 
     // TPDO4 Mapping (0x1A03) - Channel 1..8 Sense State
     {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x08, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)(IT2704_SENSE & 0xFF),  (uint8_t)(IT2704_SENSE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x100) & 0xFF), (uint8_t)((IT2704_SENSE + 0x100) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x200) & 0xFF), (uint8_t)((IT2704_SENSE + 0x200) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x300) & 0xFF), (uint8_t)((IT2704_SENSE + 0x300) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_5,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x400) & 0xFF), (uint8_t)((IT2704_SENSE + 0x400) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_6,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x500) & 0xFF), (uint8_t)((IT2704_SENSE + 0x500) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_7,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x600) & 0xFF), (uint8_t)((IT2704_SENSE + 0x600) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_8,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + 0x700) & 0xFF), (uint8_t)((IT2704_SENSE + 0x700) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE}
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL0) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL0) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL1) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL1) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL2) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL2) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_4,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL3) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL3) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_5,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL4) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL4) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_6,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL5) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL5) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_7,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL6) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL6) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_8,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL7) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL7) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE}
 };
 
 constexpr uint8_t NUM_OBJS_IT2704 = sizeof(dictionaryIT2704) / sizeof(Object);

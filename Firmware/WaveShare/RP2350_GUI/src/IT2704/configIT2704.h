@@ -3,6 +3,15 @@
 
 #include "../../config.h"
 
+#define CHANNEL0                                                0x000U
+#define CHANNEL1                                                0x100U
+#define CHANNEL2                                                0x200U
+#define CHANNEL3                                                0x300U
+#define CHANNEL4                                                0x400U
+#define CHANNEL5                                                0x500U
+#define CHANNEL6                                                0x600U
+#define CHANNEL7                                                0x700U
+
 #define IT2704_COMMON                                           0x3001U
 #define COMMON_RESET                                            SUBIDX_1
 #define COMMON_POWER_ON_MODE                                    SUBIDX_2

@@ -863,7 +863,7 @@ void setup()
   Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(LocalNodeIndex);
 
-  //switch_to_dark_theme(true);
+  switch_to_dark_theme(true);
 
   #endif
 

@@ -9,6 +9,89 @@ LV_IMG_DECLARE(canopen_logo_img);
 
 static lv_obj_t * spinbox_node1;
 static lv_obj_t * spinbox_node2;
+static lv_obj_t * spinbox_node3;
+
+static lv_obj_t * sw_theme;
+static lv_obj_t * sw_autobaud;
+static lv_obj_t * sw_heartbeat;
+
+typedef struct {
+    const char * label;
+    int          initial;
+    int          min;
+    int          max;
+    lv_obj_t  ** spinbox_ptr;
+} node_spinbox_cfg_t;
+
+static const node_spinbox_cfg_t node_cfgs[] = {
+    { "Local (this) Node ID:", 20, 20, 127,  &spinbox_node1 },
+    { "Master Node ID:",       10, 10,  19,  &spinbox_node2 },
+    { "IT2704 Node ID:",        1,  1,   9,  &spinbox_node3 },
+};
+
+typedef enum {
+    SWITCH_ID_TERMINATION = 0,
+    SWITCH_ID_AUTO_BAUD,
+    SWITCH_ID_HEARTBEAT
+} switch_id_t;
+
+static void switch_to_dark(bool use_dark_mode)
+{
+    /* 1. Get the current active display */
+    lv_display_t * disp = lv_display_get_default();
+    //lv_display_t * disp = screenbase;
+    if(disp == NULL) return;
+
+    /* 2. Re-initialize the default theme with your preferred color palettes and the dark flag */
+    lv_theme_t * th = lv_theme_default_init(
+        disp, 
+        lv_palette_main(LV_PALETTE_BLUE),  /* Primary palette color */
+        lv_palette_main(LV_PALETTE_CYAN),  /* Secondary palette color */
+        use_dark_mode,                     /* true = Dark Theme, false = Light Theme */
+        LV_FONT_DEFAULT                    /* Default system font */
+    );
+
+    /* 3. Assign the new theme configuration to the display */
+    lv_display_set_theme(disp, th);
+
+    /* 4. Force all existing widgets on the active screen to refresh their styles */
+    lv_obj_t * act_scr = lv_screen_active();
+    if(act_scr) {
+        lv_obj_send_event(act_scr, LV_EVENT_STYLE_CHANGED, NULL);
+    }
+}
+
+/* 1. Callback Function */
+static void switch_event_handler(lv_event_t * e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+
+    if(code == LV_EVENT_VALUE_CHANGED)
+    {
+        lv_obj_t * sw = lv_event_get_target(e);
+
+        // Check if the switch is ON or OFF
+        bool is_active = lv_obj_has_state(sw, LV_STATE_CHECKED);
+
+        if(sw == sw_theme)
+        {
+            // Handle termination logic
+            switch_to_dark(is_active);
+
+        }
+        else
+        if (sw == sw_autobaud)
+        {
+            // Handle auto-baud logic
+        }
+        else
+        if (sw == sw_heartbeat)
+        {
+            // Handle heartbeat logic
+        }        
+
+    }
+}
 
 /* Helper callback for Spinbox decrement button */
 static void spinbox_decrement_cb(lv_event_t * e)
@@ -25,7 +108,9 @@ static void spinbox_increment_cb(lv_event_t * e)
 }
 
 /* Helper to construct a node address spinbox with +/- buttons */
-static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, int initial_val, lv_obj_t ** spinbox_ptr)
+
+static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, const node_spinbox_cfg_t * cfg)
+//static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, int initial_val, lv_obj_t ** spinbox_ptr)
 {
     lv_obj_t * container = lv_obj_create(parent);
     lv_obj_remove_style_all(container);
@@ -44,14 +129,16 @@ static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, int initial_val
 
     /* Spinbox widget (restricted to range 1-8) */
     lv_obj_t * sb = lv_spinbox_create(container);
-    lv_spinbox_set_range(sb, 1, 8);
-    lv_spinbox_set_digit_count(sb, 1);
-    lv_spinbox_set_value(sb, initial_val);
-    lv_obj_set_width(sb, 40);
+    lv_spinbox_set_range(sb, cfg->min, cfg->max);
+    lv_spinbox_set_digit_count(sb, 3);
+    lv_spinbox_set_value(sb, cfg->initial);
+    lv_obj_set_width(sb, 60);
+    lv_obj_remove_style(sb, NULL, LV_PART_CURSOR );
     lv_obj_set_style_text_align(sb, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(sb, lv_color_hex(0x1E1E2E), LV_PART_MAIN);
     lv_obj_set_style_text_color(sb, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_border_color(sb, lv_color_hex(0x00A86B), LV_PART_MAIN);
+    lv_obj_set_style_text_font(sb, &lv_font_montserrat_18, LV_PART_MAIN);
 
     /* Plus Button */
     lv_obj_t * btn_increment = lv_button_create(container);
@@ -65,7 +152,9 @@ static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, int initial_val
     lv_obj_add_event_cb(btn_decrement, spinbox_decrement_cb, LV_EVENT_CLICKED, sb);
     lv_obj_add_event_cb(btn_increment, spinbox_increment_cb, LV_EVENT_CLICKED, sb);
 
-    if(spinbox_ptr) *spinbox_ptr = sb;
+    if(cfg->spinbox_ptr) {
+        *cfg->spinbox_ptr = sb;    
+    }
 
     return container;
 }
@@ -107,7 +196,7 @@ void create_canopen_setup_screen(lv_obj_t * parent)
 {
     /* 1. Main Screen Setup */
     lv_obj_t * scr = parent;
-    lv_obj_set_style_bg_color(scr, lv_color_hex(0x1E1E2E), LV_PART_MAIN);
+    //lv_obj_set_style_bg_color(scr, lv_color_hex(0x1E1E2E), LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr, 12, LV_PART_MAIN);
     lv_obj_set_layout(scr, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(scr, LV_FLEX_FLOW_COLUMN);
@@ -124,10 +213,9 @@ void create_canopen_setup_screen(lv_obj_t * parent)
 
     // Title
     lv_obj_t * title = lv_label_create(header);
-    lv_label_set_text(title, "CANopen Network Setup");
-    lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_label_set_text(title, "IT2700 USB-PD Setup");
+    //lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_18, LV_PART_MAIN);
-
 
 
     // CANopen Logo / Badge
@@ -147,8 +235,8 @@ void create_canopen_setup_screen(lv_obj_t * parent)
     lv_obj_t * card = lv_obj_create(scr);
     lv_obj_set_width(card, LV_PCT(100));
     lv_obj_set_flex_grow(card, 1);
-    lv_obj_set_style_bg_color(card, lv_color_hex(0x2A2A3C), LV_PART_MAIN);
-    lv_obj_set_style_border_color(card, lv_color_hex(0x3B3B52), LV_PART_MAIN);
+    //lv_obj_set_style_bg_color(card, lv_color_hex(0x2A2A3C), LV_PART_MAIN);
+    //lv_obj_set_style_border_color(card, lv_color_hex(0x3B3B52), LV_PART_MAIN);
     lv_obj_set_style_border_width(card, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(card, 12, LV_PART_MAIN);
     lv_obj_set_style_pad_all(card, 16, LV_PART_MAIN);
@@ -159,9 +247,9 @@ void create_canopen_setup_screen(lv_obj_t * parent)
 
     /* 4. Three Switch Toggles */
     const char * toggle_labels[3] = {
-        "Enable Bus Termination (120 Ω)",
+        "Dark / Light Theme",
         "Auto Baudrate Detection",
-        "Heartbeat Monitoring"
+        "Heartbeat Enabled"
     };
 
     for(int i = 0; i < 3; i++) {
@@ -174,25 +262,29 @@ void create_canopen_setup_screen(lv_obj_t * parent)
 
         lv_obj_t * lbl = lv_label_create(row);
         lv_label_set_text(lbl, toggle_labels[i]);
-        lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
+        //lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
 
         lv_obj_t * sw = lv_switch_create(row);
-        lv_obj_set_style_bg_color(sw, lv_color_hex(0x00A86B), LV_PART_INDICATOR | LV_STATE_CHECKED);
+        //lv_obj_set_style_bg_color(sw, lv_color_hex(0x00A86B), LV_PART_INDICATOR | LV_STATE_CHECKED);
         if(i == 0) lv_obj_add_state(sw, LV_STATE_CHECKED);
+        if(i == 0) sw_theme = sw;
+        if(i == 1) sw_autobaud = sw;
+        if(i == 2) sw_heartbeat = sw;
+
+        lv_obj_add_event_cb(sw, switch_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
     }
 
     /* Divider */
     lv_obj_t * line = lv_obj_create(card);
-    lv_obj_set_size(line, LV_PCT(100), 1);
-    lv_obj_set_style_bg_color(line, lv_color_hex(0x3B3B52), LV_PART_MAIN);
+    lv_obj_set_size(line, LV_PCT(100), 2);
+    //lv_obj_set_style_bg_color(line, lv_color_hex(0x3B3B52), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(line, LV_OPA_COVER, LV_PART_MAIN);
 
-    /* 5. Two Node Address Spinboxes (Bounded strictly 1 to 8) */
-    const char * node_labels[2] = {"Master Node ID (1-8):", "Sub-Node ID (1-8):"};
-    lv_obj_t ** spinboxes[2] = {&spinbox_node1, &spinbox_node2};
-    int initial_values[2] = {1, 2};
+    /* 5. Three Node Address Spinboxes (Bounded strictly 1 to 8) */
+    for(int i = 0; i < 3; i++)
+    {
+        const node_spinbox_cfg_t * cfg = &node_cfgs[i];
 
-    for(int i = 0; i < 2; i++) {
         lv_obj_t * row = lv_obj_create(card);
         lv_obj_remove_style_all(row);
         lv_obj_set_size(row, LV_PCT(100), LV_SIZE_CONTENT);
@@ -201,10 +293,11 @@ void create_canopen_setup_screen(lv_obj_t * parent)
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
         lv_obj_t * lbl = lv_label_create(row);
-        lv_label_set_text(lbl, node_labels[i]);
-        lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
+        //lv_label_set_text(lbl, cfg->label);
+        lv_label_set_text_fmt(lbl, "%s (%d-%d):", cfg->label, cfg->min, cfg->max);
+        //lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
 
-        create_node_address_spinbox(row, initial_values[i], spinboxes[i]);
+        create_node_address_spinbox(row, cfg);
     }
 }
 

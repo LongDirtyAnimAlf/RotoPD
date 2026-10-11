@@ -80,7 +80,9 @@ void create_3d_gauge(lv_obj_t * parent)
     //lv_style_set_bg_color(&style2, lv_color_hex(0xcccccccc));
     lv_style_set_shadow_width(&style2, 40);
     lv_style_set_shadow_spread(&style2, 5);
-    lv_style_set_shadow_color(&style2, lv_palette_main(LV_PALETTE_CYAN));
+    //lv_style_set_shadow_color(&style2, lv_theme_get_color_secondary(NULL));
+    lv_style_set_shadow_color(&style2, lv_color_hex(0xFF0000));
+    lv_style_set_shadow_opa(&style2, LV_OPA_80, 0);    
     lv_style_set_shadow_offset_x(&style2, 0);
     lv_style_set_shadow_offset_y(&style2, 0);
     // Requires LVGL v9.5 or newer
