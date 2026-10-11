@@ -50,6 +50,7 @@ public:
 
     // Node-ID accessor
     uint8_t getNodeId() const { return nodeId; }
+    void setNodeId(uint8_t n_id);
 
     // ------------------------------------------------------------------
     // Runtime setters for cycle times (also writable via SDO)
@@ -117,6 +118,8 @@ private:
     EMCY emcy;
     PDO txPdo[4];
     PDO rxPdo[4];
+
+    void updateNodeID();
 
     // Private � Core communication functions
     void nmtController();

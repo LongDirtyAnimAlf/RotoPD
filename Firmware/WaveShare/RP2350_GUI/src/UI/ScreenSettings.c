@@ -16,6 +16,8 @@ static lv_obj_t * sw_theme;
 static lv_obj_t * sw_beep;
 static lv_obj_t * sw_heartbeat;
 
+lv_obj_t * sw_savesettings;
+
 typedef struct {
     const char * label;
     int          initial;
@@ -103,7 +105,8 @@ void switch_to_dark(bool use_dark_mode)
     lv_theme_t * th = lv_theme_default_init(
         disp, 
         lv_palette_main(LV_PALETTE_BLUE),  /* Primary palette color */
-        lv_palette_main(LV_PALETTE_CYAN),  /* Secondary palette color */
+        //lv_palette_main(LV_PALETTE_CYAN),  /* Secondary palette color */
+        lv_palette_darken(LV_PALETTE_RED, 3),
         use_dark_mode,                     /* true = Dark Theme, false = Light Theme */
         LV_FONT_DEFAULT                    /* Default system font */
     );
@@ -117,6 +120,20 @@ void switch_to_dark(bool use_dark_mode)
         lv_obj_send_event(act_scr, LV_EVENT_STYLE_CHANGED, NULL);
     }
 }
+
+static void btn_event_cb(lv_event_t * e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
+
+    if (btn == NULL || code != LV_EVENT_CLICKED)
+        return;
+
+    lv_event_cb_t event_cb = GetEvent();
+    if (event_cb)
+        event_cb(e);
+}
+
 
 /* 1. Callback Function */
 static void switch_event_handler(lv_event_t * e)
@@ -269,8 +286,18 @@ void create_canopen_setup_screen(lv_obj_t * parent)
     lv_obj_set_style_pad_bottom(header, 10, LV_PART_MAIN);
 
     // Title
-    lv_obj_t * title = lv_label_create(header);
-    lv_label_set_text(title, "IT2700 USB-PD Setup");
+    //lv_obj_t * title = lv_label_create(header);
+    //lv_label_set_text(title, "IT2700 USB-PD Setup");
+    //lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    //lv_obj_set_style_text_font(title, &lv_font_montserrat_18, LV_PART_MAIN);
+
+    /* Save Button */
+    sw_savesettings = lv_button_create(header);
+    lv_obj_set_size(sw_savesettings, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(sw_savesettings, lv_theme_get_color_secondary(sw_savesettings), LV_PART_MAIN);
+    lv_obj_add_event_cb(sw_savesettings, btn_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t * title = lv_label_create(sw_savesettings);
+    lv_label_set_text(title, "Save settings");
     //lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_18, LV_PART_MAIN);
 

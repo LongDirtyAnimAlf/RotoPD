@@ -191,7 +191,8 @@ static void Setup_Screen(lv_obj_t * cont)
     lv_obj_set_size(btn, LV_SIZE_CONTENT, lv_pct(15));
     lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 10);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED, 3), 0);
+    //lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED, 3), 0);
+    lv_obj_set_style_bg_color(btn, lv_theme_get_color_secondary(btn), 0);
     lv_obj_set_style_pad_top(btn, 14, 0);
     lv_obj_set_style_pad_bottom(btn, 14, 0);
     lv_obj_set_style_margin_top(btn, 14, 0);
@@ -227,7 +228,7 @@ void Setup_Screen3(byte index, bool show)
 
         obj = GetButtonLabelObject();
         if (obj != NULL)
-            lv_label_set_text(obj, "Logger");
+            lv_label_set_text(obj, "Settings");
     }
 
     SetContentObject(screen3, show);

@@ -8,6 +8,7 @@ extern "C" {
 #include <lvgl.h>
 
 extern lv_obj_t * screensettings;
+extern lv_obj_t * sw_savesettings;
 
 void Setup_ScreenSettings(byte index, bool show);
 

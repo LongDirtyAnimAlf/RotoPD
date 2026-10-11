@@ -31,31 +31,7 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     mappingOn(true),
     pdoMapped(false)
 {
-    // Calculate all COB-IDs from the runtime Node-ID (CiA 301 pre-defined connection set)
-    cobIdEmcy   = CO_CAN_ID_EMERGENCY    + this->nodeId;
-    cobIdSdoTx  = CO_CAN_ID_SDO_SRV      + this->nodeId;   // slave response
-    cobIdSdoRx  = CO_CAN_ID_SDO_CLI      + this->nodeId;   // master request
-    cobIdNmt    = CO_CAN_ID_HEARTBEAT    + this->nodeId;   // heartbeat / boot-up
-
-    cobIdTxPdo[0] = CO_CAN_ID_TPDO_1 + this->nodeId;
-    cobIdTxPdo[1] = CO_CAN_ID_TPDO_2 + this->nodeId;
-    cobIdTxPdo[2] = CO_CAN_ID_TPDO_3 + this->nodeId;
-    cobIdTxPdo[3] = CO_CAN_ID_TPDO_4 + this->nodeId;
-
-    cobIdRxPdo[0] = CO_CAN_ID_RPDO_1 + this->nodeId;
-    cobIdRxPdo[1] = CO_CAN_ID_RPDO_2 + this->nodeId;
-    cobIdRxPdo[2] = CO_CAN_ID_RPDO_3 + this->nodeId;
-    cobIdRxPdo[3] = CO_CAN_ID_RPDO_4 + this->nodeId;
-
-    // Assign calculated IDs to the message objects
-    sdo.id  = cobIdSdoTx;
-    nmt.id  = cobIdNmt;
-    emcy.id = cobIdEmcy;
-
-    for (int i = 0; i < 4; ++i) {
-        txPdo[i].id = cobIdTxPdo[i];
-        rxPdo[i].id = cobIdRxPdo[i];
-    }
+    updateNodeID();
 
     // Load cycle times from Object Dictionary (fallback to #defines already set)
     nmt.cycleTime       = getProducerHeartbeatTime();
@@ -74,6 +50,36 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     }
 
     instance = this;
+}
+
+// Controls NMT state transitions
+void CanOpenNode::updateNodeID()
+{
+    // Calculate all COB-IDs from the runtime Node-ID (CiA 301 pre-defined connection set)
+    cobIdEmcy   = CO_CAN_ID_EMERGENCY   + this->nodeId;
+    cobIdSdoTx  = CO_CAN_ID_SDO_SRV     + this->nodeId;   // slave response
+    cobIdSdoRx  = CO_CAN_ID_SDO_CLI     + this->nodeId;   // master request
+    cobIdNmt    = CO_CAN_ID_HEARTBEAT   + this->nodeId;   // heartbeat / boot-up
+
+    cobIdTxPdo[0] = CO_CAN_ID_TPDO_1    + this->nodeId;
+    cobIdTxPdo[1] = CO_CAN_ID_TPDO_2    + this->nodeId;
+    cobIdTxPdo[2] = CO_CAN_ID_TPDO_3    + this->nodeId;
+    cobIdTxPdo[3] = CO_CAN_ID_TPDO_4    + this->nodeId;
+
+    cobIdRxPdo[0] = CO_CAN_ID_RPDO_1    + this->nodeId;
+    cobIdRxPdo[1] = CO_CAN_ID_RPDO_2    + this->nodeId;
+    cobIdRxPdo[2] = CO_CAN_ID_RPDO_3    + this->nodeId;
+    cobIdRxPdo[3] = CO_CAN_ID_RPDO_4    + this->nodeId;
+
+    // Assign calculated IDs to the message objects
+    sdo.id  = cobIdSdoTx;
+    nmt.id  = cobIdNmt;
+    emcy.id = cobIdEmcy;
+
+    for (int i = 0; i < 4; ++i) {
+        txPdo[i].id = cobIdTxPdo[i];
+        rxPdo[i].id = cobIdRxPdo[i];
+    }
 }
 
 // ------------------------------------------------------------------
@@ -140,6 +146,12 @@ void CanOpenNode::updateOdUint16(uint16_t index, uint8_t sub, uint16_t value) {
 // ------------------------------------------------------------------
 // Public setters (also keep OD in sync)
 // ------------------------------------------------------------------
+void CanOpenNode::setNodeId(uint8_t n_id)
+{
+    nodeId = n_id;
+    updateNodeID();
+}
+
 void CanOpenNode::setHeartbeatTime(uint16_t ms) {
     nmt.cycleTime = ms;
     updateOdUint16(PRODUCER_HEARTBEAT_INDEX, 0x00, ms);

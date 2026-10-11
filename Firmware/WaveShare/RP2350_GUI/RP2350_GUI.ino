@@ -64,7 +64,7 @@ AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ LOCAL_NODEID);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -89,6 +89,7 @@ static Ticker SoundButtonTicker;
 static volatile bool GetBatteryData = false;
 static volatile bool SoundButtonClick = false;
 static volatile bool StoreSettings = false;
+static volatile bool StoreBoardInfo = false;
 static volatile byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
@@ -433,6 +434,17 @@ static void main_event_handler(lv_event_t * e)
       {
         SoundButtonClick = true;
 
+        if (event_object == sw_savesettings)
+        {
+          BoardInfo.UIDarkEnabled = GetDarkTheme();
+          BoardInfo.BeepEnabled = GetButtonBeep();
+          BoardInfo.LocalNodeID = GetNodeAdress();
+          BoardInfo.MasterNodeID = GetMasterAdress();
+          BoardInfo.IT2704NodeID = GetIT2704Adress();
+          BoardInfo.IT2704Channel = GetIT2704Channel();
+          StoreBoardInfo = true;
+        }
+
         // Screen navigation
         if ((event_object == backbutton) || (event_object == morebutton))
         {
@@ -680,33 +692,6 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
-void switch_to_dark_theme(bool use_dark_mode)
-{
-    /* 1. Get the current active display */
-    lv_display_t * disp = lv_display_get_default();
-    //lv_display_t * disp = screenbase;
-    if(disp == NULL) return;
-
-    /* 2. Re-initialize the default theme with your preferred color palettes and the dark flag */
-    lv_theme_t * th = lv_theme_default_init(
-        disp, 
-        lv_palette_main(LV_PALETTE_BLUE),  /* Primary palette color */
-        lv_palette_main(LV_PALETTE_CYAN),  /* Secondary palette color */
-        use_dark_mode,                     /* true = Dark Theme, false = Light Theme */
-        LV_FONT_DEFAULT                    /* Default system font */
-    );
-
-    /* 3. Assign the new theme configuration to the display */
-    lv_display_set_theme(disp, th);
-
-    /* 4. Force all existing widgets on the active screen to refresh their styles */
-    lv_obj_t * act_scr = lv_screen_active();
-    if(act_scr) {
-        lv_obj_send_event(act_scr, LV_EVENT_STYLE_CHANGED, NULL);
-    }
-}
-
-
 void setup()
 {
   byte index;
@@ -857,12 +842,22 @@ void setup()
 
   CreateBaseScreen(main_event_handler);
   lv_screen_load(screenbase);
+
   Setup_ScreenLogger(ActiveBatteryIndex,false);
+
+  Setup_ScreenSettings(ActiveBatteryIndex,false);
+  SetDarkTheme(BoardInfo.UIDarkEnabled);
+  SetButtonBeep(BoardInfo.BeepEnabled);
+  SetNodeAdress(BoardInfo.LocalNodeID);
+  SetMasterAdress(BoardInfo.MasterNodeID);
+  SetIT2704Adress(BoardInfo.IT2704NodeID);
+  SetIT2704Channel(BoardInfo.IT2704Channel);
+
   Info_Add("GUI. Init GUI.");      
   Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(BoardInfo.LocalNodeID);
 
-  switch_to_dark_theme(true);
+  switch_to_dark(BoardInfo.UIDarkEnabled);
 
   #endif
 
@@ -942,11 +937,11 @@ void setup()
     Info_Add("GUI. RotoPD not connected or not found.");
 
   Info_Add("GUI. Setting up CAN.");
-
-  node.begin();
-
+  
+  node.setNodeId(BoardInfo.LocalNodeID);
   node.setHeartbeatTime(5000);      // 5 s heartbeat
-
+  node.begin();
+  
   // =========================================================================
   // Start config of MCP2515 filters to limit can pressure
   // =========================================================================
@@ -1643,6 +1638,14 @@ void loop()
     //uint32_t flags = save_and_disable_interrupts();    
     storeSettings(ActiveBatteryIndex);
     //restore_interrupts(flags);
+  }   
+  if (StoreBoardInfo)
+  {
+    StoreBoardInfo = false;
+    #ifdef DEBUG
+    Serial.println("Storing boardinfo in NVM !");
+    #endif
+    storePutBoardInfo(&BoardInfo);
   }   
   #endif
 
