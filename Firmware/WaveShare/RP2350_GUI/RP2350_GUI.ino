@@ -37,7 +37,6 @@
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
-#define LocalNodeIndex  (BIAS_NODEID + 1)
 
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
@@ -65,7 +64,7 @@ AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ LocalNodeIndex);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ LOCAL_NODEID);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -442,8 +441,8 @@ static void main_event_handler(lv_event_t * e)
 
           switch(screenindex)
           {
-            case 1: {Setup_Screen1(LocalNodeIndex);Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower(LocalNodeIndex);ScreenPowerSetData(RDS);break;}
+            case 1: {Setup_Screen1(BoardInfo.LocalNodeID);Screen1SetData(SET);break;}
+            case 2: {Setup_ScreenPower(BoardInfo.LocalNodeID);ScreenPowerSetData(RDS);break;}
             case 3: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
             case 4: {Setup_Screen3(ActiveBatteryIndex,true);break;}
             case 5: {Setup_ScreenSettings(ActiveBatteryIndex,true);break;}
@@ -781,11 +780,11 @@ void setup()
   if (!TinyUSBDevice.isInitialized()) {
     TinyUSBDevice.begin(0);
   }
-  USBDevice.setID(0x04D8,0x003F);
+  USBDevice.setID(0x04D8,0x003E);
   USBDevice.setVersion(0x0200);        // USB 2.0
   USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
-  USBDevice.setProductDescriptor("USB PD controller with HID");
+  USBDevice.setProductDescriptor("USB-C PD controller");
   #endif
 
   #ifdef ARDUINO_ARCH_ESP32
@@ -861,7 +860,7 @@ void setup()
   Setup_ScreenLogger(ActiveBatteryIndex,false);
   Info_Add("GUI. Init GUI.");      
   Setup_Screen3(ActiveBatteryIndex,false);
-  Setup_Screen1(LocalNodeIndex);
+  Setup_Screen1(BoardInfo.LocalNodeID);
 
   switch_to_dark_theme(true);
 
@@ -969,10 +968,10 @@ void setup()
   // MASK 1: 0x07F tells the hardware to only evaluate the lower 7 bits (Node ID)
   // and completely ignore the upper 4 bits (CANopen function codes like SDO/PDO).
   mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
-  mcp2515.setFilter(MCP2515::RXF2, 0, MASTER_NODEID);
-  mcp2515.setFilter(MCP2515::RXF3, 0, LocalNodeIndex);
-  mcp2515.setFilter(MCP2515::RXF4, 0, IT2704_NODEID);
-  mcp2515.setFilter(MCP2515::RXF5, 0, LocalNodeIndex);
+  mcp2515.setFilter(MCP2515::RXF2, 0, BoardInfo.MasterNodeID);
+  mcp2515.setFilter(MCP2515::RXF3, 0, BoardInfo.LocalNodeID);
+  mcp2515.setFilter(MCP2515::RXF4, 0, BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF5, 0, BoardInfo.LocalNodeID);
 
   // Switch back to normal operation mode
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);

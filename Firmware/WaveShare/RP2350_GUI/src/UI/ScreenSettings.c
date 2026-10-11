@@ -7,12 +7,13 @@ lv_obj_t * screensettings = NULL;
 // Declare CANopen logo image asset
 LV_IMG_DECLARE(canopen_logo_img);
 
-static lv_obj_t * spinbox_node1;
-static lv_obj_t * spinbox_node2;
-static lv_obj_t * spinbox_node3;
+static lv_obj_t * spinbox_node1 = NULL;
+static lv_obj_t * spinbox_node2 = NULL;
+static lv_obj_t * spinbox_node3 = NULL;
+static lv_obj_t * spinbox_node4 = NULL;
 
 static lv_obj_t * sw_theme;
-static lv_obj_t * sw_autobaud;
+static lv_obj_t * sw_beep;
 static lv_obj_t * sw_heartbeat;
 
 typedef struct {
@@ -27,13 +28,25 @@ static const node_spinbox_cfg_t node_cfgs[] = {
     { "Local (this) Node ID:", 20, 20, 127,  &spinbox_node1 },
     { "Master Node ID:",       10, 10,  19,  &spinbox_node2 },
     { "IT2704 Node ID:",        1,  1,   9,  &spinbox_node3 },
+    { "IT2704 Channel Number:", 0,  0,   7,  &spinbox_node4 },
 };
 
-typedef enum {
-    SWITCH_ID_TERMINATION = 0,
-    SWITCH_ID_AUTO_BAUD,
-    SWITCH_ID_HEARTBEAT
-} switch_id_t;
+int32_t GetNodeAdress(void)
+{
+    if (spinbox_node1 == NULL) return 0;
+    return lv_spinbox_get_value(spinbox_node1);
+}
+int32_t GetMasterAdress(void)
+{
+    if (spinbox_node2 == NULL) return 0;
+    return lv_spinbox_get_value(spinbox_node2);
+}
+int32_t GetIT2704Adress(void)
+{
+    if (spinbox_node3 == NULL) return 0;
+    return lv_spinbox_get_value(spinbox_node3);
+}
+
 
 static void switch_to_dark(bool use_dark_mode)
 {
@@ -80,7 +93,7 @@ static void switch_event_handler(lv_event_t * e)
 
         }
         else
-        if (sw == sw_autobaud)
+        if (sw == sw_beep)
         {
             // Handle auto-baud logic
         }
@@ -110,7 +123,6 @@ static void spinbox_increment_cb(lv_event_t * e)
 /* Helper to construct a node address spinbox with +/- buttons */
 
 static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, const node_spinbox_cfg_t * cfg)
-//static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, int initial_val, lv_obj_t ** spinbox_ptr)
 {
     lv_obj_t * container = lv_obj_create(parent);
     lv_obj_remove_style_all(container);
@@ -118,16 +130,17 @@ static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, const node_spin
     lv_obj_set_layout(container, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(container, 10, 0);
 
     /* Minus Button */
     lv_obj_t * btn_decrement = lv_button_create(container);
     lv_obj_set_size(btn_decrement, 36, 36);
-    lv_obj_set_style_bg_color(btn_decrement, lv_color_hex(0x3B3B52), LV_PART_MAIN);
+    //lv_obj_set_style_bg_color(btn_decrement, lv_color_hex(0x3B3B52), LV_PART_MAIN);
     lv_obj_t * lbl_minus = lv_label_create(btn_decrement);
     lv_label_set_text(lbl_minus, LV_SYMBOL_MINUS);
     lv_obj_center(lbl_minus);
 
-    /* Spinbox widget (restricted to range 1-8) */
+    /* Spinbox widget */
     lv_obj_t * sb = lv_spinbox_create(container);
     lv_spinbox_set_range(sb, cfg->min, cfg->max);
     lv_spinbox_set_digit_count(sb, 3);
@@ -143,7 +156,7 @@ static lv_obj_t * create_node_address_spinbox(lv_obj_t * parent, const node_spin
     /* Plus Button */
     lv_obj_t * btn_increment = lv_button_create(container);
     lv_obj_set_size(btn_increment, 36, 36);
-    lv_obj_set_style_bg_color(btn_increment, lv_color_hex(0x3B3B52), LV_PART_MAIN);
+    //lv_obj_set_style_bg_color(btn_increment, lv_color_hex(0x3B3B52), LV_PART_MAIN);
     lv_obj_t * lbl_plus = lv_label_create(btn_increment);
     lv_label_set_text(lbl_plus, LV_SYMBOL_PLUS);
     lv_obj_center(lbl_plus);
@@ -234,6 +247,7 @@ void create_canopen_setup_screen(lv_obj_t * parent)
     /* 3. Settings Card Container */
     lv_obj_t * card = lv_obj_create(scr);
     lv_obj_set_width(card, LV_PCT(100));
+    lv_obj_set_scrollable(card, false);
     lv_obj_set_flex_grow(card, 1);
     //lv_obj_set_style_bg_color(card, lv_color_hex(0x2A2A3C), LV_PART_MAIN);
     //lv_obj_set_style_border_color(card, lv_color_hex(0x3B3B52), LV_PART_MAIN);
@@ -243,13 +257,13 @@ void create_canopen_setup_screen(lv_obj_t * parent)
     lv_obj_set_layout(card, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(card, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(card, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(card, 8, LV_PART_MAIN);
 
     /* 4. Three Switch Toggles */
     const char * toggle_labels[3] = {
-        "Dark / Light Theme",
-        "Auto Baudrate Detection",
-        "Heartbeat Enabled"
+        "GUI dark theme",
+        "Button beep",
+        "Heartbeat message"
     };
 
     for(int i = 0; i < 3; i++) {
@@ -266,9 +280,9 @@ void create_canopen_setup_screen(lv_obj_t * parent)
 
         lv_obj_t * sw = lv_switch_create(row);
         //lv_obj_set_style_bg_color(sw, lv_color_hex(0x00A86B), LV_PART_INDICATOR | LV_STATE_CHECKED);
-        if(i == 0) lv_obj_add_state(sw, LV_STATE_CHECKED);
+        lv_obj_add_state(sw, LV_STATE_CHECKED);
         if(i == 0) sw_theme = sw;
-        if(i == 1) sw_autobaud = sw;
+        if(i == 1) sw_beep = sw;
         if(i == 2) sw_heartbeat = sw;
 
         lv_obj_add_event_cb(sw, switch_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
@@ -280,8 +294,8 @@ void create_canopen_setup_screen(lv_obj_t * parent)
     //lv_obj_set_style_bg_color(line, lv_color_hex(0x3B3B52), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(line, LV_OPA_COVER, LV_PART_MAIN);
 
-    /* 5. Three Node Address Spinboxes (Bounded strictly 1 to 8) */
-    for(int i = 0; i < 3; i++)
+    /* 5. Three Address Spinboxes */
+    for(int i = 0; i < 4; i++)
     {
         const node_spinbox_cfg_t * cfg = &node_cfgs[i];
 

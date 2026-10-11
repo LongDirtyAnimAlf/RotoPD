@@ -80,9 +80,15 @@ TBoardInfo BoardInfo =
   true, // DataInValid
   #endif
   {0},  // Default BoardSerial
-  {0},  // Default BoardCalDate  
-  DEFAULTBOARDNUMBER,    // Default BoardNumber
-  44    // Default INA238 shunt correction value (in uOhm, signed, int16_t)
+  {0},  // Default BoardCalDate
+  DEFAULT_BOARDNUMBER,
+  DEFAULT_LOCAL_NODEID,
+  DEFAULT_MASTER_NODEID,
+  DEFAULT_IT2704_NODEID,
+  DEFAULT_IT2704_CHANNEL,
+  44,     // Default INA238 shunt correction value (in uOhm, signed, int16_t)
+  true,   // Dark
+  true    // Beep
 };
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)

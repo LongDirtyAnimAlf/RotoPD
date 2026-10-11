@@ -18,7 +18,7 @@ static lv_obj_t * arc_glow_inner;
 static lv_obj_t * arc_indicator;
 static lv_obj_t * needle_glow;      // thicker soft glow
 static lv_obj_t * needle_line;      // sharp main needle
-static lv_obj_t * needle_tip;          // bright red tip
+static lv_obj_t * needle_tip;       // bright red tip
 static lv_obj_t * label_value;
 static lv_obj_t * label_unit;
 static lv_obj_t * digital_display;
@@ -27,10 +27,10 @@ static lv_obj_t * digital_display;
 static void update_needle_tip(int32_t power)
 {
     // LVGL angle: 0° = 3 o'clock, positive = clockwise
-    float angle_deg = (float)GAUGE_ROTATION + 
+    float angle_deg = (float)GAUGE_ROTATION +
                       ((float)power * ANGLE_RANGE) / (float)GAUGE_MAX;
 
-    float rad = angle_deg * (M_PI / 180.0f);
+    float rad = angle_deg * (float)(M_PI / 180.0f);
 
     // Center of the scale
     int32_t cx = (GAUGE_SIZE - 8) / 2;   // scale size is GAUGE_SIZE-8
@@ -42,14 +42,14 @@ static void update_needle_tip(int32_t power)
 
     lv_obj_set_pos(needle_tip,
                    tip_x - TIP_RADIUS - 1,
-                   tip_y - TIP_RADIUS- 1);
+                   tip_y - TIP_RADIUS - 1);
 }
 
 // ============== Update ==============
 void gauge_set_value(int32_t power)
 {
-    if (power < 0)          power = 0;
-    if (power > GAUGE_MAX)  power = GAUGE_MAX;
+    if(power < 0)         power = 0;
+    if(power > GAUGE_MAX) power = GAUGE_MAX;
 
     lv_arc_set_value(arc_indicator, power);
     lv_arc_set_value(arc_glow_outer, power);
@@ -69,33 +69,26 @@ void create_3d_gauge(lv_obj_t * parent)
 {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0a0e17), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
+    lv_obj_set_scrollable(parent, false);
 
-    lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);    
-
-    static lv_style_t style2;
-    lv_style_init(&style2);
-    //lv_style_set_radius(&style, LV_RADIUS_CIRCLE); 
-    lv_style_set_bg_opa(&style2, LV_OPA_COVER);
-    //lv_style_set_bg_color(&style2, lv_color_hex(0x0f172a));
-    //lv_style_set_bg_color(&style2, lv_color_hex(0xcccccccc));
-    lv_style_set_shadow_width(&style2, 40);
-    lv_style_set_shadow_spread(&style2, 5);
-    //lv_style_set_shadow_color(&style2, lv_theme_get_color_secondary(NULL));
-    lv_style_set_shadow_color(&style2, lv_color_hex(0xFF0000));
-    lv_style_set_shadow_opa(&style2, LV_OPA_80, 0);    
-    lv_style_set_shadow_offset_x(&style2, 0);
-    lv_style_set_shadow_offset_y(&style2, 0);
-    // Requires LVGL v9.5 or newer
-    //lv_style_set_drop_shadow_color(&style, lv_palette_main(LV_PALETTE_RED));
-    //lv_style_set_drop_shadow_radius(&style, 16);
-    //lv_style_set_drop_shadow_opa(&style, LV_OPA_COVER);
+    /* Outer glowing container */
+    static lv_style_t style_glow;
+    lv_style_init(&style_glow);
+    lv_style_set_bg_opa(&style_glow, LV_OPA_COVER);
+    lv_style_set_shadow_width(&style_glow, 40);
+    lv_style_set_shadow_spread(&style_glow, 5);
+    lv_style_set_shadow_color(&style_glow, lv_color_hex(0xFF0000));
+    lv_style_set_shadow_opa(&style_glow, LV_OPA_80);
+    lv_style_set_shadow_offset_x(&style_glow, 0);
+    lv_style_set_shadow_offset_y(&style_glow, 0);
 
     lv_obj_t * cont2 = lv_obj_create(parent);
     lv_obj_set_size(cont2, GAUGE_SIZE + 50, GAUGE_SIZE + 50);
-    lv_obj_remove_flag(cont2, LV_OBJ_FLAG_SCROLLABLE);    
+    lv_obj_set_scrollable(cont2, false);
     lv_obj_center(cont2);
-    lv_obj_add_style(cont2, &style2, 0);
+    lv_obj_add_style(cont2, &style_glow, 0);
 
+    /* Main circular container */
     lv_obj_t * cont = lv_obj_create(cont2);
     lv_obj_set_size(cont, GAUGE_SIZE + 36, GAUGE_SIZE + 36);
     lv_obj_center(cont);
@@ -105,8 +98,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_border_width(cont, 5, 0);
     lv_obj_set_style_border_color(cont, lv_color_hex(0x818cf8), 0);
     lv_obj_set_style_pad_all(cont, 0, 0);
-    lv_obj_remove_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
-
+    lv_obj_set_scrollable(cont, false);
 
     // ---------- Dark track ----------
     arc_bg = lv_arc_create(cont);
@@ -116,7 +108,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_arc_set_bg_angles(arc_bg, 0, ANGLE_RANGE);
     lv_arc_set_range(arc_bg, 0, GAUGE_MAX);
     lv_obj_remove_style(arc_bg, NULL, LV_PART_KNOB);
-    lv_obj_remove_flag(arc_bg, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(arc_bg, false);
 
     lv_obj_set_style_arc_width(arc_bg, ARC_WIDTH + 10, LV_PART_MAIN);
     lv_obj_set_style_arc_color(arc_bg, lv_color_hex(0x1e293b), LV_PART_MAIN);
@@ -131,7 +123,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_arc_set_bg_angles(arc_glow_outer, 0, ANGLE_RANGE);
     lv_arc_set_range(arc_glow_outer, 0, GAUGE_MAX);
     lv_obj_remove_style(arc_glow_outer, NULL, LV_PART_KNOB);
-    lv_obj_remove_flag(arc_glow_outer, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(arc_glow_outer, false);
 
     lv_obj_set_style_arc_width(arc_glow_outer, 0, LV_PART_MAIN);
     lv_obj_set_style_arc_opa(arc_glow_outer, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -148,7 +140,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_arc_set_bg_angles(arc_glow_inner, 0, ANGLE_RANGE);
     lv_arc_set_range(arc_glow_inner, 0, GAUGE_MAX);
     lv_obj_remove_style(arc_glow_inner, NULL, LV_PART_KNOB);
-    lv_obj_remove_flag(arc_glow_inner, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(arc_glow_inner, false);
 
     lv_obj_set_style_arc_width(arc_glow_inner, 0, LV_PART_MAIN);
     lv_obj_set_style_arc_opa(arc_glow_inner, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -172,7 +164,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_arc_set_bg_angles(arc_indicator, 0, ANGLE_RANGE);
     lv_arc_set_range(arc_indicator, 0, GAUGE_MAX);
     lv_obj_remove_style(arc_indicator, NULL, LV_PART_KNOB);
-    lv_obj_remove_flag(arc_indicator, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(arc_indicator, false);
 
     lv_obj_set_style_arc_width(arc_indicator, 0, LV_PART_MAIN);
     lv_obj_set_style_arc_opa(arc_indicator, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -237,7 +229,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_line_color(needle_line, lv_color_hex(0xfde68a), 0); // slightly brighter
     lv_obj_set_style_line_rounded(needle_line, true, 0);
 
-// ---------- Bright red tip ----------
+    // ---------- Bright red tip ----------
     needle_tip = lv_obj_create(scale);
     lv_obj_set_size(needle_tip, TIP_RADIUS * 2, TIP_RADIUS * 2);
     lv_obj_set_style_radius(needle_tip, LV_RADIUS_CIRCLE, 0);
@@ -245,11 +237,10 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_bg_opa(needle_tip, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(needle_tip, 0, 0);
     lv_obj_set_style_pad_all(needle_tip, 0, 0);
-    // optional tiny glow around the tip
+    // Tiny glow around the tip
     lv_obj_set_style_shadow_width(needle_tip, 8, 0);
     lv_obj_set_style_shadow_color(needle_tip, lv_color_hex(0xff2020), 0);
     lv_obj_set_style_shadow_opa(needle_tip, LV_OPA_50, 0);
-
 
     // ---------- Glowing pivot (outer soft circle) ----------
     lv_obj_t * pivot_glow = lv_obj_create(cont);
@@ -261,7 +252,6 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_border_width(pivot_glow, 0, 0);
     lv_obj_set_style_pad_all(pivot_glow, 0, 0);
 
-
     // ---------- Pivot ----------
     lv_obj_t * pivot = lv_obj_create(cont);
     lv_obj_set_size(pivot, 18, 18);
@@ -271,7 +261,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_border_width(pivot, 3, 0);
     lv_obj_set_style_border_color(pivot, lv_color_hex(0x0f172a), 0);
 
-    // ---------- Digital ----------
+    // ---------- Digital value ----------
     label_value = lv_label_create(cont);
     lv_label_set_text(label_value, "0");
     lv_obj_set_style_text_font(label_value, &lv_font_montserrat_48, 0);
@@ -284,7 +274,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_text_color(label_unit, lv_color_hex(0x94a3b8), 0);
     lv_obj_align(label_unit, LV_ALIGN_CENTER, 0, 36);
 
-    digital_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);    
+    digital_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);
     lv_obj_align(digital_display, LV_ALIGN_CENTER, 0, 136);
 
     gauge_set_value(150);

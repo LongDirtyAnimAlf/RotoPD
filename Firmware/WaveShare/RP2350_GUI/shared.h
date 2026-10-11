@@ -42,10 +42,11 @@
 
 #define DEFAULTBOARDNUMBER            1
 
-#define IT2704_NODEID                 0x04
-#define BIAS_NODEID                   0x11
-#define MASTER_NODEID                 (BIAS_NODEID - 1)
-#define LOCAL_NODEID                  (BIAS_NODEID + DEFAULTBOARDNUMBER)
+#define IT2704_NODEID                 1
+#define MASTER_NODEID                 10
+#define LOCAL_NODEID                  20
+
+#define IT2704_CHANNEL                (DEFAULTBOARDNUMBER -1)
 
 #ifdef CFG_TUD_ENDPOINT0_SIZE
 #undef CFG_TUD_ENDPOINT0_SIZE
@@ -277,8 +278,20 @@ typedef struct {
   byte BoardSerial[12];
   byte BoardCalDate[4];  // YYMD
   byte BoardNumber;
+  byte LocalNodeID;
+  byte MasterNodeID;
+  byte IT2704NodeID;
+  byte IT2704Channel;
   int16_t shuntcorrection;
+  bool UIDarkEnabled;
+  bool BeepEnabled;  
 } TBoardInfo;
+
+#define DEFAULT_BOARDNUMBER                   1
+#define DEFAULT_IT2704_NODEID                 1
+#define DEFAULT_MASTER_NODEID                 10
+#define DEFAULT_LOCAL_NODEID                  20
+#define DEFAULT_IT2704_CHANNEL                (DEFAULT_BOARDNUMBER - 1)
 
 typedef struct
 {
