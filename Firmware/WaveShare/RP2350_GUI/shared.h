@@ -281,17 +281,17 @@ typedef struct {
   byte LocalNodeID;
   byte MasterNodeID;
   byte IT2704NodeID;
-  byte IT2704Channel;
+  //byte IT2704Channel;
   int16_t shuntcorrection;
   bool UIDarkEnabled;
   bool BeepEnabled;  
 } TBoardInfo;
 
-#define DEFAULT_BOARDNUMBER                   1
+#define DEFAULT_IT2704_CHANNEL                0
+#define DEFAULT_BOARDNUMBER                   (DEFAULT_IT2704_CHANNEL + 1)
 #define DEFAULT_IT2704_NODEID                 1
 #define DEFAULT_MASTER_NODEID                 10
 #define DEFAULT_LOCAL_NODEID                  20
-#define DEFAULT_IT2704_CHANNEL                (DEFAULT_BOARDNUMBER - 1)
 
 typedef struct
 {

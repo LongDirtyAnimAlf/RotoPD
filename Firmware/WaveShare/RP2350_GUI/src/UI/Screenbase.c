@@ -28,12 +28,20 @@ PBatterySetting Settings = NULL;
 void CreateSaveScreen(const char *text)
 {
   screensave = lv_obj_create(NULL);
+
+  // Set the background color to black (0x000000)
+  lv_obj_set_style_bg_color(screensave, lv_color_hex(0x000000), LV_PART_MAIN);
+
+  // Ensure the background is fully opaque
+  lv_obj_set_style_bg_opa(screensave, LV_OPA_COVER, LV_PART_MAIN);  
+
   if (text != NULL)
   {
     lv_obj_t * obj = lv_label_create(screensave);
     //lv_obj_align(obj, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 10);  
     lv_obj_set_style_text_font(obj, &lv_font_montserrat_32, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_obj_set_style_text_color(obj, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_label_set_text(obj, text);
   }
   else
@@ -43,11 +51,15 @@ void CreateSaveScreen(const char *text)
   }
   //lv_screen_load_anim(screensave, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
   lv_screen_load(screensave);
+  lv_obj_invalidate(screensave);
+  lv_refr_now(NULL); 
 }
 
 void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 {
   if (basescreen == NULL) return;
+
+  lv_obj_set_scrollable(basescreen, false);
 
   event = event_cb_more;
 

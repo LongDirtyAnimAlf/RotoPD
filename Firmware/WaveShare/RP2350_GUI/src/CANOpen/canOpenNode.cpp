@@ -215,11 +215,11 @@ void CanOpenNode::begin() {
         can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
         //can.enableInterrupt(intPin, ISRhandler);
         can.enableInterrupt(intPin, NULL);
-        Serial.println("MCP2515 Initialized Successfully.");
-        Serial.print("CANopen Node-ID = 0x");
+        Serial.println("CANopen. MCP2515 Initialized Successfully.");
+        Serial.print("CANopen. Node-ID = 0x");
         Serial.println(nodeId, HEX);
     } else {
-        Serial.println("MCP2515 Initialize Failure !!!");
+        Serial.println("CANopen. MCP2515 Initialize Failure !!!");
     }
 }
 

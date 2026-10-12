@@ -63,7 +63,7 @@ char myFirmware[30];
 AP33772S pd((TwoWire*)&WireBattery);
 INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
-//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ 5);
+//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 
 //struct can_frame canMsg;
@@ -72,6 +72,7 @@ CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
+static TBatterySetting* const Battery = Batteries;
 
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
@@ -320,7 +321,8 @@ static void main_event_handler(lv_event_t * e)
   {
     object_user_data = (lv_obj_t *)lv_obj_get_user_data(event_object);
 
-    SET = &Batteries[ActiveBatteryIndex];
+    //SET = &Batteries[ActiveBatteryIndex];
+    SET = Battery;
     RDS = &SET->TestData.RunDatas;
 
     #ifdef STANDALONE
@@ -441,7 +443,8 @@ static void main_event_handler(lv_event_t * e)
           BoardInfo.LocalNodeID = GetNodeAdress();
           BoardInfo.MasterNodeID = GetMasterAdress();
           BoardInfo.IT2704NodeID = GetIT2704Adress();
-          BoardInfo.IT2704Channel = GetIT2704Channel();
+          //BoardInfo.IT2704Channel = GetIT2704Channel();
+          BoardInfo.BoardNumber = (GetIT2704Channel() + 1);
           StoreBoardInfo = true;
         }
 
@@ -453,12 +456,12 @@ static void main_event_handler(lv_event_t * e)
 
           switch(screenindex)
           {
-            case 1: {Setup_Screen1(BoardInfo.LocalNodeID);Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower(BoardInfo.LocalNodeID);ScreenPowerSetData(RDS);break;}
-            case 3: {Setup_Screen2(ActiveBatteryIndex);Screen2SetData(RDS);break;}
-            case 4: {Setup_Screen3(ActiveBatteryIndex,true);break;}
-            case 5: {Setup_ScreenSettings(ActiveBatteryIndex,true);break;}
-            case 6: {Setup_ScreenLogger(ActiveBatteryIndex,true);break;}
+            case 1: {Setup_Screen1((BoardInfo.BoardNumber - 1));Screen1SetData(SET);break;}
+            case 2: {Setup_ScreenPower((BoardInfo.BoardNumber - 1));ScreenPowerSetData(RDS);break;}
+            case 3: {Setup_Screen2((BoardInfo.BoardNumber - 1));Screen2SetData(RDS);break;}
+            case 4: {Setup_Screen3((BoardInfo.BoardNumber - 1),true);break;}
+            case 5: {Setup_ScreenSettings((BoardInfo.BoardNumber - 1),true);break;}
+            case 6: {Setup_ScreenLogger((BoardInfo.BoardNumber - 1),true);break;}
           }
         }
         else
@@ -830,39 +833,34 @@ void setup()
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();
   lv_screen_init(HOR_RES, VER_RES);
+  lv_screen_brightness(0);
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
   CreateSaveScreen(NULL);
   lv_timer_handler();
   lv_screen_brightness(100);
 
-  PBatterySetting SET;
-
-  #ifndef LVGLDEMOS
-
-  //img = lv_img_create(obj);
-  //lv_img_set_src(img, &lv_logo_wx);
-
-
   CreateBaseScreen(main_event_handler);
-  Setup_ScreenLogger(ActiveBatteryIndex,false);
-  Setup_ScreenSettings(ActiveBatteryIndex,false);
+  Setup_ScreenLogger((BoardInfo.BoardNumber - 1),false);
+
+  Info_Add("GUI. Init GUI.");      
+
+  Setup_ScreenSettings((BoardInfo.BoardNumber - 1),false);
+  Setup_Screen3((BoardInfo.BoardNumber - 1),false);
+  Setup_Screen1((BoardInfo.BoardNumber - 1));
+
   SetDarkTheme(BoardInfo.UIDarkEnabled);
   SetButtonBeep(BoardInfo.BeepEnabled);
   SetNodeAdress(BoardInfo.LocalNodeID);
   SetMasterAdress(BoardInfo.MasterNodeID);
   SetIT2704Adress(BoardInfo.IT2704NodeID);
-  SetIT2704Channel(BoardInfo.IT2704Channel);
-
-  Info_Add("GUI. Init GUI.");      
-  Setup_Screen3(ActiveBatteryIndex,false);
-  Setup_Screen1(BoardInfo.LocalNodeID);
-
-  #endif
+  //SetIT2704Channel(BoardInfo.IT2704Channel);
+  SetIT2704Channel(BoardInfo.BoardNumber - 1);
 
   Info_Add("GUI. Controller startup");
-  
+
   //WiFi.mode(WIFI_OFF);
 
+  PBatterySetting SET;
   PRunDatas RDS;
   PStageData SD;  
 
@@ -920,7 +918,8 @@ void setup()
 
   #endif
 
-  SET = &Batteries[ActiveBatteryIndex];
+  //SET = &Batteries[ActiveBatteryIndex];
+  SET = Battery;
   Screen1SetData(SET);
 
     // INA238 setup
@@ -968,6 +967,12 @@ void setup()
 
   // Switch back to normal operation mode
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+
+  Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.BoardNumber);
+  Info_Add_Fmt("GUI. Channel-number: %d.",(BoardInfo.BoardNumber-1));
+  Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
+  Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
+  Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
   ///node.disableNMT(true); 
@@ -1066,22 +1071,16 @@ void setup()
 
   delay(5000);
 
-
   init_screensaver_controller(SAVERTIME);
-
+  switch_to_dark(BoardInfo.UIDarkEnabled);
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
-  lv_timer_handler();
+  //lv_timer_handler();
 
   Info_Add("GUI. Init RP2350 ready.");
 }
 
 void loop()
 {
-  #ifdef LVGLDEMOS
-  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
-  lv_timer_periodic_handler();
-  #else
-
   lv_timer_periodic_handler();
 
   check_screensaver_timeout();
@@ -1109,7 +1108,7 @@ void loop()
   AP33772S_PDO PDO;
 
   static uint32_t te = 0;
-  static uint32_t tp = 0;
+  static uint32_t tp = 100;
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
@@ -1243,12 +1242,7 @@ void loop()
       if (PDOCount>0)
       {
         Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
-
-        #ifdef STANDALONE
-        // Already done in setup
-        //Setup_Screen3(ActiveBatteryIndex,false);
-        #endif
-        
+       
         Screen3ClearPDOList();
 
         memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
@@ -1397,7 +1391,8 @@ void loop()
 
         qw.Val = 0;
 
-        SET = &Batteries[ActiveBatteryIndex];
+        //SET = &Batteries[ActiveBatteryIndex];
+        SET = Battery;
         RDS = &SET->TestData.RunDatas; 
 
         for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
@@ -1506,7 +1501,8 @@ void loop()
     //Serial.println("Getting data");
     #endif
 
-    SET = &Batteries[ActiveBatteryIndex];
+    //SET = &Batteries[ActiveBatteryIndex];
+    SET = Battery;
 
     switch(SET->TestData.Active)
     {
@@ -1594,7 +1590,8 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    SET = &Batteries[ActiveBatteryIndex];
+    //SET = &Batteries[ActiveBatteryIndex];
+    SET = Battery;
     RDS = &SET->TestData.RunDatas;  
 
     if (SET->TestData.SetStageMode != smOff)
@@ -1657,15 +1654,16 @@ void loop()
     #endif
     CreateSaveScreen("Saving board settings");
     lv_timer_handler();
+    delay(500);
     lv_screen_brightness(0);
+    delay(200);
     storePutBoardInfo(&BoardInfo);
+    delay(200);
     lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
     //lv_obj_delete();
     lv_timer_handler();
     lv_screen_brightness(100);
   }   
-  #endif
-
   #endif
 }
 

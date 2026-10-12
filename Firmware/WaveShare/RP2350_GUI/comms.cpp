@@ -81,11 +81,11 @@ TBoardInfo BoardInfo =
   #endif
   {0},  // Default BoardSerial
   {0},  // Default BoardCalDate
-  DEFAULT_BOARDNUMBER,
+  //DEFAULT_BOARDNUMBER,
   DEFAULT_LOCAL_NODEID,
   DEFAULT_MASTER_NODEID,
   DEFAULT_IT2704_NODEID,
-  DEFAULT_IT2704_CHANNEL,
+  //DEFAULT_IT2704_CHANNEL,
   44,     // Default INA238 shunt correction value (in uOhm, signed, int16_t)
   true,   // Dark
   true    // Beep

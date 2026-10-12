@@ -1,6 +1,11 @@
 #include "lvgl.h"
 #include "Screenbase.h"
 
+#include "./../../shared.h"
+
+extern const lv_font_t MonoNumbersOnly;
+extern const lv_font_t lv_font_dseg7_32;
+
 // ============== Configuration ==============
 #define GAUGE_MAX           240
 #define GAUGE_REDZONE       140
@@ -41,7 +46,8 @@ void gauge_set_power(int32_t P)
     lv_scale_set_line_needle_value(scale, needle_glow, NEEDLE_LENGTH + 4, P);
     lv_scale_set_line_needle_value(scale, needle_line, NEEDLE_LENGTH, P);
 
-    lv_label_set_text_fmt(label_value, "%d", (int)P);
+    //lv_label_set_text_fmt(label_value, "%d", (int)P);
+    lv_label_set_text_fmt(label_value, "%03d", P);    
 }
 
 // ============== Create ==============
@@ -185,8 +191,8 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_style_init(&style_red);
     lv_style_set_line_color(&style_red, lv_color_hex(0xef4444));
     lv_style_set_line_width(&style_red, 3);
-    lv_scale_section_set_style(red, LV_PART_INDICATOR, &style_red);
-    lv_scale_section_set_style(red, LV_PART_ITEMS, &style_red);
+    lv_scale_set_section_style_indicator(scale, red, &style_red);
+    lv_scale_set_section_style_items(scale, red, &style_red);
 
     // ---------- Needle glow (thicker + transparent) ----------
     needle_glow = lv_line_create(scale);
@@ -229,11 +235,34 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_border_color(pivot, lv_color_hex(0x0f172a), 0);
 
     // ---------- Digital value ----------
+    /*
     label_value = lv_label_create(cont);
-    lv_label_set_text(label_value, "0");
-    lv_obj_set_style_text_font(label_value, &lv_font_montserrat_48, 0);
-    lv_obj_set_style_text_color(label_value, lv_color_hex(0xf8fafc), 0);
+    //lv_obj_set_size(label_value, 160, 160);    
     lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
+    //lv_obj_set_style_text_align(label_value, LV_TEXT_ALIGN_CENTER, 0);    
+    //lv_obj_set_style_text_font(label_value, &lv_font_montserrat_48, 0);
+    //lv_obj_set_style_text_font(label_value, &MonoNumbersOnly, 0);
+    lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, 0);
+    lv_obj_set_style_text_color(label_value, lv_color_hex(0xf8fafc), 0);
+    lv_label_set_text(label_value, "0");
+    */
+
+    label_value = lv_label_create(cont);
+    lv_obj_remove_style_all(label_value);
+    lv_obj_move_background(label_value);
+    lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
+    lv_obj_set_style_text_color(label_value, lv_palette_lighten(LV_PALETTE_BLUE, 4), LV_PART_MAIN | LV_STATE_DEFAULT );
+    lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, LV_PART_MAIN| LV_STATE_DEFAULT);
+    lv_label_set_text_fmt(label_value, "%03d", 0);
+
+    lv_obj_t *digits_back = lv_label_create(cont);
+    lv_obj_remove_style_all(digits_back);
+    lv_obj_move_background(digits_back);
+    lv_obj_align(digits_back, LV_ALIGN_CENTER, 0, -50);
+    lv_obj_set_style_text_color(digits_back, lv_palette_lighten(LV_PALETTE_BLUE, 4), LV_PART_MAIN | LV_STATE_DEFAULT );
+    lv_obj_set_style_text_font(digits_back, &lv_font_dseg7_32, LV_PART_MAIN| LV_STATE_DEFAULT);
+    lv_obj_set_style_opa(digits_back, LV_OPA_20, 0);
+    lv_label_set_text(digits_back, "888");
 
     label_unit = lv_label_create(cont);
     lv_label_set_text(label_unit, "Watt");
