@@ -37,5 +37,5 @@ byte ScreenPowerGetActive(void)
 
 void ScreenPowerSetData(PRunDatas MAD)
 {
-  ScreenPowerAddEPData(MAD->LastBatteryData.E, MAD->LastBatteryData.P);
+  ScreenPowerAddEPData(MAD->LastIT2704Data.E, (MAD->LastIT2704Data.P / 1000));
 }

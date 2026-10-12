@@ -3,7 +3,6 @@
 
 #include "./../../shared.h"
 
-extern const lv_font_t MonoNumbersOnly;
 extern const lv_font_t lv_font_dseg7_32;
 
 // ============== Configuration ==============
@@ -24,7 +23,6 @@ static lv_obj_t * arc_indicator;
 static lv_obj_t * needle_glow;      // thicker soft glow
 static lv_obj_t * needle_line;      // sharp main needle
 static lv_obj_t * label_value;
-static lv_obj_t * label_unit;
 static lv_obj_t * digital_display;
 
 void gauge_set_energy(int32_t E)
@@ -235,23 +233,11 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_set_style_border_color(pivot, lv_color_hex(0x0f172a), 0);
 
     // ---------- Digital value ----------
-    /*
-    label_value = lv_label_create(cont);
-    //lv_obj_set_size(label_value, 160, 160);    
-    lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
-    //lv_obj_set_style_text_align(label_value, LV_TEXT_ALIGN_CENTER, 0);    
-    //lv_obj_set_style_text_font(label_value, &lv_font_montserrat_48, 0);
-    //lv_obj_set_style_text_font(label_value, &MonoNumbersOnly, 0);
-    lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, 0);
-    lv_obj_set_style_text_color(label_value, lv_color_hex(0xf8fafc), 0);
-    lv_label_set_text(label_value, "0");
-    */
-
     label_value = lv_label_create(cont);
     lv_obj_remove_style_all(label_value);
     lv_obj_move_background(label_value);
     lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
-    lv_obj_set_style_text_color(label_value, lv_palette_lighten(LV_PALETTE_BLUE, 4), LV_PART_MAIN | LV_STATE_DEFAULT );
+    lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
     lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, LV_PART_MAIN| LV_STATE_DEFAULT);
     lv_label_set_text_fmt(label_value, "%03d", 0);
 
@@ -259,15 +245,17 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_remove_style_all(digits_back);
     lv_obj_move_background(digits_back);
     lv_obj_align(digits_back, LV_ALIGN_CENTER, 0, -50);
-    lv_obj_set_style_text_color(digits_back, lv_palette_lighten(LV_PALETTE_BLUE, 4), LV_PART_MAIN | LV_STATE_DEFAULT );
+    lv_obj_set_style_text_color(digits_back, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
     lv_obj_set_style_text_font(digits_back, &lv_font_dseg7_32, LV_PART_MAIN| LV_STATE_DEFAULT);
     lv_obj_set_style_opa(digits_back, LV_OPA_20, 0);
     lv_label_set_text(digits_back, "888");
 
-    label_unit = lv_label_create(cont);
+    // Unit label
+    lv_obj_t *label_unit = lv_label_create(cont);
+    lv_obj_move_background(label_unit);
     lv_label_set_text(label_unit, "Watt");
     lv_obj_set_style_text_font(label_unit, &lv_font_montserrat_24, 0);
-    lv_obj_set_style_text_color(label_unit, lv_color_hex(0x94a3b8), 0);
+    lv_obj_set_style_text_color(label_unit, lv_palette_main(LV_PALETTE_TEAL), 0);
     lv_obj_align(label_unit, LV_ALIGN_CENTER, 0, 36);
 
     digital_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);

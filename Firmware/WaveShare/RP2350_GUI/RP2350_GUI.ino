@@ -475,6 +475,8 @@ static void main_event_handler(lv_event_t * e)
           if (event_object == zeroenergybutton)   RDS->Energy = 0;
           if (event_object == zerotimebutton)     RDS->Time = 0;          
           Screen1AddEPData(0,0);        
+          ScreenPowerAddEPData(0,0);        
+
         }
         else
         // PDO list requested
@@ -684,9 +686,49 @@ static void datastartcb(byte index)
 
 #endif
 
-void getIT2704Data(byte channel)
+void setIT2704Current(word current)
 {
+  Message Msg;
 
+  Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
+  Msg.dlc       = 8;
+
+  //Memo1.Lines.Append(SingleToHex(2.5));
+  //comm.WriteString('t'+'601'+'8'+'23023001'+SingleToHex(0.2)+#13);
+  //comm.WriteString('t'+'601'+'8'+'2F08300101000000'+#13);
+
+
+}
+
+void collectIT2704Data(void)
+{
+  Message Msg;
+
+  Msg.clearMsg();
+
+  Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
+  Msg.dlc       = 8;
+
+  Msg.data[SDO::COMMAND]      = READ_REQ_ANY_CMD;
+  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_METER + ((BoardInfo.BoardNumber - 1) * 0x100)) & 0xFF);
+  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_METER + ((BoardInfo.BoardNumber - 1) * 0x100)) >> 8);
+  
+  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_VOLTAGE;
+  node.sendMsg(Msg);
+  // This message will be confirmed
+  // Voltage data is inside the response !
+
+  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_CURRENT;
+  node.sendMsg(Msg);
+
+  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_POWER;
+  node.sendMsg(Msg);
+
+  //Msg.data[SDO::SUB_INDEX]    = IT2704_METER_AHOUR;
+  //node.sendMsg(Msg);
+
+  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_WHOUR;
+  node.sendMsg(Msg);
 }
 
 void dataupdatecb()
@@ -921,6 +963,8 @@ void setup()
   //SET = &Batteries[ActiveBatteryIndex];
   SET = Battery;
   Screen1SetData(SET);
+  RDS = &SET->TestData.RunDatas;
+  ScreenPowerSetData(RDS);
 
     // INA238 setup
   if (initINA238())
@@ -1069,7 +1113,7 @@ void setup()
   
   #endif
 
-  delay(5000);
+  delay(2000);
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
@@ -1102,13 +1146,13 @@ void loop()
   WORD_VAL wv;
   DWORD_VAL dwv;
 
+  PBatterySetting SET = NULL;
+  PRunDatas RDS = NULL;
+
   static uint32_t dummycount = 0;
 
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
-
-  static uint32_t te = 0;
-  static uint32_t tp = 100;
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
@@ -1121,15 +1165,64 @@ void loop()
     const Message& rxmsg = node.getMessage();
 
     // ---- process the message ----
-    Serial.print("External app message ID = 0x");
-    Serial.printf("%04X.\r\n",rxmsg.id);
+    //Serial.print("External app message ID = 0x");
+    //Serial.printf("%04X.\r\n",rxmsg.id);
 
-    if (rxmsg.id == (CO_CAN_ID_SDO_SRV + IT2704_NODEID))
+    if (rxmsg.id == (CO_CAN_ID_SDO_SRV +  + BoardInfo.IT2704NodeID))
     {
-      Serial.println("IT2704. Receiving response from writing data.");
+
+      //Serial.println("IT2704. Receiving SDO response.");
+
+
+      if (rxmsg.data[SDO::COMMAND] == READ_REQ_4BYTE_CMD)
+      {
+        if ( (rxmsg.data[SDO::INDEX_LOW] + (rxmsg.data[SDO::INDEX_HIGH] * 256)) == ((IT2704_METER + ((BoardInfo.BoardNumber - 1) * 0x100))) )
+        {
+
+          Serial.println("IT2704. We got meter data requested by this board.");
+
+          SET = Battery;
+          RDS = &SET->TestData.RunDatas; 
+
+          union {
+            uint8_t b[4];
+            float f;
+          } data;
+
+          data.b[0]=rxmsg.data[SDO::DATA_4];
+          data.b[1]=rxmsg.data[SDO::DATA_5];
+          data.b[2]=rxmsg.data[SDO::DATA_6];
+          data.b[3]=rxmsg.data[SDO::DATA_7];
+
+          if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_VOLTAGE)
+          {
+            //Serial.println("IT2704. We got voltage value.");
+            //voltage = rxmsg.data[SDO::COMMAND]
+            RDS->LastIT2704Data.V = round(data.f * 1000);
+          }
+          if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_POWER)
+          {
+            Serial.println("IT2704. We got power value.");
+            //voltage = rxmsg.data[SDO::COMMAND]
+            RDS->LastIT2704Data.P = round(data.f * 1000);
+            Serial.printf("%d",RDS->LastIT2704Data.P);
+            ScreenPowerSetData(RDS);
+          }
+          if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_WHOUR)
+          {
+            //Serial.println("IT2704. We got energy value.");
+            //voltage = rxmsg.data[SDO::COMMAND]
+            RDS->LastIT2704Data.E = round(data.f * 1000);
+            ScreenPowerSetData(RDS);
+          }
+        }
+      }
+
 
       if (rxmsg.data[SDO::COMMAND] == WRITE_RESP_SUCCESS_CMD)
       {
+        Serial.println("IT2704. Receiving response from writing data.");
+
         Serial.print("IT2704. Writing data success. ");
         Serial.print("Index 0x");
 
@@ -1137,10 +1230,11 @@ void loop()
         Serial.printf("%02X",rxmsg.data[SDO::INDEX_LOW]);
 
         Serial.printf(". SubIndex %d.\r\n",rxmsg.data[SDO::SUB_INDEX]);
+
       }
     }
 
-    if (rxmsg.id == (CO_CAN_ID_HEARTBEAT + IT2704_NODEID))
+    if (rxmsg.id == (CO_CAN_ID_HEARTBEAT +  + BoardInfo.IT2704NodeID))
     {
       // We got a hearbeat message from the IT2704
       Serial.println("IT2704. Receiving heartbeat.");
@@ -1151,7 +1245,7 @@ void loop()
       {
         Serial.println("Sending config to IT2704.");
 
-        Msg.id        = (CO_CAN_ID_SDO_CLI + IT2704_NODEID);
+        Msg.id        = (CO_CAN_ID_SDO_CLI +  + BoardInfo.IT2704NodeID);
         Msg.dlc       = 8;
 
         for (j = 0; j < 4; j++)
@@ -1187,7 +1281,8 @@ void loop()
         Msg.id        = 0;
         Msg.dlc       = 2;
         Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
-        Msg.data[1]   = IT2704_NODEID;
+        //Msg.data[0]   = CO_NMT_ENTER_PRE_OPERATIONAL;
+        Msg.data[1]   =  + BoardInfo.IT2704NodeID;
         node.sendMsg(Msg);
       }
     }
@@ -1206,11 +1301,10 @@ void loop()
   {
     startTime = millis();
 
+    collectIT2704Data();
+
     //dictionary[index].data[0] = dummycount++; // update displayed charge
     dictionary[index].setDword(dummycount++);
-
-    ScreenPowerAddEPData(te++,tp++);
-    if (tp>240) tp = 0;
 
     /*
     SDO SDOMessage(0);
@@ -1288,9 +1382,6 @@ void loop()
       }
     }
   }  
-
-  PBatterySetting SET = NULL;
-  PRunDatas RDS = NULL;
 
   if (GetData)
   {
@@ -1527,10 +1618,6 @@ void loop()
 
       RDS = &SET->TestData.RunDatas;        
 
-
-      getIT2704Data(/*Channel=*/DEFAULTBOARDNUMBER);
-
-
       getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 
       //Serial.println("Got RotoPD data");        
@@ -1624,6 +1711,8 @@ void loop()
 
     Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
     Screen1AddTData(RDS->Time);
+
+    //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
   }
 
   //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
