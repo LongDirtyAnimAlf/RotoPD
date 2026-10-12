@@ -19,6 +19,8 @@ extern PBatterySetting Settings;
 extern lv_style_t input_label_style;
 
 extern lv_obj_t * screenbase;
+extern lv_obj_t * screensave;
+
 extern lv_obj_t * backbutton;
 extern lv_obj_t * morebutton;
 
@@ -29,6 +31,7 @@ extern "C" {
 #endif
 
 void CreateBaseScreen(lv_event_cb_t event_cb_more);
+void CreateSaveScreen(const char *text);
 
 //lv_obj_t * GetContentObject(byte contentindexnumber);
 void SetContentObject(lv_obj_t * content, bool show);

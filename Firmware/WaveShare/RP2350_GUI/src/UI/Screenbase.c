@@ -6,7 +6,11 @@
 #include "ScreenSettings.h"
 #include "ScreenLogger.h"
 
+#include "usb_c_pd_tester.h"
+
 lv_obj_t * screenbase = NULL;
+lv_obj_t * screensave = NULL;
+
 lv_obj_t * backbutton = NULL;
 lv_obj_t * morebutton = NULL;
 
@@ -20,6 +24,26 @@ static lv_event_cb_t event = NULL;
 static lv_anim_t a;
 
 PBatterySetting Settings = NULL;
+
+void CreateSaveScreen(const char *text)
+{
+  screensave = lv_obj_create(NULL);
+  if (text != NULL)
+  {
+    lv_obj_t * obj = lv_label_create(screensave);
+    //lv_obj_align(obj, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 10);  
+    lv_obj_set_style_text_font(obj, &lv_font_montserrat_32, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_label_set_text(obj, text);
+  }
+  else
+  {
+    lv_obj_t * img = lv_image_create(screensave);
+    lv_image_set_src(img, &usb_c_pd_tester);    
+  }
+  //lv_screen_load_anim(screensave, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
+  lv_screen_load(screensave);
+}
 
 void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 {
@@ -319,7 +343,8 @@ void CreateBaseScreen(lv_event_cb_t event_cb_more)
   keyboardbase = lv_keyboard_create(screenbase); 
   BaseScreenSetup(screenbase, event_cb_more);
   BaseKeyboardSetup(keyboardbase);
-  NewKeyboardSetup(screenbase);  
+  NewKeyboardSetup(screenbase); 
+  //lv_screen_load(screenbase); 
 }
 
 void recursive_hide(lv_obj_t *parent, bool hide)

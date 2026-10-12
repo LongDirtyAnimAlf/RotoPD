@@ -831,6 +831,9 @@ void setup()
   lv_init();
   lv_screen_init(HOR_RES, VER_RES);
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
+  CreateSaveScreen(NULL);
+  lv_timer_handler();
+  lv_screen_brightness(100);
 
   PBatterySetting SET;
 
@@ -841,10 +844,7 @@ void setup()
 
 
   CreateBaseScreen(main_event_handler);
-  lv_screen_load(screenbase);
-
   Setup_ScreenLogger(ActiveBatteryIndex,false);
-
   Setup_ScreenSettings(ActiveBatteryIndex,false);
   SetDarkTheme(BoardInfo.UIDarkEnabled);
   SetButtonBeep(BoardInfo.BeepEnabled);
@@ -856,8 +856,6 @@ void setup()
   Info_Add("GUI. Init GUI.");      
   Setup_Screen3(ActiveBatteryIndex,false);
   Setup_Screen1(BoardInfo.LocalNodeID);
-
-  switch_to_dark(BoardInfo.UIDarkEnabled);
 
   #endif
 
@@ -1066,9 +1064,15 @@ void setup()
   
   #endif
 
-  Info_Add("GUI. Init RP2350 ready.");
+  delay(5000);
+
 
   init_screensaver_controller(SAVERTIME);
+
+  lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
+  lv_timer_handler();
+
+  Info_Add("GUI. Init RP2350 ready.");
 }
 
 void loop()
@@ -1651,7 +1655,14 @@ void loop()
     #ifdef DEBUG
     Serial.println("Storing boardinfo in NVM !");
     #endif
+    CreateSaveScreen("Saving board settings");
+    lv_timer_handler();
+    lv_screen_brightness(0);
     storePutBoardInfo(&BoardInfo);
+    lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
+    //lv_obj_delete();
+    lv_timer_handler();
+    lv_screen_brightness(100);
   }   
   #endif
 

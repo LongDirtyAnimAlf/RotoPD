@@ -178,6 +178,11 @@ void lv_screen_init(uint16_t W, uint16_t H)
     lv_display_set_user_data(disp_drv, display_if);
 }
 
+void lv_screen_brightness(uint8_t b)
+{
+    display_if->set_brightness(b);
+}
+
 uint32_t lv_port_get_buffer_heap_usage(void)
 {
     return (usedheapbytes);
