@@ -45,6 +45,8 @@ private:
     uint8_t _channel;
     uint8_t _id;
     bool _connected;
+    bool _checking;
+    unsigned long startTime;
     Object* findObject(uint16_t index, uint8_t subIndex);
 };
 

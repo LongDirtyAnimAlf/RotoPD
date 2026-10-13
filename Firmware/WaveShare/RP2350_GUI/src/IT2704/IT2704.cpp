@@ -26,6 +26,7 @@ IT2704::IT2704(CanOpenNode *node, uint8_t id, uint8_t channel)
       _channel(channel)
 {
     _connected = false;
+    _checking = false;
 }
 
 // ── begin() ──────────────────────────────────────────────────────────────────
@@ -236,7 +237,34 @@ void IT2704::queryConnection(void)
 {
   Message Msg;
 
-  if (!_connected)
+  if (_connected)
+  {
+    if (!_checking)
+    {
+      // Send a message to check if IT2704 is still alive
+      Msg.clearMsg();
+      Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+      Msg.dlc       = 8;
+      Msg.setCommand(READ_REQ_1BYTE_CMD);
+      Msg.setID(IT2704_COMMON);
+      Msg.setSubID(COMMON_RESET);
+      if (_node->sendMsg(Msg))
+      {
+        startTime = millis();
+        _checking = true;
+      }
+    }      
+    else
+    {
+      if (millis() - startTime >= 5000)
+      {
+        if (_checking) _connected = false; 
+        _checking = false;
+      }
+    }
+
+  }
+  else
   {
     _node->getCAN().abortAllPending();
 
@@ -253,7 +281,6 @@ void IT2704::queryConnection(void)
     Msg.setCommand(READ_REQ_1BYTE_CMD);
     Msg.setID(IT2704_COMMON);
     Msg.setSubID(COMMON_RESET);
-
     _node->sendMsg(Msg);
   }
 }
@@ -262,9 +289,21 @@ bool IT2704::checkConnection(const Message* MsgExt)
 {
   Message Msg;
 
-  if (_connected) return true;
+  if ((_checking) || (!_connected))
+  {
+    // Check for reset request response
+    if ( (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id)) && (MsgExt->getCommand() == READ_REQ_1BYTE_CMD) && (MsgExt->getID() == IT2704_COMMON) && (MsgExt->getSubID() == COMMON_RESET) )
+    {
+        _connected = true;
+        _checking = false;
+    }
+  }
 
-  if (!_connected)
+  if (_connected)
+  {
+    return true;    
+  }
+  else
   {
     //_node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
 
@@ -297,12 +336,6 @@ bool IT2704::checkConnection(const Message* MsgExt)
             _connected = true;
         }
       }
-    }
-
-    // Check for reset request response
-    if ( (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id)) && (MsgExt->getCommand() == READ_REQ_1BYTE_CMD) && (MsgExt->getID() == IT2704_COMMON) && (MsgExt->getSubID() == COMMON_RESET) )
-    {
-        _connected = true;
     }
 
     if (_connected)
