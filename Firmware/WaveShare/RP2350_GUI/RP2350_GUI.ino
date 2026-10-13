@@ -1124,117 +1124,39 @@ void loop()
     const Message& rxmsg = node.getMessage();
 
     // ---- process the message ----
-    //Serial.print("External app message ID = 0x");
+    //Serial.print("GUI [IT2704]. External app message ID = 0x");
     //Serial.printf("%04X.\r\n",rxmsg.id);
-
-    if (rxmsg.id == (CO_CAN_ID_SDO_SRV +  + load.getID()))
+    if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
     {
 
-      //Serial.println("IT2704. Receiving SDO response.");
-
-
-      if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+      if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID())) // We received a SDO message from the IT2704
       {
-        // Check for meter data that has the meaurement results from our meter data request
-        if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
+        //Serial.println("GUI [IT2704]. Receiving SDO response.");
+
+        if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
         {
-          Serial.println("IT2704. We got meter data as requested by this board.");
-
-          load.getData(&rxmsg, &RDS->LastIT2704Data.I, &RDS->LastIT2704Data.V, &RDS->LastIT2704Data.P, &RDS->LastIT2704Data.E);        
-
-          if ( (rxmsg.getSubID() == IT2704_METER_POWER) || (rxmsg.getSubID() == IT2704_METER_WHOUR))
+          // Check for meter data that has the meaurement results from our meter data request
+          if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
           {
-            ScreenPowerSetData(RDS);
+            Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
+            
+            load.getData(&rxmsg, &RDS->LastIT2704Data.I, &RDS->LastIT2704Data.V, &RDS->LastIT2704Data.P, &RDS->LastIT2704Data.E);        
+            if ( (rxmsg.getSubID() == IT2704_METER_POWER) || (rxmsg.getSubID() == IT2704_METER_WHOUR))
+            {
+              ScreenPowerSetData(RDS);
+            }
           }
-
-          /*
-          DWORD_VAL data;
-
-          // data = FLOAT32
-          data.Val = rxmsg.getData(); 
-          //data.v[0]=rxmsg.data[SDO::DATA_4];
-          //data.v[1]=rxmsg.data[SDO::DATA_5];
-          //data.v[2]=rxmsg.data[SDO::DATA_6];
-          //data.v[3]=rxmsg.data[SDO::DATA_7];
-
-          if (rxmsg.getSubID() == IT2704_METER_VOLTAGE)
-          {
-            RDS->LastIT2704Data.V = round(data.f * 1000);
-          }
-          if (rxmsg.getSubID() == IT2704_METER_POWER)
-          {
-            RDS->LastIT2704Data.P = round(data.f * 1000);
-            ScreenPowerSetData(RDS);
-          }
-          if (rxmsg.getSubID() == IT2704_METER_WHOUR)
-          {
-            RDS->LastIT2704Data.E = round(data.f * 1000);
-            ScreenPowerSetData(RDS);
-          }
-          */          
-        }
-      }
-
-      if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
-      {
-        Serial.println("IT2704. Receiving response from writing data.");
-
-        Serial.print("IT2704. Writing data success. ");
-        Serial.print("Index 0x");
-
-        Serial.printf("%04X",rxmsg.getID());
-
-        Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
-      }
-    }
-
-    if (rxmsg.id == (CO_CAN_ID_HEARTBEAT +  load.getID()))
-    {
-      // We got a hearbeat message from the IT2704
-      Serial.println("IT2704. Receiving heartbeat.");
-      IT2704_NMT_Status = rxmsg.data[0];
-
-      if (IT2704_NMT_Status != CO_NMT_OPERATIONAL)
-      {
-        Serial.println("Sending config to IT2704.");
-
-        Msg.id        = (CO_CAN_ID_SDO_CLI +  + load.getID());
-        Msg.dlc       = 8;
-
-        // Set TDPO time to 0 to disable all TPDOs
-        // No use in a multi-channel environment
-        for (j = 0; j < 4; j++)
-        {
-          // Set Set the transmission type of TPDO#j to 254
-          Msg.clearData();
-          Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-          Msg.setID(TX_PDO1_COMM_INDEX + j);
-          Msg.setSubID(SUBIDX_PDO_TRANSMISSION_TYPE);
-          Msg.setData(PDO_TXTYPE_ASYNC_MANUFACTURER);
-          node.sendMsg(Msg);
-          // This message will be confirmed
-          // We might have a look at it
-
-          //Modify TPDO#j timer cycle as 0ms
-          Msg.clearData();
-          Msg.setCommand(WRITE_REQ_2BYTE_CMD);
-          Msg.setID(TX_PDO1_COMM_INDEX + j);
-          Msg.setSubID(SUBIDX_PDO_EVENT_TIMER);
-          Msg.setData(0);
-          node.sendMsg(Msg);
-          // This message will be confirmed
-          // We might have a look at it
         }
 
-        // We need to set the IT2704 into operation mode
-        // If not, it will not receive any command !!
-        // Set IT2700 CANopen remote control mode on
-        Msg.clearMsg();
-        Msg.id        = 0;
-        Msg.dlc       = 2;
-        Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
-        Msg.data[1]   =  + load.getID();
-        node.sendMsg(Msg);
+        if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
+        {
+          Serial.println("GUI [IT2704]. Receiving response from writing data.");
+
+          Serial.print("GUI [IT2704]. Writing data success. ");
+          Serial.print("Index 0x");
+          Serial.printf("%04X",rxmsg.getID());
+          Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
+        }
       }
     }
 
@@ -1252,7 +1174,9 @@ void loop()
   {
     startTime = millis();
 
-    load.collectData();
+    //load.collectData();
+
+    load.queryConnection();
 
     //dictionary[index].data[0] = dummycount++; // update displayed charge
     dictionary[index].setDword(dummycount++);
@@ -1382,6 +1306,13 @@ void loop()
   // This is a command coming from the touch-screen logic = main_event_handler()
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
   {
+
+    if (SendCommand[COMMANDPOSITION] == CMD_set_value)
+    {
+      Info_Add("GUI [IT2704]. Setting discharge current !!!!!!!");
+      load.setCurrent(1000);
+    }
+
     // Fill the data
     for (j=0; j<(SendCommand[LENGTHPOSITION]+DATASTART); j++) OUTData[j] = SendCommand[j];
     // Reset command
@@ -1551,6 +1482,7 @@ void loop()
 
     if (SET->TestData.DataTriggerCounter == 0)
     {
+      load.collectData();
 
       RDS = &SET->TestData.RunDatas;        
 

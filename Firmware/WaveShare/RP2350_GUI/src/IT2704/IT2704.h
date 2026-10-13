@@ -36,10 +36,15 @@ public:
     void setOutput(bool enabled);
     void collectData(void);
     void getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E);
+
+    void queryConnection(void);
+    bool checkConnection(const Message* MsgExt);
+
 private:
     CanOpenNode * _node;
     uint8_t _channel;
     uint8_t _id;
+    bool _connected;
     Object* findObject(uint16_t index, uint8_t subIndex);
 };
 

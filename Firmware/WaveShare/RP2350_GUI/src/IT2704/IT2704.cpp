@@ -25,6 +25,7 @@ IT2704::IT2704(CanOpenNode *node, uint8_t id, uint8_t channel)
       _id(id),
       _channel(channel)
 {
+    _connected = false;
 }
 
 // ── begin() ──────────────────────────────────────────────────────────────────
@@ -60,46 +61,50 @@ void IT2704::initDevice(void)
   Message Msg;
   DWORD_FLOAT data;  
 
-  Msg.clearMsg();
+  if (_connected)
+  {
 
-  Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-  Msg.dlc       = 8;
+    Msg.clearMsg();
 
-  // Set output slewrate
-  // On: slow ; off: max (fast)
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
 
-  Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-  Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
+    // Set output slewrate
+    // On: slow ; off: max (fast)
 
-  // Write on slew max off
-  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE_MAX);
-  Msg.setData(0); // 0:Off 1:On
-  _node->sendMsg(Msg);
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
 
-  // Write off slew max on
-  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_NEGATIVE_MAX);
-  Msg.setData(1); // 0:Off 1:On
-  _node->sendMsg(Msg);
+    // Write on slew max off
+    Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE_MAX);
+    Msg.setData(0); // 0:Off 1:On
+    _node->sendMsg(Msg);
 
-  // Write on slew rate
-  Msg.setCommand(WRITE_REQ_4BYTE_CMD);
-  Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
-  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE);
+    // Write off slew max on
+    Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_NEGATIVE_MAX);
+    Msg.setData(1); // 0:Off 1:On
+    _node->sendMsg(Msg);
 
-  data.f = 0.01; // Amps/ms
-  Msg.setData(data.Val);
-  //Msg.data[SDO::DATA_4]       = data.v[0];
-  //Msg.data[SDO::DATA_5]       = data.v[1];
-  //Msg.data[SDO::DATA_6]       = data.v[2];
-  //Msg.data[SDO::DATA_7]       = data.v[3];
+    // Write on slew rate
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
+    Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE);
 
-  _node->sendMsg(Msg);
+    data.f = 0.01; // Amps/ms
+    Msg.setData(data.Val);
+    //Msg.data[SDO::DATA_4]       = data.v[0];
+    //Msg.data[SDO::DATA_5]       = data.v[1];
+    //Msg.data[SDO::DATA_6]       = data.v[2];
+    //Msg.data[SDO::DATA_7]       = data.v[3];
+
+    _node->sendMsg(Msg);
 
 
-  // COMMON_SOURCE_SLOPE_TYPE // 0:Rate [A/ms] 1:Time
+    // COMMON_SOURCE_SLOPE_TYPE // 0:Rate [A/ms] 1:Time
 
-  //Current slew time positive
-  //Current slew time negative
+    //Current slew time positive
+    //Current slew time negative
+  }
 }
 
 void IT2704::setCurrent(uint16_t current) // in mA
@@ -107,95 +112,100 @@ void IT2704::setCurrent(uint16_t current) // in mA
   Message Msg;
   DWORD_FLOAT data;
 
-  Msg.clearMsg();
+  if (_connected)
+  {
+    Msg.clearMsg();
 
-  Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-  Msg.dlc       = 8;
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
 
-  // Set current
+    // Set current
 
-  Msg.setCommand(WRITE_REQ_4BYTE_CMD);
-  Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
-  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_LEVEL);
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
+    Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_LEVEL);
 
-  data.f = current; // current is set in mA !!
-  data.f /= 1000.0;
-  Msg.setData(data.Val);
+    data.f = current; // current is set in mA !!
+    data.f /= 1000.0;
+    Msg.setData(data.Val);
 
-  //Msg.data[SDO::DATA_4]       = data.v[0];
-  //Msg.data[SDO::DATA_5]       = data.v[1];
-  //Msg.data[SDO::DATA_6]       = data.v[2];
-  //Msg.data[SDO::DATA_7]       = data.v[3];
+    //Msg.data[SDO::DATA_4]       = data.v[0];
+    //Msg.data[SDO::DATA_5]       = data.v[1];
+    //Msg.data[SDO::DATA_6]       = data.v[2];
+    //Msg.data[SDO::DATA_7]       = data.v[3];
 
-  _node->sendMsg(Msg);
+    _node->sendMsg(Msg);
 
-  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_MODE                      SUBIDX_20  0:Off 1:live 2:latching
-  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VON                       SUBIDX_21
-  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VOFF                      SUBIDX_22
-
+    //#define IT2704_SOURCE_VOLTAGE_INHIBIT_MODE                      SUBIDX_20  0:Off 1:live 2:latching
+    //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VON                       SUBIDX_21
+    //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VOFF                      SUBIDX_22
+  }
 }
 
 void IT2704::setOutput(bool enabled)
 {
   Message Msg;
 
-  Msg.clearMsg();
+  if (_connected)
+  {
+    Msg.clearMsg();
 
-  Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-  Msg.dlc       = 8;
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
 
-  // Set output
-  Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-  Msg.setID(IT2704_OUTPUT + (_channel * 0x100));
-  Msg.setSubID(IT2704_OUTPUT_ONOFF_STATE);
-  Msg.setData(enabled ? 1 : 0);
+    // Set output
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setID(IT2704_OUTPUT + (_channel * 0x100));
+    Msg.setSubID(IT2704_OUTPUT_ONOFF_STATE);
+    Msg.setData(enabled ? 1 : 0);
 
-  _node->sendMsg(Msg);
+    _node->sendMsg(Msg);
 
-  // COMMON_SOURCE_SLOPE_TYPE // 0:Rate [A/ms] 1:Time
+    // COMMON_SOURCE_SLOPE_TYPE // 0:Rate [A/ms] 1:Time
 
-//Current slew positive
-//Current slew negative
-//Current slew time positive
-//Current slew time negative
-//Current slew couple
-//Current slew  positive max // 0:Off 1:On
-//Current slew negative max // 0:Off 1:On
-
-
-
+    //Current slew positive
+    //Current slew negative
+    //Current slew time positive
+    //Current slew time negative
+    //Current slew couple
+    //Current slew  positive max // 0:Off 1:On
+    //Current slew negative max // 0:Off 1:On
+  }
 }
 
 void IT2704::collectData(void)
 {
   Message Msg;
 
-  Msg.clearMsg();
+  if (_connected)
+  {
+    Msg.clearMsg();
 
-  Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-  Msg.dlc       = 8;
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
 
-  Msg.setCommand(READ_REQ_ANY_CMD);
-  Msg.setID(IT2704_METER + (_channel * 0x100));
+    Msg.setCommand(READ_REQ_ANY_CMD);
+    Msg.setID(IT2704_METER + (_channel * 0x100));
 
-  Msg.setSubID(IT2704_METER_VOLTAGE);
-  _node->sendMsg(Msg);
-  // This message will be confirmed
-  // Voltage data will be inside the response !
+    Msg.setSubID(IT2704_METER_VOLTAGE);
+    _node->sendMsg(Msg);
+    // This message will be confirmed
+    // Voltage data will be inside the response !
 
-  Msg.setSubID(IT2704_METER_CURRENT);
-  _node->sendMsg(Msg);
-  // This message will be confirmed
-  // Current data will be inside the response !
+    Msg.setSubID(IT2704_METER_CURRENT);
+    _node->sendMsg(Msg);
+    // This message will be confirmed
+    // Current data will be inside the response !
 
-  Msg.setSubID(IT2704_METER_POWER);
-  _node->sendMsg(Msg);
+    Msg.setSubID(IT2704_METER_POWER);
+    _node->sendMsg(Msg);
 
-  //Msg.setSubID(IT2704_METER_AHOUR);
-  //node.sendMsg(Msg);
+    //Msg.setSubID(IT2704_METER_AHOUR);
+    //node.sendMsg(Msg);
 
-  Msg.setSubID(IT2704_METER_WHOUR);
-  _node->sendMsg(Msg);
+    Msg.setSubID(IT2704_METER_WHOUR);
+    _node->sendMsg(Msg);
+  }
 }
 
 void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E)
@@ -222,6 +232,116 @@ void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, 
     }
 }
 
+void IT2704::queryConnection(void)
+{
+  Message Msg;
+
+  if (!_connected)
+  {
+    _node->getCAN().abortAllPending();
+
+    Msg.clearMsg();
+    Msg.id        = 0;
+    Msg.dlc       = 2;
+    Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
+    Msg.data[1]   = _id;
+    _node->sendMsg(Msg);
+
+    Msg.clearMsg();
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+    Msg.setCommand(READ_REQ_1BYTE_CMD);
+    Msg.setID(IT2704_COMMON);
+    Msg.setSubID(COMMON_RESET);
+
+    _node->sendMsg(Msg);
+  }
+}
+
+bool IT2704::checkConnection(const Message* MsgExt)
+{
+  Message Msg;
+
+  if (_connected) return true;
+
+  if (!_connected)
+  {
+    //_node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
+
+    if (MsgExt->id == (CO_CAN_ID_HEARTBEAT + _id))
+    {
+      if (MsgExt->dlc == 1)
+      {
+        uint8_t IT2704_NMT_Status = MsgExt->data[0];
+
+        if (IT2704_NMT_Status == CO_NMT_INITIALIZING)
+        {
+            // Startup CANopen message from IT2704
+
+            _node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
+
+            // IT2704 ready with power-on init !
+            Msg.clearMsg();
+            Msg.id        = 0;
+            Msg.dlc       = 2;
+            
+            Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
+            Msg.data[1]   = _id;
+            _node->sendMsg(Msg);
+
+            Msg.clearMsg();
+            Msg.data[0]   = CO_NMT_ENTER_PRE_OPERATIONAL;
+            Msg.data[1]   = _id;
+            _node->sendMsg(Msg);
+
+            _connected = true;
+        }
+      }
+    }
+
+    // Check for reset request response
+    if ( (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id)) && (MsgExt->getCommand() == READ_REQ_1BYTE_CMD) && (MsgExt->getID() == IT2704_COMMON) && (MsgExt->getSubID() == COMMON_RESET) )
+    {
+        _connected = true;
+    }
+
+    if (_connected)
+    {
+        // Set TDPO time to 0 to disable all TPDOs
+        // No use in a multi-channel environment
+
+        //_node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
+
+        Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+        Msg.dlc       = 8;
+
+        for (int j = 0; j < 4; j++)
+        {
+          // Set Set the transmission type of TPDO#j to 254
+          Msg.clearData();
+          Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+          Msg.setID(TX_PDO1_COMM_INDEX + j);
+          Msg.setSubID(SUBIDX_PDO_TRANSMISSION_TYPE);
+          Msg.setData(PDO_TXTYPE_ASYNC_MANUFACTURER);
+          _node->sendMsg(Msg);
+          // This message will be confirmed
+          // We might have a look at it
+
+          //Modify TPDO#j timer cycle as 0ms
+          Msg.clearData();
+          Msg.setCommand(WRITE_REQ_2BYTE_CMD);
+          Msg.setID(TX_PDO1_COMM_INDEX + j);
+          Msg.setSubID(SUBIDX_PDO_EVENT_TIMER);
+          Msg.setData(0);
+          _node->sendMsg(Msg);
+          // This message will be confirmed
+          // We might have a look at it
+        }
+    }
+  }
+  return false;
+}
+
 // Return object index position in dictionary array
 Object* IT2704::findObject(uint16_t index, uint8_t subIndex) {
   // loop through object dictionary to find matching indices
@@ -234,4 +354,3 @@ Object* IT2704::findObject(uint16_t index, uint8_t subIndex) {
   }
   return NULL; // return NULL if no match found
 }
-
