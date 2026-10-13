@@ -339,7 +339,7 @@ static void main_event_handler(lv_event_t * e)
         {
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION] = CMD_set_output;
-          SendCommand[INDEXPOSITION] = BoardInfo.BoardNumber;
+          SendCommand[INDEXPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 1U; // length
           SendCommand[DATASTART] = (uint8_t)buttondown;
         }    
@@ -405,7 +405,7 @@ static void main_event_handler(lv_event_t * e)
 
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION] = CMD_set_value;
-          SendCommand[INDEXPOSITION] = BoardInfo.BoardNumber;
+          SendCommand[INDEXPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 5U; // length
           SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
           temp = SET->TestData.SetStageValue;
@@ -443,8 +443,7 @@ static void main_event_handler(lv_event_t * e)
           BoardInfo.LocalNodeID = GetNodeAdress();
           BoardInfo.MasterNodeID = GetMasterAdress();
           BoardInfo.IT2704NodeID = GetIT2704Adress();
-          //BoardInfo.IT2704Channel = GetIT2704Channel();
-          BoardInfo.BoardNumber = (GetIT2704Channel() + 1);
+          BoardInfo.IT2704Channel = GetIT2704Channel();
           StoreBoardInfo = true;
         }
 
@@ -456,12 +455,12 @@ static void main_event_handler(lv_event_t * e)
 
           switch(screenindex)
           {
-            case 1: {Setup_Screen1((BoardInfo.BoardNumber - 1));Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower((BoardInfo.BoardNumber - 1));ScreenPowerSetData(RDS);break;}
-            case 3: {Setup_Screen2((BoardInfo.BoardNumber - 1));Screen2SetData(RDS);break;}
-            case 4: {Setup_Screen3((BoardInfo.BoardNumber - 1),true);break;}
-            case 5: {Setup_ScreenSettings((BoardInfo.BoardNumber - 1),true);break;}
-            case 6: {Setup_ScreenLogger((BoardInfo.BoardNumber - 1),true);break;}
+            case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
+            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(RDS);break;}
+            case 3: {Setup_Screen2(BoardInfo.IT2704Channel);Screen2SetData(RDS);break;}
+            case 4: {Setup_Screen3(BoardInfo.IT2704Channel,true);break;}
+            case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
+            case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
           }
         }
         else
@@ -487,7 +486,7 @@ static void main_event_handler(lv_event_t * e)
           #endif
           // Prepare the command to engage the hardware
           SendCommand[COMMANDPOSITION]   = CMD_get_PDOList;
-          SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
+          SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION]    = 0U; // length
         }
         else
@@ -512,7 +511,7 @@ static void main_event_handler(lv_event_t * e)
               #endif
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
-              SendCommand[INDEXPOSITION]     = BoardInfo.BoardNumber;
+              SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
               SendCommand[LENGTHPOSITION]    = 1U; // length
               SendCommand[DATASTART]         = SelectPDOindex;
             }
@@ -689,16 +688,55 @@ static void datastartcb(byte index)
 void setIT2704Current(word current)
 {
   Message Msg;
+  DWORD_VAL data;
+
+  Msg.clearMsg();
 
   Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
   Msg.dlc       = 8;
 
-  //Memo1.Lines.Append(SingleToHex(2.5));
-  //comm.WriteString('t'+'601'+'8'+'23023001'+SingleToHex(0.2)+#13);
-  //comm.WriteString('t'+'601'+'8'+'2F08300101000000'+#13);
+  // Set current
 
+  data.f = current;
+  data.f /= 1000.0;
+
+  Msg.data[SDO::COMMAND]      = WRITE_REQ_4BYTE_CMD;
+  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_SOURCE_CURRENT + (BoardInfo.IT2704Channel * 0x100)) & 0xFF);
+  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_SOURCE_CURRENT + (BoardInfo.IT2704Channel * 0x100)) >> 8);
+  Msg.data[SDO::SUB_INDEX]    = IT2704_SOURCE_CURRENT_CURRENT_LEVEL;
+  Msg.data[SDO::DATA_4]       = data.v[0];
+  Msg.data[SDO::DATA_5]       = data.v[1];
+  Msg.data[SDO::DATA_6]       = data.v[2];
+  Msg.data[SDO::DATA_7]       = data.v[3];
+
+  node.sendMsg(Msg);
+
+  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_MODE                      SUBIDX_20  0:Off 1:live 2:latching
+  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VON                       SUBIDX_21
+  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VOFF                      SUBIDX_22
 
 }
+
+void setIT2704Output(bool enabled)
+{
+  Message Msg;
+
+  Msg.clearMsg();
+
+  Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
+  Msg.dlc       = 8;
+
+  // Set output
+
+  Msg.data[SDO::COMMAND]      = WRITE_REQ_1BYTE_CMD;
+  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_OUTPUT + (BoardInfo.IT2704Channel * 0x100)) & 0xFF);
+  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_OUTPUT + (BoardInfo.IT2704Channel * 0x100)) >> 8);
+  Msg.data[SDO::SUB_INDEX]    = IT2704_OUTPUT_ONOFF_STATE;
+  Msg.data[SDO::DATA_4]       = (enabled ? 1 : 0);
+
+  node.sendMsg(Msg);
+}
+
 
 void collectIT2704Data(void)
 {
@@ -710,16 +748,18 @@ void collectIT2704Data(void)
   Msg.dlc       = 8;
 
   Msg.data[SDO::COMMAND]      = READ_REQ_ANY_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_METER + ((BoardInfo.BoardNumber - 1) * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_METER + ((BoardInfo.BoardNumber - 1) * 0x100)) >> 8);
+  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_METER + (BoardInfo.IT2704Channel * 0x100)) & 0xFF);
+  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_METER + (BoardInfo.IT2704Channel * 0x100)) >> 8);
   
   Msg.data[SDO::SUB_INDEX]    = IT2704_METER_VOLTAGE;
   node.sendMsg(Msg);
   // This message will be confirmed
-  // Voltage data is inside the response !
+  // Voltage data will be inside the response !
 
   Msg.data[SDO::SUB_INDEX]    = IT2704_METER_CURRENT;
   node.sendMsg(Msg);
+  // This message will be confirmed
+  // Current data will be inside the response !
 
   Msg.data[SDO::SUB_INDEX]    = IT2704_METER_POWER;
   node.sendMsg(Msg);
@@ -877,26 +917,27 @@ void setup()
   lv_screen_init(HOR_RES, VER_RES);
   lv_screen_brightness(0);
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
+
+  // Create and show flash-screen
   CreateSaveScreen(NULL);
   lv_timer_handler();
   lv_screen_brightness(100);
 
   CreateBaseScreen(main_event_handler);
-  Setup_ScreenLogger((BoardInfo.BoardNumber - 1),false);
+  Setup_ScreenLogger(BoardInfo.IT2704Channel,false);
 
   Info_Add("GUI. Init GUI.");      
 
-  Setup_ScreenSettings((BoardInfo.BoardNumber - 1),false);
-  Setup_Screen3((BoardInfo.BoardNumber - 1),false);
-  Setup_Screen1((BoardInfo.BoardNumber - 1));
+  Setup_ScreenSettings(BoardInfo.IT2704Channel,false);
+  Setup_Screen3(BoardInfo.IT2704Channel,false);
+  Setup_Screen1(BoardInfo.IT2704Channel);
 
   SetDarkTheme(BoardInfo.UIDarkEnabled);
   SetButtonBeep(BoardInfo.BeepEnabled);
   SetNodeAdress(BoardInfo.LocalNodeID);
   SetMasterAdress(BoardInfo.MasterNodeID);
   SetIT2704Adress(BoardInfo.IT2704NodeID);
-  //SetIT2704Channel(BoardInfo.IT2704Channel);
-  SetIT2704Channel(BoardInfo.BoardNumber - 1);
+  SetIT2704Channel(BoardInfo.IT2704Channel);
 
   Info_Add("GUI. Controller startup");
 
@@ -1012,8 +1053,8 @@ void setup()
   // Switch back to normal operation mode
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
 
-  Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.BoardNumber);
-  Info_Add_Fmt("GUI. Channel-number: %d.",(BoardInfo.BoardNumber-1));
+  Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.getBoardNumber());
+  Info_Add_Fmt("GUI. Channel-number: %d.",BoardInfo.IT2704Channel);
   Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
@@ -1176,42 +1217,33 @@ void loop()
 
       if (rxmsg.data[SDO::COMMAND] == READ_REQ_4BYTE_CMD)
       {
-        if ( (rxmsg.data[SDO::INDEX_LOW] + (rxmsg.data[SDO::INDEX_HIGH] * 256)) == ((IT2704_METER + ((BoardInfo.BoardNumber - 1) * 0x100))) )
+        // Check for meter data that has the meaurement results from our meter data request
+        if ( (rxmsg.data[SDO::INDEX_LOW] + (rxmsg.data[SDO::INDEX_HIGH] * 256)) == ((IT2704_METER + (BoardInfo.IT2704Channel * 0x100))) )
         {
 
-          Serial.println("IT2704. We got meter data requested by this board.");
+          Serial.println("IT2704. We got meter data as requested by this board.");
 
           SET = Battery;
           RDS = &SET->TestData.RunDatas; 
 
-          union {
-            uint8_t b[4];
-            float f;
-          } data;
+          DWORD_VAL data;
 
-          data.b[0]=rxmsg.data[SDO::DATA_4];
-          data.b[1]=rxmsg.data[SDO::DATA_5];
-          data.b[2]=rxmsg.data[SDO::DATA_6];
-          data.b[3]=rxmsg.data[SDO::DATA_7];
+          data.v[0]=rxmsg.data[SDO::DATA_4];
+          data.v[1]=rxmsg.data[SDO::DATA_5];
+          data.v[2]=rxmsg.data[SDO::DATA_6];
+          data.v[3]=rxmsg.data[SDO::DATA_7];
 
           if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_VOLTAGE)
           {
-            //Serial.println("IT2704. We got voltage value.");
-            //voltage = rxmsg.data[SDO::COMMAND]
             RDS->LastIT2704Data.V = round(data.f * 1000);
           }
           if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_POWER)
           {
-            Serial.println("IT2704. We got power value.");
-            //voltage = rxmsg.data[SDO::COMMAND]
             RDS->LastIT2704Data.P = round(data.f * 1000);
-            Serial.printf("%d",RDS->LastIT2704Data.P);
             ScreenPowerSetData(RDS);
           }
           if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_WHOUR)
           {
-            //Serial.println("IT2704. We got energy value.");
-            //voltage = rxmsg.data[SDO::COMMAND]
             RDS->LastIT2704Data.E = round(data.f * 1000);
             ScreenPowerSetData(RDS);
           }
@@ -1240,14 +1272,15 @@ void loop()
       Serial.println("IT2704. Receiving heartbeat.");
       IT2704_NMT_Status = rxmsg.data[0];
 
-      if (IT2704_NMT_Status == CO_NMT_PRE_OPERATIONAL)
-      //if (IT2704_NMT_Status != CO_NMT_OPERATIONAL)
+      if (IT2704_NMT_Status != CO_NMT_OPERATIONAL)
       {
         Serial.println("Sending config to IT2704.");
 
         Msg.id        = (CO_CAN_ID_SDO_CLI +  + BoardInfo.IT2704NodeID);
         Msg.dlc       = 8;
 
+        // Set TDPO time to 0 to disable all TPDOs
+        // No use in a multi-channel environment
         for (j = 0; j < 4; j++)
         {
           // Set Set the transmission type of TPDO#j to 254
@@ -1281,7 +1314,6 @@ void loop()
         Msg.id        = 0;
         Msg.dlc       = 2;
         Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
-        //Msg.data[0]   = CO_NMT_ENTER_PRE_OPERATIONAL;
         Msg.data[1]   =  + BoardInfo.IT2704NodeID;
         node.sendMsg(Msg);
       }
@@ -1342,7 +1374,7 @@ void loop()
         memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
         hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
-        hid_report_in[INDEXPOSITION] = BoardInfo.BoardNumber;
+        hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
 
         dataindexer = DATASTART;
 
@@ -1465,11 +1497,11 @@ void loop()
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
-    if (BoardNumber != BoardInfo.BoardNumber)
+    if (BoardNumber != BoardInfo.getBoardNumber())
     {
       // Should never happen !!
       Info_Add("GUI. Severe error. Wrong boardnumber !!!");
-      Info_Add_Fmt("GUI. Received board %d. BoardInfo has %d.", BoardNumber, BoardInfo.BoardNumber);
+      Info_Add_Fmt("GUI. Received board %d. BoardInfo has %d.", BoardNumber, BoardInfo.getBoardNumber());
     }
 
     switch(cCmd)
@@ -1631,7 +1663,7 @@ void loop()
       memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
       hid_report_in[COMMANDPOSITION] = CMD_get_data;
-      hid_report_in[INDEXPOSITION] = BoardInfo.BoardNumber;
+      hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
 
       dataindexer = DATASTART;
 
@@ -1780,6 +1812,13 @@ void ClearRunData(PRunDatas RDS)
   RDS->LastBatteryData.T = 0;
   RDS->LastBatteryData.E = 0;
   RDS->LastBatteryData.S = 0;
+
+  RDS->LastIT2704Data.V = 0;
+  RDS->LastIT2704Data.I = 0;
+  RDS->LastIT2704Data.P = 0;
+  RDS->LastIT2704Data.T = 0;
+  RDS->LastIT2704Data.E = 0;
+  RDS->LastIT2704Data.S = 0;
 
   RDS->Head = -1;
   RDS->Tail = -1;  

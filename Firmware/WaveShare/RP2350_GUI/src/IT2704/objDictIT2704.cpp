@@ -52,8 +52,8 @@ Object dictionaryIT2704[] = {
     {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_LIMIT_COUPLE             , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_HIGH                     , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_LOW                      , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
-    {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_MODE                     , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
-    {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_RANGE                    , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    //{IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_MODE                     , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
+    //{IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_RANGE                    , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_SLEW_POSITIVE            , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_SLEW_NEGATIVE            , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_VOLTAGE           , IT2704_SOURCE_VOLTAGE_VOLTAGE_SLEW_TIME_POSITIVE       , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
@@ -112,7 +112,7 @@ Object dictionaryIT2704[] = {
     {IT2704_SOURCE_FILE              , SUBIDX_HIGHEST_SUPPORTED, {0x03, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
     {IT2704_SOURCE_FILE              , IT2704_SOURCE_FILE_SAVE_BANK                           , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_FILE              , IT2704_SOURCE_FILE_RECALL_BANK                         , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
-    {IT2704_SOURCE_FILE              , IT2704_SOURCE_FILE_DELETE_BANCK                        , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
+    {IT2704_SOURCE_FILE              , IT2704_SOURCE_FILE_DELETE_BANK                         , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
 
     // OUTPUT
     {IT2704_OUTPUT                   , SUBIDX_HIGHEST_SUPPORTED, {0x0A, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},

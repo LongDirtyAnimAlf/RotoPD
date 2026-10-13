@@ -1,6 +1,8 @@
 #ifndef _SHARED_H_
 #define _SHARED_H_
 
+//#pragma once          // or classic include guards
+
 #include <Arduino.h>
 //#include "longunion.h"
 
@@ -92,16 +94,17 @@ typedef union
 
 typedef union
 {
-    dword Val;
-    byte v[4];// __PACKED;
-    word w[2];// __PACKED;
+    uint32_t Val;
+    uint8_t v[4];// __PACKED;
+    uint16_t w[2];// __PACKED;
     struct //__PACKED
     {
-        byte LB;
-        byte HB;
-        byte UB;
-        byte MB;
+        uint8_t LB;
+        uint8_t HB;
+        uint8_t UB;
+        uint8_t MB;
     } bytes;
+    float f;
 } DWORD_VAL, DWORD_BITS;
 
 typedef union
@@ -262,31 +265,6 @@ typedef struct
   TRunDatas            RunDatas;
 } TTestData;
 
-typedef struct {
-  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-  bool InValid;
-  #endif
-  #if defined(ARDUINO_ARCH_SAMD)  
-  bool Valid;
-  #endif
-  #ifdef ARDUINO_ESP32S3_DEV
-  bool Valid;
-  #endif
-  #ifdef ARDUINO_ARCH_RP2040
-  bool InValid;
-  #endif
-  byte BoardSerial[12];
-  byte BoardCalDate[4];  // YYMD
-  byte BoardNumber;
-  byte LocalNodeID;
-  byte MasterNodeID;
-  byte IT2704NodeID;
-  //byte IT2704Channel;
-  int16_t shuntcorrection;
-  bool UIDarkEnabled;
-  bool BeepEnabled;  
-} TBoardInfo;
-
 #define DEFAULT_IT2704_CHANNEL                0
 #define DEFAULT_BOARDNUMBER                   (DEFAULT_IT2704_CHANNEL + 1)
 #define DEFAULT_IT2704_NODEID                 1
@@ -311,6 +289,105 @@ typedef struct
   bool NeedsStatusUpdate;
   bool NeedsDataUpdate;
 } TBatteryBoard,*PBatteryBoard;
+
+#ifdef __cplusplus          // only compile the class when using a C++ compiler
+
+class TBoardInfo {
+private:
+  // Board-specific validity flag (hidden)
+  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+  bool InValid;
+  #endif
+
+  #if defined(ARDUINO_ARCH_SAMD)
+  bool Valid;
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32          // note: matches your latest list
+  bool Valid;
+  #endif
+
+  #ifdef ARDUINO_ARCH_RP2040
+  bool InValid;
+  #endif
+
+public:
+  // Common board information
+  byte BoardSerial[12];
+  byte BoardCalDate[4];   // YYMD
+  byte LocalNodeID;
+  byte MasterNodeID;
+  byte IT2704NodeID;
+  byte IT2704Channel;
+  int16_t shuntcorrection;
+  bool UIDarkEnabled;
+  bool BeepEnabled;
+
+  // ---------- Default constructor (uses the values from your list) ----------
+  TBoardInfo() {
+    // Validity flags
+    /*
+    #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+    InValid = true;                 // DataInValid
+    #endif
+    #if defined(ARDUINO_ARCH_SAMD)
+    Valid = false;                  // DataValid
+    #endif
+    #ifdef ARDUINO_ARCH_ESP32
+    Valid = false;                  // DataValid
+    #endif
+    #ifdef ARDUINO_ARCH_RP2040
+    InValid = true;                 // DataInValid
+    #endif
+    */
+    
+    // Arrays
+    memset(BoardSerial, 0, sizeof(BoardSerial));
+    memset(BoardCalDate, 0, sizeof(BoardCalDate));
+
+    // Other members
+    LocalNodeID     = DEFAULT_LOCAL_NODEID;
+    MasterNodeID    = DEFAULT_MASTER_NODEID;
+    IT2704NodeID    = DEFAULT_IT2704_NODEID;
+    IT2704Channel   = DEFAULT_IT2704_CHANNEL;
+    shuntcorrection = 44;           // Default INA238 shunt correction value (in uOhm, signed, int16_t)
+    UIDarkEnabled   = true;         // Dark
+    BeepEnabled     = true;         // Beep
+
+    // Use the helper instead of setting the flag directly
+    setValid(false);
+  }
+
+  // ---------- Validity helpers ----------
+  bool isValid() const {
+    #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+    return !InValid;
+    #elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_ESP32)
+    return Valid;
+    #elif defined(ARDUINO_ARCH_RP2040)
+    return !InValid;
+    #else
+    return true;
+    #endif
+  }
+
+  void setValid(bool value) {
+    #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+    InValid = !value;
+    #elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_ESP32)
+    Valid = value;
+    #elif defined(ARDUINO_ARCH_RP2040)
+    InValid = !value;
+    #endif
+  }
+
+  // Always returns LocalNodeID + 1
+  byte getBoardNumber() const {
+    return (LocalNodeID + 1);
+  }
+};
+
+#endif // __cplusplus
 
 typedef struct
 {

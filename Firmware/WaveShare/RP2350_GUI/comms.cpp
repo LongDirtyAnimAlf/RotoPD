@@ -62,34 +62,7 @@ static float ina_T_c        = 0;
 #endif
 static int   ina_counter_c  = 0;
 
-#ifdef ARDUINO_ARCH_ESP32
-DRAM_ATTR 
-#endif
-TBoardInfo BoardInfo = 
-{
-  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-  true, // DataInValid
-  #endif
-  #if defined(ARDUINO_ARCH_SAMD)  
-  false, // DataValid
-  #endif
-  #ifdef ARDUINO_ARCH_ESP32
-  false, // DataValid
-  #endif
-  #ifdef ARDUINO_ARCH_RP2040
-  true, // DataInValid
-  #endif
-  {0},  // Default BoardSerial
-  {0},  // Default BoardCalDate
-  //DEFAULT_BOARDNUMBER,
-  DEFAULT_LOCAL_NODEID,
-  DEFAULT_MASTER_NODEID,
-  DEFAULT_IT2704_NODEID,
-  //DEFAULT_IT2704_CHANNEL,
-  44,     // Default INA238 shunt correction value (in uOhm, signed, int16_t)
-  true,   // Dark
-  true    // Beep
-};
+TBoardInfo BoardInfo;
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
 {
@@ -684,13 +657,13 @@ bool process_command(void const *data, void *result)
   // Echo back command and index/number
   resultbuffer[COMMANDPOSITION]=cCmd;
   //resultbuffer[INDEXPOSITION]=BN;
-  resultbuffer[INDEXPOSITION]=BoardInfo.BoardNumber;
+  resultbuffer[INDEXPOSITION]=BoardInfo.getBoardNumber();
 
-  if (BN != BoardInfo.BoardNumber)
+  if (BN != BoardInfo.getBoardNumber())
   {
     // Should never happen !!
     Info_Add("Comms. Severe error. Wrong boardnumber !!!");
-    Info_Add_Fmt("Comms. Received board %d. BoardInfo has %d.", BN, BoardInfo.BoardNumber);
+    Info_Add_Fmt("Comms. Received board %d. BoardInfo has %d.", BN, BoardInfo.getBoardNumber());
   }
 
   // Skip length
@@ -868,18 +841,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         BoardInfo.BoardSerial[j] = hid_report_out[j+1];
         hid_report_in[j+1] = BoardInfo.BoardSerial[j];
       }
-      #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-      BoardInfo.InValid = false;
-      #endif
-      #if defined(ARDUINO_ARCH_SAMD)  
-      BoardInfo.Valid = true;
-      #endif
-      #if defined(ARDUINO_ARCH_ESP32)  
-      BoardInfo.Valid = true;
-      #endif
-      #ifdef ARDUINO_ARCH_RP2040
-      BoardInfo.InValid = false;
-      #endif
+      BoardInfo.setValid(true);
       storePutBoardInfo(&BoardInfo);
 			break;
 		}
@@ -895,26 +857,19 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
     case USB_CMD_get_board_number:
     {
-      hid_report_in[1] = BoardInfo.BoardNumber;
+      hid_report_in[1] = BoardInfo.getBoardNumber();
+      //hid_report_in[1] = (BoardInfo.IT2704Channel + 1);
       break;
     }
 
     case USB_CMD_set_board_number:
     {
-      BoardInfo.BoardNumber = hid_report_out[1];
-      #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-      BoardInfo.InValid = false;
-      #endif
-      #if defined(ARDUINO_ARCH_SAMD)  
-      BoardInfo.Valid = true;
-      #endif
-      #if defined(ARDUINO_ARCH_ESP32)  
-      BoardInfo.Valid = true;
-      #endif
-      #ifdef ARDUINO_ARCH_RP2040
-      BoardInfo.InValid = false;
-      #endif
+      // Do not allow setting of board-number !!
+      // This will be done through GUI by setting IT2704 channel !!
+      /*
+      BoardInfo.setValid(true);
       storePutBoardInfo(&BoardInfo);
+      */      
       break;
     }
 
