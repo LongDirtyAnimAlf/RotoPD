@@ -22,8 +22,8 @@ Object dictionaryIT2704[] = {
     {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_LIMIT_POSITIVE           , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_LIMIT_NEGATIVE           , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_LIMIT_COUPLE             , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
-    {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_MODE                     , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
-    {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_RANGE                    , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    //{IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_MODE                     , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
+    //{IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_RANGE                    , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE            , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_SLEW_NEGATIVE            , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
     {IT2704_SOURCE_CURRENT           , IT2704_SOURCE_CURRENT_CURRENT_SLEW_TIME_POSITIVE       , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
@@ -107,6 +107,7 @@ Object dictionaryIT2704[] = {
     // SOURCE_FUNCTION
     {IT2704_SOURCE_FUNCTION          , SUBIDX_HIGHEST_SUPPORTED, {0x01, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
     {IT2704_SOURCE_FUNCTION          , IT2704_SOURCE_FUNCTION_FUNCTION                        , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
+    {IT2704_SOURCE_FUNCTION          , IT2704_SOURCE_FUNCTION_EMULATION                       , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
 
     // SOURCE_FILE
     {IT2704_SOURCE_FILE              , SUBIDX_HIGHEST_SUPPORTED, {0x03, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
@@ -200,4 +201,4 @@ Object dictionaryIT2704[] = {
     {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_8,     {SIZE_BIT_INT8,  SUBIDX_1,       (uint8_t)((IT2704_SENSE + CHANNEL7) & 0xFF), (uint8_t)((IT2704_SENSE + CHANNEL7) >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE}
 };
 
-constexpr uint8_t NUM_OBJS_IT2704 = sizeof(dictionaryIT2704) / sizeof(Object);
+constexpr uint16_t NUM_OBJS_IT2704 = sizeof(dictionaryIT2704) / sizeof(Object);

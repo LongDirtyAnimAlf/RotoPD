@@ -42,13 +42,11 @@
 
 #define INA238_ADDRESS                0x40
 
-#define DEFAULTBOARDNUMBER            1
-
-#define IT2704_NODEID                 1
-#define MASTER_NODEID                 10
-#define LOCAL_NODEID                  20
-
-#define IT2704_CHANNEL                (DEFAULTBOARDNUMBER -1)
+#define DEFAULT_IT2704_CHANNEL                0
+#define DEFAULT_BOARDNUMBER                   (DEFAULT_IT2704_CHANNEL + 1)
+#define DEFAULT_IT2704_NODEID                 1
+#define DEFAULT_MASTER_NODEID                 10
+#define DEFAULT_LOCAL_NODEID                  20
 
 #ifdef CFG_TUD_ENDPOINT0_SIZE
 #undef CFG_TUD_ENDPOINT0_SIZE
@@ -264,12 +262,6 @@ typedef struct
   byte                 DataTriggerCounter;
   TRunDatas            RunDatas;
 } TTestData;
-
-#define DEFAULT_IT2704_CHANNEL                0
-#define DEFAULT_BOARDNUMBER                   (DEFAULT_IT2704_CHANNEL + 1)
-#define DEFAULT_IT2704_NODEID                 1
-#define DEFAULT_MASTER_NODEID                 10
-#define DEFAULT_LOCAL_NODEID                  20
 
 typedef struct
 {

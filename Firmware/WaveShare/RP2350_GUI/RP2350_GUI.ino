@@ -65,6 +65,7 @@ INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
+IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
 //struct can_frame canMsg;
 //struct can_frame canMsg1;
@@ -685,92 +686,6 @@ static void datastartcb(byte index)
 
 #endif
 
-void setIT2704Current(word current)
-{
-  Message Msg;
-  DWORD_VAL data;
-
-  Msg.clearMsg();
-
-  Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
-  Msg.dlc       = 8;
-
-  // Set current
-
-  data.f = current;
-  data.f /= 1000.0;
-
-  Msg.data[SDO::COMMAND]      = WRITE_REQ_4BYTE_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_SOURCE_CURRENT + (BoardInfo.IT2704Channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_SOURCE_CURRENT + (BoardInfo.IT2704Channel * 0x100)) >> 8);
-  Msg.data[SDO::SUB_INDEX]    = IT2704_SOURCE_CURRENT_CURRENT_LEVEL;
-  Msg.data[SDO::DATA_4]       = data.v[0];
-  Msg.data[SDO::DATA_5]       = data.v[1];
-  Msg.data[SDO::DATA_6]       = data.v[2];
-  Msg.data[SDO::DATA_7]       = data.v[3];
-
-  node.sendMsg(Msg);
-
-  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_MODE                      SUBIDX_20  0:Off 1:live 2:latching
-  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VON                       SUBIDX_21
-  //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VOFF                      SUBIDX_22
-
-}
-
-void setIT2704Output(bool enabled)
-{
-  Message Msg;
-
-  Msg.clearMsg();
-
-  Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
-  Msg.dlc       = 8;
-
-  // Set output
-
-  Msg.data[SDO::COMMAND]      = WRITE_REQ_1BYTE_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_OUTPUT + (BoardInfo.IT2704Channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_OUTPUT + (BoardInfo.IT2704Channel * 0x100)) >> 8);
-  Msg.data[SDO::SUB_INDEX]    = IT2704_OUTPUT_ONOFF_STATE;
-  Msg.data[SDO::DATA_4]       = (enabled ? 1 : 0);
-
-  node.sendMsg(Msg);
-}
-
-
-void collectIT2704Data(void)
-{
-  Message Msg;
-
-  Msg.clearMsg();
-
-  Msg.id        = (CO_CAN_ID_SDO_CLI + BoardInfo.IT2704NodeID);
-  Msg.dlc       = 8;
-
-  Msg.data[SDO::COMMAND]      = READ_REQ_ANY_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_METER + (BoardInfo.IT2704Channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_METER + (BoardInfo.IT2704Channel * 0x100)) >> 8);
-  
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_VOLTAGE;
-  node.sendMsg(Msg);
-  // This message will be confirmed
-  // Voltage data will be inside the response !
-
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_CURRENT;
-  node.sendMsg(Msg);
-  // This message will be confirmed
-  // Current data will be inside the response !
-
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_POWER;
-  node.sendMsg(Msg);
-
-  //Msg.data[SDO::SUB_INDEX]    = IT2704_METER_AHOUR;
-  //node.sendMsg(Msg);
-
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_WHOUR;
-  node.sendMsg(Msg);
-}
-
 void dataupdatecb()
 {
   // Inform the loop to collect the battery data
@@ -820,6 +735,9 @@ void setup()
 
   storeInit();
   storeGetBoardInfo(&BoardInfo);
+
+  load.setID(BoardInfo.IT2704NodeID);
+  load.setChannel(BoardInfo.IT2704Channel);
 
   index = 0;
   mySerial[0] = '\0';  
@@ -1187,8 +1105,8 @@ void loop()
   WORD_VAL wv;
   DWORD_VAL dwv;
 
-  PBatterySetting SET = NULL;
-  PRunDatas RDS = NULL;
+  PBatterySetting SET = Battery;
+  PRunDatas RDS = &SET->TestData.RunDatas; 
 
   static uint32_t dummycount = 0;
 
@@ -1209,7 +1127,7 @@ void loop()
     //Serial.print("External app message ID = 0x");
     //Serial.printf("%04X.\r\n",rxmsg.id);
 
-    if (rxmsg.id == (CO_CAN_ID_SDO_SRV +  + BoardInfo.IT2704NodeID))
+    if (rxmsg.id == (CO_CAN_ID_SDO_SRV +  + load.getID()))
     {
 
       //Serial.println("IT2704. Receiving SDO response.");
@@ -1218,16 +1136,14 @@ void loop()
       if (rxmsg.data[SDO::COMMAND] == READ_REQ_4BYTE_CMD)
       {
         // Check for meter data that has the meaurement results from our meter data request
-        if ( (rxmsg.data[SDO::INDEX_LOW] + (rxmsg.data[SDO::INDEX_HIGH] * 256)) == ((IT2704_METER + (BoardInfo.IT2704Channel * 0x100))) )
+        if ( (rxmsg.data[SDO::INDEX_LOW] + (rxmsg.data[SDO::INDEX_HIGH] * 256)) == ((IT2704_METER + (load.getChannel() * 0x100))) )
         {
 
           Serial.println("IT2704. We got meter data as requested by this board.");
 
-          SET = Battery;
-          RDS = &SET->TestData.RunDatas; 
-
           DWORD_VAL data;
 
+          // data = FLOAT32
           data.v[0]=rxmsg.data[SDO::DATA_4];
           data.v[1]=rxmsg.data[SDO::DATA_5];
           data.v[2]=rxmsg.data[SDO::DATA_6];
@@ -1266,7 +1182,7 @@ void loop()
       }
     }
 
-    if (rxmsg.id == (CO_CAN_ID_HEARTBEAT +  + BoardInfo.IT2704NodeID))
+    if (rxmsg.id == (CO_CAN_ID_HEARTBEAT +  load.getID()))
     {
       // We got a hearbeat message from the IT2704
       Serial.println("IT2704. Receiving heartbeat.");
@@ -1276,7 +1192,7 @@ void loop()
       {
         Serial.println("Sending config to IT2704.");
 
-        Msg.id        = (CO_CAN_ID_SDO_CLI +  + BoardInfo.IT2704NodeID);
+        Msg.id        = (CO_CAN_ID_SDO_CLI +  + load.getID());
         Msg.dlc       = 8;
 
         // Set TDPO time to 0 to disable all TPDOs
@@ -1314,7 +1230,7 @@ void loop()
         Msg.id        = 0;
         Msg.dlc       = 2;
         Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
-        Msg.data[1]   =  + BoardInfo.IT2704NodeID;
+        Msg.data[1]   =  + load.getID();
         node.sendMsg(Msg);
       }
     }
@@ -1333,25 +1249,10 @@ void loop()
   {
     startTime = millis();
 
-    collectIT2704Data();
+    load.collectData();
 
     //dictionary[index].data[0] = dummycount++; // update displayed charge
     dictionary[index].setDword(dummycount++);
-
-    /*
-    SDO SDOMessage(0);
-    
-    Message Msg;
-
-    Msg.id = 0;
-    Msg.dlc = 0;    
-    Msg.data[SDO::COMMAND] = 0;
-
-    node.sendMsg(SDOMessage);
-    node.sendMsg(Msg);
-    */
-
-    //SDOMessage
 
     //Serial.println("Loop");
 
