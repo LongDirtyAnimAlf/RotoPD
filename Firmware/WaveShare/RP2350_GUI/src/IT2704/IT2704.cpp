@@ -68,31 +68,31 @@ void IT2704::initDevice(void)
   // Set output slewrate
   // On: slow ; off: max (fast)
 
-  Msg.data[SDO::COMMAND]      = WRITE_REQ_1BYTE_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_SOURCE_CURRENT + (_channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_SOURCE_CURRENT + (_channel * 0x100)) >> 8);
+  Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+  Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
 
   // Write on slew max off
-  Msg.data[SDO::SUB_INDEX]    = IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE_MAX;
-  Msg.data[SDO::DATA_4]       = 0; // 0:Off 1:On
+  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE_MAX);
+  Msg.setData(0); // 0:Off 1:On
   _node->sendMsg(Msg);
 
   // Write off slew max on
-  Msg.data[SDO::SUB_INDEX]    = IT2704_SOURCE_CURRENT_CURRENT_SLEW_NEGATIVE_MAX;
-  Msg.data[SDO::DATA_4]       = 1; // 0:Off 1:On
+  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_NEGATIVE_MAX);
+  Msg.setData(1); // 0:Off 1:On
   _node->sendMsg(Msg);
 
   // Write on slew rate
-  Msg.data[SDO::COMMAND]      = WRITE_REQ_4BYTE_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_SOURCE_CURRENT + (_channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_SOURCE_CURRENT + (_channel * 0x100)) >> 8);
+  Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+  Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
+  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE);
 
   data.f = 0.01; // Amps/ms
-  Msg.data[SDO::SUB_INDEX]    = IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE;
-  Msg.data[SDO::DATA_4]       = data.v[0];
-  Msg.data[SDO::DATA_5]       = data.v[1];
-  Msg.data[SDO::DATA_6]       = data.v[2];
-  Msg.data[SDO::DATA_7]       = data.v[3];
+  Msg.setData(data.Val);
+  //Msg.data[SDO::DATA_4]       = data.v[0];
+  //Msg.data[SDO::DATA_5]       = data.v[1];
+  //Msg.data[SDO::DATA_6]       = data.v[2];
+  //Msg.data[SDO::DATA_7]       = data.v[3];
+
   _node->sendMsg(Msg);
 
 
@@ -114,17 +114,18 @@ void IT2704::setCurrent(uint16_t current) // in mA
 
   // Set current
 
+  Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+  Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
+  Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_LEVEL);
+
   data.f = current; // current is set in mA !!
   data.f /= 1000.0;
+  Msg.setData(data.Val);
 
-  Msg.data[SDO::COMMAND]      = WRITE_REQ_4BYTE_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_SOURCE_CURRENT + (_channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_SOURCE_CURRENT + (_channel * 0x100)) >> 8);
-  Msg.data[SDO::SUB_INDEX]    = IT2704_SOURCE_CURRENT_CURRENT_LEVEL;
-  Msg.data[SDO::DATA_4]       = data.v[0];
-  Msg.data[SDO::DATA_5]       = data.v[1];
-  Msg.data[SDO::DATA_6]       = data.v[2];
-  Msg.data[SDO::DATA_7]       = data.v[3];
+  //Msg.data[SDO::DATA_4]       = data.v[0];
+  //Msg.data[SDO::DATA_5]       = data.v[1];
+  //Msg.data[SDO::DATA_6]       = data.v[2];
+  //Msg.data[SDO::DATA_7]       = data.v[3];
 
   _node->sendMsg(Msg);
 
@@ -144,12 +145,10 @@ void IT2704::setOutput(bool enabled)
   Msg.dlc       = 8;
 
   // Set output
-
-  Msg.data[SDO::COMMAND]      = WRITE_REQ_1BYTE_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_OUTPUT + (_channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_OUTPUT + (_channel * 0x100)) >> 8);
-  Msg.data[SDO::SUB_INDEX]    = IT2704_OUTPUT_ONOFF_STATE;
-  Msg.data[SDO::DATA_4]       = (enabled ? 1 : 0);
+  Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+  Msg.setID(IT2704_OUTPUT + (_channel * 0x100));
+  Msg.setSubID(IT2704_OUTPUT_ONOFF_STATE);
+  Msg.setData(enabled ? 1 : 0);
 
   _node->sendMsg(Msg);
 
@@ -176,28 +175,31 @@ void IT2704::collectData(void)
   Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
   Msg.dlc       = 8;
 
-  Msg.data[SDO::COMMAND]      = READ_REQ_ANY_CMD;
-  Msg.data[SDO::INDEX_LOW]    = (uint8_t)((IT2704_METER + (_channel * 0x100)) & 0xFF);
-  Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((IT2704_METER + (_channel * 0x100)) >> 8);
-  
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_VOLTAGE;
+  Msg.setCommand(READ_REQ_ANY_CMD);
+  Msg.setID(IT2704_METER + (_channel * 0x100));
+
+  Msg.setSubID(IT2704_METER_VOLTAGE);
   _node->sendMsg(Msg);
   // This message will be confirmed
   // Voltage data will be inside the response !
 
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_CURRENT;
+  Msg.setSubID(IT2704_METER_CURRENT);
   _node->sendMsg(Msg);
   // This message will be confirmed
   // Current data will be inside the response !
 
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_POWER;
+  Msg.setSubID(IT2704_METER_POWER);
   _node->sendMsg(Msg);
 
-  //Msg.data[SDO::SUB_INDEX]    = IT2704_METER_AHOUR;
+  //Msg.setSubID(IT2704_METER_AHOUR);
   //node.sendMsg(Msg);
 
-  Msg.data[SDO::SUB_INDEX]    = IT2704_METER_WHOUR;
+  Msg.setSubID(IT2704_METER_WHOUR);
   _node->sendMsg(Msg);
+}
+
+void IT2704::getData(uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E)
+{
 }
 
 // Return object index position in dictionary array

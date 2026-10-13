@@ -2,6 +2,7 @@
 #define RECEIVER_H
 
 #include "message.hpp"
+#include "../CAN/mcp2515.h"
 
 // Receiver message type
 struct Receiver : public Message {

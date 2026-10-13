@@ -1133,32 +1133,35 @@ void loop()
       //Serial.println("IT2704. Receiving SDO response.");
 
 
-      if (rxmsg.data[SDO::COMMAND] == READ_REQ_4BYTE_CMD)
+      if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
       {
         // Check for meter data that has the meaurement results from our meter data request
-        if ( (rxmsg.data[SDO::INDEX_LOW] + (rxmsg.data[SDO::INDEX_HIGH] * 256)) == ((IT2704_METER + (load.getChannel() * 0x100))) )
+        if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
         {
+
+          load.getData(&RDS->LastIT2704Data.I,&RDS->LastIT2704Data.V,&RDS->LastIT2704Data.P,&RDS->LastIT2704Data.E);        
 
           Serial.println("IT2704. We got meter data as requested by this board.");
 
           DWORD_VAL data;
 
           // data = FLOAT32
-          data.v[0]=rxmsg.data[SDO::DATA_4];
-          data.v[1]=rxmsg.data[SDO::DATA_5];
-          data.v[2]=rxmsg.data[SDO::DATA_6];
-          data.v[3]=rxmsg.data[SDO::DATA_7];
+          data.Val = rxmsg.getData(); 
+          //data.v[0]=rxmsg.data[SDO::DATA_4];
+          //data.v[1]=rxmsg.data[SDO::DATA_5];
+          //data.v[2]=rxmsg.data[SDO::DATA_6];
+          //data.v[3]=rxmsg.data[SDO::DATA_7];
 
-          if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_VOLTAGE)
+          if (rxmsg.getSubID() == IT2704_METER_VOLTAGE)
           {
             RDS->LastIT2704Data.V = round(data.f * 1000);
           }
-          if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_POWER)
+          if (rxmsg.getSubID() == IT2704_METER_POWER)
           {
             RDS->LastIT2704Data.P = round(data.f * 1000);
             ScreenPowerSetData(RDS);
           }
-          if (rxmsg.data[SDO::SUB_INDEX] == IT2704_METER_WHOUR)
+          if (rxmsg.getSubID() == IT2704_METER_WHOUR)
           {
             RDS->LastIT2704Data.E = round(data.f * 1000);
             ScreenPowerSetData(RDS);
@@ -1166,19 +1169,16 @@ void loop()
         }
       }
 
-
-      if (rxmsg.data[SDO::COMMAND] == WRITE_RESP_SUCCESS_CMD)
+      if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
       {
         Serial.println("IT2704. Receiving response from writing data.");
 
         Serial.print("IT2704. Writing data success. ");
         Serial.print("Index 0x");
 
-        Serial.printf("%02X",rxmsg.data[SDO::INDEX_HIGH]);
-        Serial.printf("%02X",rxmsg.data[SDO::INDEX_LOW]);
+        Serial.printf("%04X",rxmsg.getID());
 
-        Serial.printf(". SubIndex %d.\r\n",rxmsg.data[SDO::SUB_INDEX]);
-
+        Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
       }
     }
 
@@ -1201,23 +1201,20 @@ void loop()
         {
           // Set Set the transmission type of TPDO#j to 254
           Msg.clearData();
-          Msg.data[SDO::COMMAND]      = WRITE_REQ_1BYTE_CMD;
-          Msg.data[SDO::INDEX_LOW]    = (uint8_t)((TX_PDO1_COMM_INDEX + j) & 0xFF);
-          Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((TX_PDO1_COMM_INDEX + j) >> 8);
-          Msg.data[SDO::SUB_INDEX]    = SUBIDX_PDO_TRANSMISSION_TYPE;
-          Msg.data[SDO::DATA_4]       = PDO_TXTYPE_ASYNC_MANUFACTURER;
+          Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+          Msg.setID(TX_PDO1_COMM_INDEX + j);
+          Msg.setSubID(SUBIDX_PDO_TRANSMISSION_TYPE);
+          Msg.setData(PDO_TXTYPE_ASYNC_MANUFACTURER);
           node.sendMsg(Msg);
           // This message will be confirmed
           // We might have a look at it
 
           //Modify TPDO#j timer cycle as 0ms
           Msg.clearData();
-          Msg.data[SDO::COMMAND]      = WRITE_REQ_2BYTE_CMD;
-          Msg.data[SDO::INDEX_LOW]    = (uint8_t)((TX_PDO1_COMM_INDEX + j) & 0xFF);
-          Msg.data[SDO::INDEX_HIGH]   = (uint8_t)((TX_PDO1_COMM_INDEX + j) >> 8);
-          Msg.data[SDO::SUB_INDEX]    = SUBIDX_PDO_EVENT_TIMER;
-          Msg.data[SDO::DATA_4]       = 0;
-          Msg.data[SDO::DATA_5]       = 0;
+          Msg.setCommand(WRITE_REQ_2BYTE_CMD);
+          Msg.setID(TX_PDO1_COMM_INDEX + j);
+          Msg.setSubID(SUBIDX_PDO_EVENT_TIMER);
+          Msg.setData(0);
           node.sendMsg(Msg);
           // This message will be confirmed
           // We might have a look at it

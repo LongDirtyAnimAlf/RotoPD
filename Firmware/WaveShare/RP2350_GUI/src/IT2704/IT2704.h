@@ -35,6 +35,7 @@ public:
     void setCurrent(uint16_t current);
     void setOutput(bool enabled);
     void collectData(void);
+    void getData(uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E);
 private:
     CanOpenNode * _node;
     uint8_t _channel;

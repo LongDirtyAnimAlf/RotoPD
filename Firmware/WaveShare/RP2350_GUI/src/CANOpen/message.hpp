@@ -2,7 +2,6 @@
 #define MESSAGE_H
 
 #include "object.hpp"
-#include "../CAN/mcp2515.h"
 
 // Generic message type
 class Message {
@@ -27,6 +26,14 @@ class Message {
 
   void clearMsg();
   void clearData();
+  void setCommand(uint8_t cmd);
+  void setID(uint16_t ID);
+  void setSubID(uint8_t sID);
+  void setData(uint32_t payload);
+  uint8_t getCommand() const;
+  uint16_t getID() const;
+  uint8_t getSubID() const;
+  uint32_t getData() const;
 
   virtual ~Message() {}; 
 };
