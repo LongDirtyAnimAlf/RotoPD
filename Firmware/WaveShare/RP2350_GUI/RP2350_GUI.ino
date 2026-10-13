@@ -1138,11 +1138,16 @@ void loop()
         // Check for meter data that has the meaurement results from our meter data request
         if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
         {
-
-          load.getData(&RDS->LastIT2704Data.I,&RDS->LastIT2704Data.V,&RDS->LastIT2704Data.P,&RDS->LastIT2704Data.E);        
-
           Serial.println("IT2704. We got meter data as requested by this board.");
 
+          load.getData(&rxmsg, &RDS->LastIT2704Data.I, &RDS->LastIT2704Data.V, &RDS->LastIT2704Data.P, &RDS->LastIT2704Data.E);        
+
+          if ( (rxmsg.getSubID() == IT2704_METER_POWER) || (rxmsg.getSubID() == IT2704_METER_WHOUR))
+          {
+            ScreenPowerSetData(RDS);
+          }
+
+          /*
           DWORD_VAL data;
 
           // data = FLOAT32
@@ -1166,6 +1171,7 @@ void loop()
             RDS->LastIT2704Data.E = round(data.f * 1000);
             ScreenPowerSetData(RDS);
           }
+          */          
         }
       }
 

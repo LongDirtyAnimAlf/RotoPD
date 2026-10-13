@@ -198,8 +198,28 @@ void IT2704::collectData(void)
   _node->sendMsg(Msg);
 }
 
-void IT2704::getData(uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E)
+void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E)
 {
+    DWORD_FLOAT data; 
+
+    data.Val = Msg->getData(); 
+
+    if (Msg->getSubID() == IT2704_METER_VOLTAGE)
+    {
+        *V = round(data.f * 1000);
+    }
+    if (Msg->getSubID() == IT2704_METER_CURRENT)
+    {
+        *I = round(data.f * 1000);
+    }
+    if (Msg->getSubID() == IT2704_METER_POWER)
+    {
+        *P = round(data.f * 1000);
+    }
+    if (Msg->getSubID() == IT2704_METER_WHOUR)
+    {
+        *E = round(data.f * 1000);
+    }
 }
 
 // Return object index position in dictionary array
