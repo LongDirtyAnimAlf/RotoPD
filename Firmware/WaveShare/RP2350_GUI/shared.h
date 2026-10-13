@@ -325,22 +325,6 @@ public:
 
   // ---------- Default constructor (uses the values from your list) ----------
   TBoardInfo() {
-    // Validity flags
-    /*
-    #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-    InValid = true;                 // DataInValid
-    #endif
-    #if defined(ARDUINO_ARCH_SAMD)
-    Valid = false;                  // DataValid
-    #endif
-    #ifdef ARDUINO_ARCH_ESP32
-    Valid = false;                  // DataValid
-    #endif
-    #ifdef ARDUINO_ARCH_RP2040
-    InValid = true;                 // DataInValid
-    #endif
-    */
-    
     // Arrays
     memset(BoardSerial, 0, sizeof(BoardSerial));
     memset(BoardCalDate, 0, sizeof(BoardCalDate));
@@ -383,7 +367,7 @@ public:
 
   // Always returns LocalNodeID + 1
   byte getBoardNumber() const {
-    return (LocalNodeID + 1);
+    return (IT2704Channel + 1);
   }
 };
 
