@@ -31,7 +31,7 @@ public:
     uint8_t getID(void);
     void setChannel(uint8_t channel);
     uint8_t getChannel(void);
-    void initDevice(void);
+    void initDevice(bool reset);
     void setCurrent(uint16_t current);
     void setOutput(bool enabled);
     void collectData(void);
@@ -45,8 +45,7 @@ private:
     uint8_t _channel;
     uint8_t _id;
     bool _connected;
-    bool _checking;
-    unsigned long startTime;
+    unsigned long _checkTimer;
     Object* findObject(uint16_t index, uint8_t subIndex);
 };
 

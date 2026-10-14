@@ -27,6 +27,7 @@ IT2704::IT2704(CanOpenNode *node, uint8_t id, uint8_t channel)
 {
     _connected = false;
     _checking = false;
+    _checkTimer = millis();
 }
 
 // ── begin() ──────────────────────────────────────────────────────────────────
@@ -57,18 +58,68 @@ uint8_t IT2704::getChannel(void)
     return _channel;
 }
 
-void IT2704::initDevice(void)
+void IT2704::initDevice(bool reset)
 {
   Message Msg;
   DWORD_FLOAT data;  
 
   if (_connected)
   {
+    if (reset)
+    {
+      _node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
 
-    Msg.clearMsg();
+      // IT2704 enable CANopen !
+      Msg.clearMsg();
+      Msg.id        = 0;
+      Msg.dlc       = 2;
 
-    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-    Msg.dlc       = 8;
+      // IT2704 enable CANopen !
+      // This is done by sending enter operational command
+      // This is also the only possible way to start CANopen unfortunately
+      Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
+      Msg.data[1]   = _id;
+      _node->sendMsg(Msg);
+
+      // Try to set pre-operational mode
+      // The IT2704 works in this mode, but does not send TPDOs
+      // So, less traffic !
+      Msg.clearMsg();
+      Msg.data[0]   = CO_NMT_ENTER_PRE_OPERATIONAL;
+      Msg.data[1]   = _id;
+      _node->sendMsg(Msg);
+
+      Msg.clearMsg();
+
+      Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+      Msg.dlc       = 8;
+
+      // Silence the 4 TPDOs
+      // Should not be necessary if IT2704 is in pre-operational mode
+      // But anyhow
+      for (int j = 0; j < 4; j++)
+      {
+        // Set Set the transmission type of TPDO#j to 254
+        Msg.clearData();
+        Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+        Msg.setID(TX_PDO1_COMM_INDEX + j);
+        Msg.setSubID(SUBIDX_PDO_TRANSMISSION_TYPE);
+        Msg.setData(PDO_TXTYPE_ASYNC_MANUFACTURER);
+        _node->sendMsg(Msg);
+        // This message will be confirmed
+        // We might have a look at it
+
+        //Modify TPDO#j timer cycle as 0ms
+        Msg.clearData();
+        Msg.setCommand(WRITE_REQ_2BYTE_CMD);
+        Msg.setID(TX_PDO1_COMM_INDEX + j);
+        Msg.setSubID(SUBIDX_PDO_EVENT_TIMER);
+        Msg.setData(0);
+        _node->sendMsg(Msg);
+        // This message will be confirmed
+        // We might have a look at it
+      }
+    }
 
     // Set output slewrate
     // On: slow ; off: max (fast)
@@ -239,49 +290,42 @@ void IT2704::queryConnection(void)
 
   if (_connected)
   {
-    if (!_checking)
+    // Check connection every 5 seconds
+    // Timer will be reset after reception of good IT2704 message
+    // So, this will only happen in case connection is lost
+    if (millis() - _checkTimer > 5000) 
     {
-      // Send a message to check if IT2704 is still alive
+      _checkTimer = millis();
+      _connected = false; 
+    }
+  }
+  else
+  {
+    if (millis() - _checkTimer > 1000) // try reconnect every second
+    {
+      _checkTimer = millis();
+
+      // If not connected, abort all pending messages
+      _node->getCAN().abortAllPending();
+
+      // This NMT command will try to set the IT2704 into operational mode
+      Msg.clearMsg();
+      Msg.id        = 0;
+      Msg.dlc       = 2;
+      Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
+      Msg.data[1]   = _id;
+      _node->sendMsg(Msg);
+
+      // This message will query the IT2704 status
+      // IT2704 will send a response 
       Msg.clearMsg();
       Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
       Msg.dlc       = 8;
       Msg.setCommand(READ_REQ_1BYTE_CMD);
       Msg.setID(IT2704_COMMON);
       Msg.setSubID(COMMON_RESET);
-      if (_node->sendMsg(Msg))
-      {
-        startTime = millis();
-        _checking = true;
-      }
-    }      
-    else
-    {
-      if (millis() - startTime >= 5000)
-      {
-        if (_checking) _connected = false; 
-        _checking = false;
-      }
+      _node->sendMsg(Msg);
     }
-
-  }
-  else
-  {
-    _node->getCAN().abortAllPending();
-
-    Msg.clearMsg();
-    Msg.id        = 0;
-    Msg.dlc       = 2;
-    Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
-    Msg.data[1]   = _id;
-    _node->sendMsg(Msg);
-
-    Msg.clearMsg();
-    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-    Msg.dlc       = 8;
-    Msg.setCommand(READ_REQ_1BYTE_CMD);
-    Msg.setID(IT2704_COMMON);
-    Msg.setSubID(COMMON_RESET);
-    _node->sendMsg(Msg);
   }
 }
 
@@ -289,14 +333,11 @@ bool IT2704::checkConnection(const Message* MsgExt)
 {
   Message Msg;
 
-  if ((_checking) || (!_connected))
+  if (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id))
   {
-    // Check for reset request response
-    if ( (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id)) && (MsgExt->getCommand() == READ_REQ_1BYTE_CMD) && (MsgExt->getID() == IT2704_COMMON) && (MsgExt->getSubID() == COMMON_RESET) )
-    {
-        _connected = true;
-        _checking = false;
-    }
+    // We have a valid SDO response message 
+    // So, all ok and reset checktimer
+    _checkTimer = millis();
   }
 
   if (_connected)
@@ -305,8 +346,6 @@ bool IT2704::checkConnection(const Message* MsgExt)
   }
   else
   {
-    //_node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
-
     if (MsgExt->id == (CO_CAN_ID_HEARTBEAT + _id))
     {
       if (MsgExt->dlc == 1)
@@ -315,62 +354,19 @@ bool IT2704::checkConnection(const Message* MsgExt)
 
         if (IT2704_NMT_Status == CO_NMT_INITIALIZING)
         {
-            // Startup CANopen message from IT2704
-
-            _node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
-
-            // IT2704 ready with power-on init !
-            Msg.clearMsg();
-            Msg.id        = 0;
-            Msg.dlc       = 2;
-            
-            Msg.data[0]   = CO_NMT_ENTER_OPERATIONAL;
-            Msg.data[1]   = _id;
-            _node->sendMsg(Msg);
-
-            Msg.clearMsg();
-            Msg.data[0]   = CO_NMT_ENTER_PRE_OPERATIONAL;
-            Msg.data[1]   = _id;
-            _node->sendMsg(Msg);
-
+            // Startup CANopen message from IT2704 received
+            // We are connected !!
             _connected = true;
+
+            // Reset check timer
+            _checkTimer = millis();
+
+            // New connection with uninitialized device, so init !!
+            initDevice(/*reset=*/true);
         }
       }
     }
 
-    if (_connected)
-    {
-        // Set TDPO time to 0 to disable all TPDOs
-        // No use in a multi-channel environment
-
-        //_node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
-
-        Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
-        Msg.dlc       = 8;
-
-        for (int j = 0; j < 4; j++)
-        {
-          // Set Set the transmission type of TPDO#j to 254
-          Msg.clearData();
-          Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-          Msg.setID(TX_PDO1_COMM_INDEX + j);
-          Msg.setSubID(SUBIDX_PDO_TRANSMISSION_TYPE);
-          Msg.setData(PDO_TXTYPE_ASYNC_MANUFACTURER);
-          _node->sendMsg(Msg);
-          // This message will be confirmed
-          // We might have a look at it
-
-          //Modify TPDO#j timer cycle as 0ms
-          Msg.clearData();
-          Msg.setCommand(WRITE_REQ_2BYTE_CMD);
-          Msg.setID(TX_PDO1_COMM_INDEX + j);
-          Msg.setSubID(SUBIDX_PDO_EVENT_TIMER);
-          Msg.setData(0);
-          _node->sendMsg(Msg);
-          // This message will be confirmed
-          // We might have a look at it
-        }
-    }
   }
   return false;
 }
