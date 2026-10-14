@@ -1141,7 +1141,8 @@ void loop()
             Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
             
             load.getData(&rxmsg, &RDS->LastIT2704Data.I, &RDS->LastIT2704Data.V, &RDS->LastIT2704Data.P, &RDS->LastIT2704Data.E);        
-            if ( (rxmsg.getSubID() == IT2704_METER_POWER) || (rxmsg.getSubID() == IT2704_METER_WHOUR))
+            if (rxmsg.getSubID() == IT2704_METER_VOLTAGE)
+            //if ( (rxmsg.getSubID() == IT2704_METER_POWER) || (rxmsg.getSubID() == IT2704_METER_WHOUR))
             {
               ScreenPowerSetData(RDS);
             }

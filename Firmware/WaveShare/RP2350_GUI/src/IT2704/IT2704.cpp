@@ -26,7 +26,6 @@ IT2704::IT2704(CanOpenNode *node, uint8_t id, uint8_t channel)
       _channel(channel)
 {
     _connected = false;
-    _checking = false;
     _checkTimer = millis();
 }
 
@@ -309,6 +308,7 @@ void IT2704::queryConnection(void)
       _node->getCAN().abortAllPending();
 
       // This NMT command will try to set the IT2704 into operational mode
+      // Only in this mode, CANopen is enabled and the device is responsive
       Msg.clearMsg();
       Msg.id        = 0;
       Msg.dlc       = 2;
@@ -317,7 +317,7 @@ void IT2704::queryConnection(void)
       _node->sendMsg(Msg);
 
       // This message will query the IT2704 status
-      // IT2704 will send a response 
+      // IT2704 will send a response on successfull reception of this message
       Msg.clearMsg();
       Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
       Msg.dlc       = 8;
@@ -333,41 +333,56 @@ bool IT2704::checkConnection(const Message* MsgExt)
 {
   Message Msg;
 
+  if (_connected)
+  {
+    if (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id))
+    {
+      // We have a valid SDO response message 
+      // So, all ok and reset check timer
+      _checkTimer = millis();
+    }
+    return true;
+  }
+
+  bool resetneeded;
+
   if (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id))
   {
     // We have a valid SDO response message 
-    // So, all ok and reset checktimer
-    _checkTimer = millis();
+    // We are connected !!
+    _connected = true;
+
+    // Device is initialized, so no init reset needed
+    resetneeded = false;
+  }
+
+  if (MsgExt->id == (CO_CAN_ID_HEARTBEAT + _id))
+  {
+    if (MsgExt->dlc == 1)
+    {
+      uint8_t IT2704_NMT_Status = MsgExt->data[0];
+
+      if (IT2704_NMT_Status == CO_NMT_INITIALIZING)
+      {
+        // Startup CANopen message from IT2704 received
+        // We are connected !!
+        _connected = true;
+
+        // Device is un-initialized, so init reset needed !!
+        resetneeded = true;
+      }
+    }
   }
 
   if (_connected)
   {
-    return true;    
+    // Reset check timer
+    _checkTimer = millis();
+
+    // New connection , so init !!
+    initDevice(resetneeded);
   }
-  else
-  {
-    if (MsgExt->id == (CO_CAN_ID_HEARTBEAT + _id))
-    {
-      if (MsgExt->dlc == 1)
-      {
-        uint8_t IT2704_NMT_Status = MsgExt->data[0];
 
-        if (IT2704_NMT_Status == CO_NMT_INITIALIZING)
-        {
-            // Startup CANopen message from IT2704 received
-            // We are connected !!
-            _connected = true;
-
-            // Reset check timer
-            _checkTimer = millis();
-
-            // New connection with uninitialized device, so init !!
-            initDevice(/*reset=*/true);
-        }
-      }
-    }
-
-  }
   return false;
 }
 
