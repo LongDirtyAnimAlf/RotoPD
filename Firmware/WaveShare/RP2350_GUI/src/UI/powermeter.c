@@ -10,7 +10,7 @@ extern const lv_font_t lv_font_dseg7_32;
 #define GAUGE_REDZONE       140
 #define ANGLE_RANGE         270
 #define GAUGE_ROTATION      135
-#define GAUGE_SIZE          340
+#define GAUGE_SIZE          300
 #define ARC_WIDTH           14
 #define NEEDLE_LENGTH       120
 #define TIP_RADIUS          4          // size of the red tip
@@ -24,6 +24,18 @@ static lv_obj_t * needle_glow;      // thicker soft glow
 static lv_obj_t * needle_line;      // sharp main needle
 static lv_obj_t * label_value;
 static lv_obj_t * digital_display;
+static lv_obj_t * voltage_display;
+static lv_obj_t * current_display;
+
+void gauge_set_voltage(int16_t V)
+{
+    if (voltage_display != NULL) SetDisplaymV(voltage_display, (V));
+}
+
+void gauge_set_current(int16_t I)
+{
+    if (current_display != NULL) SetDisplaymV(current_display, (I));
+}
 
 void gauge_set_energy(int32_t E)
 {
@@ -67,15 +79,55 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_style_set_shadow_offset_y(&style_glow, 0);
 
     lv_obj_t * cont2 = lv_obj_create(parent);
-    lv_obj_set_size(cont2, GAUGE_SIZE + 50, GAUGE_SIZE + 50);
+    lv_obj_set_size(cont2, GAUGE_SIZE + 80, GAUGE_SIZE + 80);
     lv_obj_set_scrollable(cont2, false);
-    lv_obj_center(cont2);
+    //lv_obj_center(cont2);
+    lv_obj_align(cont2, LV_ALIGN_TOP_MID, 0, 20);
     lv_obj_add_style(cont2, &style_glow, 0);
+
+    /* V/I Data Container */
+    lv_obj_t * header = lv_obj_create(cont2);
+    lv_obj_remove_style_all(header);
+    lv_obj_set_size(header, GAUGE_SIZE + 60, LV_SIZE_CONTENT);
+    lv_obj_set_layout(header, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(header, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(header, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(header, 20, 0);
+    //lv_obj_set_style_pad_bottom(header, 10, LV_PART_MAIN);
+    //lv_obj_align_to(header, cont2, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);    
+    lv_obj_align(header, LV_ALIGN_BOTTOM_MID, 0, 10);
+
+    voltage_display = create_display(header, lv_palette_main(LV_PALETTE_RED), false, 5);
+    //lv_obj_align(voltage_display, LV_ALIGN_BOTTOM_LEFT, 10, -10);
+
+    lv_obj_t * label;
+
+    label = lv_label_create(cont2);
+    lv_obj_remove_style_all(label);
+    lv_obj_move_background(label);
+    lv_obj_align_to(label, voltage_display, LV_ALIGN_OUT_TOP_LEFT, 0, -20);    
+    lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, LV_PART_MAIN| LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);    
+    lv_label_set_text(label, "V");
+
+    current_display = create_display(header, lv_palette_main(LV_PALETTE_RED), false, 5);
+    //lv_obj_align(current_display, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
+
+    label = lv_label_create(cont2);
+    lv_obj_remove_style_all(label);
+    lv_obj_move_background(label);
+    lv_obj_align_to(label, current_display, LV_ALIGN_OUT_TOP_RIGHT, 0, -20);    
+    lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, LV_PART_MAIN| LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_label_set_text(label, "I");
 
     /* Main circular container */
     lv_obj_t * cont = lv_obj_create(cont2);
     lv_obj_set_size(cont, GAUGE_SIZE + 36, GAUGE_SIZE + 36);
-    lv_obj_center(cont);
+    //lv_obj_center(cont);
+    lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, -10);
     lv_obj_set_style_radius(cont, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(cont, lv_color_hex(0x0f172a), 0);
     lv_obj_set_style_bg_opa(cont, LV_OPA_COVER, 0);
@@ -259,7 +311,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_align(label_unit, LV_ALIGN_CENTER, 0, 36);
 
     digital_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);
-    lv_obj_align(digital_display, LV_ALIGN_CENTER, 0, 136);
+    lv_obj_align(digital_display, LV_ALIGN_CENTER, 0, 120);
 
     gauge_set_power(150);
 }

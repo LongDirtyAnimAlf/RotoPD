@@ -9,7 +9,7 @@ void Setup_ScreenPower(byte index)
   lv_obj_t * cont = NULL;
 
   obj = GetInfoObject();
-  if (obj != NULL) lv_label_set_text(obj,"Power");
+  if (obj != NULL) lv_label_set_text(obj,"IT2704");
   //if (obj != NULL) lv_label_set_text_fmt(obj, "Power %d", index);
 
   obj = GetButtonLabelObject();
@@ -37,6 +37,7 @@ byte ScreenPowerGetActive(void)
 
 void ScreenPowerSetData(PRunDatas MAD)
 {
-  //ScreenPowerAddEPData(MAD->LastIT2704Data.E, (MAD->LastIT2704Data.P / 1000));
-  ScreenPowerAddEPData(MAD->LastIT2704Data.E, (MAD->LastIT2704Data.V / 1000));
+  ScreenPowerAddEPData(MAD->LastIT2704Data.E, (MAD->LastIT2704Data.P / 1000));
+  gauge_set_voltage(MAD->LastIT2704Data.V);
+  gauge_set_current(MAD->LastIT2704Data.I);
 }

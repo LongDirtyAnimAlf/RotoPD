@@ -1,7 +1,7 @@
 #ifndef OBJDICT_H
 #define OBJDICT_H
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include <cstring>
 #include <cstdint>
 #include <stdint.h>

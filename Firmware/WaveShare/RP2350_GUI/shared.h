@@ -4,7 +4,7 @@
 //#pragma once          // or classic include guards
 
 #include <Arduino.h>
-//#include "longunion.h"
+#include "queue.h"
 
 #define    DEBUG
 
@@ -37,7 +37,7 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   600u
+#define    DATASIZE                   6000u
 
 
 #define INA238_ADDRESS                0x40
@@ -74,6 +74,13 @@
 #define    USB_CMD_set_board_number   0xCB
 
 #define    USB_CMD_error              0xFF
+
+typedef struct
+{
+  byte HIDEPOUTData[HID_INT_OUT_EP_SIZE];
+  byte HIDEPINData[HID_INT_IN_EP_SIZE];
+  bool DataReceived;
+} THIDData;
 
 //typedef uint16_t word;
 typedef uint32_t dword;
@@ -177,32 +184,6 @@ typedef struct
   word GetValue;
 } TThresholdDataItem;
 
-typedef struct
-{
-  word  V;   // voltage
-  word  I;   // current
-  dword P;   // power
-  word  T;   // temperature
-  dword E;   // energy
-  qword S;   // timestamp ms
-} TMeasurementData,*PMeasurementData;
-
-typedef struct
-{
-  TMeasurementData *BatteryDatas;
-  TMeasurementData LastBatteryData;
-  TMeasurementData *IT2704Datas;
-  TMeasurementData LastIT2704Data;
-  qword Capacity; // in nAh
-  qword Energy; // in nWh
-  qword Time;  // in deci-seconds = 100ms
-  //word Temperature; // in deci-Celcius = 100mC
-  int16_t Tail;
-  int16_t Head;
-  byte CurrentStageNumber;
-  TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
-} TRunDatas,*PRunDatas;
-
 typedef enum
 {
   ieOk = 0,
@@ -254,17 +235,6 @@ typedef struct
 
 typedef struct
 {
-  TBatteryMode         Active;
-  TStageMode           SetStageMode;
-  dword                SetStageValue;
-  TThresholdModes      ThresholdMode;
-  dword                ThresholdValue;
-  byte                 DataTriggerCounter;
-  TRunDatas            RunDatas;
-} TTestData;
-
-typedef struct
-{
   word Voltage;
   word Current;
   dword Power;
@@ -281,6 +251,58 @@ typedef struct
   bool NeedsStatusUpdate;
   bool NeedsDataUpdate;
 } TBatteryBoard,*PBatteryBoard;
+
+typedef struct
+{
+  word  V;   // voltage
+  word  I;   // current
+  dword P;   // power
+  word  T;   // temperature
+  dword E;   // energy
+  qword S;   // timestamp ms
+} TMeasurementData,*PMeasurementData;
+
+
+typedef struct
+{
+  #ifdef __cplusplus          // only compile the class when using a C++ compiler
+  CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
+  #endif
+  TMeasurementData *BatteryDatas;
+  TMeasurementData LastBatteryData;
+  TMeasurementData *IT2704Datas;
+  TMeasurementData LastIT2704Data;
+  qword Capacity; // in nAh
+  qword Energy; // in nWh
+  qword Time;  // in deci-seconds = 100ms
+  //word Temperature; // in deci-Celcius = 100mC
+  int16_t Tail;
+  int16_t Head;
+  byte CurrentStageNumber;
+  TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
+} TRunDatas,*PRunDatas;
+
+typedef struct
+{
+  TBatteryMode         Active;
+  TStageMode           SetStageMode;
+  dword                SetStageValue;
+  TThresholdModes      ThresholdMode;
+  dword                ThresholdValue;
+  byte                 DataTriggerCounter;
+  TRunDatas            RunDatas;
+} TTestData;
+
+typedef struct
+{
+  char code[10];
+  char brand[30];
+  char type[30];
+  #ifdef STANDALONE  
+  TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
+  #endif
+  TTestData TestData;
+} TBatterySetting,*PBatterySetting;
 
 #ifdef __cplusplus          // only compile the class when using a C++ compiler
 
@@ -365,22 +387,4 @@ public:
 
 #endif // __cplusplus
 
-typedef struct
-{
-  char code[10];
-  char brand[30];
-  char type[30];
-  #ifdef STANDALONE  
-  TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
-  #endif
-  TTestData TestData;
-} TBatterySetting,*PBatterySetting;
-
-typedef struct
-{
-  byte HIDEPOUTData[HID_INT_OUT_EP_SIZE];
-  byte HIDEPINData[HID_INT_IN_EP_SIZE];
-  bool DataReceived;
-} THIDData;
-
-#endif
+#endif /*_SHARED_H_*/

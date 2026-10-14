@@ -1,4 +1,5 @@
 #include "Screenbase.h"
+#include "Screen2.h"
 
 #define CHARTSIZE 255
 
@@ -118,7 +119,7 @@ void Setup_Screen2(byte index)
 
     obj = lv_label_create(cell);
     lv_obj_align_to(obj, scale_y, LV_ALIGN_OUT_RIGHT_TOP, 5, 0);
-    lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_obj_set_style_text_font(obj, &lv_font_montserrat_18, LV_PART_MAIN);  
     lv_label_set_text(obj, "Volt / Amps");
   }
 }
@@ -141,6 +142,46 @@ byte Screen2GetActive(void)
   return 0;
 }
 
+void Screen2SetIT2704Data(PRunDatas MAD)
+{
+  dword tempvcalc,tempicalc = 0;
+  // Create array
+  static TMeasurementData lastItems[CHARTSIZE];
+
+  if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, 0);          
+  if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, 0);
+
+  for(int i = 0; i < CHARTSIZE; i++) {
+    my_voltage_values[i] = LV_CHART_POINT_NONE;
+    my_current_values[i] = LV_CHART_POINT_NONE;
+  }
+
+  TMeasurementData newestItem;
+  if (MAD->NewerIT2704Datas.peekFromNewest(0, newestItem)) {
+      // newestItem contains the most recent reading
+  }
+
+  TMeasurementData item200;
+  if (MAD->NewerIT2704Datas.peekFromNewest(199, item200)) {
+      // item200 contains the 200th newest reading
+  }
+
+  // Request up to 200 of the newest entries
+  uint16_t fetchedCount = MAD->NewerIT2704Datas.peekNewest(lastItems, CHARTSIZE);
+
+  while (fetchedCount > 0)
+  {
+      --fetchedCount;
+      tempvcalc = lastItems[fetchedCount].V;
+      if (voltage_series != NULL) lv_chart_set_next_value(chart, voltage_series, (word)tempvcalc);
+      tempicalc = lastItems[fetchedCount].I;
+      if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempicalc);
+  }
+
+  if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, (word)tempvcalc);
+  if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, (word)tempicalc);
+}
+
 void Screen2SetData(PRunDatas MAD)
 {
   if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, 0);          
@@ -153,6 +194,7 @@ void Screen2SetData(PRunDatas MAD)
 
   //if (voltage_series != NULL) lv_chart_set_all_value(chart, voltage_series, LV_CHART_POINT_NONE);
   //if (current_series != NULL) lv_chart_set_all_value(chart, current_series, LV_CHART_POINT_NONE);
+
 
   if (MAD->Head != -1)
   {

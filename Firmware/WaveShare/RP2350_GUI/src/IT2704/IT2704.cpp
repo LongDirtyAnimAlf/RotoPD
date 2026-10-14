@@ -141,7 +141,7 @@ void IT2704::initDevice(bool reset)
     Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE);
 
-    data.f = 0.01; // Amps/ms
+    data.f = 0.01f; // Amps/ms
     Msg.setData(data.Val);
     //Msg.data[SDO::DATA_4]       = data.v[0];
     //Msg.data[SDO::DATA_5]       = data.v[1];
@@ -176,8 +176,8 @@ void IT2704::setCurrent(uint16_t current) // in mA
     Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_LEVEL);
 
-    data.f = current; // current is set in mA !!
-    data.f /= 1000.0;
+    data.f = current; // current is given in mA !!
+    data.f /= 1000.0f; // current is set in float A !!
     Msg.setData(data.Val);
 
     //Msg.data[SDO::DATA_4]       = data.v[0];

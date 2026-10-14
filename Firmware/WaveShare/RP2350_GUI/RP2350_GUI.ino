@@ -458,7 +458,8 @@ static void main_event_handler(lv_event_t * e)
           {
             case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
             case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(RDS);break;}
-            case 3: {Setup_Screen2(BoardInfo.IT2704Channel);Screen2SetData(RDS);break;}
+            //case 3: {Setup_Screen2(BoardInfo.IT2704Channel);Screen2SetData(RDS);break;}
+            case 3: {Setup_Screen2(BoardInfo.IT2704Channel);Screen2SetIT2704Data(RDS);break;}
             case 4: {Setup_Screen3(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
             case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
@@ -619,40 +620,44 @@ static void main_event_handler(lv_event_t * e)
   }
 }
 
-void AddMeasurementData(byte index, word V, word I, dword P, word T)
+void AddIT2704Data(PMeasurementData MD)
 {
-  static bool GoAround[DAUGHTERBOARDCOUNT] = {false};
+  PRunDatas RDS = &Battery->TestData.RunDatas; 
+  RDS->NewerIT2704Datas.push(*MD);
+}
 
-  if (index<DAUGHTERBOARDCOUNT)
+void AddMeasurementData(PMeasurementData MD)
+{
+  static bool GoAround = false;
+
+  PRunDatas RDS = &Battery->TestData.RunDatas;     
+  //PRunDatas RDS  = &Batteries[index].TestData.RunDatas;
+
+  // Reset GoAround in needed
+  if ((RDS->Head == -1) && (RDS->Tail == -1)) GoAround = false;
+
+  if (GoAround)
   {
-    PRunDatas RDS  = &Batteries[index].TestData.RunDatas;
-
-    // Reset GoAround in needed
-    if ((RDS->Head == -1) && (RDS->Tail == -1)) GoAround[index] = false;
-
-    if (GoAround[index])
-    {
-      RDS->Tail++;
-      if (RDS->Tail >= DATASIZE) RDS->Tail = 0;
-    }
-
-    RDS->Head++;
-    if (RDS->Head >= DATASIZE)
-    {
-      RDS->Head = 0;
-      if (!GoAround[index]) RDS->Tail = 1; // Preset tail to last added value
-      GoAround[index] = true;
-    }
-
-    //RDS->Temperature = T;    
-
-    PMeasurementData MD = &RDS->BatteryDatas[RDS->Head];
-
-    MD->V = V;
-    MD->I = I;
-    MD->P = P;
-    MD->T = T;    
+    RDS->Tail++;
+    if (RDS->Tail >= DATASIZE) RDS->Tail = 0;
   }
+
+  RDS->Head++;
+  if (RDS->Head >= DATASIZE)
+  {
+    RDS->Head = 0;
+    if (!GoAround) RDS->Tail = 1; // Preset tail to last added value
+    GoAround = true;
+  }
+
+  //RDS->Temperature = T;    
+
+  PMeasurementData LocalMD = &RDS->BatteryDatas[RDS->Head];
+
+  LocalMD->V = MD->V;
+  LocalMD->I = MD->I;
+  LocalMD->P = MD->P;
+  LocalMD->T = MD->T;    
 }
 
 #ifdef STANDALONE
@@ -1247,7 +1252,11 @@ void loop()
   if (GetData)
   {
     GetData = false;
+    // Get RotoPD measurement results
     collectRotoPDData();
+    // Ask load to send measurement result
+    // Result will only be collected on next loop or later
+    load.collectData();
   }
 
   THIDData* PLocalHD;
@@ -1349,10 +1358,6 @@ void loop()
         QWORD_VAL qw;
 
         qw.Val = 0;
-
-        //SET = &Batteries[ActiveBatteryIndex];
-        SET = Battery;
-        RDS = &SET->TestData.RunDatas; 
 
         for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
 
@@ -1483,10 +1488,6 @@ void loop()
 
     if (SET->TestData.DataTriggerCounter == 0)
     {
-      load.collectData();
-
-      RDS = &SET->TestData.RunDatas;        
-
       getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 
       //Serial.println("Got RotoPD data");        
@@ -1526,11 +1527,14 @@ void loop()
       
       if (SET->TestData.Active == bmActive)
       {
-        //Append the data in storage
-        AddMeasurementData(ActiveBatteryIndex, RDS->LastBatteryData.V, RDS->LastBatteryData.I, RDS->LastBatteryData.P, RDS->LastBatteryData.T);
+        //Append the normal data in storage
+        AddMeasurementData(&RDS->LastBatteryData);
+        //Append the IT2704 data in IT2704 buffer
+        AddIT2704Data(&RDS->LastIT2704Data);
 
         // Append data into graphs
-        Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+        //Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+        Screen2AddData(RDS->LastIT2704Data.V, RDS->LastIT2704Data.I);
 
         // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
@@ -1545,10 +1549,6 @@ void loop()
 
     dword dcalc;
     qword qcalc;
-
-    //SET = &Batteries[ActiveBatteryIndex];
-    SET = Battery;
-    RDS = &SET->TestData.RunDatas;  
 
     if (SET->TestData.SetStageMode != smOff)
     {
@@ -1668,6 +1668,8 @@ void ClearRunData(PRunDatas RDS)
     RDS->ThresholdResult[i].SetValue = 0;
     RDS->ThresholdResult[i].GetValue = 0;      
   }
+
+  RDS->NewerIT2704Datas.clear();  
 }
 
 void ClearStageData(PStageData SD)
