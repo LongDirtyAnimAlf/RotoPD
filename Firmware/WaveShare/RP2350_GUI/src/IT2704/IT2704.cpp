@@ -131,6 +131,12 @@ void IT2704::initDevice(bool reset)
     Msg.setCommand(WRITE_REQ_1BYTE_CMD);
     Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
 
+    // Write slew couple/tracking off
+    // This will allow off and on with different settings
+    Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_COUPLE);
+    Msg.setData(0); // 0:Off 1:On
+    _node->sendMsg(Msg);
+
     // Write on slew max off
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE_MAX);
     Msg.setData(0); // 0:Off 1:On
@@ -147,6 +153,29 @@ void IT2704::initDevice(bool reset)
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE);
 
     data.f = 0.01f; // Amps/ms
+    Msg.setData(data.Val);
+    _node->sendMsg(Msg);
+
+    // Inhibit settings
+    Msg.clearData();
+    Msg.setID(IT2704_SOURCE_VOLTAGE + (_channel * 0x100));
+
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setSubID(IT2704_SOURCE_VOLTAGE_INHIBIT_MODE);
+    Msg.setData(1); // 0:Off 1:live 2:latching
+
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+  
+    // Switch load on when voltage is above this level
+    Msg.setSubID(IT2704_SOURCE_VOLTAGE_INHIBIT_VON);
+    data.f = 4.0f; // Volt
+    Msg.setData(data.Val);
+    _node->sendMsg(Msg);
+
+    // Only needed when live mode enabled
+    // Switch load off when voltage is below this level
+    Msg.setSubID(IT2704_SOURCE_VOLTAGE_INHIBIT_VOFF);
+    data.f = 3.0f; // Volt
     Msg.setData(data.Val);
     _node->sendMsg(Msg);
 
