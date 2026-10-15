@@ -120,6 +120,11 @@ void IT2704::initDevice(bool reset)
       }
     }
 
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+
     // Set output slewrate
     // On: slow ; off: max (fast)
 
@@ -136,18 +141,13 @@ void IT2704::initDevice(bool reset)
     Msg.setData(1); // 0:Off 1:On
     _node->sendMsg(Msg);
 
-    // Write on slew rate
+    // Write on slew rate value
     Msg.setCommand(WRITE_REQ_4BYTE_CMD);
     Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE);
 
     data.f = 0.01f; // Amps/ms
     Msg.setData(data.Val);
-    //Msg.data[SDO::DATA_4]       = data.v[0];
-    //Msg.data[SDO::DATA_5]       = data.v[1];
-    //Msg.data[SDO::DATA_6]       = data.v[2];
-    //Msg.data[SDO::DATA_7]       = data.v[3];
-
     _node->sendMsg(Msg);
 
 

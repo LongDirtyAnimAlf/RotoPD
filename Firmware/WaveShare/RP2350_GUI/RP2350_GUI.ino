@@ -511,6 +511,11 @@ static void main_event_handler(lv_event_t * e)
               #ifdef DEBUG
               Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
               #endif
+
+              // Always stop the load current when switching PDO's
+              // Just to be sure
+              load.setOutput(false);
+
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
               SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
@@ -1077,7 +1082,7 @@ void setup()
   
   #endif
 
-  delay(2000);
+  //delay(2000);
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
@@ -1320,7 +1325,10 @@ void loop()
     if (SendCommand[COMMANDPOSITION] == CMD_set_value)
     {
       Info_Add("GUI [IT2704]. Setting discharge current !!!!!!!");
-      load.setCurrent(1000);
+
+
+
+
     }
 
     // Fill the data
@@ -1351,6 +1359,12 @@ void loop()
 
     switch(cCmd)
     {
+      case CMD_set_value:
+      {
+        load.setOutput(SET->TestData.SetStageValue != 0);
+        break;
+      }
+
       case CMD_set_energy:
       case CMD_set_capacity:
       case CMD_set_time:
@@ -1402,6 +1416,7 @@ void loop()
         if (PDO.valid)
         {
           Info_Add_Fmt("GUI. PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
+          load.setCurrent(PDO.maxCurrent_mA);
         }
 
         break;
