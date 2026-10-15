@@ -40,7 +40,7 @@ void CreateSaveScreen(const char *text)
     lv_obj_t * obj = lv_label_create(screensave);
     //lv_obj_align(obj, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 10);  
-    lv_obj_set_style_text_font(obj, &lv_font_montserrat_32, LV_PART_MAIN| LV_STATE_DEFAULT);  
+    lv_obj_set_style_text_font(obj, &lv_font_montserrat_32, LV_PART_MAIN);
     lv_obj_set_style_text_color(obj, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_label_set_text(obj, text);
   }
@@ -100,7 +100,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 
   lv_obj_t * basescreeninfo = lv_label_create(nav);
   lv_obj_align(basescreeninfo, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_text_font(basescreeninfo, &lv_font_montserrat_32, LV_PART_MAIN| LV_STATE_DEFAULT);  
+  lv_obj_set_style_text_font(basescreeninfo, &lv_font_montserrat_32, LV_PART_MAIN);
   lv_label_set_text(basescreeninfo, "INFO");
 
   screen1 = lv_obj_create(basescreen);
@@ -254,7 +254,13 @@ void NewKeyboardSetup(lv_obj_t * screen)
   lv_obj_add_event_cb(kb, newkeyboard_event_cb, LV_EVENT_ALL, ta);  
  
   static const char * newkb_map[] = {"1", "2", "3", "\n", "4", "5", "6", "\n", "7", "8", "9", "\n", LV_SYMBOL_BACKSPACE, "0", LV_SYMBOL_OK, NULL };
-  static const lv_btnmatrix_ctrl_t newkb_ctrl[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  //static const lv_btnmatrix_ctrl_t newkb_ctrl[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  static const lv_btnmatrix_ctrl_t newkb_ctrl[] = {
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1,
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1,
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1,
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1
+  };
 
   lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_1, newkb_map, newkb_ctrl);
   lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_USER_1);  
@@ -304,7 +310,13 @@ void BaseKeyboardSetup(lv_obj_t * kb)
   if (kb == NULL) return;
 
   static const char * kb_map[] = {"1", "2", "3", "\n", "4", "5", "6", "\n", "7", "8", "9", "\n", LV_SYMBOL_BACKSPACE, "0", LV_SYMBOL_OK, NULL };
-  static const lv_btnmatrix_ctrl_t kb_ctrl[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  //static const lv_btnmatrix_ctrl_t kb_ctrl[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  static const lv_btnmatrix_ctrl_t kb_ctrl[] = {
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1,
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1,
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1,
+    (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1, (lv_btnmatrix_ctrl_t)1
+  };
 
   lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_USER_1, kb_map, kb_ctrl);
   lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_USER_1);  
@@ -511,9 +523,9 @@ void ta_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     /*The original target of the event. Can be the buttons or the container*/
-    lv_obj_t * ta = (lv_obj_t *)lv_event_get_target(e);
+    lv_obj_t * ta = (lv_obj_t *)lv_event_get_target_obj(e);
     /*The current target is always the container as the event is added to it*/
-    lv_obj_t * cont = (lv_obj_t *)lv_event_get_current_target(e);
+    lv_obj_t * cont = lv_event_get_current_target_obj(e);
 
     lv_obj_t * parent = (lv_obj_t *)lv_obj_get_parent(ta);
 
@@ -562,19 +574,19 @@ void ObjectDeleteAndNull(lv_obj_t ** target)
 
 void fade_out_cb(void *obj, int32_t v) {
   if (obj) {
-    lv_obj_set_style_opa(obj, v, LV_PART_MAIN);
+    lv_obj_set_style_opa((lv_obj_t *)obj, v, LV_PART_MAIN);
   }
 }
 
 void fade_in_cb(void *obj, int32_t v) {
   if (obj) {
-    lv_obj_set_style_opa(obj, v, LV_PART_MAIN);
+    lv_obj_set_style_opa((lv_obj_t *)obj, v, LV_PART_MAIN);
   }
 }
 
 void ready_cb(lv_anim_t *anim)
 {
-  lv_obj_t * user = lv_anim_get_user_data(anim);  
+  lv_obj_t * user = (lv_obj_t *)lv_anim_get_user_data(anim);  
   if (user != NULL)
   {
     lv_obj_set_hidden(user, true);
@@ -587,7 +599,7 @@ void NumpadShowLabel(lv_obj_t * label)
   lv_anim_set_values(&a, LV_OPA_TRANSP, LV_OPA_COVER);
   lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)fade_in_cb);    
   lv_anim_set_completed_cb(&a, NULL);    
-  lv_obj_t * user = lv_anim_get_user_data(&a);  
+  lv_obj_t * user = (lv_obj_t *)lv_anim_get_user_data(&a);  
   if (user != NULL)
   {
     lv_obj_set_hidden(user, false);
@@ -613,7 +625,7 @@ void NumpadHide()
   lv_obj_t * kb = NULL;
   lv_obj_t * targetlabel = NULL;
 
-  lv_obj_t * user = lv_anim_get_user_data(&a);  
+  lv_obj_t * user = (lv_obj_t *)lv_anim_get_user_data(&a);  
   if (user != NULL)
   {
     ta = lv_obj_get_child(user, 0);
@@ -624,7 +636,7 @@ void NumpadHide()
     kb = lv_obj_get_child(user, 1);
     if (kb != NULL)
     {
-      targetlabel = lv_obj_get_user_data(kb);
+      targetlabel = (lv_obj_t *)lv_obj_get_user_data(kb);
     }    
   }
 

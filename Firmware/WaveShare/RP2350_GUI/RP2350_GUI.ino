@@ -313,7 +313,7 @@ static void main_event_handler(lv_event_t * e)
 
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
-  lv_obj_t * event_object = (lv_obj_t *)lv_event_get_target(e);
+  lv_obj_t * event_object = lv_event_get_target_obj(e);
   if (event_object == NULL) event_object = lv_event_get_current_target_obj(e);
 
   lv_obj_t * object_user_data = NULL;

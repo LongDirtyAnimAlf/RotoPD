@@ -1,5 +1,4 @@
-#include <Arduino.h>
-#include <lvgl.h>
+#include "sevensegment.h"
 #include "./../../shared.h"
 
 extern const lv_font_t lv_font_dseg7_64;
@@ -49,13 +48,13 @@ lv_obj_t * create_display(lv_obj_t * parent, lv_color_t c, bool size, byte count
   {
     lv_obj_set_width(digits, LV_SIZE_CONTENT);
   }
-  lv_obj_set_style_bg_color(digits, lv_color_black(), LV_PART_MAIN| LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_color(digits, lv_color_black(), LV_PART_MAIN);
 
   lv_obj_t *digits_back = lv_label_create(digits);
   lv_obj_remove_style_all(digits_back);
   lv_obj_align(digits_back, LV_ALIGN_LEFT_MID, 0, 0);
-  lv_obj_set_style_text_color(digits_back, c, LV_PART_MAIN | LV_STATE_DEFAULT );
-  lv_obj_set_style_text_font(digits_back, digitfont, LV_PART_MAIN| LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(digits_back, c, LV_PART_MAIN);
+  lv_obj_set_style_text_font(digits_back, digitfont, LV_PART_MAIN);
   lv_obj_set_style_opa(digits_back, LV_OPA_20, 0);
 
   strncpy(tmpArray,ALL,count);
@@ -68,8 +67,8 @@ lv_obj_t * create_display(lv_obj_t * parent, lv_color_t c, bool size, byte count
   lv_obj_t *digits_front = lv_label_create(digits);
   lv_obj_remove_style_all(digits_front);
   lv_obj_align(digits_front, LV_ALIGN_LEFT_MID, 0, 0);
-  lv_obj_set_style_text_color(digits_front, c, LV_PART_MAIN | LV_STATE_DEFAULT );
-  lv_obj_set_style_text_font(digits_front, digitfont, LV_PART_MAIN| LV_STATE_DEFAULT);
+  lv_obj_set_style_text_color(digits_front, c, LV_PART_MAIN);
+  lv_obj_set_style_text_font(digits_front, digitfont, LV_PART_MAIN);
 
   strncpy(tmpArray,INVALID,count);
   tmpArray[1] = '.';

@@ -1,6 +1,5 @@
 #include "Screenbase.h"
-#include <stdio.h>
-#include <stdarg.h>
+#include "ScreenLogger.h"
 #include <string.h>
 
 #define MAX_LOG_LINES   100
@@ -145,7 +144,7 @@ void Setup_ScreenLogger(byte index, bool show)
         if (obj) {
             obj = lv_obj_get_parent(obj);
             lv_obj_set_style_bg_color(obj, lv_color_hex(0xFF0000),
-                                      LV_PART_MAIN | LV_STATE_DEFAULT);
+                                      LV_PART_MAIN);
 
             lv_event_cb_t event_cb = GetEvent();
             lv_obj_remove_event_cb(obj, event_cb);

@@ -1,14 +1,14 @@
 #ifndef LV_SCREEN3_H
 #define LV_SCREEN3_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <lvgl.h>
 
 extern lv_obj_t * screen3;
 extern lv_obj_t * getpdolistbutton;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void Setup_Screen3(byte index, bool show);
 void Screen3ClearPDOList(void);

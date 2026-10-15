@@ -1,4 +1,5 @@
 #include "Screenbase.h"
+#include "Screen3.h"
 
 // ── PDO type constants ────────────────────────────────────────────────────────
 #define PDO_TYPE_FIXED       (0)
@@ -96,7 +97,7 @@ void Screen3ClearPDOList(void)
 static void btn_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
+    lv_obj_t * btn = (lv_obj_t *)lv_event_get_target_obj(e);
 
     if (btn == NULL || code != LV_EVENT_CLICKED)
         return;
@@ -104,7 +105,7 @@ static void btn_event_cb(lv_event_t * e)
     if (btn == getpdolistbutton) {
         Screen3ClearPDOList();
     } else {
-        lv_obj_t * cont = lv_event_get_current_target(e);
+        lv_obj_t * cont = lv_event_get_current_target_obj(e);
         if (btn == cont) return;   /* clicked on container itself */
     }
 
@@ -120,7 +121,8 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
     lv_obj_t * cell = lv_obj_create(parent);
     lv_obj_remove_style_all(cell);
     lv_obj_add_style(cell, &style_cell, 0);
-    lv_obj_set_event_bubble(cell, true);
+    //lv_obj_set_event_bubble(cell, true);
+    lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_set_scrollable(cell, false);
     lv_obj_set_size(cell, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_ROW);
@@ -158,14 +160,15 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
 
     /* Child 4 – Select button */
     lv_obj_t * cell_button = lv_button_create(cell);
-    lv_obj_set_event_bubble(cell_button, true);
+    //lv_obj_set_event_bubble(cell_button, true);
+    lv_obj_add_flag(cell_button, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_set_floating(cell_button, true);
     lv_obj_set_size(cell_button, LV_SIZE_CONTENT, lv_pct(90));
     lv_obj_align(cell_button, LV_ALIGN_RIGHT_MID, -5, 0);
     lv_obj_add_style(cell_button, &style_btn, 0);
     lv_obj_set_style_border_color(cell_button, lv_palette_main(INITCOLOR), 0);
-    lv_obj_set_style_bg_color(cell_button, lv_palette_darken(INITCOLOR, 4), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(cell_button, lv_palette_darken(INITCOLOR, 100), LV_PART_MAIN | LV_STATE_DISABLED);
+    lv_obj_set_style_bg_color(cell_button, lv_palette_darken(INITCOLOR, 4), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(cell_button, lv_palette_darken(INITCOLOR, 100), LV_STATE_DISABLED);
 
     lv_obj_t * btn_label = lv_label_create(cell_button);
     lv_label_set_text(btn_label, "Select");
@@ -333,8 +336,8 @@ void Screen3SetPDO(
     obj = lv_obj_get_child(cell, 4);
     if (obj && lv_obj_check_type(obj, &lv_button_class)) {
         lv_obj_set_style_border_color(obj, lv_palette_main(p), 0);
-        lv_obj_set_style_bg_color(obj, lv_palette_darken(p, 4), LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_style_bg_color(obj, lv_palette_darken(p, 100), LV_PART_MAIN | LV_STATE_DISABLED);
+        lv_obj_set_style_bg_color(obj, lv_palette_darken(p, 4), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(obj, lv_palette_darken(p, 100), LV_STATE_DISABLED);
         lv_obj_set_user_data(obj, (void *)(uintptr_t)index);
     }
 }

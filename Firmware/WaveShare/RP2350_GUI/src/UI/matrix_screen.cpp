@@ -34,7 +34,7 @@ static uint32_t get_random_matrix_char(void) {
 
 // 1. Blazing Fast Public Character Render Callback
 static void matrix_draw_cb(lv_event_t * e) {
-    lv_obj_t * scr = (lv_obj_t*)(lv_event_get_target(e));
+    lv_obj_t * scr = lv_event_get_target_obj(e);
     matrix_screen_data_t * data = (matrix_screen_data_t*)(lv_obj_get_user_data(scr));
     lv_layer_t * layer = lv_event_get_layer(e);
     
@@ -98,7 +98,7 @@ static void matrix_engine_timer_cb(lv_timer_t * timer) {
 
 // 3. Cleanup Routine
 static void matrix_screen_delete_cb(lv_event_t * e) {
-    lv_obj_t * scr = (lv_obj_t*)(lv_event_get_target(e));
+    lv_obj_t * scr = lv_event_get_target_obj(e);
     matrix_screen_data_t * data = (matrix_screen_data_t*)(lv_obj_get_user_data(scr));
     
     if(data) {

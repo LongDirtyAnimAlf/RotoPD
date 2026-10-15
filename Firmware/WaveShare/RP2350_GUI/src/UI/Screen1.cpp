@@ -1,4 +1,5 @@
 #include "Screenbase.h"
+#include "Screen1.h"
 #include <stdio.h>
 
 #define NUMBEROFDISPLAY 5
@@ -172,8 +173,8 @@ static void btn_event_cb(lv_event_t * e)
     static bool longpress = false;
 
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * btn = lv_event_get_current_target_obj(e);
-    lv_obj_t * user = lv_event_get_user_data(e);
+    lv_obj_t * btn = (lv_obj_t *)lv_event_get_current_target_obj(e);
+    lv_obj_t * user = (lv_obj_t *)lv_event_get_user_data(e);
 
     if (btn == NULL)
         return;
@@ -208,7 +209,7 @@ void keyboard_event_cb(lv_event_t * e)
 static void ta_event_cb_local(lv_event_t * e)
 {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-        lv_obj_t * label = lv_event_get_target(e);
+        lv_obj_t * label = (lv_obj_t *)lv_event_get_target_obj(e);
         NumpadShowLabel(label);
     }
 }

@@ -1,14 +1,14 @@
 #ifndef LV_SCREENPOWER_H
 #define LV_SCREENPOWER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <lvgl.h>
 #include "./../../shared.h"
 
 extern lv_obj_t * screenpower;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void Setup_ScreenPower(byte index);
 void ScreenPowerAddEPData(dword E, dword P);

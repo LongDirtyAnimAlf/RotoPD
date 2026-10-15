@@ -1,8 +1,7 @@
 #include "Screenbase.h"
+#include "ScreenSettings.h"
 
 lv_obj_t * screensettings = NULL;
-
-#include "lvgl.h"
 
 // Declare CANopen logo image asset
 LV_IMG_DECLARE(canopen_logo_img);
@@ -124,7 +123,7 @@ void switch_to_dark(bool use_dark_mode)
 static void btn_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
+    lv_obj_t * btn = (lv_obj_t *)lv_event_get_target_obj(e);
 
     if (btn == NULL || code != LV_EVENT_CLICKED)
         return;
@@ -142,7 +141,7 @@ static void switch_event_handler(lv_event_t * e)
 
     if(code == LV_EVENT_VALUE_CHANGED)
     {
-        lv_obj_t * sw = lv_event_get_target(e);
+        lv_obj_t * sw = lv_event_get_target_obj(e);
 
         // Check if the switch is ON or OFF
         bool is_active = lv_obj_has_state(sw, LV_STATE_CHECKED);

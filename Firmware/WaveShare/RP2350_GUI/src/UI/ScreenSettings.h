@@ -1,14 +1,14 @@
 #ifndef LV_SCREENSETTINGS_H
 #define LV_SCREENSETTINGS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <lvgl.h>
 
 extern lv_obj_t * screensettings;
 extern lv_obj_t * sw_savesettings;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void Setup_ScreenSettings(byte index, bool show);
 
@@ -31,7 +31,6 @@ void SetNodeAdress(byte datavalue);
 void SetMasterAdress(byte datavalue);
 void SetIT2704Adress(byte datavalue);
 void SetIT2704Channel(byte datavalue);
-
 
 #ifdef __cplusplus
 } /*extern "C"*/

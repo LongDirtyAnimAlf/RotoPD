@@ -1,4 +1,5 @@
 #include "Screenbase.h"
+#include "ScreenPower.h"
 #include "powermeter.h"
 
 lv_obj_t * screenpower = NULL;

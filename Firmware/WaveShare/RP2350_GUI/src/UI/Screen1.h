@@ -1,10 +1,6 @@
 #ifndef LV_SCREEN1_H
 #define LV_SCREEN1_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <lvgl.h>
 
 extern lv_obj_t * screen1;
@@ -18,6 +14,10 @@ extern lv_obj_t * outputbutton;
 extern lv_obj_t * zerocapacitybutton;
 extern lv_obj_t * zeroenergybutton;
 extern lv_obj_t * zerotimebutton;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void Setup_Screen1(byte index);
 void Screen1SetData(PBatterySetting SET);

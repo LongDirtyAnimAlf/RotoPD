@@ -1,5 +1,5 @@
-#include "lvgl.h"
 #include "Screenbase.h"
+#include "powermeter.h"
 
 #include "./../../shared.h"
 
@@ -23,7 +23,7 @@ static lv_obj_t * arc_indicator;
 static lv_obj_t * needle_glow;      // thicker soft glow
 static lv_obj_t * needle_line;      // sharp main needle
 static lv_obj_t * label_value;
-static lv_obj_t * digital_display;
+static lv_obj_t * energy_display;
 static lv_obj_t * voltage_display;
 static lv_obj_t * current_display;
 
@@ -39,7 +39,7 @@ void gauge_set_current(int16_t I)
 
 void gauge_set_energy(int32_t E)
 {
-    if (digital_display != NULL) SetDisplaymV(digital_display, (E));    
+    if (energy_display != NULL) SetDisplaymV(energy_display, (E));    
 }
 
 // ============== Update ==============
@@ -85,43 +85,53 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_align(cont2, LV_ALIGN_TOP_MID, 0, 20);
     lv_obj_add_style(cont2, &style_glow, 0);
 
-    /* V/I Data Container */
-    lv_obj_t * header = lv_obj_create(cont2);
-    lv_obj_remove_style_all(header);
-    lv_obj_set_size(header, GAUGE_SIZE + 60, LV_SIZE_CONTENT);
-    lv_obj_set_layout(header, LV_LAYOUT_FLEX);
-    lv_obj_set_flex_flow(header, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(header, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(header, 20, 0);
-    //lv_obj_set_style_pad_bottom(header, 10, LV_PART_MAIN);
-    //lv_obj_align_to(header, cont2, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);    
-    lv_obj_align(header, LV_ALIGN_BOTTOM_MID, 0, 10);
+    // Create main container with COLUMN flow (stacks Row 1 above Row 2)
+    lv_obj_t * main_cont = lv_obj_create(cont2);
+    lv_obj_remove_style_all(main_cont);
+    lv_obj_set_style_pad_all(main_cont, 0, LV_PART_MAIN);
+    //lv_obj_set_size(main_cont, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_size(main_cont, GAUGE_SIZE + 60, LV_SIZE_CONTENT);    
+    lv_obj_set_flex_flow(main_cont, LV_FLEX_FLOW_COLUMN);
+    //lv_obj_set_style_pad_all(main_cont, 5, 0);
+    lv_obj_set_style_pad_row(main_cont, 10, 0);
+    lv_obj_align(main_cont, LV_ALIGN_BOTTOM_MID, 0, 10);
 
-    voltage_display = create_display(header, lv_palette_main(LV_PALETTE_RED), false, 5);
-    //lv_obj_align(voltage_display, LV_ALIGN_BOTTOM_LEFT, 10, -10);
-
+    lv_obj_t * row;
     lv_obj_t * label;
 
-    label = lv_label_create(cont2);
-    lv_obj_remove_style_all(label);
-    lv_obj_move_background(label);
-    lv_obj_align_to(label, voltage_display, LV_ALIGN_OUT_TOP_LEFT, 0, -20);    
-    lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, LV_PART_MAIN| LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);    
-    lv_label_set_text(label, "V");
+    // Create Row 1 (Horizontal Row)
+    row = lv_obj_create(main_cont);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);    
+    //lv_obj_set_style_pad_column(row, 20, 0);
 
-    current_display = create_display(header, lv_palette_main(LV_PALETTE_RED), false, 5);
-    //lv_obj_align(current_display, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
+    label = lv_label_create(row);
+    //lv_obj_remove_style_all(label);
+    lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, LV_PART_MAIN);
+    //lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);    
+    lv_label_set_text(label, "Volt");
 
-    label = lv_label_create(cont2);
-    lv_obj_remove_style_all(label);
-    lv_obj_move_background(label);
-    lv_obj_align_to(label, current_display, LV_ALIGN_OUT_TOP_RIGHT, 0, -20);    
-    lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, LV_PART_MAIN| LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_label_set_text(label, "I");
+    label = lv_label_create(row);
+    //lv_obj_remove_style_all(label);
+    lv_obj_set_style_text_color(label, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, LV_PART_MAIN);
+    //lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_label_set_text(label, "Amp");
+
+
+    // Create Row 2 (Horizontal Row)
+    row = lv_obj_create(main_cont);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);    
+    //lv_obj_set_style_pad_column(row, 20, 0);
+
+    voltage_display = create_display(row, lv_palette_main(LV_PALETTE_RED), false, 5);
+    current_display = create_display(row, lv_palette_main(LV_PALETTE_RED), false, 5);
 
     /* Main circular container */
     lv_obj_t * cont = lv_obj_create(cont2);
@@ -289,29 +299,29 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_remove_style_all(label_value);
     lv_obj_move_background(label_value);
     lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
-    lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
-    lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, LV_PART_MAIN| LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, LV_PART_MAIN);
     lv_label_set_text_fmt(label_value, "%03d", 0);
 
     lv_obj_t *digits_back = lv_label_create(cont);
     lv_obj_remove_style_all(digits_back);
     lv_obj_move_background(digits_back);
     lv_obj_align(digits_back, LV_ALIGN_CENTER, 0, -50);
-    lv_obj_set_style_text_color(digits_back, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN | LV_STATE_DEFAULT );
-    lv_obj_set_style_text_font(digits_back, &lv_font_dseg7_32, LV_PART_MAIN| LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(digits_back, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
+    lv_obj_set_style_text_font(digits_back, &lv_font_dseg7_32, LV_PART_MAIN);
     lv_obj_set_style_opa(digits_back, LV_OPA_20, 0);
     lv_label_set_text(digits_back, "888");
 
     // Unit label
     lv_obj_t *label_unit = lv_label_create(cont);
     lv_obj_move_background(label_unit);
-    lv_label_set_text(label_unit, "Watt");
+    lv_label_set_text(label_unit, "Power");
     lv_obj_set_style_text_font(label_unit, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(label_unit, lv_palette_main(LV_PALETTE_TEAL), 0);
     lv_obj_align(label_unit, LV_ALIGN_CENTER, 0, 36);
 
-    digital_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);
-    lv_obj_align(digital_display, LV_ALIGN_CENTER, 0, 120);
+    energy_display = create_display(cont, lv_palette_main(LV_PALETTE_RED), false, 7);
+    lv_obj_align(energy_display, LV_ALIGN_CENTER, 0, 120);
 
-    gauge_set_power(150);
+    gauge_set_power(0);
 }
