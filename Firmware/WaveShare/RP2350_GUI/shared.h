@@ -235,25 +235,6 @@ typedef struct
 
 typedef struct
 {
-  word Voltage;
-  word Current;
-  dword Power;
-  word Temperature;  
-  //bool OutputOn;
-  TPDOMode pdoMode;
-  int pdoIndex;
-  int targetVoltage;
-  int maxCurrent;
-  byte Serial[8];
-  TStageData BM;
-  word Firmware;
-  bool NeedsGUIUpdate;
-  bool NeedsStatusUpdate;
-  bool NeedsDataUpdate;
-} TBatteryBoard,*PBatteryBoard;
-
-typedef struct
-{
   word  V;   // voltage
   word  I;   // current
   dword P;   // power
@@ -262,6 +243,26 @@ typedef struct
   qword S;   // timestamp ms
 } TMeasurementData,*PMeasurementData;
 
+typedef struct
+{
+  // Actual board data
+  TMeasurementData RotoPDData;
+  TMeasurementData IT2704Data;
+  TStageData BM;
+  // PDO stuff
+  //AP33772S_PDO PDO;
+  TPDOMode pdoMode;
+  int pdoIndex;
+  int pdoTargetVoltage;
+  int pdoMaxCurrent;
+  // Board hardware info
+  byte Serial[8];
+  word Firmware;
+  // Miscellaneous
+  bool NeedsGUIUpdate;
+  bool NeedsStatusUpdate;
+  bool NeedsDataUpdate;
+} TBatteryBoard,*PBatteryBoard;
 
 typedef struct
 {

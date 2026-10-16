@@ -42,17 +42,15 @@ extern COBSPacketSerial myPacketSerial; // for logging
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
-WORD_VAL firmware;
-
 extern TwoWire WireBattery;
-
-extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
-
-//extern AP33772S usbpd;
+extern TBatteryBoard BatteryBoards[];
+extern PBatteryBoard Board;
 extern AP33772S pd;
 extern INA238 ina238;
+extern IT2704 load;
 
 volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
+//THIDData* const CurrentHIDData = HIDData;
 
 static float ina_mA_c       = 0;
 static float ina_mV_c       = 0;
@@ -259,7 +257,12 @@ bool initINA238(void)
     //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
 
     ina238.setAverage(INA238_16_SAMPLES); 
-    ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+    //ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+
+
+    ina238.setDiagnoseAlertBit(INA238_DIAG_SHUNT_OVER_LIMIT);
+    ina238.clearDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Transparent
+    ina238.clearDiagnoseAlertBit(INA238_DIAG_ALERT_POLARITY);
 
     //Info_Add("Comms. Init INA238 success.");
   }
@@ -499,15 +502,19 @@ bool process_command(void const *data, void *result)
     LocalBatteryBoard->pdoIndex=(databuffer[dataindexer++]);
     // maxCurrent
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->maxCurrent=dw_data.Val;
+    LocalBatteryBoard->pdoMaxCurrent=dw_data.Val;
     // targetVoltage
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->targetVoltage=dw_data.Val;
+    LocalBatteryBoard->pdoTargetVoltage=dw_data.Val;
 
     Info_Add("Comms. Received SetPD command.");
     Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->pdoIndex);
-    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->maxCurrent);
-    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->targetVoltage);
+    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->pdoMaxCurrent);
+    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->pdoTargetVoltage);
+
+    // Always stop the load current before switching PDO's
+    // Just to be sure
+    load.setOutput(false);
 
     switch (cCmd)
     {
@@ -526,7 +533,7 @@ bool process_command(void const *data, void *result)
         Info_Add("Comms. Set fxed PDO.");
 
         LocalBatteryBoard->pdoMode = pmFixed; 
-        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
+        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->pdoMaxCurrent);
         if (AP33772S_OK != j)
         {
           Info_Add("Comms. Set max PDO returned an error.");
@@ -539,7 +546,7 @@ bool process_command(void const *data, void *result)
         Info_Add("Comms. Set PPS PDO.");
 
         LocalBatteryBoard->pdoMode = pmPPS; 
-        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->pdoTargetVoltage, LocalBatteryBoard->pdoMaxCurrent);
         if (AP33772S_OK != j)
         {
           Info_Add("Comms. Set PPS PDO returned an error.");
@@ -552,7 +559,7 @@ bool process_command(void const *data, void *result)
         Info_Add("Comms. Set AVS PDO.");
 
         LocalBatteryBoard->pdoMode = pmAVS; 
-        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->pdoTargetVoltage, LocalBatteryBoard->pdoMaxCurrent);
         if (AP33772S_OK != j)
         {
           Info_Add("Comms. Set AVS PDO returned an error.");
@@ -592,8 +599,9 @@ bool process_command(void const *data, void *result)
     {
       Info_Add("Comms. Output OFF.");
     }
-    //LocalBatteryBoard->OutputOn = Engage; 
+    if (!Engage) load.setOutput(Engage);
     pd.setOutput(Engage);
+    if (Engage) load.setOutput(Engage);
   }
 
   if (cCmd == CMD_set_value)
@@ -610,6 +618,11 @@ bool process_command(void const *data, void *result)
     switch(LocalBatteryBoard->BM.Status)
     {
       case smCurrent :
+      {
+        load.setCurrent(LocalBatteryBoard->BM.SetValue);
+        Engage = true;
+        break;
+      }
       case smPower :
       case smResistor : 
       {
@@ -634,15 +647,16 @@ bool process_command(void const *data, void *result)
     {
       Info_Add("Comms. Output OFF.");
     }
-    //LocalBatteryBoard->OutputOn = Engage; 
+    if (!Engage) load.setOutput(Engage);
     pd.setOutput(Engage);
+    if (Engage) load.setOutput(Engage);
   }
 
   if (cCmd == CMD_get_data)
   {
     //Info_Add("Comms. Received GetData command.");
 
-    getRotoPDData(&LocalBatteryBoard->Current,&LocalBatteryBoard->Voltage,&LocalBatteryBoard->Power,&LocalBatteryBoard->Temperature);
+    getRotoPDData(&LocalBatteryBoard->RotoPDData.I,&LocalBatteryBoard->RotoPDData.V,&LocalBatteryBoard->RotoPDData.P,&LocalBatteryBoard->RotoPDData.T);
 
     GUIUpdateNeeded = true;
   }
@@ -675,13 +689,13 @@ bool process_command(void const *data, void *result)
   {
     //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
     //i += 2;
-    w_data.Val = LocalBatteryBoard->Voltage;
+    w_data.Val = LocalBatteryBoard->RotoPDData.V;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    w_data.Val = LocalBatteryBoard->Current;
+    w_data.Val = LocalBatteryBoard->RotoPDData.I;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    dw_data.Val = LocalBatteryBoard->Power;
+    dw_data.Val = LocalBatteryBoard->RotoPDData.P;
     for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-    w_data.Val = LocalBatteryBoard->Temperature;
+    w_data.Val = LocalBatteryBoard->RotoPDData.T;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
 
     #ifdef DEBUG
@@ -745,12 +759,12 @@ bool process_command(void const *data, void *result)
     w_data.Val = pd.getRequestedCurrent_mA();
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->maxCurrent=w_data.Val;
+    LocalBatteryBoard->pdoMaxCurrent=w_data.Val;
 
     w_data.Val = pd.getRequestedVoltage_mV();
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->targetVoltage=w_data.Val;
+    LocalBatteryBoard->pdoTargetVoltage=w_data.Val;
 
     w_data.Val = 0;
     if (pd.readPDO(LocalBatteryBoard->pdoIndex, PDO))
@@ -758,8 +772,8 @@ bool process_command(void const *data, void *result)
       if (PDO.valid)
       {
         LocalBatteryBoard->pdoMode=(TPDOMode)PDO.type;
-        //LocalBatteryBoard->maxCurrent=PDO.maxCurrent_mA;
-        //LocalBatteryBoard->targetVoltage=PDO.maxVoltage_mV;
+        //LocalBatteryBoard->pdoMaxCurrent=PDO.maxCurrent_mA;
+        //LocalBatteryBoard->pdoTargetVoltage=PDO.maxVoltage_mV;
         w_data.Val = PDO.raw;
       }
     }
@@ -848,8 +862,6 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
 		case USB_CMD_get_firmware:
 		{
-      //hid_report_in[1] = firmware.bytes.HB;
-      //hid_report_in[2] = firmware.bytes.LB;
 			hid_report_in[1]=FW_MAJOR;
 			hid_report_in[2]=FW_MINOR;
 			break;

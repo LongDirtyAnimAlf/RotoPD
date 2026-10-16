@@ -133,6 +133,7 @@ void IT2704::initDevice(bool reset)
 
     // Write slew couple/tracking off
     // This will allow off and on with different settings
+    // This must be executed first, but how to force this ?
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_COUPLE);
     Msg.setData(0); // 0:Off 1:On
     _node->sendMsg(Msg);

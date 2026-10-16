@@ -6,11 +6,13 @@
 // Generic message type
 class Message {
   public:
+  bool prio;  
   uint32_t id;  
   uint8_t  dlc; // data length code
   uint8_t data[8];
   
   Message() : 
+    prio(false),
     id(0), 
     dlc(0) 
   {

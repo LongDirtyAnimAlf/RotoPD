@@ -121,8 +121,7 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
     lv_obj_t * cell = lv_obj_create(parent);
     lv_obj_remove_style_all(cell);
     lv_obj_add_style(cell, &style_cell, 0);
-    //lv_obj_set_event_bubble(cell, true);
-    lv_obj_add_flag(cell, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_set_event_bubble(cell, true);
     lv_obj_set_scrollable(cell, false);
     lv_obj_set_size(cell, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(cell, LV_FLEX_FLOW_ROW);
@@ -160,8 +159,7 @@ static lv_obj_t * CreatePDOCell(lv_obj_t * parent)
 
     /* Child 4 – Select button */
     lv_obj_t * cell_button = lv_button_create(cell);
-    //lv_obj_set_event_bubble(cell_button, true);
-    lv_obj_add_flag(cell_button, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_set_event_bubble(cell_button, true);
     lv_obj_set_floating(cell_button, true);
     lv_obj_set_size(cell_button, LV_SIZE_CONTENT, lv_pct(90));
     lv_obj_align(cell_button, LV_ALIGN_RIGHT_MID, -5, 0);

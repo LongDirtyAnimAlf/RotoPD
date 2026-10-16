@@ -32,6 +32,12 @@ void Screen1SetThresholdLedEnabled(TThresholdModes Mode, bool On);
 void Screen1SetThresholdLed(TThresholdModes Mode, bool On);
 void Screen1SetOutput(bool On);
 
+void Screen1SetDischargeCurrent(word I);
+word Screen1GetDischargeCurrent(void);
+void Screen1SetChargeCurrent(word I);
+word Screen1GetChargeCurrent(void);
+
+
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif

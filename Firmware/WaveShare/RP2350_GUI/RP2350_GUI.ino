@@ -72,8 +72,10 @@ IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 //MCP2515 mcp2515(10 * 1000 * 1000);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
+PBatteryBoard const CurrentBoard = BatteryBoards;
+
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-static TBatterySetting* const Battery = Batteries;
+static PBatterySetting const Battery = Batteries;
 
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
@@ -512,10 +514,6 @@ static void main_event_handler(lv_event_t * e)
               Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
               #endif
 
-              // Always stop the load current when switching PDO's
-              // Just to be sure
-              load.setOutput(false);
-
               // Prepare the command to engage the hardware
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
               SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
@@ -707,9 +705,6 @@ void setup()
   byte index;
   word tempintcalc;
   char myHex[10] = "";
-
-  firmware.bytes.HB = FW_MAJOR;
-  firmware.bytes.LB = FW_MINOR;
 
   //delay(250);
 
@@ -1267,8 +1262,11 @@ void loop()
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
 
+  memset(INData,0,COMMAND_SIZE);  
+
   // Do we have a valid command ?
   // This is a command coming from the USB HID interface
+  // Most likely, this command originates from a desktop PC
   if (HIDData[ActiveBatteryIndex].DataReceived)
   {
     #ifndef TINYUSB_NEED_POLLING_TASK
@@ -1319,23 +1317,15 @@ void loop()
 
   // Do we have a valid command ?
   // This is a command coming from the touch-screen logic = main_event_handler()
+
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
   {
-
-    if (SendCommand[COMMANDPOSITION] == CMD_set_value)
-    {
-      Info_Add("GUI [IT2704]. Setting discharge current !!!!!!!");
-
-
-
-
-    }
-
     // Fill the data
     for (j=0; j<(SendCommand[LENGTHPOSITION]+DATASTART); j++) OUTData[j] = SendCommand[j];
     // Reset command
     SendCommand[COMMANDPOSITION] = CMD_unknown;
 
+    // Process the command and 
     DataOk |= process_command(&OUTData,&INData);
   }
 
@@ -1359,9 +1349,19 @@ void loop()
 
     switch(cCmd)
     {
+      case CMD_set_output:
+      {
+        j = INData[counter++];
+        //load.setOutput(j != 0);
+        break;
+      }
+
       case CMD_set_value:
       {
-        load.setOutput(SET->TestData.SetStageValue != 0);
+        for ( j=0; j<4; j++ ) {dwv.v[j] = INData[counter++];}
+        //Screen1SetDischargeCurrent(dwv.w[0]);
+        //load.setCurrent(dwv.w[0]);
+        //load.setOutput(dwv.w[0] != 0);
         break;
       }
 
@@ -1397,6 +1397,10 @@ void loop()
       {
         j = INData[counter++];
 
+        //CurrentBoard->pdoMaxCurrent
+
+
+        // We might also have this info !
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxCurrent_mA = wv.Val;
@@ -1415,9 +1419,15 @@ void loop()
 
         if (PDO.valid)
         {
-          Info_Add_Fmt("GUI. PDO [%d] received ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
-          load.setCurrent(PDO.maxCurrent_mA);
+          Info_Add_Fmt("GUI. PDO [%d] selected ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
         }
+        else
+        {
+          Info_Add_Fmt("GUI. PDO [%d] selected is invalid. Very strange.", j);
+        }
+
+        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = PDO.maxCurrent_mA;
+        Screen1SetDischargeCurrent(PDO.maxCurrent_mA);
 
         break;
       }
@@ -1503,6 +1513,7 @@ void loop()
 
     if (SET->TestData.DataTriggerCounter == 0)
     {
+      getRotoPDData(&CurrentBoard->RotoPDData.I,&CurrentBoard->RotoPDData.V,&CurrentBoard->RotoPDData.P,&CurrentBoard->RotoPDData.T);        
       getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
 
       //Serial.println("Got RotoPD data");        

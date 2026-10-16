@@ -272,7 +272,7 @@ void Setup_Screen1(byte index)
 
     btn = lv_button_create(disc_row);
     lv_obj_set_size(btn, lv_pct(35), LV_SIZE_CONTENT);
-    lv_obj_add_style(btn, &style_btn_checked, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(btn, &style_btn_checked, LV_STATE_CHECKED);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);
     testdischargebutton = btn;
 
@@ -322,7 +322,7 @@ void Setup_Screen1(byte index)
 
     btn = lv_button_create(chg_row);
     lv_obj_set_size(btn, lv_pct(35), LV_SIZE_CONTENT);
-    lv_obj_add_style(btn, &style_btn_checked, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(btn, &style_btn_checked, LV_STATE_CHECKED);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);
     testchargebutton = btn;
 
@@ -343,7 +343,7 @@ void Setup_Screen1(byte index)
     btn = lv_button_create(obj);
     lv_obj_set_size(btn, lv_pct(100), LV_SIZE_CONTENT);
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_add_style(btn, &style_btn_checked, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(btn, &style_btn_checked, LV_STATE_CHECKED);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);
     outputbutton = btn;
 
@@ -486,7 +486,7 @@ void Setup_Screen1(byte index)
     lv_obj_set_size(btn, lv_pct(48), LV_SIZE_CONTENT);
     lv_obj_align(btn, LV_ALIGN_LEFT_MID, 6, 0);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_add_style(btn, &style_btn_checked, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(btn, &style_btn_checked, LV_STATE_CHECKED);
     startdischargebutton = btn;
 
     label = lv_label_create(btn);
@@ -498,7 +498,7 @@ void Setup_Screen1(byte index)
     lv_obj_set_size(btn, lv_pct(48), LV_SIZE_CONTENT);
     lv_obj_align(btn, LV_ALIGN_RIGHT_MID, -6, 0);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_add_style(btn, &style_btn_checked, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(btn, &style_btn_checked, (lv_style_selector_t)LV_PART_MAIN | (lv_style_selector_t)LV_STATE_CHECKED);
     startchargebutton = btn;
 
     label = lv_label_create(btn);
@@ -613,7 +613,7 @@ void Screen1SetData(PBatterySetting SET)
                      SET->TestData.SetStageMode != smDisabled);
 #endif
 
-    char str[30];
+    //char str[30];
     dword Value;
 
     Value = 0;
@@ -623,8 +623,9 @@ void Screen1SetData(PBatterySetting SET)
     if (SET->TestData.SetStageMode == smCurrent)
         Value = SET->TestData.SetStageValue;
 #endif
-    sprintf(str, "%lu", (unsigned long)Value);
-    lv_label_set_text(ta1, str);
+    Screen1SetDischargeCurrent(Value);
+    //sprintf(str, "%lu", (unsigned long)Value);
+    //lv_label_set_text(ta1, str);
 
     Value = 0;
 #ifdef STANDALONE
@@ -633,8 +634,9 @@ void Screen1SetData(PBatterySetting SET)
     if (SET->TestData.SetStageMode == smCharge)
         Value = SET->TestData.SetStageValue;
 #endif
-    sprintf(str, "%lu", (unsigned long)Value);
-    lv_label_set_text(ta2, str);
+    Screen1SetChargeCurrent(Value);
+    //sprintf(str, "%lu", (unsigned long)Value);
+    //lv_label_set_text(ta2, str);
 
     for (byte i = (tmNONE + 1); i < tmLast; i++) {
         Screen1SetThresholdLed((TThresholdModes)i,
@@ -648,4 +650,28 @@ void Screen1SetData(PBatterySetting SET)
         Screen1SetThresholdLedEnabled((TThresholdModes)i, Enabled);
 #endif
     }
+}
+
+void Screen1SetDischargeCurrent(word I)
+{
+    lv_label_set_text_fmt(ta1, "%d", I);
+}
+
+word Screen1GetDischargeCurrent(void)
+{
+    const char * text = lv_label_get_text(ta1);
+    return (atoi(text));
+    //return (String(text).toInt());
+}
+
+void Screen1SetChargeCurrent(word I)
+{
+    lv_label_set_text_fmt(ta2, "%d", I);
+}
+
+word Screen1GetChargeCurrent(void)
+{
+    const char * text = lv_label_get_text(ta2);
+    return (atoi(text));
+    //return (String(text).toInt());
 }
