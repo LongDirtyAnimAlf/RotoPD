@@ -655,14 +655,16 @@ bool process_command(void const *data, void *result)
 
     if (j == AP33772S_OK)
     {
-      //LocalBatteryBoard->PDO.maxCurrent_mA     = pd.getRequestedCurrent_mA();
-      //LocalBatteryBoard->PDO.targetVoltage_mV  = pd.getRequestedVoltage_mV();
       if (pd.readPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO))
       {
         if (PDO.valid)
         {
-          LocalBatteryBoard->PDO.maxCurrent_mA     = pd.getRequestedCurrent_mA();
-          LocalBatteryBoard->PDO.targetVoltage_mV  = pd.getRequestedVoltage_mV();
+          // Set the PDO with the real values
+          LocalBatteryBoard->PDO.maxCurrent_mA    = pd.getRequestedCurrent_mA();
+          LocalBatteryBoard->PDO.targetVoltage_mV = pd.getRequestedVoltage_mV();
+          // Also set the BatteryMode of the board itself !
+          LocalBatteryBoard->BM.SetValue          = LocalBatteryBoard->PDO.maxCurrent_mA;
+          LocalBatteryBoard->BM.Status            = smCurrent;
         }
       }
     }

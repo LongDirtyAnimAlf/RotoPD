@@ -359,14 +359,15 @@ static void main_event_handler(lv_event_t * e)
             if ((event_object == testdischargebutton) || (event_object == startdischargebutton))
             {
               SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
-              SET->TestData.SetStageMode = smCurrent;
             }
             if ((event_object == testchargebutton) || (event_object == startchargebutton))
             {
               SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
-              SET->TestData.SetStageMode = smCharge;
             }
-            SET->TestData.SetStageValue = SD->SetValue;              
+
+            SET->TestData.SetStageValue = SD->SetValue;  
+            SET->TestData.SetStageMode = SD->Status;
+            
             if ((event_object == startdischargebutton) || (event_object == startchargebutton))          
             {
               // Clear rundatas and threshold before starting with official (dis)charge !
@@ -1082,9 +1083,16 @@ void loop()
 
   if (millis() - startTime >= 1000)
   {
+    // This runs every second !!
+
     startTime = millis();
 
+    // Test connection with load IT2704
     load.queryConnection();
+
+    // Ask load IT2704 to send measurement result
+    // Result will only be collected on next loop or later
+    load.collectData();
 
      //Serial.println("Loop");
 
@@ -1151,11 +1159,9 @@ void loop()
   if (GetData)
   {
     GetData = false;
-    // Get RotoPD measurement results
+    // Get RotoPD measurement results for later averaging
+    // Runs every 100ms
     collectRotoPDData();
-    // Ask load to send measurement result
-    // Result will only be collected on next loop or later
-    load.collectData();
   }
 
   THIDData* PLocalHD;
@@ -1186,7 +1192,6 @@ void loop()
     DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
     if (DataOk)
     {
-
       //ARDUINO_GENERIC_RP2350
       //ARDUINO_ARCH_RP2040
 
@@ -1200,11 +1205,6 @@ void loop()
       #endif
 
       for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
-
-      //#ifdef USE_LCD
-      //DataOk = false;
-      //Info_Add("Got HID data");
-      //#endif
     }
   }  
 
@@ -1246,6 +1246,13 @@ void loop()
 
     switch(cCmd)
     {
+
+      case CMD_set_value:
+      {
+        Screen1SetStageData(&CurrentBoard->BM);
+        break;
+      }
+
       case CMD_set_energy:
       case CMD_set_capacity:
       case CMD_set_time:
@@ -1277,9 +1284,6 @@ void loop()
       case CMD_set_AVSPDO:
       {
         j = INData[counter++];
-
-        //CurrentBoard->pdoMaxCurrent
-
 
         // We might also have this info !
         wv.bytes.LB = INData[counter++];
@@ -1324,8 +1328,13 @@ void loop()
           Info_Add_Fmt("GUI. PDO [%d] selected is invalid. Very strange.", j);
         }
 
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = PDO.maxCurrent_mA;
-        Screen1SetDischargeCurrent(PDO.maxCurrent_mA);
+        // Do we need to do someting with the new PDO ?
+        // Yes, we might set the discharge current stage 
+
+        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = CurrentBoard->BM.SetValue;
+        SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status = CurrentBoard->BM.Status;
+        // Update the GUI also to reflect this change
+        Screen1SetStageData(&SET->Stages[FIXEDDISCHARGESTAGENUMBER]);        
 
         break;
       }

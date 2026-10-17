@@ -222,14 +222,6 @@ typedef enum
   bmError
 } TBatteryMode;
 
-typedef enum
-{
-  pmFixed = 0,
-  pmPPS,
-  pmAVS,
-  pmMAX
-} TPDOMode;
-
 typedef struct
 {
   TStageMode Status;

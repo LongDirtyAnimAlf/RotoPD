@@ -84,7 +84,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
 
   obj = lv_label_create(obj);
   lv_obj_align(obj, LV_ALIGN_CENTER, 0, 0);
-  lv_label_set_text(obj, "Back");
+  lv_label_set_text(obj, LV_SYMBOL_LEFT " Back");
 
   obj = lv_button_create(nav);
   morebutton = obj;

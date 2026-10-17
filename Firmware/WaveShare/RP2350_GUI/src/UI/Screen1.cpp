@@ -22,6 +22,9 @@ lv_obj_t * zerotimebutton = NULL;
 static bool chargedisabled = true;
 static bool dischargedisabled = false;
 
+static lv_obj_t * dischargelabel = NULL;
+static lv_obj_t * chargelabel = NULL;
+
 static lv_obj_t * ThresholdLed[tmLast] = {NULL};
 
 const char * const ThresholdNames[] = {
@@ -256,12 +259,12 @@ void Setup_Screen1(byte index)
     lv_obj_add_style(obj, &style_margin, 0);
     lv_obj_add_style(obj, &style_section_border, 0);
 
-    label = lv_label_create(obj);
-    lv_obj_set_width(label, lv_pct(100));
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
-    lv_label_set_text(label, "Discharge set [mA]");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+    dischargelabel = lv_label_create(obj);
+    lv_obj_set_width(dischargelabel, lv_pct(100));
+    lv_obj_set_style_text_font(dischargelabel, &lv_font_montserrat_18, 0);
+    lv_label_set_text(dischargelabel, "Discharge set [mA]");
+    lv_obj_align(dischargelabel, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_set_style_text_align(dischargelabel, LV_TEXT_ALIGN_CENTER, 0);
 
     lv_obj_t * disc_row = lv_obj_create(obj);
     lv_obj_remove_style_all(disc_row);
@@ -298,12 +301,12 @@ void Setup_Screen1(byte index)
     lv_obj_add_style(obj, &style_margin, 0);
     lv_obj_add_style(obj, &style_section_border, 0);
 
-    label = lv_label_create(obj);
-    lv_obj_set_width(label, lv_pct(100));
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
-    lv_label_set_text(label, "Charge set [mA]");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+    chargelabel = lv_label_create(obj);
+    lv_obj_set_width(chargelabel, lv_pct(100));
+    lv_obj_set_style_text_font(chargelabel, &lv_font_montserrat_18, 0);
+    lv_label_set_text(chargelabel, "Charge set [mA]");
+    lv_obj_align(chargelabel, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_set_style_text_align(chargelabel, LV_TEXT_ALIGN_CENTER, 0);
 
     lv_obj_t * chg_row = lv_obj_create(obj);
     lv_obj_remove_style_all(chg_row);
@@ -571,6 +574,57 @@ void Screen1SetOutput(bool On)
     if (On) lv_obj_add_state(outputbutton, LV_STATE_CHECKED);
     else    lv_obj_remove_state(outputbutton, LV_STATE_CHECKED);
 }
+
+void Screen1SetStageData(PStageData SD)
+{
+    switch(SD->Status)
+    {
+        case smCurrent :
+        case smPower :
+        case smResistor : 
+        {
+            Screen1SetDischargeCurrent(SD->SetValue);      
+            break;
+        }
+        case smCharge :
+        {
+            Screen1SetChargeCurrent(SD->SetValue);  
+            break;
+        }
+        case smOff :
+        case smZero :
+        case smDisabled :
+        {
+            break;
+        }
+    }
+
+    switch(SD->Status)
+    {
+        case smCurrent :
+        {
+            lv_label_set_text(dischargelabel, "Discharge set [mA]");
+            break;
+        }
+        case smPower :
+        {
+            lv_label_set_text(dischargelabel, "Discharge set [mW]");
+            break;
+        }
+        case smResistor : 
+        {
+            lv_label_set_text(dischargelabel, "Discharge set [mΩ]");
+            break;
+        }
+        case smCharge :
+        {
+            lv_label_set_text(chargelabel, "Charge set [mA]");
+            break;
+        }
+    }
+
+}
+
 
 void Screen1SetData(PBatterySetting SET)
 {

@@ -76,7 +76,7 @@ end;
 function TMyUSB.CheckVendorProduct(const VID,PID:word):boolean;
 const
   VENDORID_BASE                 = $04D8;
-  PRODUCTID_BASE                = $003F;
+  PRODUCTID_BASE                = $003E;
   VENDORID_ALT                  = $ABCD;
   PRODUCTID_ALT                 = $1234;
 begin
