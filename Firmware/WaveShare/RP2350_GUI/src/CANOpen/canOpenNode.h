@@ -46,7 +46,7 @@ public:
     void set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);    
 
     // Public - Core communication functions
-    bool sendMsg(const Message &msg);
+    bool sendMsg(const Message &msg, bool prio = false);
 
     // Node-ID accessor
     uint8_t getNodeId() const { return nodeId; }

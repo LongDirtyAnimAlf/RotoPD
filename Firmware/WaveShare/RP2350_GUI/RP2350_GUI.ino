@@ -61,15 +61,10 @@ char mySerial[30];
 char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
-INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
-
-//struct can_frame canMsg;
-//struct can_frame canMsg1;
-//MCP2515 mcp2515(10 * 1000 * 1000);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 PBatteryBoard const CurrentBoard = BatteryBoards;
@@ -82,8 +77,7 @@ static Ticker dataupdateticker;
 
 static Ticker datagetticker;
 static volatile bool GetData = false;
-
-static uint8_t IT2704_NMT_Status = CO_NMT_UNKNOWN;
+static bool SoundButtonClick = false;
 
 #ifdef STANDALONE
 //GT911_Lite tp; // touchscreen through TwoWire
@@ -91,24 +85,15 @@ static Ticker datacollectticker;
 static Ticker datastartticker;
 static Ticker SoundButtonTicker;
 static volatile bool GetBatteryData = false;
-static volatile bool SoundButtonClick = false;
-static volatile bool StoreSettings = false;
-static volatile bool StoreBoardInfo = false;
-static volatile byte SendCommand[COMMAND_SIZE] = {0};
+static bool StoreSettings = false;
+static bool StoreBoardInfo = false;
+static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
 void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
 
 dword GetMaxVData(PRunDatas RDS);
-
-/*
-#ifdef ARDUINO_ARCH_RP2040
-void canIsr() {
-    mcp2515.handleInterrupt();        // the method that is already in the library
-}
-#endif
-*/
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -341,6 +326,7 @@ static void main_event_handler(lv_event_t * e)
         if (event_object == outputbutton)
         {
           // Prepare the command to engage the hardware
+          memset(SendCommand, 0, COMMAND_SIZE); 
           SendCommand[COMMANDPOSITION] = CMD_set_output;
           SendCommand[INDEXPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 1U; // length
@@ -407,18 +393,17 @@ static void main_event_handler(lv_event_t * e)
           }
 
           // Prepare the command to engage the hardware
+          memset(SendCommand, 0, COMMAND_SIZE);           
           SendCommand[COMMANDPOSITION] = CMD_set_value;
           SendCommand[INDEXPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 5U; // length
           SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
-          temp = SET->TestData.SetStageValue;
-          SendCommand[DATASTART+1] = (temp % 256);
-          temp /= 256;
-          SendCommand[DATASTART+2] = (temp % 256);
-          temp /= 256;
-          SendCommand[DATASTART+3] = (temp % 256);
-          temp /= 256;
-          SendCommand[DATASTART+4] = (temp % 256);
+          DWORD_VAL valuedata;
+          valuedata.Val = SET->TestData.SetStageValue;
+          SendCommand[DATASTART+1] = valuedata.v[0];
+          SendCommand[DATASTART+2] = valuedata.v[1];
+          SendCommand[DATASTART+3] = valuedata.v[2];
+          SendCommand[DATASTART+4] = valuedata.v[3];
         }
         else
         {
@@ -489,6 +474,7 @@ static void main_event_handler(lv_event_t * e)
           Serial.println("Request PDO list");
           #endif
           // Prepare the command to engage the hardware
+          memset(SendCommand, 0, COMMAND_SIZE); 
           SendCommand[COMMANDPOSITION]   = CMD_get_PDOList;
           SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION]    = 0U; // length
@@ -515,6 +501,7 @@ static void main_event_handler(lv_event_t * e)
               #endif
 
               // Prepare the command to engage the hardware
+              memset(SendCommand, 0, COMMAND_SIZE); 
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
               SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
               SendCommand[LENGTHPOSITION]    = 1U; // length
@@ -623,18 +610,11 @@ static void main_event_handler(lv_event_t * e)
   }
 }
 
-void AddIT2704Data(PMeasurementData MD)
-{
-  PRunDatas RDS = &Battery->TestData.RunDatas; 
-  RDS->NewerIT2704Datas.push(*MD);
-}
-
 void AddMeasurementData(PMeasurementData MD)
 {
-  static bool GoAround = false;
-
   PRunDatas RDS = &Battery->TestData.RunDatas;     
-  //PRunDatas RDS  = &Batteries[index].TestData.RunDatas;
+
+  static bool GoAround = false;
 
   // Reset GoAround in needed
   if ((RDS->Head == -1) && (RDS->Tail == -1)) GoAround = false;
@@ -740,9 +720,6 @@ void setup()
 
   storeInit();
   storeGetBoardInfo(&BoardInfo);
-
-  load.setID(BoardInfo.IT2704NodeID);
-  load.setChannel(BoardInfo.IT2704Channel);
 
   index = 0;
   mySerial[0] = '\0';  
@@ -889,6 +866,7 @@ void setup()
 
   #ifdef STANDALONE
 
+  memset(SendCommand, 0, COMMAND_SIZE); 
   SendCommand[COMMANDPOSITION] = CMD_unknown;
 
   // Set and get defaults;
@@ -941,82 +919,15 @@ void setup()
   else
     Info_Add("GUI. RotoPD not connected or not found.");
 
-  Info_Add("GUI. Setting up CAN.");
-  
-  node.setNodeId(BoardInfo.LocalNodeID);
-  node.setHeartbeatTime(5000);      // 5 s heartbeat
-  node.begin();
-  
-  // =========================================================================
-  // Start config of MCP2515 filters to limit can pressure
-  // =========================================================================
-  MCP2515& mcp2515 = node.getCAN();
-  mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+  Info_Add("GUI. Setting up CANOpen.");
 
-  // =========================================================================
-  // BUFFER 0: Filter for NMT Master Commands (COB-ID: 0x000)
-  // =========================================================================
-  // MASK0: Check all 11 bits of the standard ID (0 = standard frame, 0x7FF = all bits)
-  mcp2515.setFilterMask(MCP2515::MASK0, 0, 0x7FF);
-  // FILTER0 & FILTER1: Must match 0x000 exactly
-  mcp2515.setFilter(MCP2515::RXF0, 0, 0x000);
-  mcp2515.setFilter(MCP2515::RXF1, 0, 0x000);
-
-  // =========================================================================
-  // BUFFER 1: Filter for Target Nodes (Node 10, Node 20, and Node 50)
-  // =========================================================================
-  // MASK 1: 0x07F tells the hardware to only evaluate the lower 7 bits (Node ID)
-  // and completely ignore the upper 4 bits (CANopen function codes like SDO/PDO).
-  mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
-  mcp2515.setFilter(MCP2515::RXF2, 0, BoardInfo.MasterNodeID);
-  mcp2515.setFilter(MCP2515::RXF3, 0, BoardInfo.LocalNodeID);
-  mcp2515.setFilter(MCP2515::RXF4, 0, BoardInfo.IT2704NodeID);
-  mcp2515.setFilter(MCP2515::RXF5, 0, BoardInfo.LocalNodeID);
-
-  // Switch back to normal operation mode
-  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+  initCANopen();
 
   Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.getBoardNumber());
   Info_Add_Fmt("GUI. Channel-number: %d.",BoardInfo.IT2704Channel);
   Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
-
-  // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
-  ///node.disableNMT(true); 
-  //node.disableMapping(true);
-  
-  // Manually set PDOs here if mapping isn't used
-
-  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
-  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
-  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/2, /*Index#=*/POWER, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
-
-  //node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
-  //node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
-  //node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
-  //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
-  //node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
-
-  // Free-slot (new)
-  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);       // auto-places in first free region
-  //node.set(PDO::Type::TX, 1, VOLTAGE,   SUBIDX_1);       // auto-places after the previous one
-
-
-  // Remove the old mapping
-  //node.clear(PDO::Type::TX, 1, VOLTAGE, SUBIDX_1);
-
-  // Or free a concrete byte offset
-  //node.clear(PDO::Type::TX, 1, 0);
-
-  // Then place the new one (free-slot or absolute)
-  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);          // free-slot
-  // or
-  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1, 0);       // absolute
-
-  //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
-  //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
-  //node.setRxPdoCycleTime(1, 500);   // RPDO1 timeout 500 ms
 
   Info_Add("GUI. Init timers.");      
 
@@ -1099,9 +1010,8 @@ void loop()
 
   static unsigned long startTime = millis();
 
-  static const uint32_t index = Object::findIndex(ACTUAL_VOLTAGE, SUBIDX_VALUE);
-
   bool DataOk = false;
+
   byte INData[COMMAND_SIZE] = {0};
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
   byte dataindexer = 0;
@@ -1180,14 +1090,9 @@ void loop()
   {
     startTime = millis();
 
-    //load.collectData();
-
     load.queryConnection();
 
-    //dictionary[index].data[0] = dummycount++; // update displayed charge
-    dictionary[index].setDword(dummycount++);
-
-    //Serial.println("Loop");
+     //Serial.println("Loop");
 
     PDOCount = taskRotoPDInit();
 
@@ -1205,7 +1110,7 @@ void loop()
        
         Screen3ClearPDOList();
 
-        memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+        memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
         hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
         hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
@@ -1313,20 +1218,15 @@ void loop()
 
   PBatteryBoard BB = NULL;
 
-  byte OUTData[COMMAND_SIZE] = {0};
-
   // Do we have a valid command ?
   // This is a command coming from the touch-screen logic = main_event_handler()
 
   if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
   {
-    // Fill the data
-    for (j=0; j<(SendCommand[LENGTHPOSITION]+DATASTART); j++) OUTData[j] = SendCommand[j];
-    // Reset command
-    SendCommand[COMMANDPOSITION] = CMD_unknown;
-
     // Process the command and 
-    DataOk |= process_command(&OUTData,&INData);
+    DataOk |= process_command(&SendCommand,&INData);
+    // Reset the command
+    SendCommand[COMMANDPOSITION] = CMD_unknown;
   }
 
   #endif //STANDALONE
@@ -1524,7 +1424,7 @@ void loop()
       WORD_VAL  w_data;
       DWORD_VAL dw_data;
 
-      memset(&hid_report_in, 0, HID_INT_IN_EP_SIZE);
+      memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
       hid_report_in[COMMANDPOSITION] = CMD_get_data;
       hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
@@ -1555,12 +1455,18 @@ void loop()
       {
         //Append the normal data in storage
         AddMeasurementData(&RDS->LastBatteryData);
+
+        //Append the  data in RotoPD buffer
+        RDS->NewerRotoPDDatas.push(*&RDS->LastBatteryData);
         //Append the IT2704 data in IT2704 buffer
-        AddIT2704Data(&RDS->LastIT2704Data);
+        RDS->NewerIT2704Datas.push(*&RDS->LastIT2704Data);
 
         // Append data into graphs
         //Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-        Screen2AddData(RDS->LastIT2704Data.V, RDS->LastIT2704Data.I);
+        //Screen2AddData(RDS->LastIT2704Data.V, RDS->LastIT2704Data.I);
+        TMeasurementData Last;
+        Last = RDS->NewerIT2704Datas.getLastData();
+        Screen2AddData(Last.V, Last.I);
 
         // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);

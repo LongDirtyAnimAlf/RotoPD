@@ -588,6 +588,7 @@ class MCP2515
         void prepareId(uint8_t *buffer, const bool ext, const uint32_t id);
 
         CircularQueue<struct can_frame, MCP2515_TX_QUEUE_SIZE> _txQueue;
+        CircularQueue<struct can_frame, MCP2515_TX_QUEUE_SIZE> _txQueuePrio;
         CircularQueue<struct can_frame, MCP2515_RX_QUEUE_SIZE> _rxQueue;
       
         uint16_t _rxQueueDropCount;
@@ -597,6 +598,7 @@ class MCP2515
 
         ERROR sendMessage(const TXBn txbn, const struct can_frame *frame);
         ERROR sendMessageDirect(const struct can_frame *frame);
+        ERROR sendMessageDirectPrio(const struct can_frame *frame);
         ERROR readMessage(const RXBn rxbn, struct can_frame *frame);
         bool processTxQueue(void);
         uint8_t drainRxBuffers(bool insideInterupt = false);
@@ -635,6 +637,7 @@ class MCP2515
         // Message I/O
         //
         ERROR sendMessage(const struct can_frame *frame);
+        ERROR sendMessagePrio(const struct can_frame *frame);
         ERROR readMessage(struct can_frame *frame);
         bool checkError(void);
 
@@ -649,7 +652,7 @@ class MCP2515
         // Waits (with short timeout) for TXREQ bits to clear, then
         // clears ABAT so new transmits are allowed again.
         // Does NOT clear the software TX queue.
-        ERROR abortAllPending(void);
+        ERROR abortAllPending(bool withqueues = false);
 
         // Remove the first frame in the software TX queue whose can_id
         // matches exactly (including EFF/RTR/ERR flags).

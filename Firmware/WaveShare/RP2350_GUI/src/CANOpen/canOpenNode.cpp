@@ -407,7 +407,7 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
 }
 
 // Send a CAN message
-bool CanOpenNode::sendMsg(const Message &msg) {
+bool CanOpenNode::sendMsg(const Message &msg, bool prio) {
 
     // Never queue pure NMT / heartbeat traffic when the controller is already
     // in an error state – prevents the “NMT flood” after the bus recovers.
@@ -422,14 +422,31 @@ bool CanOpenNode::sendMsg(const Message &msg) {
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
 
-    if (MCP2515::ERROR_OK == can.sendMessage(&cansendmessageframe)){
-        Serial.println("Send message ok");
-        return true;
+    if (prio)
+    {
+        if (MCP2515::ERROR_OK == can.sendMessagePrio(&cansendmessageframe)){
+            Serial.println("Send prio message ok");
+            return true;
+        }
+        else
+        {
+            Serial.println("Send prio message error!");
+            return false;
+        }
+
     }
     else
     {
-        Serial.println("Send message error!");
-        return false;
+        if (MCP2515::ERROR_OK == can.sendMessage(&cansendmessageframe)){
+            Serial.println("Send message ok");
+            return true;
+        }
+        else
+        {
+            Serial.println("Send message error!");
+            return false;
+        }
+
     }
 }
 

@@ -6,6 +6,10 @@
 #include <Arduino.h>
 #include "queue.h"
 
+#include "./src/AP33772SS/AP33772S.h"
+#include "./src/INA238/INA238.h"
+#include "./src/IT2704/IT2704.h"
+
 #define    DEBUG
 
 #define    ENABLEUSB
@@ -250,11 +254,11 @@ typedef struct
   TMeasurementData IT2704Data;
   TStageData BM;
   // PDO stuff
-  //AP33772S_PDO PDO;
-  TPDOMode pdoMode;
-  int pdoIndex;
-  int pdoTargetVoltage;
-  int pdoMaxCurrent;
+  AP33772S_PDO PDO;
+  //TPDOMode pdoMode;
+  //int pdoIndex;
+  //int pdoTargetVoltage;
+  //int pdoMaxCurrent;
   // Board hardware info
   byte Serial[8];
   word Firmware;
@@ -267,6 +271,7 @@ typedef struct
 typedef struct
 {
   #ifdef __cplusplus          // only compile the class when using a C++ compiler
+  CircularDataQueue<TMeasurementData, DATASIZE> NewerRotoPDDatas;
   CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
   #endif
   TMeasurementData *BatteryDatas;
@@ -304,6 +309,14 @@ typedef struct
   #endif
   TTestData TestData;
 } TBatterySetting,*PBatterySetting;
+
+extern TwoWire WireBattery;
+extern AP33772S pd;
+extern IT2704 load;
+extern CanOpenNode node;
+
+extern TBatteryBoard BatteryBoards[];
+extern PBatteryBoard const CurrentBoard;
 
 #ifdef __cplusplus          // only compile the class when using a C++ compiler
 

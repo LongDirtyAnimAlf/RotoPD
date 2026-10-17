@@ -66,7 +66,7 @@ void IT2704::initDevice(bool reset)
   {
     if (reset)
     {
-      _node->getCAN().abortAllPending(); // Discard all messages in hardware and queue
+      _node->getCAN().abortAllPending(true); // Discard all messages in hardware and queue
 
       // IT2704 enable CANopen !
       Msg.clearMsg();
@@ -126,7 +126,7 @@ void IT2704::initDevice(bool reset)
     Msg.dlc       = 8;
 
     // Set output slewrate
-    // On: slow ; off: max (fast)
+    // Coupling: off; On: slow ; off: max (fast)
 
     Msg.setCommand(WRITE_REQ_1BYTE_CMD);
     Msg.setID(IT2704_SOURCE_CURRENT + (_channel * 0x100));
@@ -136,7 +136,7 @@ void IT2704::initDevice(bool reset)
     // This must be executed first, but how to force this ?
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_COUPLE);
     Msg.setData(0); // 0:Off 1:On
-    _node->sendMsg(Msg);
+    _node->sendMsg(Msg, true);
 
     // Write on slew max off
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_POSITIVE_MAX);
@@ -334,8 +334,7 @@ void IT2704::queryConnection(void)
     {
       _checkTimer = millis();
 
-      // If not connected, abort all pending messages
-      _node->getCAN().abortAllPending();
+      _node->getCAN().abortAllPending(true); // Discard all messages in hardware and queue
 
       // This NMT command will try to set the IT2704 into operational mode
       // Only in this mode, CANopen is enabled and the device is responsive

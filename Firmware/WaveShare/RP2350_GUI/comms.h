@@ -91,6 +91,8 @@ void Info_Add_Fmt(const char *format, ...);
 
 bool process_command(void const *data, void *result);
 
+bool initCANopen(void);
+
 bool initINA238(void);
 
 bool initROTOPD(void);

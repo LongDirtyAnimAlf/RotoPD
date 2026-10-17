@@ -101,6 +101,7 @@ MCP2515::ERROR MCP2515::reset(void)
     }
 
     _txQueue.clear();
+    _txQueuePrio.clear();
     _rxQueue.clear();
     _rxQueueDropCount = 0;
     _rxHardwareOverflowCount = 0;
@@ -622,14 +623,9 @@ MCP2515::ERROR MCP2515::sendMessageDirect(const struct can_frame *frame)
 
     //TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
     // Priority ; TXB2 first ... TXB0 last 
-    TXBn txBuffers[N_TXBUFFERS] = {TXB2, TXB1, TXB0};
+    TXBn txBuffers[2] = {TXB1, TXB0};
 
-    for (int i=0; i<N_TXBUFFERS; i++) {
-
-        //if (i == 0) txBuffers[i] = TXB0;
-        //if (i == 1) txBuffers[i] = TXB1;
-        //if (i == 2) txBuffers[i] = TXB2;
-
+    for (int i=0; i<2; i++) {
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
         uint8_t ctrlval = readRegister(txbuf->CTRL);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {
@@ -639,6 +635,24 @@ MCP2515::ERROR MCP2515::sendMessageDirect(const struct can_frame *frame)
 
     return ERROR_ALLTXBUSY;
 }
+
+MCP2515::ERROR MCP2515::sendMessageDirectPrio(const struct can_frame *frame)
+{
+    if (frame->can_dlc > CAN_MAX_DLEN) {
+        return ERROR_FAILTX;
+    }
+
+    TXBn txBuffers = TXB2;
+
+    const struct TXBn_REGS *txbuf = &TXB[txBuffers];
+    uint8_t ctrlval = readRegister(txbuf->CTRL);
+    if ( (ctrlval & TXB_TXREQ) == 0 ) {
+        return sendMessage(txBuffers, frame);
+    }
+
+    return ERROR_ALLTXBUSY;
+}
+
 
 /*
 MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
@@ -681,9 +695,32 @@ MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
     return ERROR_ALLTXBUSY;
 }
 
+MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
+{
+    bool enqueued = _txQueuePrio.push(*frame);
+
+    if (enqueued) {
+        processTxQueue();
+        return ERROR_OK;
+    }
+
+    return ERROR_ALLTXBUSY;
+}
+
+
 bool MCP2515::processTxQueue(void)
 {
     struct can_frame frame;
+
+    while (_txQueuePrio.peek(frame)) {
+        ERROR result = sendMessageDirectPrio(&frame);
+        if (result != ERROR_OK) {
+            return false;
+        }
+        _txQueuePrio.pop(frame);
+    }
+
+
     while (_txQueue.peek(frame)) {
         ERROR result = sendMessageDirect(&frame);
         if (result != ERROR_OK) {
@@ -691,7 +728,7 @@ bool MCP2515::processTxQueue(void)
         }
         _txQueue.pop(frame);
     }
-    return (!_txQueue.isEmpty());
+    return ((!_txQueuePrio.isEmpty()) && (!_txQueue.isEmpty()));
 }
 
 MCP2515::ERROR MCP2515::abortMessage(const TXBn txbn)
@@ -706,7 +743,7 @@ MCP2515::ERROR MCP2515::abortMessage(const TXBn txbn)
     return ERROR_OK;
 }
 
-MCP2515::ERROR MCP2515::abortAllPending(void)
+MCP2515::ERROR MCP2515::abortAllPending(bool withqueues)
 {
     // Request abort of all pending transmit buffers
     modifyRegister(MCP_CANCTRL, CANCTRL_ABAT, CANCTRL_ABAT);
@@ -728,6 +765,12 @@ MCP2515::ERROR MCP2515::abortAllPending(void)
 
     // MUST clear ABAT before new transmits are accepted
     modifyRegister(MCP_CANCTRL, CANCTRL_ABAT, 0);
+
+    if (allClear && withqueues)
+    {
+        _txQueue.clear();
+        _txQueuePrio.clear();
+    }
 
     return allClear ? ERROR_OK : ERROR_FAIL;
 }

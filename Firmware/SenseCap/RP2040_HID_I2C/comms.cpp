@@ -579,7 +579,7 @@ bool process_command(void const *data, void *result)
   {
     Info_Add("Comms. Received SetValue command.");
 
-    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
+    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
 

@@ -12,6 +12,7 @@ class CircularDataQueue {
     static_assert(SIZE <= 65535, "CircularDataQueue size exceeds uint16_t counter range");
 private:
     T* frames;
+    T lastItem;
     uint16_t head;
     uint16_t tail;
     uint16_t count;
@@ -32,7 +33,8 @@ public:
             count--;
             //return false;
         }
-        frames[tail] = item;
+        lastItem = item;
+        frames[tail] = lastItem;
         tail = (tail + 1) % SIZE;
         count++;
         return true;
@@ -122,6 +124,13 @@ public:
         uint16_t idx = (tail + SIZE - 1 - offsetFromNewest) % SIZE;
         item = frames[idx];
         return true;
+    }
+
+    T getLastData () const {
+        if (count == 0) {
+            return T{};
+        }
+        return lastItem;
     }
 
 };

@@ -42,12 +42,7 @@ extern COBSPacketSerial myPacketSerial; // for logging
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
-extern TwoWire WireBattery;
-extern TBatteryBoard BatteryBoards[];
-extern PBatteryBoard Board;
-extern AP33772S pd;
-extern INA238 ina238;
-extern IT2704 load;
+INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
 //THIDData* const CurrentHIDData = HIDData;
@@ -223,6 +218,88 @@ void ResetWire(void)
   }
   #endif
   #endif
+}
+
+bool initCANopen(void)
+{
+  // Init IT2704
+  load.setID(BoardInfo.IT2704NodeID);
+  load.setChannel(BoardInfo.IT2704Channel);
+
+  // Init CANOpen
+  node.setNodeId(BoardInfo.LocalNodeID);
+
+  // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
+  ///node.disableNMT(true); 
+  node.setHeartbeatTime(5000);      // 5 s heartbeat
+
+  node.begin();
+  
+  // =========================================================================
+  // Start config of MCP2515 filters to limit can pressure
+  // =========================================================================
+  MCP2515& mcp2515 = node.getCAN();
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+
+  // =========================================================================
+  // BUFFER 0: Filter for NMT Master Commands (COB-ID: 0x000)
+  // =========================================================================
+  // MASK0: Check all 11 bits of the standard ID (0 = standard frame, 0x7FF = all bits)
+  mcp2515.setFilterMask(MCP2515::MASK0, 0, 0x7FF);
+  // FILTER0 & FILTER1: Must match 0x000 exactly
+  mcp2515.setFilter(MCP2515::RXF0, 0, 0x000);
+  mcp2515.setFilter(MCP2515::RXF1, 0, 0x000);
+
+  // =========================================================================
+  // BUFFER 1: Filter for Target Nodes (Node 10, Node 20, and Node 50)
+  // =========================================================================
+  // MASK 1: 0x07F tells the hardware to only evaluate the lower 7 bits (Node ID)
+  // and completely ignore the upper 4 bits (CANopen function codes like SDO/PDO).
+  mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
+  mcp2515.setFilter(MCP2515::RXF2, 0, BoardInfo.MasterNodeID);
+  mcp2515.setFilter(MCP2515::RXF3, 0, BoardInfo.LocalNodeID);
+  mcp2515.setFilter(MCP2515::RXF4, 0, BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF5, 0, BoardInfo.LocalNodeID);
+
+  // Switch back to normal operation mode
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+
+  //node.disableMapping(true);
+  
+  // Manually set PDOs here if mapping isn't used
+
+  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
+  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
+  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/2, /*Index#=*/POWER, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
+
+  //node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
+  //node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
+  //node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
+  //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
+  //node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
+
+  // Free-slot (new)
+  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);       // auto-places in first free region
+  //node.set(PDO::Type::TX, 1, VOLTAGE,   SUBIDX_1);       // auto-places after the previous one
+
+
+  // Remove the old mapping
+  //node.clear(PDO::Type::TX, 1, VOLTAGE, SUBIDX_1);
+
+  // Or free a concrete byte offset
+  //node.clear(PDO::Type::TX, 1, 0);
+
+  // Then place the new one (free-slot or absolute)
+  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);          // free-slot
+  // or
+  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1, 0);       // absolute
+
+  //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
+  //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
+  //node.setRxPdoCycleTime(1, 500);   // RPDO1 timeout 500 ms
+
+
+  return true;
 }
 
 bool initINA238(void)
@@ -479,7 +556,8 @@ bool process_command(void const *data, void *result)
   bool DEBUGONSCREEN = false;
   #endif
 
-  PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
+  //PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
+  PBatteryBoard LocalBatteryBoard = CurrentBoard;
 
 	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
   BN    = databuffer[INDEXPOSITION];
@@ -499,18 +577,18 @@ bool process_command(void const *data, void *result)
     // Process the settings !
     // Settings start at index DATASTART
     // PD Index
-    LocalBatteryBoard->pdoIndex=(databuffer[dataindexer++]);
+    LocalBatteryBoard->PDO.index=(databuffer[dataindexer++]);
     // maxCurrent
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->pdoMaxCurrent=dw_data.Val;
+    LocalBatteryBoard->PDO.maxCurrent_mA=dw_data.Val;
     // targetVoltage
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->pdoTargetVoltage=dw_data.Val;
+    LocalBatteryBoard->PDO.targetVoltage_mV=dw_data.Val;    
 
     Info_Add("Comms. Received SetPD command.");
-    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->pdoIndex);
-    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->pdoMaxCurrent);
-    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->pdoTargetVoltage);
+    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->PDO.index);
+    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->PDO.maxCurrent_mA);
+    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->PDO.targetVoltage_mV);
 
     // Always stop the load current before switching PDO's
     // Just to be sure
@@ -522,8 +600,10 @@ bool process_command(void const *data, void *result)
       {
         Info_Add("Comms. Set max PDO.");
         
-        LocalBatteryBoard->pdoMode = pmMAX; 
-        pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_MAX; 
+        pd.setMaxPDO(LocalBatteryBoard->PDO.index);
+
+        j = AP33772S_OK;
 
         break;
       }
@@ -532,8 +612,8 @@ bool process_command(void const *data, void *result)
       {
         Info_Add("Comms. Set fxed PDO.");
 
-        LocalBatteryBoard->pdoMode = pmFixed; 
-        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->pdoMaxCurrent);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_FIXED; 
+        j = pd.setFixPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.maxCurrent_mA);
         if (AP33772S_OK != j)
         {
           Info_Add("Comms. Set max PDO returned an error.");
@@ -545,8 +625,8 @@ bool process_command(void const *data, void *result)
       {
         Info_Add("Comms. Set PPS PDO.");
 
-        LocalBatteryBoard->pdoMode = pmPPS; 
-        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->pdoTargetVoltage, LocalBatteryBoard->pdoMaxCurrent);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_PPS; 
+        j = pd.setPPSPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.targetVoltage_mV, LocalBatteryBoard->PDO.maxCurrent_mA);
         if (AP33772S_OK != j)
         {
           Info_Add("Comms. Set PPS PDO returned an error.");
@@ -558,8 +638,8 @@ bool process_command(void const *data, void *result)
       {
         Info_Add("Comms. Set AVS PDO.");
 
-        LocalBatteryBoard->pdoMode = pmAVS; 
-        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->pdoTargetVoltage, LocalBatteryBoard->pdoMaxCurrent);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_AVS; 
+        j = pd.setAVSPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.targetVoltage_mV, LocalBatteryBoard->PDO.maxCurrent_mA);
         if (AP33772S_OK != j)
         {
           Info_Add("Comms. Set AVS PDO returned an error.");
@@ -572,6 +652,21 @@ bool process_command(void const *data, void *result)
         j = AP33772S_ERR_I2C;
       }
     }
+
+    if (j == AP33772S_OK)
+    {
+      //LocalBatteryBoard->PDO.maxCurrent_mA     = pd.getRequestedCurrent_mA();
+      //LocalBatteryBoard->PDO.targetVoltage_mV  = pd.getRequestedVoltage_mV();
+      if (pd.readPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO))
+      {
+        if (PDO.valid)
+        {
+          LocalBatteryBoard->PDO.maxCurrent_mA     = pd.getRequestedCurrent_mA();
+          LocalBatteryBoard->PDO.targetVoltage_mV  = pd.getRequestedVoltage_mV();
+        }
+      }
+    }
+
   }
 
   if (cCmd == CMD_get_PDOList)
@@ -600,17 +695,17 @@ bool process_command(void const *data, void *result)
       Info_Add("Comms. Output OFF.");
     }
     if (!Engage) load.setOutput(Engage);
-    pd.setOutput(Engage);
+    //pd.setOutput(Engage);
     if (Engage) load.setOutput(Engage);
   }
 
   if (cCmd == CMD_set_value)
   {
-    Info_Add("Comms. Received SetValue command.");
-
-    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer]++);
+    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
+
+    Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",LocalBatteryBoard->BM.SetValue);
 
     StatusUpdateNeeded = true;
     Engage = false;
@@ -619,13 +714,20 @@ bool process_command(void const *data, void *result)
     {
       case smCurrent :
       {
+        Info_Add("Comms. SetValue current.");
         load.setCurrent(LocalBatteryBoard->BM.SetValue);
         Engage = true;
         break;
       }
       case smPower :
+      {
+        Info_Add("Comms. SetValue power.");
+        Engage = true;
+        break;
+      }
       case smResistor : 
       {
+        Info_Add("Comms. SetValue resistor.");
         Engage = true;
         break;
       }
@@ -648,7 +750,7 @@ bool process_command(void const *data, void *result)
       Info_Add("Comms. Output OFF.");
     }
     if (!Engage) load.setOutput(Engage);
-    pd.setOutput(Engage);
+    //pd.setOutput(Engage);
     if (Engage) load.setOutput(Engage);
   }
 
@@ -662,6 +764,7 @@ bool process_command(void const *data, void *result)
   }
   
   // Start processing the collected data !!
+  
   // Data start at position 3 !!
   // 0   = Command
   // 1   = BoardNumber
@@ -754,29 +857,17 @@ bool process_command(void const *data, void *result)
   if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
 
-    resultbuffer[dataindexer++] = LocalBatteryBoard->pdoIndex;
+    resultbuffer[dataindexer++] = LocalBatteryBoard->PDO.index;
     
-    w_data.Val = pd.getRequestedCurrent_mA();
+    w_data.Val = LocalBatteryBoard->PDO.maxCurrent_mA;
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->pdoMaxCurrent=w_data.Val;
 
-    w_data.Val = pd.getRequestedVoltage_mV();
+    w_data.Val = LocalBatteryBoard->PDO.targetVoltage_mV;
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->pdoTargetVoltage=w_data.Val;
 
-    w_data.Val = 0;
-    if (pd.readPDO(LocalBatteryBoard->pdoIndex, PDO))
-    {
-      if (PDO.valid)
-      {
-        LocalBatteryBoard->pdoMode=(TPDOMode)PDO.type;
-        //LocalBatteryBoard->pdoMaxCurrent=PDO.maxCurrent_mA;
-        //LocalBatteryBoard->pdoTargetVoltage=PDO.maxVoltage_mV;
-        w_data.Val = PDO.raw;
-      }
-    }
+    w_data.Val = LocalBatteryBoard->PDO.raw;
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
   }
