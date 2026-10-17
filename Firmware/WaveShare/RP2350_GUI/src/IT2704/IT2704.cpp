@@ -133,7 +133,7 @@ void IT2704::initDevice(bool reset)
 
     // Write slew couple/tracking off
     // This will allow off and on with different settings
-    // This must be executed first, but how to force this ?
+    // This must be executed first !!
     Msg.setSubID(IT2704_SOURCE_CURRENT_CURRENT_SLEW_COUPLE);
     Msg.setData(0); // 0:Off 1:On
     _node->sendMsg(Msg, true);
@@ -161,9 +161,13 @@ void IT2704::initDevice(bool reset)
     Msg.clearData();
     Msg.setID(IT2704_SOURCE_VOLTAGE + (_channel * 0x100));
 
+    // Set inhibit mode
+    // This must be executed first !!
     Msg.setCommand(WRITE_REQ_1BYTE_CMD);
     Msg.setSubID(IT2704_SOURCE_VOLTAGE_INHIBIT_MODE);
     Msg.setData(1); // 0:Off 1:live 2:latching
+    //Msg.setData(2, true); // 0:Off 1:live 2:latching
+    _node->sendMsg(Msg, true);
 
     Msg.setCommand(WRITE_REQ_4BYTE_CMD);
   

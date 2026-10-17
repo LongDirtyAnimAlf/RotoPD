@@ -158,6 +158,7 @@ typedef struct {
             uint8_t byte0;  // LSB (voltage_max + lower bits of byte1)
             uint8_t byte1;  // MSB (detect, type, current_max, voltage_min)
         };
+        uint16_t Val;
     };
 } PDO_DATA_T;
 

@@ -294,8 +294,8 @@ static void main_event_handler(lv_event_t * e)
 
   bool GotSettings = false;
 
-  PBatterySetting SET = NULL;
-  PRunDatas RDS = NULL;
+  PBatterySetting SET = Battery;
+  PRunDatas RDS = &SET->TestData.RunDatas;
   PStageData SD = NULL;  
 
   lv_event_code_t code = lv_event_get_code(e);
@@ -308,10 +308,6 @@ static void main_event_handler(lv_event_t * e)
   if (event_object != NULL)
   {
     object_user_data = (lv_obj_t *)lv_obj_get_user_data(event_object);
-
-    //SET = &Batteries[ActiveBatteryIndex];
-    SET = Battery;
-    RDS = &SET->TestData.RunDatas;
 
     #ifdef STANDALONE
     if ( (lv_obj_check_type(event_object, &lv_button_class)) || (lv_obj_check_type(event_object, &lv_list_button_class)) )
@@ -602,9 +598,9 @@ static void main_event_handler(lv_event_t * e)
     {
       GotSettings = false;      
       #ifdef DEBUG
-      Serial.println("Perpare storing settings in NVM !");
+      //Serial.println("Perpare storing settings in NVM !");
       #endif
-      StoreSettings = true;
+      //StoreSettings = true;
     }   
     #endif
   }
@@ -1023,8 +1019,6 @@ void loop()
   PBatterySetting SET = Battery;
   PRunDatas RDS = &SET->TestData.RunDatas; 
 
-  static uint32_t dummycount = 0;
-
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
 
@@ -1215,9 +1209,7 @@ void loop()
   }  
 
   #ifdef STANDALONE
-
-  PBatteryBoard BB = NULL;
-
+  
   // Do we have a valid command ?
   // This is a command coming from the touch-screen logic = main_event_handler()
 
@@ -1235,6 +1227,11 @@ void loop()
   {
     DataOk = false;
 
+    // We have received a command from the screen or through USB-HID.
+    // The command has been processed.
+    // Now we can or might use the results of this processed command.
+    // This is mostly for GUI updates !
+
     CommandType_t cCmd = (CommandType_t)INData[COMMANDPOSITION];
     byte BoardNumber = INData[INDEXPOSITION];
     byte Length = INData[LENGTHPOSITION];
@@ -1249,22 +1246,6 @@ void loop()
 
     switch(cCmd)
     {
-      case CMD_set_output:
-      {
-        j = INData[counter++];
-        //load.setOutput(j != 0);
-        break;
-      }
-
-      case CMD_set_value:
-      {
-        for ( j=0; j<4; j++ ) {dwv.v[j] = INData[counter++];}
-        //Screen1SetDischargeCurrent(dwv.w[0]);
-        //load.setCurrent(dwv.w[0]);
-        //load.setOutput(dwv.w[0] != 0);
-        break;
-      }
-
       case CMD_set_energy:
       case CMD_set_capacity:
       case CMD_set_time:
@@ -1305,14 +1286,31 @@ void loop()
         wv.bytes.HB = INData[counter++];
         PDO.maxCurrent_mA = wv.Val;
         Info_Add_Fmt("GUI. PDO requested current: %dmA.", PDO.maxCurrent_mA);
+        if (CurrentBoard->PDO.maxCurrent_mA != PDO.maxCurrent_mA)
+        {
+          // Should never happen !!
+          Info_Add("ERROR. GUI. PDO maxCurrent_mA differences !!");          
+        }
 
         wv.bytes.LB = INData[counter++];
         wv.bytes.HB = INData[counter++];
         PDO.maxVoltage_mV = wv.Val;
         Info_Add_Fmt("GUI. PDO requested voltage: %dmV.", PDO.maxVoltage_mV);
+        if (CurrentBoard->PDO.maxVoltage_mV != PDO.maxVoltage_mV)
+        {
+          // Should never happen !!
+          Info_Add("ERROR. GUI. PDO maxVoltage_mV differences !!");          
+        }
 
         raw.byte0 = INData[counter++];
         raw.byte1 = INData[counter++];
+
+        if (CurrentBoard->PDO.raw != raw.Val)
+        {
+          // Should never happen !!
+          Info_Add("ERROR. GUI. PDO raw differences !!");          
+        }
+
 
         // This fuction is index zero based !!
         AP33772S::decodePDONew(j-1, raw, PDO);
@@ -1389,9 +1387,6 @@ void loop()
     #ifdef DEBUG
     //Serial.println("Getting data");
     #endif
-
-    //SET = &Batteries[ActiveBatteryIndex];
-    SET = Battery;
 
     switch(SET->TestData.Active)
     {
@@ -1601,6 +1596,7 @@ void ClearRunData(PRunDatas RDS)
     RDS->ThresholdResult[i].GetValue = 0;      
   }
 
+  RDS->NewerRotoPDDatas.clear();  
   RDS->NewerIT2704Datas.clear();  
 }
 
