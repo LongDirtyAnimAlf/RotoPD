@@ -440,18 +440,16 @@ static void main_event_handler(lv_event_t * e)
           if ( (event_object == backbutton) && (screenindex>1) ) screenindex--; // back button
           if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
 
-          TMeasurementData LastBatteryData;
-          LastBatteryData = RDS->NewerRotoPDDatas.getLastData();
+          TMeasurementData LatestBatteryData;
+          LatestBatteryData = RDS->NewerRotoPDDatas.getLastData();
 
-          TMeasurementData LastIT2704Data;
-          LastIT2704Data  = RDS->NewerIT2704Datas.getLastData();
+          TMeasurementData LatestIT2704Data;
+          LatestIT2704Data  = RDS->NewerIT2704Datas.getLastData();
 
           switch(screenindex)
           {
             case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastIT2704Data);break;}
-            //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetData(RDS);break;}
-            //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetIT2704Data(RDS);break;}
+            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LatestIT2704Data);break;}
             case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
             case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
@@ -913,11 +911,9 @@ void setup()
 
   #endif
 
-  //SET = &Batteries[ActiveBatteryIndex];
+  // Fill startscreen with presets, if any
   SET = Battery;
   Screen1SetData(SET);
-  RDS = &SET->TestData.RunDatas;
-  ScreenPowerSetData(&RDS->LastIT2704Data);
 
     // INA238 setup
   if (initINA238())
@@ -1060,7 +1056,7 @@ void loop()
     if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
     {
 
-      // Check TPDO messages
+      // Check TPDO messages, if any
       j = (load.getChannel() / 2) ;
       if (rxmsg.id == (TPO_COB_ID[j] + load.getID())) // We received a correct TPDO message from the IT2704
       {
@@ -1200,6 +1196,7 @@ void loop()
     // Runs every 100ms
     collectRotoPDData();
 
+    // If we do not have TPDOs with energy, this might be a quick energy data solution
     load.collectDataEnergyOnly();
   }
 
@@ -1494,6 +1491,8 @@ void loop()
       {
         //RDS->Time++;
         RDS->Time += CALCULATIONTIME;
+
+
 
         if (RDS->LastBatteryData.I != 0)
         {
