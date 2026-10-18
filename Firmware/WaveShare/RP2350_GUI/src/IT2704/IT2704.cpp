@@ -64,6 +64,8 @@ void IT2704::initDevice(bool reset)
 
   if (_connected)
   {
+    uint8_t tpoindex;
+
     if (reset)
     {
       _node->getCAN().abortAllPending(true); // Discard all messages in hardware and queue
@@ -96,12 +98,12 @@ void IT2704::initDevice(bool reset)
       // Silence the 4 TPDOs
       // Should not be necessary if IT2704 is in pre-operational mode
       // But anyhow
-      for (int j = 0; j < 4; j++)
+      for ( tpoindex = 0; tpoindex < 4; tpoindex++ )
       {
         // Set Set the transmission type of TPDO#j to 254
         Msg.clearData();
         Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-        Msg.setID(TX_PDO1_COMM_INDEX + j);
+        Msg.setID(TPO_TX_COMM_ID[tpoindex]);
         Msg.setSubID(SUBIDX_PDO_TRANSMISSION_TYPE);
         Msg.setData(PDO_TXTYPE_ASYNC_MANUFACTURER);
         _node->sendMsg(Msg);
@@ -111,7 +113,7 @@ void IT2704::initDevice(bool reset)
         //Modify TPDO#j timer cycle as 0ms
         Msg.clearData();
         Msg.setCommand(WRITE_REQ_2BYTE_CMD);
-        Msg.setID(TX_PDO1_COMM_INDEX + j);
+        Msg.setID(TPO_TX_COMM_ID[tpoindex]);
         Msg.setSubID(SUBIDX_PDO_EVENT_TIMER);
         Msg.setData(0);
         _node->sendMsg(Msg);
@@ -184,11 +186,73 @@ void IT2704::initDevice(bool reset)
     Msg.setData(data.Val);
     _node->sendMsg(Msg);
 
+    // Change TPDOs to send energydata !!
+    // All messages have priority, die to the importance of the order (I presume)
 
-    // COMMON_SOURCE_SLOPE_TYPE // 0:Rate [A/ms] 1:Time
+    uint8_t localchannel = 0;    
 
-    //Current slew time positive
-    //Current slew time negative
+    for ( tpoindex = 0; tpoindex < 4; tpoindex++ )
+    {
+      // Disable TPDO: Set Bit 31 of COB-ID at 0x1800 Sub01 to 1    
+      Msg.clearData();
+      Msg.setID(TPO_TX_COMM_ID[tpoindex]);
+      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+      Msg.setSubID(SUBIDX_PDO_COB_ID);
+      data.Val = (0x80000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 1 
+      Msg.setData(data.Val);
+      _node->sendMsg(Msg,true);
+
+      // Process TPDO mapping
+
+      // Clear Mapping Count: Write 0 to 0x1A00 Sub00 .
+      Msg.clearData();
+      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+      Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+      Msg.setSubID(SUBIDX_PDO_MAP_COUNT);
+      Msg.setData(0);
+      _node->sendMsg(Msg,true);
+
+      //Write Mapping Entry 1: Write mapping entry to 0x1A00 Sub01.
+      Msg.clearData();
+      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+      Msg.setSubID(SUBIDX_PDO_MAP_1);
+      data.Val = 0;
+      data.w[1] = IT2704_METER + (localchannel++ * 0x100);
+      data.v[1] = IT2704_METER_WHOUR;
+      data.v[0] = SIZE_BIT_FLOAT32;
+      Msg.setData(data.Val);
+      _node->sendMsg(Msg,true);
+
+      //Write Mapping Entry 2: Write mapping entry to 0x1A00 Sub02.
+      Msg.clearData();
+      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+      Msg.setSubID(SUBIDX_PDO_MAP_2);
+      data.Val = 0;
+      data.w[1] = IT2704_METER + (localchannel++ * 0x100);
+      data.v[1] = IT2704_METER_WHOUR;
+      data.v[0] = SIZE_BIT_FLOAT32;
+      Msg.setData(data.Val);
+      _node->sendMsg(Msg,true);
+
+      // Set Mapping Count: Write 2 to 0x1A00 Sub00 .
+      Msg.clearData();
+      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+      Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+      Msg.setSubID(SUBIDX_PDO_MAP_COUNT);
+      Msg.setData(2);
+      _node->sendMsg(Msg,true);
+
+      // Enable TPDO: Clear Bit 31 of COB-ID at 0x1800 Sub01 to 0    
+      Msg.clearData();
+      Msg.setID(TPO_TX_COMM_ID[tpoindex]);
+      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+      Msg.setSubID(SUBIDX_PDO_COB_ID);
+      data.Val = (0x00000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 0 
+      Msg.setData(data.Val);
+      _node->sendMsg(Msg,true);
+    }
   }
 }
 
@@ -288,10 +352,30 @@ void IT2704::collectData(void)
     //Msg.setSubID(IT2704_METER_AHOUR);
     //node.sendMsg(Msg);
 
-    Msg.setSubID(IT2704_METER_WHOUR);
-    _node->sendMsg(Msg);
+    //Msg.setSubID(IT2704_METER_WHOUR);
+    //_node->sendMsg(Msg);
   }
 }
+
+void IT2704::collectDataEnergyOnly(void)
+{
+  Message Msg;
+
+  if (_connected)
+  {
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+
+    Msg.setCommand(READ_REQ_ANY_CMD);
+    Msg.setID(IT2704_METER + (_channel * 0x100));
+
+    Msg.setSubID(IT2704_METER_WHOUR);
+    _node->sendMsg(Msg, true);
+  }
+}
+
 
 void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E)
 {
@@ -316,6 +400,24 @@ void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, 
         *E = round(data.f * 1000);
     }
 }
+
+void IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* E1, uint32_t* E2)
+{
+    DWORD_FLOAT data; 
+
+    if (E1 != NULL)
+    {
+      memcpy(&data.v[0], &Msg->data[0], 4);
+      *E1 = round(data.f * 1000);
+    }
+
+    if (E2 != NULL)
+    {
+      memcpy(&data.v[4], &Msg->data[4], 4);
+      *E2 = round(data.f * 1000);
+    }
+}
+
 
 void IT2704::queryConnection(void)
 {

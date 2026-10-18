@@ -120,8 +120,8 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, 0);
   //lv_obj_set_style_bg_color(obj,lv_palette_darken(LV_PALETTE_RED,4), LV_PART_MAIN);      
 
-  screen3 = lv_obj_create(basescreen);
-  obj = screen3;
+  screenpdo = lv_obj_create(basescreen);
+  obj = screenpdo;
   lv_obj_remove_style_all(obj);
   // Add flag, indicating its a screen !!
   lv_obj_set_user_flag(obj, 0, true);
@@ -169,7 +169,7 @@ void BaseScreenSetup(lv_obj_t * basescreen, lv_event_cb_t event_cb_more)
   lv_obj_move_to_index(screen1, 1);
   lv_obj_move_to_index(screenpower, 2);    
   lv_obj_move_to_index(screenchart, 3);
-  lv_obj_move_to_index(screen3, 4);    
+  lv_obj_move_to_index(screenpdo, 4);    
   lv_obj_move_to_index(screensettings, 5);
   lv_obj_move_to_index(screenlogger, 6);
 

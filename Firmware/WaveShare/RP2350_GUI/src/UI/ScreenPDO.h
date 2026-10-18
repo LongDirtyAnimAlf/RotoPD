@@ -1,18 +1,18 @@
-#ifndef LV_SCREEN3_H
-#define LV_SCREEN3_H
+#ifndef LV_SCREENPDO_H
+#define LV_SCREENPDO_H
 
 #include <lvgl.h>
 
-extern lv_obj_t * screen3;
+extern lv_obj_t * screenpdo;
 extern lv_obj_t * getpdolistbutton;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void Setup_Screen3(byte index, bool show);
-void Screen3ClearPDOList(void);
-void Screen3SetPDO(
+void Setup_ScreenPDO(byte index, bool show);
+void ScreenPDOClearPDOList(void);
+void ScreenPDOSetPDO(
   uint8_t  index,          // 1-based (1–13)
   bool     valid,          // detect bit = 1
   bool     isEPR,          // true for index 8–13
@@ -25,4 +25,4 @@ void Screen3SetPDO(
 } /*extern "C"*/
 #endif
 
-#endif /*LV_SCREEN3_H*/
+#endif /*LV_SCREENPDO_H*/

@@ -35,7 +35,9 @@ public:
     void setCurrent(uint16_t current);
     void setOutput(bool enabled);
     void collectData(void);
+    void collectDataEnergyOnly(void);
     void getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E);
+    void getTPDOEnergyData(const Message* Msg, uint32_t* E1, uint32_t* E2);
 
     void queryConnection(void);
     bool checkConnection(const Message* MsgExt);

@@ -28,7 +28,7 @@ void Screen1AddVData(word V);
 void Screen1AddIData(word I);
 void Screen1AddEData(dword E);
 void Screen1AddPData(dword P);
-void Screen1AddTData(dword T);
+void Screen1AddTData(qword T);
 void Screen1SetThresholdLedEnabled(TThresholdModes Mode, bool On);
 void Screen1SetThresholdLed(TThresholdModes Mode, bool On);
 void Screen1SetOutput(bool On);

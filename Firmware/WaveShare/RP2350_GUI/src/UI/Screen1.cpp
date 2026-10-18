@@ -548,9 +548,9 @@ void Screen1AddVIData(word V, word I)
     Screen1AddIData(I);
 }
 
-void Screen1AddTData(dword T)
+void Screen1AddTData(qword T)
 {
-    if (Display[4] != NULL) SetDisplayV(Display[4], T);
+    if (Display[4] != NULL) SetDisplayV(Display[4], (T / 100));
 }
 
 void Screen1AddEData(dword E)

@@ -19,7 +19,8 @@
 #define    STANDALONE
 #endif
 
-#define DATAGETTIME                   50 // ms
+#define ROTOPDDATAGETTIME             50 // ms
+#define IT2704DATAREQUESTTIME         2500 // ms
 #define DATACOLLECTTIMEFAST           500 // ms
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
 #define CALCULATIONTIME               100 // ms
@@ -272,7 +273,7 @@ typedef struct
   TMeasurementData LastIT2704Data;
   qword Capacity; // in nAh
   qword Energy; // in nWh
-  qword Time;  // in deci-seconds = 100ms
+  qword Time;  // in ms
   //word Temperature; // in deci-Celcius = 100mC
   int16_t Tail;
   int16_t Head;

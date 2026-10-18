@@ -1,5 +1,5 @@
 #include "Screenbase.h"
-#include "Screen3.h"
+#include "ScreenPDO.h"
 
 // ── PDO type constants ────────────────────────────────────────────────────────
 #define PDO_TYPE_FIXED       (0)
@@ -12,7 +12,7 @@
 
 #define MAX_PDO_ENTRIES      (13)
 
-lv_obj_t * screen3 = NULL;
+lv_obj_t * screenpdo = NULL;
 lv_obj_t * getpdolistbutton = NULL;
 
 static lv_obj_t * pdo_list_cont = NULL;
@@ -73,7 +73,7 @@ static void init_styles_once(void)
 }
 
 static lv_obj_t * CreatePDOCell(lv_obj_t * parent);
-void Screen3SetPDO(
+void ScreenPDOSetPDO(
     uint8_t  index,
     bool     valid,
     bool     isEPR,
@@ -82,7 +82,7 @@ void Screen3SetPDO(
     uint16_t maxVoltage_mV,
     uint16_t maxCurrent_mA);
 
-void Screen3ClearPDOList(void)
+void ScreenPDOClearPDOList(void)
 {
     for (uint8_t i = 0; i < MAX_PDO_ENTRIES; i++) {
         lv_obj_t * cell = PDOCells[i];
@@ -103,7 +103,7 @@ static void btn_event_cb(lv_event_t * e)
         return;
 
     if (btn == getpdolistbutton) {
-        Screen3ClearPDOList();
+        ScreenPDOClearPDOList();
     } else {
         lv_obj_t * cont = lv_event_get_current_target_obj(e);
         if (btn == cont) return;   /* clicked on container itself */
@@ -212,7 +212,7 @@ static void Setup_Screen(lv_obj_t * cont)
     lv_obj_set_scroll_dir(pdo_list_cont, LV_DIR_VER);
     lv_obj_set_flex_flow(pdo_list_cont, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(pdo_list_cont, 10, 0);
-    lv_obj_add_event_cb(pdo_list_cont, btn_event_cb, LV_EVENT_CLICKED, screen3);
+    lv_obj_add_event_cb(pdo_list_cont, btn_event_cb, LV_EVENT_CLICKED, screenpdo);
 
     /* ── Create all cells once (hidden) ─────────────────────────────── */
     for (int i = 0; i < MAX_PDO_ENTRIES; i++) {
@@ -220,7 +220,7 @@ static void Setup_Screen(lv_obj_t * cont)
     }
 }
 
-void Setup_Screen3(byte index, bool show)
+void Setup_ScreenPDO(byte index, bool show)
 {
     if (show) {
         lv_obj_t * obj = GetInfoObject();
@@ -232,12 +232,12 @@ void Setup_Screen3(byte index, bool show)
             lv_label_set_text(obj, "Settings");
     }
 
-    SetContentObject(screen3, show);
-    if (screen3 != NULL)
-        Setup_Screen(screen3);
+    SetContentObject(screenpdo, show);
+    if (screenpdo != NULL)
+        Setup_Screen(screenpdo);
 }
 
-void Screen3SetPDO(
+void ScreenPDOSetPDO(
     uint8_t  index,          /* 1-based (1–13) */
     bool     valid,          /* detect bit = 1 */
     bool     isEPR,          /* true for index 8–13 */

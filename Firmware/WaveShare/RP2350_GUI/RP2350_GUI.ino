@@ -75,16 +75,18 @@ static PBatterySetting const Battery = Batteries;
 static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
 
-static Ticker datagetticker;
-static volatile bool GetData = false;
+static volatile bool flagCollectRotoPDData = false;
+static volatile bool flagRequestIT2704Data = false;
 static bool SoundButtonClick = false;
 
 #ifdef STANDALONE
 //GT911_Lite tp; // touchscreen through TwoWire
-static Ticker datacollectticker;
+static Ticker tickerCollectRotoPDData;
+static Ticker tickerRequestIT2704Data;
+static Ticker tickerProcessData;
 static Ticker datastartticker;
 static Ticker SoundButtonTicker;
-static volatile bool GetBatteryData = false;
+static volatile bool flagProcessMeasurementData = false;
 static bool StoreSettings = false;
 static bool StoreBoardInfo = false;
 static byte SendCommand[COMMAND_SIZE] = {0};
@@ -380,7 +382,7 @@ static void main_event_handler(lv_event_t * e)
               // We are active !!
               SET->TestData.Active = bmActive;
               // Force a very early data measurement to get a start value
-              GetBatteryData = true;
+              flagProcessMeasurementData = true;
 
               // Engage after some time !!!!
               // This is needed to dismiss the first few measurements when starting
@@ -451,7 +453,7 @@ static void main_event_handler(lv_event_t * e)
             //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetData(RDS);break;}
             //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetIT2704Data(RDS);break;}
             case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
-            case 4: {Setup_Screen3(BoardInfo.IT2704Channel,true);break;}
+            case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
             case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
           }
@@ -489,10 +491,10 @@ static void main_event_handler(lv_event_t * e)
           #ifdef DEBUG                      
           Serial.println("Unknown button pressed");
           #endif
-          if (event_user_data == screen3)
+          if (event_user_data == screenpdo)
           {
             #ifdef DEBUG                      
-            //Serial.println("Button from screen 3");
+            //Serial.println("Button from screen pdo");
             #endif
             if (object_user_data != NULL)
             {
@@ -648,14 +650,19 @@ void AddMeasurementData(PMeasurementData MD)
 }
 
 #ifdef STANDALONE
-static void datagetcb()
+static void cbCollectRotoPDData()
 {
-  GetData = true;
+  flagCollectRotoPDData = true;
 }
 
-static void datacollectcb()
+static void cbRequestIT2704Data()
 {
-  GetBatteryData = true;
+  flagRequestIT2704Data = true;
+}
+
+static void cbProcessData()
+{
+  flagProcessMeasurementData = true;
 }
 
 static void StopClickCB()
@@ -673,7 +680,7 @@ static void datastartcb(byte index)
   // We are active !!
   SET->TestData.Active = bmActive;
   // Force a very early data measurement to get a start value
-  GetBatteryData = true;
+  flagProcessMeasurementData = true;
 }
 
 #endif
@@ -833,7 +840,7 @@ void setup()
   Info_Add("GUI. Init GUI.");      
 
   Setup_ScreenSettings(BoardInfo.IT2704Channel,false);
-  Setup_Screen3(BoardInfo.IT2704Channel,false);
+  Setup_ScreenPDO(BoardInfo.IT2704Channel,false);
   Setup_Screen1(BoardInfo.IT2704Channel);
 
   SetDarkTheme(BoardInfo.UIDarkEnabled);
@@ -936,8 +943,10 @@ void setup()
   Info_Add("GUI. Init timers.");      
 
   #ifdef STANDALONE
-  datagetticker.attach_ms(DATAGETTIME, datagetcb);
-  datacollectticker.attach_ms(DATACOLLECTTIMEFAST, datacollectcb);
+
+  tickerCollectRotoPDData.attach_ms(ROTOPDDATAGETTIME, cbCollectRotoPDData);
+  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
+  tickerProcessData.attach_ms(DATACOLLECTTIMEFAST, cbProcessData);
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
@@ -1020,7 +1029,6 @@ void loop()
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
   byte dataindexer = 0;
 
-  PDO_DATA_T raw;
   WORD_VAL w_data;
   DWORD_VAL dw_data;
   QWORD_VAL qw_data;
@@ -1051,6 +1059,26 @@ void loop()
     //Serial.printf("%04X.\r\n",rxmsg.id);
     if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
     {
+
+      // Check TPDO messages
+      j = (load.getChannel() / 2) ;
+      if (rxmsg.id == (TPO_COB_ID[j] + load.getID())) // We received a correct TPDO message from the IT2704
+      {
+        j = (load.getChannel() % 2);
+        switch (j)
+        {
+          case 0:
+          {
+            load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E, NULL);
+            break;
+          }
+          case 1:
+          {
+            load.getTPDOEnergyData(&rxmsg, NULL, &LatestIT2704Data.E);
+            break;
+          }
+        }
+      }
 
       if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID())) // We received a SDO message from the IT2704
       {
@@ -1098,17 +1126,12 @@ void loop()
   if (millis() - startTime >= 1000)
   {
     // This runs every second !!
-
     startTime = millis();
+
+    //Serial.println("Loop");
 
     // Test connection with load IT2704
     load.queryConnection();
-
-    // Ask load IT2704 to send measurement result
-    // Result will only be collected on next loop or later
-    load.collectData();
-
-     //Serial.println("Loop");
 
     PDOCount = taskRotoPDInit();
 
@@ -1124,7 +1147,7 @@ void loop()
       {
         Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
        
-        Screen3ClearPDOList();
+        ScreenPDOClearPDOList();
 
         memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
@@ -1146,7 +1169,7 @@ void loop()
               else
                 Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
               #ifdef STANDALONE
-              Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+              ScreenPDOSetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               #endif
               hid_report_in[dataindexer++] = PDO.index;
               w_data.Val = PDO.raw;
@@ -1170,12 +1193,22 @@ void loop()
     }
   }  
 
-  if (GetData)
+  if (flagCollectRotoPDData)
   {
-    GetData = false;
+    flagCollectRotoPDData = false;
     // Get RotoPD measurement results for later averaging
     // Runs every 100ms
     collectRotoPDData();
+
+    load.collectDataEnergyOnly();
+  }
+
+  if (flagRequestIT2704Data)
+  {
+    flagRequestIT2704Data = false;
+    // Ask load IT2704 to send measurement results
+    // Result will only be collected on next loop or later
+    load.collectData();
   }
 
   THIDData* PLocalHD;
@@ -1282,7 +1315,7 @@ void loop()
 
         if (cCmd == CMD_set_energy) RDS->Energy = qw_data.Val; // in nAh
         if (cCmd == CMD_set_capacity) RDS->Capacity = qw_data.Val; // in nWh
-        if (cCmd == CMD_set_time) RDS->Time = qw_data.Val;  // in deci-seconds = 100ms
+        if (cCmd == CMD_set_time) RDS->Time = qw_data.Val;  // in ms
 
         if (cCmd == CMD_set_energy) Screen1AddEData(RDS->Energy / 1000000ULL);
         if (cCmd == CMD_set_time) Screen1AddTData(RDS->Time);
@@ -1310,10 +1343,12 @@ void loop()
       {
         // We need to update the GUI with the received PDO's !!
 
+        PDO_DATA_T raw;
+
         // Got PDO data from plugin of PD source
         Info_Add("GUI. PDO list request by user !!");
 
-        Screen3ClearPDOList();
+        ScreenPDOClearPDOList();
 
         PDOCount = INData[counter++];
 
@@ -1343,7 +1378,7 @@ void loop()
                 else
                   Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
 
-                Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+                ScreenPDOSetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               }
             }
           }
@@ -1355,9 +1390,9 @@ void loop()
   }
 
   #ifdef STANDALONE
-  if (GetBatteryData)
+  if (flagProcessMeasurementData)
   {
-    GetBatteryData = false;
+    flagProcessMeasurementData = false;
 
     #ifdef DEBUG
     //Serial.println("Getting data");
@@ -1457,7 +1492,8 @@ void loop()
       // CALCULATIONTIME = 100, so every tick [increase] is 100ms
       if (SET->TestData.Active != bmReady)
       {
-        RDS->Time++;
+        //RDS->Time++;
+        RDS->Time += CALCULATIONTIME;
 
         if (RDS->LastBatteryData.I != 0)
         {

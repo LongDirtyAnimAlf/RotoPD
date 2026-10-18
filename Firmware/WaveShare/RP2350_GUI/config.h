@@ -112,6 +112,7 @@
 #define SUBIDX_IDENTITY_REVISION       SUBIDX_3
 #define SUBIDX_IDENTITY_SERIAL         SUBIDX_4
 
+#define SIZE_BIT_FLOAT32               32  // 0x20 bits
 #define SIZE_BIT_INT32                 32  // 0x20 bits
 #define SIZE_BIT_UINT32                32  // 0x20 bits
 #define SIZE_BIT_UINT16                16  // 0x10 bits
@@ -337,7 +338,9 @@ typedef enum {
 #define PDO3_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
 #define PDO4_RX_CYCLE_TIME      DEFAULT_RX_CYCLE_TIME   // ms
 
-
+const uint16_t TPO_TX_COMM_ID[4]    = {TX_PDO1_COMM_INDEX,TX_PDO2_COMM_INDEX,TX_PDO3_COMM_INDEX,TX_PDO4_COMM_INDEX};
+const uint16_t TPO_TX_MAP_ID[4]     = {TX_PDO1_MAPPING_INDEX,TX_PDO2_MAPPING_INDEX,TX_PDO3_MAPPING_INDEX,TX_PDO4_MAPPING_INDEX};
+const uint16_t TPO_COB_ID[4]        = {CO_CAN_ID_TPDO_1,CO_CAN_ID_TPDO_2,CO_CAN_ID_TPDO_3,CO_CAN_ID_TPDO_4};
 
 // This device !!
 // Application-specific Object Dictionary indices (CiA 453 Electronic Load)
