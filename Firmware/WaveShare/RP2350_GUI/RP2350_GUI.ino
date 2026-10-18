@@ -449,7 +449,8 @@ static void main_event_handler(lv_event_t * e)
             case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
             case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastIT2704Data);break;}
             //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetData(RDS);break;}
-            case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetIT2704Data(RDS);break;}
+            //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetIT2704Data(RDS);break;}
+            case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
             case 4: {Setup_Screen3(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
             case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
@@ -1383,13 +1384,23 @@ void loop()
     if (SET->TestData.DataTriggerCounter == 0)
     {
       TMeasurementData LatestRotoPDData;
+      getRotoPDData(&LatestRotoPDData.I,&LatestRotoPDData.V,&LatestRotoPDData.P,&LatestRotoPDData.T);    
 
-      getRotoPDData(&LatestRotoPDData.I,&LatestRotoPDData.V,&LatestRotoPDData.P,&LatestRotoPDData.T);        
+      //Append the data in RotoPD buffer
+      RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
-      //Serial.println("Got RotoPD data");        
+      //Also append the IT2704 data in IT2704 buffer
+      RDS->NewerIT2704Datas.push(LatestIT2704Data);
+
+      // Append data into graphs
+      ScreenChartAddData(LatestRotoPDData.V, LatestRotoPDData.I);
+      //ScreenChartAddData(LatestIT2704Data.V, LatestIT2704Data.I);
       
       // Show data on screen 1
       Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
+
+      //Append the normal data in storage
+      AddMeasurementData(&LatestRotoPDData);
 
       memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
@@ -1427,18 +1438,6 @@ void loop()
       
       if (SET->TestData.Active == bmActive)
       {
-        //Append the normal data in storage
-        AddMeasurementData(&LatestRotoPDData);
-
-        //Append the  data in RotoPD buffer
-        RDS->NewerRotoPDDatas.push(LatestRotoPDData);
-        //Append the IT2704 data in IT2704 buffer
-        RDS->NewerIT2704Datas.push(LatestIT2704Data);
-
-        // Append data into graphs
-        //ScreenChartAddData(LatestRotoPDData.V, LatestRotoPDData.I);
-        ScreenChartAddData(LatestIT2704Data.V, LatestIT2704Data.I);
-
         // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }

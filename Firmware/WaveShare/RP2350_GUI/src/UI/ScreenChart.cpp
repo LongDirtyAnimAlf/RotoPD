@@ -259,3 +259,43 @@ void ScreenChartSetData(PRunDatas MAD)
 
   }
 }
+
+void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE>& q)
+{
+  dword tempvcalc,tempicalc = 0;
+  // Create array
+  static TMeasurementData lastItems[CHARTSIZE];
+
+  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, 0);          
+  if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, 0);
+
+  for(int i = 0; i < CHARTSIZE; i++) {
+    my_voltage_values[i] = LV_CHART_POINT_NONE;
+    my_current_values[i] = LV_CHART_POINT_NONE;
+  }
+
+  TMeasurementData newestItem;
+  if (q.peekFromNewest(0, newestItem)) {
+      // newestItem contains the most recent reading
+  }
+
+  TMeasurementData item200;
+  if (q.peekFromNewest(199, item200)) {
+      // item200 contains the 200th newest reading
+  }
+
+  // Request up to 200 of the newest entries
+  uint16_t fetchedCount = q.peekNewest(lastItems, CHARTSIZE);
+
+  while (fetchedCount > 0)
+  {
+      --fetchedCount;
+      tempvcalc = lastItems[fetchedCount].V;
+      if (voltage_series != NULL) lv_chart_set_next_value(chart, voltage_series, (word)tempvcalc);
+      tempicalc = lastItems[fetchedCount].I;
+      if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempicalc);
+  }
+
+  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempvcalc);
+  if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, (word)tempicalc);
+}

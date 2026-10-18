@@ -37,6 +37,33 @@ type
 
   TDataEvent    = procedure(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word) of object;
 
+  TMyCustomPersistent = class(TPersistent)
+  private
+    DebugInfo     : string;
+    Vref          : word;
+    Vmax          : word;
+    Imax          : word;
+    Calibration   : ansistring;
+    FSettingsName : string;
+  published
+    property SettingsName: string read FSettingsName write FSettingsName;
+  end;
+
+
+  TJvHidDeviceHelper = class helper for TJvHidDevice
+  private
+    function GetExtraSettings: TMyCustomPersistent;
+    procedure SetExtraSettings(const Value: TMyCustomPersistent);
+  public
+    // your extra functions – they now belong to every TJvHidDevice
+    function SendCommand(Cmd: Byte; const Payload: TBytes): Boolean;
+    function ReadStatus(out Status: Integer): Boolean;
+    procedure StartContinuousMonitoring;
+    function IsMyDevice: Boolean;
+  published
+    property ExtraSettings: TMyCustomPersistent read GetExtraSettings write SetExtraSettings;
+  end;
+
   TUSBController = class
   strict private
     FDataEvent     : TDataEvent;
@@ -145,6 +172,48 @@ begin
     // conversion magic
     SetCodePage(RawByteString(Result), CP_ACP, False);
   {$ENDIF}
+end;
+
+
+function TJvHidDeviceHelper.SendCommand(Cmd: Byte; const Payload: TBytes): Boolean;
+var
+  Report: TBytes;
+  Written: DWORD;
+begin
+  // you have full access to Self (the real TJvHidDevice)
+  SetLength(Report, Caps.OutputReportByteLength);
+  Report[0] := Cmd;
+  // … fill the rest
+  Result := WriteFile(Report[0], Length(Report), Written) and (Written = Length(Report));
+end;
+
+function TJvHidDeviceHelper.ReadStatus(out Status: Integer): Boolean;
+begin
+  // implement using ReadFile / GetFeature / etc.
+  Result := False;
+end;
+
+function TJvHidDeviceHelper.IsMyDevice: Boolean;
+begin
+  Result := (Attributes.VendorID = $1234) and (Attributes.ProductID = $5678);
+end;
+
+procedure TJvHidDeviceHelper.StartContinuousMonitoring;
+begin
+  if not IsCheckedOut then
+    CheckOut;               // or let the caller do it
+  //OnData := MyDataHandler;  // you can even set events from the helper
+end;
+
+function TJvHidDeviceHelper.GetExtraSettings: TMyCustomPersistent;
+begin
+  // Cast existing Tag property back to TMyCustomPersistent
+  Result := TMyCustomPersistent(Pointer(Self.Tag));
+end;
+
+procedure TJvHidDeviceHelper.SetExtraSettings(const Value: TMyCustomPersistent);
+begin
+  Self.Tag := PtrInt(Pointer(Value));
 end;
 
 constructor TUSBController.Create(HidDev: TJvHidDevice; SN:ansistring);

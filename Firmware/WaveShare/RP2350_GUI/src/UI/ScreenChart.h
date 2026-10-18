@@ -14,7 +14,12 @@ void Setup_ScreenChart(byte index);
 void ScreenChartAddData(word V, word I);
 void ScreenChartSetData(PRunDatas MAD);
 void ScreenChartSetIT2704Data(PRunDatas MAD);
+
+void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE>& q);
+
 byte ScreenChartGetActive(void);
+
+
 
 #ifdef __cplusplus
 } /*extern "C"*/
