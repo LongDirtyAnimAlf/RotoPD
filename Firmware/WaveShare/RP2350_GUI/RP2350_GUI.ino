@@ -438,12 +438,18 @@ static void main_event_handler(lv_event_t * e)
           if ( (event_object == backbutton) && (screenindex>1) ) screenindex--; // back button
           if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
 
+          TMeasurementData LastBatteryData;
+          LastBatteryData = RDS->NewerRotoPDDatas.getLastData();
+
+          TMeasurementData LastIT2704Data;
+          LastIT2704Data  = RDS->NewerIT2704Datas.getLastData();
+
           switch(screenindex)
           {
             case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(RDS);break;}
-            //case 3: {Setup_Screen2(BoardInfo.IT2704Channel);Screen2SetData(RDS);break;}
-            case 3: {Setup_Screen2(BoardInfo.IT2704Channel);Screen2SetIT2704Data(RDS);break;}
+            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastIT2704Data);break;}
+            //case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetData(RDS);break;}
+            case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetIT2704Data(RDS);break;}
             case 4: {Setup_Screen3(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
             case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
@@ -903,7 +909,7 @@ void setup()
   SET = Battery;
   Screen1SetData(SET);
   RDS = &SET->TestData.RunDatas;
-  ScreenPowerSetData(RDS);
+  ScreenPowerSetData(&RDS->LastIT2704Data);
 
     // INA238 setup
   if (initINA238())
@@ -1014,8 +1020,14 @@ void loop()
   byte dataindexer = 0;
 
   PDO_DATA_T raw;
-  WORD_VAL wv;
-  DWORD_VAL dwv;
+  WORD_VAL w_data;
+  DWORD_VAL dw_data;
+  QWORD_VAL qw_data;
+
+  // We do not know when IT2704 data will arrive
+  // Data-order is also unknown
+  // So use a static to store latest data
+  static TMeasurementData LatestIT2704Data;
 
   PBatterySetting SET = Battery;
   PRunDatas RDS = &SET->TestData.RunDatas; 
@@ -1050,12 +1062,13 @@ void loop()
           {
             Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
             
-            load.getData(&rxmsg, &RDS->LastIT2704Data.I, &RDS->LastIT2704Data.V, &RDS->LastIT2704Data.P, &RDS->LastIT2704Data.E);        
-            if (rxmsg.getSubID() == IT2704_METER_VOLTAGE)
-            //if ( (rxmsg.getSubID() == IT2704_METER_POWER) || (rxmsg.getSubID() == IT2704_METER_WHOUR))
-            {
-              ScreenPowerSetData(RDS);
-            }
+            // Get the correct IT2704 data in the correct datastore
+            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.E);
+
+            if (rxmsg.getSubID() == IT2704_METER_VOLTAGE) {ScreenPowerSetVoltageData(LatestIT2704Data.V);}
+            if (rxmsg.getSubID() == IT2704_METER_CURRENT) {ScreenPowerSetCurrentData(LatestIT2704Data.I);}
+            if (rxmsg.getSubID() == IT2704_METER_POWER)   {ScreenPowerSetPowerData(LatestIT2704Data.P);}
+            if (rxmsg.getSubID() == IT2704_METER_WHOUR)   {ScreenPowerSetEnergyData(LatestIT2704Data.E);}            
           }
         }
 
@@ -1135,9 +1148,9 @@ void loop()
               Screen3SetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
               #endif
               hid_report_in[dataindexer++] = PDO.index;
-              wv.Val = PDO.raw;
-              hid_report_in[dataindexer++] = wv.bytes.LB;
-              hid_report_in[dataindexer++] = wv.bytes.HB;
+              w_data.Val = PDO.raw;
+              hid_report_in[dataindexer++] = w_data.bytes.LB;
+              hid_report_in[dataindexer++] = w_data.bytes.HB;
             }  
           }
         }
@@ -1257,20 +1270,18 @@ void loop()
       case CMD_set_capacity:
       case CMD_set_time:
       {
-        QWORD_VAL qw;
+        qw_data.Val = 0;
 
-        qw.Val = 0;
-
-        for ( j=0; j<Length; j++ ) {qw.v[j] = INData[counter++];}
+        for ( j=0; j<Length; j++ ) {qw_data.v[j] = INData[counter++];}
 
         if (cCmd == CMD_set_energy) Info_Add("GUI. CMD_set_energy received.");
         if (cCmd == CMD_set_capacity) Info_Add("GUI. CMD_set_capacity received.");
         if (cCmd == CMD_set_time) Info_Add("GUI. CMD_set_time received.");
-        Info_Add_Fmt("GUI. DataValue [length %d]: %d.", Length, qw.Val);
+        Info_Add_Fmt("GUI. DataValue [length %d]: %d.", Length, qw_data.Val);
 
-        if (cCmd == CMD_set_energy) RDS->Energy = qw.Val; // in nAh
-        if (cCmd == CMD_set_capacity) RDS->Capacity = qw.Val; // in nWh
-        if (cCmd == CMD_set_time) RDS->Time = qw.Val;  // in deci-seconds = 100ms
+        if (cCmd == CMD_set_energy) RDS->Energy = qw_data.Val; // in nAh
+        if (cCmd == CMD_set_capacity) RDS->Capacity = qw_data.Val; // in nWh
+        if (cCmd == CMD_set_time) RDS->Time = qw_data.Val;  // in deci-seconds = 100ms
 
         if (cCmd == CMD_set_energy) Screen1AddEData(RDS->Energy / 1000000ULL);
         if (cCmd == CMD_set_time) Screen1AddTData(RDS->Time);
@@ -1283,56 +1294,10 @@ void loop()
       case CMD_set_PPSPDO:
       case CMD_set_AVSPDO:
       {
-        j = INData[counter++];
-
-        // We might also have this info !
-        wv.bytes.LB = INData[counter++];
-        wv.bytes.HB = INData[counter++];
-        PDO.maxCurrent_mA = wv.Val;
-        Info_Add_Fmt("GUI. PDO requested current: %dmA.", PDO.maxCurrent_mA);
-        if (CurrentBoard->PDO.maxCurrent_mA != PDO.maxCurrent_mA)
-        {
-          // Should never happen !!
-          Info_Add("ERROR. GUI. PDO maxCurrent_mA differences !!");          
-        }
-
-        wv.bytes.LB = INData[counter++];
-        wv.bytes.HB = INData[counter++];
-        PDO.maxVoltage_mV = wv.Val;
-        Info_Add_Fmt("GUI. PDO requested voltage: %dmV.", PDO.maxVoltage_mV);
-        if (CurrentBoard->PDO.maxVoltage_mV != PDO.maxVoltage_mV)
-        {
-          // Should never happen !!
-          Info_Add("ERROR. GUI. PDO maxVoltage_mV differences !!");          
-        }
-
-        raw.byte0 = INData[counter++];
-        raw.byte1 = INData[counter++];
-
-        if (CurrentBoard->PDO.raw != raw.Val)
-        {
-          // Should never happen !!
-          Info_Add("ERROR. GUI. PDO raw differences !!");          
-        }
-
-
-        // This fuction is index zero based !!
-        AP33772S::decodePDONew(j-1, raw, PDO);
-
-        if (PDO.valid)
-        {
-          Info_Add_Fmt("GUI. PDO [%d] selected ! PDO V/I: %dmV/%dmA.", j, PDO.maxVoltage_mV, PDO.maxCurrent_mA);
-        }
-        else
-        {
-          Info_Add_Fmt("GUI. PDO [%d] selected is invalid. Very strange.", j);
-        }
-
         // Do we need to do someting with the new PDO ?
-        // Yes, we might set the discharge current stage 
-
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = CurrentBoard->BM.SetValue;
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status = CurrentBoard->BM.Status;
+        // Yes, we might set the discharge current stage values with it !
+        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = CurrentBoard->PDO.maxCurrent_mA;
+        SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status = smCurrent;
         // Update the GUI also to reflect this change
         Screen1SetStageData(&SET->Stages[FIXEDDISCHARGESTAGENUMBER]);        
 
@@ -1417,16 +1382,14 @@ void loop()
 
     if (SET->TestData.DataTriggerCounter == 0)
     {
-      getRotoPDData(&CurrentBoard->RotoPDData.I,&CurrentBoard->RotoPDData.V,&CurrentBoard->RotoPDData.P,&CurrentBoard->RotoPDData.T);        
-      getRotoPDData(&RDS->LastBatteryData.I,&RDS->LastBatteryData.V,&RDS->LastBatteryData.P,&RDS->LastBatteryData.T);        
+      TMeasurementData LatestRotoPDData;
+
+      getRotoPDData(&LatestRotoPDData.I,&LatestRotoPDData.V,&LatestRotoPDData.P,&LatestRotoPDData.T);        
 
       //Serial.println("Got RotoPD data");        
       
       // Show data on screen 1
-      Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-
-      WORD_VAL  w_data;
-      DWORD_VAL dw_data;
+      Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
 
       memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
@@ -1435,14 +1398,21 @@ void loop()
 
       dataindexer = DATASTART;
 
-      w_data.Val = RDS->LastBatteryData.V;
+      w_data.Val  = LatestRotoPDData.V;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      w_data.Val = RDS->LastBatteryData.I;
+      w_data.Val  = LatestRotoPDData.I;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      dw_data.Val = RDS->LastBatteryData.P;
+      dw_data.Val = LatestRotoPDData.P;
       for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
-      w_data.Val = RDS->LastBatteryData.T;
+      w_data.Val  = LatestRotoPDData.T;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+      /*
+      dw_data.Val = LatestRotoPDData.E;
+      for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
+      qw_data.Val = LatestRotoPDData.S;
+      for ( j=0; j<8; j++ ) {hid_report_in[dataindexer++] = qw_data.v[j];}
+      */
+
 
       hid_report_in[LENGTHPOSITION]=dataindexer;
 
@@ -1458,19 +1428,16 @@ void loop()
       if (SET->TestData.Active == bmActive)
       {
         //Append the normal data in storage
-        AddMeasurementData(&RDS->LastBatteryData);
+        AddMeasurementData(&LatestRotoPDData);
 
         //Append the  data in RotoPD buffer
-        RDS->NewerRotoPDDatas.push(*&RDS->LastBatteryData);
+        RDS->NewerRotoPDDatas.push(LatestRotoPDData);
         //Append the IT2704 data in IT2704 buffer
-        RDS->NewerIT2704Datas.push(*&RDS->LastIT2704Data);
+        RDS->NewerIT2704Datas.push(LatestIT2704Data);
 
         // Append data into graphs
-        //Screen2AddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-        //Screen2AddData(RDS->LastIT2704Data.V, RDS->LastIT2704Data.I);
-        TMeasurementData Last;
-        Last = RDS->NewerIT2704Datas.getLastData();
-        Screen2AddData(Last.V, Last.I);
+        //ScreenChartAddData(LatestRotoPDData.V, LatestRotoPDData.I);
+        ScreenChartAddData(LatestIT2704Data.V, LatestIT2704Data.I);
 
         // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);

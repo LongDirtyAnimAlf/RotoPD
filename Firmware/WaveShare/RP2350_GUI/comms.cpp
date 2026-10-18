@@ -393,7 +393,7 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
   }
 
   #ifdef REV11
-  // Compensate for XRS40N10 Static Drain-Source On-Resistance and shutn resistor
+  // Compensate for XRS40N10 Static Drain-Source On-Resistance and shunt resistor
   word VC = ((*I * (XRS40N10ONRESISTANCE+SHUNTRESISTANCE)) / 1000);
   *V += VC;
   #endif
@@ -662,9 +662,6 @@ bool process_command(void const *data, void *result)
           // Set the PDO with the real values
           LocalBatteryBoard->PDO.maxCurrent_mA    = pd.getRequestedCurrent_mA();
           LocalBatteryBoard->PDO.targetVoltage_mV = pd.getRequestedVoltage_mV();
-          // Also set the BatteryMode of the board itself !
-          LocalBatteryBoard->BM.SetValue          = LocalBatteryBoard->PDO.maxCurrent_mA;
-          LocalBatteryBoard->BM.Status            = smCurrent;
         }
       }
     }

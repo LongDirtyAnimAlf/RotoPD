@@ -1,12 +1,12 @@
 #include "Screenbase.h"
-#include "Screen2.h"
+#include "ScreenChart.h"
 
 #define CHARTSIZE 255
 
-lv_obj_t * screen2 = NULL;
+lv_obj_t * screenchart = NULL;
 
-static lv_obj_t * Screen2VoltageDisplay = NULL;
-static lv_obj_t * Screen2CurrentDisplay = NULL;
+static lv_obj_t * ScreenChartVoltageDisplay = NULL;
+static lv_obj_t * ScreenChartCurrentDisplay = NULL;
 static lv_obj_t * chart = NULL;
 static lv_chart_series_t * voltage_series = NULL;
 static lv_chart_series_t * current_series = NULL;
@@ -14,7 +14,7 @@ static lv_chart_series_t * current_series = NULL;
 static int32_t my_voltage_values[CHARTSIZE]; 
 static int32_t my_current_values[CHARTSIZE]; 
 
-void Setup_Screen2(byte index)
+void Setup_ScreenChart(byte index)
 {
   lv_obj_t * obj = NULL;
   lv_obj_t * cont = NULL;
@@ -25,8 +25,8 @@ void Setup_Screen2(byte index)
   obj = GetButtonLabelObject();
   if (obj != NULL) lv_label_set_text(obj,"Control");
 
-  SetContentObject(screen2,true);
-  cont = screen2;
+  SetContentObject(screenchart,true);
+  cont = screenchart;
 
   if ((cont != NULL) && (lv_obj_get_child_count(cont) == 0))
   {
@@ -59,19 +59,19 @@ void Setup_Screen2(byte index)
     lv_obj_remove_style_all(cell);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
-    Screen2VoltageDisplay = create_display(cell, lv_palette_main(LV_PALETTE_RED), true, 5);
-    //lv_obj_null_on_delete(&Screen2VoltageDisplay);
-    lv_obj_add_style(Screen2VoltageDisplay, &style2, 0);  
-    lv_obj_align(Screen2VoltageDisplay, LV_ALIGN_CENTER, 0, 0);
+    ScreenChartVoltageDisplay = create_display(cell, lv_palette_main(LV_PALETTE_RED), true, 5);
+    //lv_obj_null_on_delete(&ScreenChartVoltageDisplay);
+    lv_obj_add_style(ScreenChartVoltageDisplay, &style2, 0);  
+    lv_obj_align(ScreenChartVoltageDisplay, LV_ALIGN_CENTER, 0, 0);
 
     cell = lv_obj_create(grid);
     lv_obj_remove_style_all(cell);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
-    Screen2CurrentDisplay = create_display(cell, lv_palette_main(LV_PALETTE_GREEN), true, 5);
-    //lv_obj_null_on_delete(&Screen2CurrentDisplay);
-    lv_obj_add_style(Screen2CurrentDisplay, &style2, 0);  
-    lv_obj_align(Screen2CurrentDisplay, LV_ALIGN_CENTER, 0, 0);
+    ScreenChartCurrentDisplay = create_display(cell, lv_palette_main(LV_PALETTE_GREEN), true, 5);
+    //lv_obj_null_on_delete(&ScreenChartCurrentDisplay);
+    lv_obj_add_style(ScreenChartCurrentDisplay, &style2, 0);  
+    lv_obj_align(ScreenChartCurrentDisplay, LV_ALIGN_CENTER, 0, 0);
 
     cell = lv_obj_create(grid);
     lv_obj_remove_style_all(cell);
@@ -113,8 +113,6 @@ void Setup_Screen2(byte index)
 
     static const char * currents[] = {"0", "1", "2", "3", "4", "5", "6", NULL};
     lv_scale_set_text_src(scale_right, currents);
-
-
 
     chart = lv_chart_create(cell);
     //lv_obj_null_on_delete(&chart);  
@@ -159,32 +157,32 @@ void Setup_Screen2(byte index)
   }
 }
 
-void Screen2AddData(word V, word I)
+void ScreenChartAddData(word V, word I)
 {
   dword tempcalc;
 
   tempcalc = V;
-  if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, (word)tempcalc);
+  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempcalc);
   if (voltage_series != NULL) lv_chart_set_next_value(chart, voltage_series, (word)tempcalc);
 
   tempcalc = I;
-  if (Screen2CurrentDisplay != NULL)  SetDisplaymV(Screen2CurrentDisplay, (word)tempcalc);
+  if (ScreenChartCurrentDisplay != NULL)  SetDisplaymV(ScreenChartCurrentDisplay, (word)tempcalc);
   if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempcalc);
 }
 
-byte Screen2GetActive(void)
+byte ScreenChartGetActive(void)
 {
   return 0;
 }
 
-void Screen2SetIT2704Data(PRunDatas MAD)
+void ScreenChartSetIT2704Data(PRunDatas MAD)
 {
   dword tempvcalc,tempicalc = 0;
   // Create array
   static TMeasurementData lastItems[CHARTSIZE];
 
-  if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, 0);          
-  if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, 0);
+  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, 0);          
+  if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, 0);
 
   for(int i = 0; i < CHARTSIZE; i++) {
     my_voltage_values[i] = LV_CHART_POINT_NONE;
@@ -213,14 +211,14 @@ void Screen2SetIT2704Data(PRunDatas MAD)
       if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempicalc);
   }
 
-  if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, (word)tempvcalc);
-  if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, (word)tempicalc);
+  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempvcalc);
+  if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, (word)tempicalc);
 }
 
-void Screen2SetData(PRunDatas MAD)
+void ScreenChartSetData(PRunDatas MAD)
 {
-  if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, 0);          
-  if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, 0);
+  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, 0);          
+  if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, 0);
 
   for(int i = 0; i < CHARTSIZE; i++) {
     my_voltage_values[i] = LV_CHART_POINT_NONE;
@@ -256,8 +254,8 @@ void Screen2SetData(PRunDatas MAD)
       if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempicalc);
     }
 
-    if (Screen2VoltageDisplay != NULL) SetDisplaymV(Screen2VoltageDisplay, (word)tempvcalc);
-    if (Screen2CurrentDisplay != NULL) SetDisplaymV(Screen2CurrentDisplay, (word)tempicalc);
+    if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempvcalc);
+    if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, (word)tempicalc);
 
   }
 }

@@ -654,6 +654,12 @@ void Screen1SetData(PBatterySetting SET)
     Screen1AddEPData(RDS->Energy / 1000, RDS->LastBatteryData.P);
     Screen1AddTData(RDS->Time);
 
+    //TMeasurementData Last = RDS->NewerRotoPDDatas.getLastData();
+    //Screen1AddVIData(Last.V, Last.I);
+    //Screen1AddEPData(Last.E / 1000, Last.P);
+    //Screen1AddTData(RDS->Time);
+
+
     if (SET->TestData.Active == bmActive) {
         if (SET->TestData.SetStageMode == smCurrent) setbuttons(startdischargebutton, true);
         if (SET->TestData.SetStageMode == smCharge)  setbuttons(startchargebutton, true);

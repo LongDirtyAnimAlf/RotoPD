@@ -7,6 +7,13 @@
 #include "sevensegment.h"
 #include "./../../shared.h"
 
+#include "Screen1.h"
+#include "ScreenChart.h"
+#include "Screen3.h"
+#include "ScreenPower.h"
+#include "ScreenSettings.h"
+#include "ScreenLogger.h"
+
 extern const lv_font_t lv_font_montserrat_12;
 extern const lv_font_t lv_font_montserrat_14;
 extern const lv_font_t lv_font_montserrat_18;

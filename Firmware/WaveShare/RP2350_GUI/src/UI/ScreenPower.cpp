@@ -25,10 +25,27 @@ void Setup_ScreenPower(byte index)
   }
 }
 
-void ScreenPowerAddEPData(dword E, dword P)
+void ScreenPowerSetVoltageData(word V)
+{
+  gauge_set_voltage(V);
+}
+void ScreenPowerSetCurrentData(word I)
+{
+  gauge_set_current(I);
+}
+void ScreenPowerSetPowerData(dword P)
+{
+  gauge_set_power(P);
+}
+void ScreenPowerSetEnergyData(dword E)
 {
   gauge_set_energy(E);  
-  gauge_set_power(P);
+}
+
+void ScreenPowerAddEPData(dword E, dword P)
+{
+  ScreenPowerSetEnergyData(E);  
+  ScreenPowerSetPowerData(P);
 }
 
 byte ScreenPowerGetActive(void)
@@ -36,9 +53,9 @@ byte ScreenPowerGetActive(void)
   return 0;
 }
 
-void ScreenPowerSetData(PRunDatas MAD)
+void ScreenPowerSetData(PMeasurementData MAD)
 {
-  ScreenPowerAddEPData(MAD->LastIT2704Data.E, (MAD->LastIT2704Data.P / 1000));
-  gauge_set_voltage(MAD->LastIT2704Data.V);
-  gauge_set_current(MAD->LastIT2704Data.I);
+  ScreenPowerAddEPData(MAD->E, (MAD->P / 1000));
+  ScreenPowerSetVoltageData(MAD->V);
+  ScreenPowerSetCurrentData(MAD->I);
 }

@@ -12,8 +12,14 @@ extern "C" {
 
 void Setup_ScreenPower(byte index);
 void ScreenPowerAddEPData(dword E, dword P);
-void ScreenPowerSetData(PRunDatas MAD);
+void ScreenPowerSetData(PMeasurementData MAD);
 byte ScreenPowerGetActive(void);
+
+void ScreenPowerSetVoltageData(word V);
+void ScreenPowerSetCurrentData(word I);
+void ScreenPowerSetPowerData(dword P);
+void ScreenPowerSetEnergyData(dword E);
+
 
 #ifdef __cplusplus
 } /*extern "C"*/
