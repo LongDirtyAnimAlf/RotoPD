@@ -35,7 +35,7 @@ void ScreenPowerSetCurrentData(word I)
 }
 void ScreenPowerSetPowerData(dword P)
 {
-  gauge_set_power(P);
+  gauge_set_power(P / 1000);
 }
 void ScreenPowerSetEnergyData(dword E)
 {
@@ -55,7 +55,7 @@ byte ScreenPowerGetActive(void)
 
 void ScreenPowerSetData(PMeasurementData MAD)
 {
-  ScreenPowerAddEPData(MAD->E, (MAD->P / 1000));
+  ScreenPowerAddEPData(MAD->E, (MAD->P));
   ScreenPowerSetVoltageData(MAD->V);
   ScreenPowerSetCurrentData(MAD->I);
 }

@@ -130,16 +130,18 @@ Object dictionaryIT2704[] = {
 
     // SENSE
     {IT2704_SENSE                    , SUBIDX_HIGHEST_SUPPORTED, {0x0A, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_STATE                               , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_CURRENT_RANGE                       , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_CURRENT_AUTO_RANGE                  , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_VOLTAGE_RANGE                       , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_VOLTAGE_AUTO_RANGE                  , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_SWEEP_POINTS                        , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_SWEEP_OFFSET_POINTS                 , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_TIME_INTERVAL                       , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_APERTURE                            , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
-    {IT2704_SENSE                    , IT2704_SENSE_SENSE_NPLC                                , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_STATE                                     , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_CURRENT_RANGE                             , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_CURRENT_AUTO_RANGE                        , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_VOLTAGE_RANGE                             , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_VOLTAGE_AUTO_RANGE                        , {0x00, 0x00, 0x00, 0x00}, DataType::INT8  , ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_SWEEP_POINTS                              , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_SWEEP_OFFSET_POINTS                       , {0x00, 0x00, 0x00, 0x00}, DataType::INT32 , ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_TIME_INTERVAL                             , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_APERTURE                                  , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_NPLC                                      , {0x00, 0x00, 0x00, 0x00}, DataType::FLOAT32, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_ENERGY_AUTOCLEAR_STATE                    , {0x00, 0x00, 0x00, 0x00}, DataType::INT8, ObjectPermissions::READ_WRITE},
+    {IT2704_SENSE                    , IT2704_SENSE_ENERGY_CLEAR                              , {0x00, 0x00, 0x00, 0x00}, DataType::INT8, ObjectPermissions::READ_WRITE},
 
     // STATUS
     {IT2704_STATUS                   , SUBIDX_HIGHEST_SUPPORTED, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},

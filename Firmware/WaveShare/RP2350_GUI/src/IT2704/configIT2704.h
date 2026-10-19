@@ -135,16 +135,18 @@
 #define IT2704_OUTPUT_FOLDBACK_DELAY                            SUBIDX_10
 
 #define IT2704_SENSE                                            0x3009U
-#define IT2704_SENSE_SENSE_STATE                                SUBIDX_1
-#define IT2704_SENSE_SENSE_CURRENT_RANGE                        SUBIDX_2
-#define IT2704_SENSE_SENSE_CURRENT_AUTO_RANGE                   SUBIDX_3
-#define IT2704_SENSE_SENSE_VOLTAGE_RANGE                        SUBIDX_4
-#define IT2704_SENSE_SENSE_VOLTAGE_AUTO_RANGE                   SUBIDX_5
-#define IT2704_SENSE_SENSE_SWEEP_POINTS                         SUBIDX_6
-#define IT2704_SENSE_SENSE_SWEEP_OFFSET_POINTS                  SUBIDX_7
-#define IT2704_SENSE_SENSE_TIME_INTERVAL                        SUBIDX_8
-#define IT2704_SENSE_SENSE_APERTURE                             SUBIDX_9
-#define IT2704_SENSE_SENSE_NPLC                                 SUBIDX_10
+#define IT2704_SENSE_STATE                                      SUBIDX_1
+#define IT2704_SENSE_CURRENT_RANGE                              SUBIDX_2
+#define IT2704_SENSE_CURRENT_AUTO_RANGE                         SUBIDX_3
+#define IT2704_SENSE_VOLTAGE_RANGE                              SUBIDX_4
+#define IT2704_SENSE_VOLTAGE_AUTO_RANGE                         SUBIDX_5
+#define IT2704_SENSE_SWEEP_POINTS                               SUBIDX_6
+#define IT2704_SENSE_SWEEP_OFFSET_POINTS                        SUBIDX_7
+#define IT2704_SENSE_TIME_INTERVAL                              SUBIDX_8
+#define IT2704_SENSE_APERTURE                                   SUBIDX_9
+#define IT2704_SENSE_NPLC                                       SUBIDX_10
+#define IT2704_SENSE_ENERGY_AUTOCLEAR_STATE                     SUBIDX_11
+#define IT2704_SENSE_ENERGY_CLEAR                               SUBIDX_12
 
 #define IT2704_STATUS                                           0x030AU
 #define IT2704_STATUS_OPERATION_REGISTER                        SUBIDX_1

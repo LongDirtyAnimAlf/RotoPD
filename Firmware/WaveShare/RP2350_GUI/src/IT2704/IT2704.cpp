@@ -82,6 +82,8 @@ void IT2704::initDevice(bool reset)
       Msg.data[1]   = _id;
       _node->sendMsg(Msg);
 
+      /*
+
       // Try to set pre-operational mode
       // The IT2704 works in this mode, but does not send TPDOs
       // So, less traffic !
@@ -120,6 +122,8 @@ void IT2704::initDevice(bool reset)
         // This message will be confirmed
         // We might have a look at it
       }
+
+      */
     }
 
     Msg.clearMsg();
@@ -185,6 +189,15 @@ void IT2704::initDevice(bool reset)
     data.f = 3.0f; // Volt
     Msg.setData(data.Val);
     _node->sendMsg(Msg);
+
+
+    // Disable auto-clear energy
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setID(IT2704_SENSE + (_channel * 0x100));
+    Msg.setSubID(IT2704_SENSE_ENERGY_AUTOCLEAR_STATE);
+    Msg.setData(0); // 0:Off 1:On
+    _node->sendMsg(Msg);
+
 
     // Change TPDOs to send energydata !!
     // All messages have priority, die to the importance of the order (I presume)
@@ -253,6 +266,24 @@ void IT2704::initDevice(bool reset)
       Msg.setData(data.Val);
       _node->sendMsg(Msg,true);
     }
+  }
+}
+
+void IT2704::clearEnergy(void)
+{
+  Message Msg;
+
+  if (_connected)
+  {
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setID(IT2704_SENSE + (_channel * 0x100));
+    Msg.setSubID(IT2704_SENSE_ENERGY_CLEAR);
+    Msg.setData(1); // 1:Clear
+    _node->sendMsg(Msg, true);
   }
 }
 
@@ -367,10 +398,8 @@ void IT2704::collectDataEnergyOnly(void)
 
     Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
     Msg.dlc       = 8;
-
     Msg.setCommand(READ_REQ_ANY_CMD);
     Msg.setID(IT2704_METER + (_channel * 0x100));
-
     Msg.setSubID(IT2704_METER_WHOUR);
     _node->sendMsg(Msg, true);
   }
@@ -401,21 +430,28 @@ void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, 
     }
 }
 
-void IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* E1, uint32_t* E2)
+bool IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* E)
 {
+
+  if (Msg->id == (TPO_COB_ID[_channel / 2] + _id)) // We received a correct TPDO message from the IT2704
+  {
     DWORD_FLOAT data; 
 
-    if (E1 != NULL)
+    if((_channel % 2) == 0)
     {
       memcpy(&data.v[0], &Msg->data[0], 4);
-      *E1 = round(data.f * 1000);
     }
-
-    if (E2 != NULL)
+    else
     {
       memcpy(&data.v[4], &Msg->data[4], 4);
-      *E2 = round(data.f * 1000);
     }
+
+    *E = round(data.f * 1000);
+
+    return true;
+  }
+
+  return false;
 }
 
 
@@ -470,20 +506,24 @@ bool IT2704::checkConnection(const Message* MsgExt)
 
   if (_connected)
   {
-    if (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id))
+    if ( (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id)) || (MsgExt->id == (TPO_COB_ID[_channel / 2] + _id)) )
     {
-      // We have a valid SDO response message 
+      // We have a valid SDO response message from the IT2704
+      // We received a correct TPDO message from the IT2704
       // So, all ok and reset check timer
       _checkTimer = millis();
     }
+
     return true;
   }
 
   bool resetneeded;
 
-  if (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id))
+  if ( (MsgExt->id == (CO_CAN_ID_SDO_SRV + _id)) || (MsgExt->id == (TPO_COB_ID[_channel / 2] + _id)) )
   {
-    // We have a valid SDO response message 
+    // We have a valid SDO response message from the IT2704
+    // We received a correct TPDO message from the IT2704
+
     // We are connected !!
     _connected = true;
 

@@ -374,6 +374,7 @@ static void main_event_handler(lv_event_t * e)
             {
               // Clear rundatas and threshold before starting with official (dis)charge !
               ClearRunData(RDS);
+
               // Set trigger indicators
               for(i = (tmNONE+1); i < tmLast; i++)
               {
@@ -381,6 +382,7 @@ static void main_event_handler(lv_event_t * e)
               }
               // We are active !!
               SET->TestData.Active = bmActive;
+
               // Force a very early data measurement to get a start value
               flagProcessMeasurementData = true;
 
@@ -1056,27 +1058,15 @@ void loop()
     if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
     {
 
-      // Check TPDO messages, if any
-      j = (load.getChannel() / 2) ;
-      if (rxmsg.id == (TPO_COB_ID[j] + load.getID())) // We received a correct TPDO message from the IT2704
+      // Check TPDO from load messages, if any
+      if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
       {
-        j = (load.getChannel() % 2);
-        switch (j)
-        {
-          case 0:
-          {
-            load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E, NULL);
-            break;
-          }
-          case 1:
-          {
-            load.getTPDOEnergyData(&rxmsg, NULL, &LatestIT2704Data.E);
-            break;
-          }
-        }
+        Serial.println("GUI [IT2704]. Received correct TPDO message.");
+        ScreenPowerSetEnergyData(LatestIT2704Data.E);
       }
 
-      if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID())) // We received a SDO message from the IT2704
+      // Check SDO message from load
+      if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
       {
         //Serial.println("GUI [IT2704]. Receiving SDO response.");
 
@@ -1197,7 +1187,7 @@ void loop()
     collectRotoPDData();
 
     // If we do not have TPDOs with energy, this might be a quick energy data solution
-    load.collectDataEnergyOnly();
+    //load.collectDataEnergyOnly();
   }
 
   if (flagRequestIT2704Data)
@@ -1416,7 +1406,13 @@ void loop()
     if (SET->TestData.DataTriggerCounter == 0)
     {
       TMeasurementData LatestRotoPDData;
+
       getRotoPDData(&LatestRotoPDData.I,&LatestRotoPDData.V,&LatestRotoPDData.P,&LatestRotoPDData.T);    
+
+      RDS->LastBatteryData.I = LatestRotoPDData.I;
+      RDS->LastBatteryData.V = LatestRotoPDData.V;
+      RDS->LastBatteryData.P = LatestRotoPDData.P;
+      RDS->LastBatteryData.T = LatestRotoPDData.T;
 
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(LatestRotoPDData);
@@ -1491,8 +1487,6 @@ void loop()
       {
         //RDS->Time++;
         RDS->Time += CALCULATIONTIME;
-
-
 
         if (RDS->LastBatteryData.I != 0)
         {
@@ -1608,6 +1602,8 @@ void ClearRunData(PRunDatas RDS)
 
   RDS->NewerRotoPDDatas.clear();  
   RDS->NewerIT2704Datas.clear();  
+
+  load.clearEnergy();
 }
 
 void ClearStageData(PStageData SD)
