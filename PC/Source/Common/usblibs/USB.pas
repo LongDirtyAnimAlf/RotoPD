@@ -209,6 +209,10 @@ end;
 
 function TUSBController.GetShowReadThreading:boolean;
 begin
+  if Assigned(OnData) then
+  begin
+    result:=true;
+  end;
   result:=Assigned(OnData);
 end;
 
@@ -262,12 +266,20 @@ begin
      LocalDataTimer:=nil;
     end;
   end;
+
+  if Assigned(Self.OnData) then
+  begin
+    Self.OnData := nil;
+  end;
+
 end;
 
 function TUSBController.GetDataEvent: TJvHidDataEvent;
 begin
   if Assigned(HidCtrl) then
-    result:=HidCtrl.OnData
+  begin
+    result:=HidCtrl.OnData;
+  end
   else
     result:=nil;
 end;
@@ -767,10 +779,26 @@ end;
 
 function TUSB.FindBoard(const BN: word): TUSBController;
 begin
-  FTargetBoardNumber := BN;
-  FFoundController := nil;
-  FAcceptedDevices.Iterate(FindByBoardNumber);
-  Result := FFoundController;
+  if (Assigned(FFoundController) AND (BN=FFoundController.BoardNumber)) then
+  begin
+    result:=nil;
+
+    // Retrieve the stored instance directly
+    //FFoundController := TUSBController(FAcceptedDevices.Items[FFoundController.HidCtrl.PnPInfo.DevicePath]);
+    //if (Assigned(FFoundController) AND (BN=FFoundController.BoardNumber)) then Result := FFoundController;
+
+    //OR just do this !!
+
+    // Quick lookup of latest search result when correct !!
+    Result := FFoundController;
+  end
+  else
+  begin
+    FTargetBoardNumber := BN;
+    FFoundController := nil;
+    FAcceptedDevices.Iterate(FindByBoardNumber);
+    Result := FFoundController;
+  end;
 end;
 
 function TUSB.FGetBoardCount:Longword;

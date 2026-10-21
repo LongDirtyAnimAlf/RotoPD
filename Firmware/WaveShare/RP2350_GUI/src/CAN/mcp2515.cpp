@@ -138,6 +138,10 @@ bool MCP2515::run(void)
         struct can_frame frame;
         ERROR rc = ERROR_NOMSG;
 
+        Serial.printf("Register canintf: %d.\r\n",canintf);        
+
+        //Serial.println("Got MCP2515 interrupt !");
+
         // First, handle errors
 
         if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
@@ -186,6 +190,7 @@ bool MCP2515::run(void)
                 Serial.println("EWARN: error warning interrupt.");
             }
 
+            /*
             if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR))
             {
                 _rxHardwareOverflowCount++;
@@ -220,25 +225,28 @@ bool MCP2515::run(void)
                 clearInterrupts();
                 if (eflg & EFLG_TXBO) setOperatingMode(MCP2515::CAN_MODE_NORMAL);
             }        
-            
+            */
             modifyRegister(MCP_CANINTF, canintf & (CANINTF_ERRIF | CANINTF_MERRF), 0);
         }
 
         if (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
         {
+            //Serial.println("RX interrupt.");
+
             if (canintf & CANINTF_RX0IF)
             {
+                Serial.println("RX0 interrupt.");
                 // This readMessage function also clears the CANINTF_RX0IF flag !!
                 rc = readMessage(RXB0, &frame);
                 if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
             }
             if (canintf & CANINTF_RX1IF)
             {
+                Serial.println("RX1 interrupt.");                
                 // This readMessage function also clears the CANINTF_RX1IF flag !!            
                 rc = readMessage(RXB1, &frame);
                 if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
             }
-            Serial.println("RX interrupt.");
         }
 
         if (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF))

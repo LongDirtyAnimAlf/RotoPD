@@ -115,8 +115,6 @@ type
 
     LocalFS             : TFormatSettings;
 
-    FSTM32BoardSerial   : string;
-
     RealVoltageDisplay  : TdsSevenSegmentMultiDisplay;
     RealCurrentDisplay  : TdsSevenSegmentMultiDisplay;
 
@@ -140,6 +138,8 @@ type
 
     DUT                 : TUSBPDDevice;
 
+    ActiveBoard         : word;
+
     RotoPDController    : TUSBPDController;
 
     TestTypes           : array of TTestType;
@@ -158,7 +158,6 @@ type
     procedure SetChartAxis({%H-}Sender:TObject);
     procedure CreateDataFile(Sender: TObject);
     procedure AllStop(Sender: TObject);
-    procedure Measure;
     procedure SaveBatteryData(Elapsed:longword);
 
     function  CorrectVoltage(value:double):double;
@@ -235,6 +234,8 @@ begin
   LocalFS.LongTimeFormat:='hh:nn:ss';
   LocalFS.DecimalSeparator:=',';
   LocalFS.ListSeparator:=';';
+
+  ActiveBoard := 1;
 
   DUT:=TUSBPDDevice.Create;
   DUT.Cleanup;
@@ -608,7 +609,7 @@ begin
 
     USBDebugLog.Lines.Append('Requesting Source PDO #'+InttoStr(PDONumber)+' at '+InttoStr(PDOVoltage)+'mV and '+InttoStr(PDOCurrent)+'mA.');
 
-    DD.SetMaxPDO(1,PDONumber);
+    DD.SetMaxPDO(ActiveBoard,PDONumber);
 
   end;
 
@@ -834,8 +835,8 @@ end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
-  DD.GetPDOList(1);
-  //DD.SetEnergy(1,876456789);
+  DD.GetPDOList(ActiveBoard);
+  //DD.SetEnergy(ActiveBoard,876456789);
 end;
 
 procedure TPowerbankMainForm.btnTestDischargeClick(Sender: TObject);
@@ -857,6 +858,8 @@ begin
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
       SystemActive:=True;
+      DD.SetOutput(ActiveBoard,SystemActive);
+      DD.SetCurrent(ActiveBoard,1,ActiveTestType.Current);
       TestTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
   end
@@ -870,8 +873,8 @@ end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
 begin
-  //DD.SetMaxPDO(1,1);
-  DD.SetPPSPDO(1,6,3000,8500);
+  //DD.SetMaxPDO(ActiveBoard,1);
+  DD.SetPPSPDO(ActiveBoard,6,3000,8500);
 end;
 
 procedure TPowerbankMainForm.DataEditKeyPress(Sender: TObject; var Key: char);
@@ -1031,11 +1034,13 @@ begin
         SetChartAxis(Sender);
 
         CreateDataFile(Sender);
+
         TestInfoMemo.Lines.Append('Filename: '+BatteryDataFile);
 
         SystemActive:=True;
 
-        DD.SetOutput(1,True);
+        DD.SetOutput(ActiveBoard,SystemActive);
+        DD.SetCurrent(ActiveBoard,1,ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1077,8 +1082,6 @@ var
   Elapsed:longword;
   qcalc:QWord;
 begin
-  Measure;
-
   Chart1LineSeries1.Add(Voltage);
   Chart1LineSeries2.Add(Current);
 
@@ -1089,17 +1092,6 @@ begin
     begin
       Elapsed:=MilliSecondsBetween(NowUTC,LastTime);
       LastTime:=NowUTC;
-
-      Power:=Voltage*Current;
-      Capacity:=Capacity+Current*(Elapsed/3600000);
-      Energy:=Energy+Power*(Elapsed/3600000);
-
-      qcalc:=Round(Current*1000*Elapsed);
-      CI:=CI+(qcalc DIV 3600);  // this is nAh !!
-      qcalc:=qcalc*Round(Voltage*1000);
-      EI:=EI+(qcalc DIV 3600);  // this is nWh !!
-
-      DD.SetEnergy(1,EI);
 
       SaveBatteryData(Elapsed);
 
@@ -1294,6 +1286,9 @@ begin
   Chart1.UndoZoom;
   {$endif}
   {$ifdef FPC}
+
+  exit;
+
   Chart1.AxisList.GetAxisByAlign(calRight).Range.Min:=0;
   Chart1.AxisList.GetAxisByAlign(calRight).Range.UseMin:=True;
   Chart1.AxisList.GetAxisByAlign(calRight).Range.Max:=ActiveTestType.Current*1.2/1000;
@@ -1372,7 +1367,11 @@ begin
 
   SystemActive:=False;
 
-  if Assigned(Sender) then DD.SetOutput(1,false);
+  if Assigned(Sender) then
+  begin
+    DD.SetOutput(ActiveBoard,false);
+    DD.SetOff(ActiveBoard,1);
+  end;
 
   SetEnable(Sender,true);
 
@@ -1383,28 +1382,6 @@ begin
   btnTestDischarge.Down:=false;
 
   ProgressBar1.Position:=0;
-end;
-
-procedure TPowerbankMainForm.Measure;
-begin
-  Voltage:=RealVoltageDisplay.Value;
-  Current:=RealCurrentDisplay.Value;
-  if (false) then
-  begin
-    //if HPsource.Connected then
-    if true then
-    begin
-      //HPsource.Measure;
-      //Current:=Abs(HPsource.Current);
-      //Voltage:=HPsource.Voltage;
-    end
-    else
-    begin
-      Sleep(100);
-      Current:=1.456;
-      Voltage:=5.123;
-    end;
-  end;
 end;
 
 procedure TPowerbankMainForm.SaveBatteryData(Elapsed:longword);
@@ -1512,7 +1489,6 @@ end;
 
 procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 var
-  measuredvalue        : double;
   cmd                  : TCommands;
   boardnumber          : byte;
   counter              : integer;
@@ -1520,6 +1496,8 @@ var
   RawPDO               : PDO_DATA_T;
   PDO                  : TAP33772S_PDO;
   wd                   : TWordData;
+  dwd                  : TDWordData;
+  qwd                  : TQWordData;
   aSourcePDO           : ^TSOURCEPDO;
 begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
@@ -1531,21 +1509,80 @@ begin
   case cmd of
     TCommands.CMD_get_data:
     begin
-      //voltage
-      measuredvalue:=(UInt16(PByteArray(data)^[3])+UInt16(PByteArray(data)^[4])*256);
-      voltage:=measuredvalue/1000;
+      Counter:=DATASTART;
 
-      //current
-      measuredvalue:=(UInt16(PByteArray(data)^[5])+UInt16(PByteArray(data)^[6])*256);
-      current:=measuredvalue/1000;
+      //RotoPD Voltage
+      wd.Bytes[0]:=PByteArray(data)^[counter];
+      wd.Bytes[1]:=PByteArray(data)^[counter+1];
+      Voltage:=(wd.Raw/1000);
 
-      //power
-      measuredvalue:=(UInt32(PByteArray(data)^[7])+UInt32(PByteArray(data)^[8])*256+UInt32(PByteArray(data)^[9])*256*256+UInt32(PByteArray(data)^[10])*256*256*256);
-      power:=measuredvalue/1000;
-      //power:=measuredvalue/(3600*1000);
+      Inc(counter,2);
 
-      // Temperature
-      temperature:=(UInt16(PByteArray(data)^[11])+UInt16(PByteArray(data)^[12])*256)/10;
+      //RotoPD Current
+      wd.Bytes[0]:=PByteArray(data)^[counter];
+      wd.Bytes[1]:=PByteArray(data)^[counter+1];
+      Current:=(wd.Raw/1000);
+
+      Inc(counter,2);
+
+      //RotoPD Power
+      dwd.Bytes[0]:=PByteArray(data)^[counter];
+      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+      Power:=(dwd.Raw/1000);
+
+      Inc(counter,4);
+
+      //RotoPD Temperature
+      wd.Bytes[0]:=PByteArray(data)^[counter];
+      wd.Bytes[1]:=PByteArray(data)^[counter+1];
+      Temperature:=(wd.Raw/10);
+
+      Inc(counter,2);
+
+      //IT2704 Voltage
+      wd.Bytes[0]:=PByteArray(data)^[counter];
+      wd.Bytes[1]:=PByteArray(data)^[counter+1];
+      Voltage:=(wd.Raw/1000);
+
+      Inc(counter,2);
+
+      //IT2704 Current
+      wd.Bytes[0]:=PByteArray(data)^[counter];
+      wd.Bytes[1]:=PByteArray(data)^[counter+1];
+      Current:=(wd.Raw/1000);
+
+      Inc(counter,2);
+
+      //IT2704 Power
+      dwd.Bytes[0]:=PByteArray(data)^[counter];
+      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+      Power:=(dwd.Raw/1000);
+
+      Inc(counter,4);
+
+      //IT2704 Capacity
+      dwd.Bytes[0]:=PByteArray(data)^[counter];
+      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+      Capacity:=(dwd.Raw/1000);
+
+      Inc(counter,4);
+
+      //IT2704 Energy
+      dwd.Bytes[0]:=PByteArray(data)^[counter];
+      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+      Energy:=(dwd.Raw/1000);
+
+      Inc(counter,4);
+
+
     end;
     TCommands.CMD_get_PDOList:
     begin

@@ -372,9 +372,6 @@ static void main_event_handler(lv_event_t * e)
             
             if ((event_object == startdischargebutton) || (event_object == startchargebutton))          
             {
-              // Clear rundatas and threshold before starting with official (dis)charge !
-              ClearRunData(RDS);
-
               // Set trigger indicators
               for(i = (tmNONE+1); i < tmLast; i++)
               {
@@ -1078,11 +1075,12 @@ void loop()
             Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
             
             // Get the correct IT2704 data in the correct datastore
-            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.E);
+            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.A, &LatestIT2704Data.E);
 
             if (rxmsg.getSubID() == IT2704_METER_VOLTAGE) {ScreenPowerSetVoltageData(LatestIT2704Data.V);}
             if (rxmsg.getSubID() == IT2704_METER_CURRENT) {ScreenPowerSetCurrentData(LatestIT2704Data.I);}
             if (rxmsg.getSubID() == IT2704_METER_POWER)   {ScreenPowerSetPowerData(LatestIT2704Data.P);}
+            //if (rxmsg.getSubID() == IT2704_METER_AHOUR
             if (rxmsg.getSubID() == IT2704_METER_WHOUR)   {ScreenPowerSetEnergyData(LatestIT2704Data.E);}            
           }
         }
@@ -1118,6 +1116,16 @@ void loop()
 
     // Test connection with load IT2704
     load.queryConnection();
+    if (!load.isConnected())
+    {
+      // if we are not connected, reset the static measurement data !!
+      LatestIT2704Data.V = 0;
+      LatestIT2704Data.I = 0;
+      LatestIT2704Data.P = 0;
+      LatestIT2704Data.T = 0;
+      LatestIT2704Data.E = 0;
+      LatestIT2704Data.S = 0;
+    }
 
     PDOCount = taskRotoPDInit();
 
@@ -1284,6 +1292,7 @@ void loop()
       case CMD_set_value:
       {
         Screen1SetStageData(&CurrentBoard->BM);
+        ClearRunData(RDS);
         break;
       }
 
@@ -1437,6 +1446,7 @@ void loop()
 
       dataindexer = DATASTART;
 
+      // Send the RotoPD data
       w_data.Val  = LatestRotoPDData.V;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
       w_data.Val  = LatestRotoPDData.I;
@@ -1445,17 +1455,27 @@ void loop()
       for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
       w_data.Val  = LatestRotoPDData.T;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      /*
-      dw_data.Val = LatestRotoPDData.E;
-      for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
-      qw_data.Val = LatestRotoPDData.S;
-      for ( j=0; j<8; j++ ) {hid_report_in[dataindexer++] = qw_data.v[j];}
-      */
 
+      if (load.isConnected())
+      {
+        // Send the IT2704 data
+        w_data.Val  = LatestIT2704Data.V;
+        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+        w_data.Val  = LatestIT2704Data.I;
+        for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
+        dw_data.Val = LatestIT2704Data.P;
+        for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
+        dw_data.Val = LatestIT2704Data.A;
+        for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
+        dw_data.Val = LatestIT2704Data.E;
+        for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
+      }
 
       hid_report_in[LENGTHPOSITION]=dataindexer;
 
       // Send measurement data to host
+      // This is an automated and autonomous process
+      // Akes it easy to use a single controller for testing through a PC
       #ifdef ENABLEUSB
       #ifdef ARDUINO_ESP32S3_DEV
       HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);

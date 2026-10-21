@@ -650,6 +650,8 @@ object PowerbankMainForm: TPowerbankMainForm
       AxisList = <      
         item
           Grid.Color = clWhite
+          Intervals.NiceSteps = '5'
+          Intervals.Options = [aipUseCount, aipUseNiceSteps]
           Intervals.Tolerance = 1
           TickColor = clWhite
           AxisPen.Color = clWhite
@@ -657,7 +659,7 @@ object PowerbankMainForm: TPowerbankMainForm
           Marks.LabelFont.Color = clAqua
           Marks.LabelBrush.Style = bsClear
           Minors = <>
-          Range.Max = 20
+          Range.Max = 30
           Range.UseMax = True
           Range.UseMin = True
           Title.LabelFont.Color = clAqua
@@ -676,11 +678,13 @@ object PowerbankMainForm: TPowerbankMainForm
           Title.LabelBrush.Style = bsClear
         end      
         item
+          Intervals.NiceSteps = '1'
+          Intervals.Options = [aipUseCount, aipUseNiceSteps]
           Alignment = calRight
           Marks.LabelFont.Color = clRed
           Marks.LabelBrush.Style = bsClear
           Minors = <>
-          Range.Max = 5
+          Range.Max = 6
           Range.UseMax = True
           Range.UseMin = True
           Title.LabelFont.Color = clRed

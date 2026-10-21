@@ -27,6 +27,13 @@ IT2704::IT2704(CanOpenNode *node, uint8_t id, uint8_t channel)
 {
     _connected = false;
     _checkTimer = millis();
+
+    gotV = true;
+    gotI = true;
+    gotP = true;
+    gotA = true;
+
+
 }
 
 // ── begin() ──────────────────────────────────────────────────────────────────
@@ -62,6 +69,11 @@ void IT2704::initDevice(bool reset)
   Message Msg;
   DWORD_FLOAT data;  
 
+  gotV = true;
+  gotI = true;
+  gotP = true;
+  gotA = true;
+
   if (_connected)
   {
     uint8_t tpoindex;
@@ -92,6 +104,8 @@ void IT2704::initDevice(bool reset)
       Msg.data[1]   = _id;
       _node->sendMsg(Msg);
 
+      */
+
       Msg.clearMsg();
 
       Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
@@ -100,7 +114,7 @@ void IT2704::initDevice(bool reset)
       // Silence the 4 TPDOs
       // Should not be necessary if IT2704 is in pre-operational mode
       // But anyhow
-      for ( tpoindex = 0; tpoindex < 4; tpoindex++ )
+      for ( tpoindex = 2; tpoindex < 4; tpoindex++ )
       {
         // Set Set the transmission type of TPDO#j to 254
         Msg.clearData();
@@ -123,7 +137,6 @@ void IT2704::initDevice(bool reset)
         // We might have a look at it
       }
 
-      */
     }
 
     Msg.clearMsg();
@@ -204,7 +217,7 @@ void IT2704::initDevice(bool reset)
 
     uint8_t localchannel = 0;    
 
-    for ( tpoindex = 0; tpoindex < 4; tpoindex++ )
+    for ( tpoindex = 0; tpoindex < 1; tpoindex++ )
     {
       // Disable TPDO: Set Bit 31 of COB-ID at 0x1800 Sub01 to 1    
       Msg.clearData();
@@ -283,7 +296,7 @@ void IT2704::clearEnergy(void)
     Msg.setID(IT2704_SENSE + (_channel * 0x100));
     Msg.setSubID(IT2704_SENSE_ENERGY_CLEAR);
     Msg.setData(1); // 1:Clear
-    _node->sendMsg(Msg, true);
+    _node->sendMsg(Msg);
   }
 }
 
@@ -309,16 +322,7 @@ void IT2704::setCurrent(uint16_t current) // in mA
     data.f /= 1000.0f; // current is set in float A !!
     Msg.setData(data.Val);
 
-    //Msg.data[SDO::DATA_4]       = data.v[0];
-    //Msg.data[SDO::DATA_5]       = data.v[1];
-    //Msg.data[SDO::DATA_6]       = data.v[2];
-    //Msg.data[SDO::DATA_7]       = data.v[3];
-
     _node->sendMsg(Msg);
-
-    //#define IT2704_SOURCE_VOLTAGE_INHIBIT_MODE                      SUBIDX_20  0:Off 1:live 2:latching
-    //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VON                       SUBIDX_21
-    //#define IT2704_SOURCE_VOLTAGE_INHIBIT_VOFF                      SUBIDX_22
   }
 }
 
@@ -340,22 +344,14 @@ void IT2704::setOutput(bool enabled)
     Msg.setData(enabled ? 1 : 0);
 
     _node->sendMsg(Msg);
-
-    // COMMON_SOURCE_SLOPE_TYPE // 0:Rate [A/ms] 1:Time
-
-    //Current slew positive
-    //Current slew negative
-    //Current slew time positive
-    //Current slew time negative
-    //Current slew couple
-    //Current slew  positive max // 0:Off 1:On
-    //Current slew negative max // 0:Off 1:On
   }
 }
 
 void IT2704::collectData(void)
 {
   Message Msg;
+
+  static bool ToggleDataRequest = false;
 
   if (_connected)
   {
@@ -364,25 +360,31 @@ void IT2704::collectData(void)
     Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
     Msg.dlc       = 8;
 
-    Msg.setCommand(READ_REQ_ANY_CMD);
+    Msg.setCommand(READ_REQ_4BYTE_CMD);
     Msg.setID(IT2704_METER + (_channel * 0x100));
 
-    Msg.setSubID(IT2704_METER_VOLTAGE);
-    _node->sendMsg(Msg);
-    // This message will be confirmed
-    // Voltage data will be inside the response !
+    ToggleDataRequest = !ToggleDataRequest;
 
-    Msg.setSubID(IT2704_METER_CURRENT);
-    _node->sendMsg(Msg);
-    // This message will be confirmed
-    // Current data will be inside the response !
+    if (ToggleDataRequest)
+    {
+      Msg.setSubID(IT2704_METER_VOLTAGE);
+      //if (gotV) {gotV = false; _node->sendMsg(Msg);}
+      _node->sendMsg(Msg);
 
-    Msg.setSubID(IT2704_METER_POWER);
-    _node->sendMsg(Msg);
+      Msg.setSubID(IT2704_METER_CURRENT);
+      //if (gotI) {gotI = false; _node->sendMsg(Msg);}
+      _node->sendMsg(Msg);
+    }
+    else
+    {
+      Msg.setSubID(IT2704_METER_POWER);
+      //if (gotP) {gotP = false; _node->sendMsg(Msg);}
+      _node->sendMsg(Msg);
 
-    //Msg.setSubID(IT2704_METER_AHOUR);
-    //node.sendMsg(Msg);
-
+      Msg.setSubID(IT2704_METER_AHOUR);
+      //if (gotA) {gotA = false; _node->sendMsg(Msg);}
+      _node->sendMsg(Msg);
+    }
     //Msg.setSubID(IT2704_METER_WHOUR);
     //_node->sendMsg(Msg);
   }
@@ -406,27 +408,18 @@ void IT2704::collectDataEnergyOnly(void)
 }
 
 
-void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E)
+void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* A, uint32_t* E)
 {
     DWORD_FLOAT data; 
-
-    data.Val = Msg->getData(); 
-
-    if (Msg->getSubID() == IT2704_METER_VOLTAGE)
+    data.Val = Msg->getData();
+    data.f *= 1000; 
+    switch(Msg->getSubID())
     {
-        *V = round(data.f * 1000);
-    }
-    if (Msg->getSubID() == IT2704_METER_CURRENT)
-    {
-        *I = round(data.f * 1000);
-    }
-    if (Msg->getSubID() == IT2704_METER_POWER)
-    {
-        *P = round(data.f * 1000);
-    }
-    if (Msg->getSubID() == IT2704_METER_WHOUR)
-    {
-        *E = round(data.f * 1000);
+      case IT2704_METER_VOLTAGE   : {*V = round(data.f); gotV = true; break;}
+      case IT2704_METER_CURRENT   : {*I = round(data.f); gotI = true; break;}      
+      case IT2704_METER_POWER     : {*P = round(data.f); gotP = true; break;}
+      case IT2704_METER_AHOUR     : {*A = round(data.f); gotA = true; break;}      
+      case IT2704_METER_WHOUR     : {*E = round(data.f); break;}
     }
 }
 
@@ -454,6 +447,10 @@ bool IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* E)
   return false;
 }
 
+bool IT2704::isConnected(void)
+{
+  return _connected;
+}
 
 void IT2704::queryConnection(void)
 {
@@ -499,6 +496,19 @@ void IT2704::queryConnection(void)
     }
   }
 }
+
+bool IT2704::checkTxBuffer()
+{
+  MCP2515& mcp2515 = _node->getCAN();
+  return (mcp2515.getTxFull());
+}
+
+bool IT2704::checkRxBuffer()
+{
+  MCP2515& mcp2515 = _node->getCAN();
+  return (mcp2515.getRxFull());
+}
+
 
 bool IT2704::checkConnection(const Message* MsgExt)
 {

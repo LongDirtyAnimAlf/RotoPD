@@ -15,12 +15,12 @@
 
 template<typename T, size_t SIZE>
 class CircularQueue {
-    static_assert(SIZE <= 255, "CircularQueue size exceeds uint8_t counter range");
+    static_assert(SIZE <= 65535, "CircularQueue size exceeds uint16_t counter range");
 private:
     T frames[SIZE];
-    uint8_t head;
-    uint8_t tail;
-    uint8_t count;
+    uint16_t head;
+    uint16_t tail;
+    uint16_t count;
 
 public:
     CircularQueue() : head(0), tail(0), count(0) {}
@@ -53,7 +53,7 @@ public:
         return true;
     }
 
-    uint8_t getCount() const {
+    uint16_t getCount() const {
         return count;
     }
 
@@ -79,12 +79,12 @@ public:
             return false;
         }
 
-        uint8_t read  = head;
-        uint8_t write = head;
-        uint8_t newCount = 0;
+        uint16_t read  = head;
+        uint16_t write = head;
+        uint16_t newCount = 0;
         bool removed = false;
 
-        for (uint8_t i = 0; i < count; i++) {
+        for (uint16_t i = 0; i < count; i++) {
             if (!removed && pred(frames[read])) {
                 // skip this element (first match only)
                 removed = true;
@@ -309,11 +309,11 @@ enum CAN_CLKOUT {
 };
 
 #ifndef MCP2515_TX_QUEUE_SIZE
-#define MCP2515_TX_QUEUE_SIZE 128
+#define MCP2515_TX_QUEUE_SIZE 2048
 #endif
 
 #ifndef MCP2515_RX_QUEUE_SIZE
-#define MCP2515_RX_QUEUE_SIZE 128
+#define MCP2515_RX_QUEUE_SIZE 2048
 #endif
 
 class MCP2515
@@ -673,6 +673,9 @@ class MCP2515
         uint8_t errorCountTX(void) const;
         uint8_t getTxQueueDepth(void) const { return _txQueue.getCount(); }
         uint8_t getRxQueueDepth(void) const { return _rxQueue.getCount(); }
+        bool getTxFull(void) const { return _txQueue.isFull(); }
+        bool getRxFull(void) const { return _rxQueue.isFull(); }
+
         uint16_t getRxQueueDropCount() const;
         uint16_t getRxHardwareOverflowCount() const;
 

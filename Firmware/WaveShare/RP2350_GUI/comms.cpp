@@ -239,65 +239,22 @@ bool initCANopen(void)
   // Start config of MCP2515 filters to limit can pressure
   // =========================================================================
   MCP2515& mcp2515 = node.getCAN();
+
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
 
-  // =========================================================================
-  // BUFFER 0: Filter for NMT Master Commands (COB-ID: 0x000)
-  // =========================================================================
-  // MASK0: Check all 11 bits of the standard ID (0 = standard frame, 0x7FF = all bits)
-  mcp2515.setFilterMask(MCP2515::MASK0, 0, 0x7FF);
-  // FILTER0 & FILTER1: Must match 0x000 exactly
-  mcp2515.setFilter(MCP2515::RXF0, 0, 0x000);
-  mcp2515.setFilter(MCP2515::RXF1, 0, 0x000);
+  mcp2515.setFilterMask(MCP2515::MASK0, false, 0x7FF);
+  mcp2515.setFilter(MCP2515::RXF0, false, 0x580 + BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF1, false, 0x580 + BoardInfo.MasterNodeID);
 
-  // =========================================================================
-  // BUFFER 1: Filter for Target Nodes (Node 10, Node 20, and Node 50)
-  // =========================================================================
-  // MASK 1: 0x07F tells the hardware to only evaluate the lower 7 bits (Node ID)
-  // and completely ignore the upper 4 bits (CANopen function codes like SDO/PDO).
-  mcp2515.setFilterMask(MCP2515::MASK1, 0, 0x007F);
-  mcp2515.setFilter(MCP2515::RXF2, 0, BoardInfo.MasterNodeID);
-  mcp2515.setFilter(MCP2515::RXF3, 0, BoardInfo.LocalNodeID);
-  mcp2515.setFilter(MCP2515::RXF4, 0, BoardInfo.IT2704NodeID);
-  mcp2515.setFilter(MCP2515::RXF5, 0, BoardInfo.LocalNodeID);
+  // Set Mask 1 to require an exact 11-bit ID match
+  mcp2515.setFilterMask(MCP2515::MASK1, false, 0x7FF);
+  mcp2515.setFilter(MCP2515::RXF2, false, 0x000);
+  mcp2515.setFilter(MCP2515::RXF3, false, 0x180 + BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF4, false, 0x600 + BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF5, false, 0x600 + BoardInfo.MasterNodeID);
 
   // Switch back to normal operation mode
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-
-  //node.disableMapping(true);
-  
-  // Manually set PDOs here if mapping isn't used
-
-  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/VOLTAGE, /*SubIndex#=*/SUBIDX_1, /*Position=*/0);
-  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/1, /*Index#=*/CURRENT, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
-  //node.set(/*Type=*/PDO::Type::TX, /*TPDO#=*/2, /*Index#=*/POWER, /*SubIndex#=*/SUBIDX_1, /*Position=*/4);
-
-  //node.set(PDO::Type::TX, 1, DISPLAYED_CHARGE, 0x01, 1);
-  //node.set(PDO::Type::TX, 1, VOLTAGE, 0x01, 4);
-  //node.set(PDO::Type::TX, 1, CURRENT, 0x01, 6);
-  //node.set(PDO::Type::TX, 2, TEMPERATURE, 0x01, 4);
-  //node.set(PDO::Type::RX, 1, MIN_VOLTAGE, 0x03, 1);
-
-  // Free-slot (new)
-  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);       // auto-places in first free region
-  //node.set(PDO::Type::TX, 1, VOLTAGE,   SUBIDX_1);       // auto-places after the previous one
-
-
-  // Remove the old mapping
-  //node.clear(PDO::Type::TX, 1, VOLTAGE, SUBIDX_1);
-
-  // Or free a concrete byte offset
-  //node.clear(PDO::Type::TX, 1, 0);
-
-  // Then place the new one (free-slot or absolute)
-  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1);          // free-slot
-  // or
-  //node.set(PDO::Type::TX, 1, POWER, SUBIDX_1, 0);       // absolute
-
-  //node.setTxPdoCycleTime(1, 200);   // TPDO1 every 200 ms
-  //node.setTxPdoCycleTime(2, 0);     // disable TPDO2
-  //node.setRxPdoCycleTime(1, 500);   // RPDO1 timeout 500 ms
-
 
   return true;
 }

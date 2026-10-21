@@ -572,9 +572,6 @@ begin
           AddInfo('Board accepted. S/N of USB controller #'+InttoStr(localboard)+': '+localboardserial+'. FW: '+InttoStr((localfirmware SHR 8) AND $FF)+'-'+InttoStr(localfirmware AND $FF));
           Board.Accepted:=True;
 
-          // As the firmware might send data by itself, allow auto-magic reception of this data
-          //Board.OnDataReceived:=OnDeviceData;
-
           // Set boardnumber
           if Assigned(DataSource.FindBoard(localboard)) then
           begin
@@ -584,15 +581,17 @@ begin
           Board.BoardNumber:=localboard;
 
           Board.ControllerData:=TControllerData.Create;
-
+          with TControllerData(Board.ControllerData) do
+          begin
+            Vref:=0;
+            Vmax:=0;
+            Imax:=0;
+            Calibration:='N/A';
           end;
 
-        with TControllerData(Board.ControllerData) do
-        begin
-          Vref:=0;
-          Vmax:=0;
-          Imax:=0;
-          Calibration:='N/A';
+          // As the firmware might send data by itself, allow auto-magic reception of this data
+          Board.OnDataReceived:=OnDeviceData;
+
         end;
 
         // We might enable threaded reception of data
@@ -747,6 +746,9 @@ begin
   begin
     exit;
   end;
+
+  // We do not set the output anymore
+  exit;
 
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_output;
@@ -1038,10 +1040,11 @@ begin
       PLocalData^.Data[0] := byte(cmd);
       PLocalData^.Data[1] := position-1;
 
+      // Set length of data to be sent
       if (fine=0) then
-         PLocalData^.Data[2] := 5
+        PLocalData^.Data[2] := 5
       else
-          PLocalData^.Data[2] := 7;
+        PLocalData^.Data[2] := 7;
 
       //if ((value=0) AND (fine=0) AND (whattoset<>BatteryStatus.BSOff)) then
       //begin
@@ -1072,38 +1075,7 @@ begin
         end;
       end;
 
-      error := HandleDataRequest(Ctrl);
-
-      if (NOT error) then with PLocalData^ do
-      begin
-        //realvalue:=(data[3]+data[4]*256);
-        realvalue:=(UInt64(data[3])+UInt64(data[4])*256+UInt64(data[5])*256*256+UInt64(data[6])*256*256*256);
-
-        SetLength({%H-}CRCString,data[2]+3);
-        CRCString[1]:=Chr((data[1]*2)+32);
-        CRCString[2]:=Chr(data[0]);
-        CRCString[3]:=Chr(data[2]);
-
-        if (data[2]>0) then
-        begin
-          for i:=1 to data[2] do
-          begin
-            CRCString[3+i]:=Chr(data[2+i]);
-          end;
-        end;
-        CRC := CRC16(CRCString);
-
-        if (data[data[2]+3]=((CRC AND $FF00) SHR 8)) AND (data[data[2]+4]=(CRC AND $00FF)) then
-        begin
-          i:=0;
-        end
-        else
-        begin
-          i:=1;
-        end;
-
-        //realvalue:=data[3];
-      end;
+      error := HandleDataRequest(Ctrl,true);
 
     until ((NOT error) OR (ErrorCounter>MaxErrors));
   end;

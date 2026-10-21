@@ -36,7 +36,7 @@ public:
     void setOutput(bool enabled);
     void collectData(void);
     void collectDataEnergyOnly(void);
-    void getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* E);
+    void getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* A, uint32_t* E);
 
     bool getTPDOEnergyData(const Message* Msg, uint32_t* E);
     void clearEnergy(void);
@@ -44,12 +44,23 @@ public:
     void queryConnection(void);
     bool checkConnection(const Message* MsgExt);
 
+    bool isConnected(void);
+
+    bool checkTxBuffer();
+    bool checkRxBuffer();
+
 private:
     CanOpenNode * _node;
     uint8_t _channel;
     uint8_t _id;
     bool _connected;
     unsigned long _checkTimer;
+
+    bool gotV;
+    bool gotI;
+    bool gotP;
+    bool gotA;
+
     Object* findObject(uint16_t index, uint8_t subIndex);
 };
 
