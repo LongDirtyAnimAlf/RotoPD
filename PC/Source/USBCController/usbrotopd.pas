@@ -720,6 +720,8 @@ begin
     repeat
       PLocalData^:=Default(TReport);
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
+
 
       error := HandleDataRequest(Ctrl,True);
 
@@ -761,7 +763,7 @@ begin
     repeat
       PLocalData^:=Default(TReport);
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
-      PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
+      PLocalData^.Data[INDEXPOSITION] := board;
       PLocalData^.Data[LENGTHPOSITION] := 1;        // data length
       if Engage then
         PLocalData^.Data[DATASTART] := 1
@@ -807,7 +809,7 @@ begin
     repeat
       PLocalData^:=Default(TReport);
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
-      PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
+      PLocalData^.Data[INDEXPOSITION] := board;
       PLocalData^.Data[LENGTHPOSITION] := 8;        // data length
 
       temp.Raw:=Energy;
@@ -860,7 +862,7 @@ begin
       PLocalData^:=Default(TReport);
 
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
-      PLocalData^.Data[INDEXPOSITION] := 0;           // position ... not needed
+      PLocalData^.Data[INDEXPOSITION] := board;
 
       PLocalData^.Data[DATASTART] := PDOIndex;        // data itself: PDO wanted
 
@@ -962,9 +964,8 @@ begin
 
     repeat
       PLocalData^:=Default(TReport);
-      PLocalData^.Data[0] := byte(cmd);
-      PLocalData^.Data[1] := position-1;
-      PLocalData^.Data[2] := 0;
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
 
       error := HandleDataRequest(Ctrl);
 
@@ -1037,8 +1038,8 @@ begin
 
     repeat
       PLocalData^:=Default(TReport);
-      PLocalData^.Data[0] := byte(cmd);
-      PLocalData^.Data[1] := position-1;
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
 
       // Set length of data to be sent
       if (fine=0) then
