@@ -30,7 +30,7 @@ type
     function CheckAddressNewer(const BoardSerial: string; const BN:word):integer;
     function SetAddressNewer(const Ctrl: TUSBController):boolean;
 
-    property MaxBoards:word write FMaxBoards;
+    property MaxBoards:word read FMaxBoards write FMaxBoards;
     property MaxErrors:word write FMaxErrors;
   end;
 

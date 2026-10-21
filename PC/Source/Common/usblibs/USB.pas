@@ -8,6 +8,7 @@ interface
 
 uses
   SysUtils, Classes, SyncObjs,
+  contnrs,
   {$ifdef MSWINDOWS}
   {$ifdef FPC}
   Windows,
@@ -37,33 +38,6 @@ type
 
   TDataEvent    = procedure(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word) of object;
 
-  TMyCustomPersistent = class(TPersistent)
-  private
-    DebugInfo     : string;
-    Vref          : word;
-    Vmax          : word;
-    Imax          : word;
-    Calibration   : ansistring;
-    FSettingsName : string;
-  published
-    property SettingsName: string read FSettingsName write FSettingsName;
-  end;
-
-
-  TJvHidDeviceHelper = class helper for TJvHidDevice
-  private
-    function GetExtraSettings: TMyCustomPersistent;
-    procedure SetExtraSettings(const Value: TMyCustomPersistent);
-  public
-    // your extra functions – they now belong to every TJvHidDevice
-    function SendCommand(Cmd: Byte; const Payload: TBytes): Boolean;
-    function ReadStatus(out Status: Integer): Boolean;
-    procedure StartContinuousMonitoring;
-    function IsMyDevice: Boolean;
-  published
-    property ExtraSettings: TMyCustomPersistent read GetExtraSettings write SetExtraSettings;
-  end;
-
   TUSBController = class
   strict private
     FDataEvent     : TDataEvent;
@@ -84,7 +58,9 @@ type
   public
     LocalData         : TReport;
     Accepted          : boolean;
+    FlagForRemoval    : boolean;
     FaultCounter      : word;
+    BoardNumber       : word;
     ControllerData    : TObject;
     constructor Create(HidDev: TJvHidDevice; SN:ansistring='');
     destructor Destroy;override;
@@ -112,6 +88,11 @@ type
     FEnabled     : Boolean;
     FWaitEx      : Boolean;
 
+    FTargetBoardNumber: word;
+    FFoundController : TUSBController;
+
+    FAcceptedDevices: TFPObjectHashTable;
+
     FOnUSBDeviceChange: TUSBChangeEvent;
 
     procedure AddErrors(data:string);
@@ -120,11 +101,15 @@ type
     function  GetInfo:String;
     procedure SetEnabled(Value: Boolean);
 
-    function  SendDevice(HidDev: TJvHidDevice; const LocalSerial: ansistring = ''):boolean;
+    procedure SendDevice(USBDev: TUSBController);
     function  HidCtlEnumerate(HidDev: TJvHidDevice;const {%H-}Idx: Integer): Boolean;
     function  GetHidCtl:TJvHidDeviceController;
 
     function  Enumerate:integer;
+
+    procedure FindByBoardNumber(Item: TObject; const Key: string; var Continue: Boolean);
+
+    function  FGetBoardCount:Longword;
   protected
     procedure DeviceArrival(HidDev: TJvHidDevice);
     procedure DeviceRemoval(HidDev: TJvHidDevice);
@@ -140,6 +125,8 @@ type
 
     function  HidReadWrite(Ctrl: TUSBController; WriteOnly:boolean=false):boolean; deprecated 'use HidWriteRead or HidWriteReadSimple';
 
+    function  FindBoard(const BN: word): TUSBController;
+
     property  Emulation:boolean read FEmulation;
 
     property  Errors:String read GetErrors write AddErrors;
@@ -151,6 +138,8 @@ type
     property  OnUSBDeviceChange: TUSBChangeEvent read FOnUSBDeviceChange write FOnUSBDeviceChange;
 
     property  USBMasterController:TJvHidDeviceController read GetHidCtl;
+
+    property  BoardCount:Longword read FGetBoardCount;
   end;
 
 implementation
@@ -174,55 +163,15 @@ begin
   {$ENDIF}
 end;
 
-
-function TJvHidDeviceHelper.SendCommand(Cmd: Byte; const Payload: TBytes): Boolean;
-var
-  Report: TBytes;
-  Written: DWORD;
-begin
-  // you have full access to Self (the real TJvHidDevice)
-  SetLength(Report, Caps.OutputReportByteLength);
-  Report[0] := Cmd;
-  // … fill the rest
-  Result := WriteFile(Report[0], Length(Report), Written) and (Written = Length(Report));
-end;
-
-function TJvHidDeviceHelper.ReadStatus(out Status: Integer): Boolean;
-begin
-  // implement using ReadFile / GetFeature / etc.
-  Result := False;
-end;
-
-function TJvHidDeviceHelper.IsMyDevice: Boolean;
-begin
-  Result := (Attributes.VendorID = $1234) and (Attributes.ProductID = $5678);
-end;
-
-procedure TJvHidDeviceHelper.StartContinuousMonitoring;
-begin
-  if not IsCheckedOut then
-    CheckOut;               // or let the caller do it
-  //OnData := MyDataHandler;  // you can even set events from the helper
-end;
-
-function TJvHidDeviceHelper.GetExtraSettings: TMyCustomPersistent;
-begin
-  // Cast existing Tag property back to TMyCustomPersistent
-  Result := TMyCustomPersistent(Pointer(Self.Tag));
-end;
-
-procedure TJvHidDeviceHelper.SetExtraSettings(const Value: TMyCustomPersistent);
-begin
-  Self.Tag := PtrInt(Pointer(Value));
-end;
-
 constructor TUSBController.Create(HidDev: TJvHidDevice; SN:ansistring);
 begin
   Inherited Create;
   ControllerData:=nil;
   LocalDataTimer:=nil;
   FaultCounter:=0;
-  Accepted:=false;
+  Accepted:=true; // normally, we accept the devices !
+  FlagForRemoval:=false;
+  BoardNumber:=0;
   FProductSerial:=SN;
   //HidDev.OnData:=nil;
   //FHidCtrl:=@HidDev;
@@ -365,6 +314,9 @@ begin
   FEnabled      := False;
   FWaitEx       := False;
 
+  // Set OwnsObjects to True if you want the dictionary to free the objects on destroy/clear
+  FAcceptedDevices := TFPObjectHashTable.Create(true);
+
   if (NOT Assigned(FHidCtl)) then
   begin
    FHidCtl:=TJvHidDeviceController.Create(nil);
@@ -392,6 +344,8 @@ begin
   FErrors.Free;
   FInfo.Free;
 
+  FAcceptedDevices.Free; // Automatically frees stored objects if OwnsObjects was True
+
   {$ifdef FPC}
   DoneCriticalSection(FInfoLock);
   DoneCriticalSection(FErrorLock);
@@ -403,41 +357,9 @@ begin
   inherited Destroy;
 end;
 
-function TUSB.SendDevice(HidDev: TJvHidDevice; const LocalSerial: ansistring):boolean;
-var
-  NewUSBController:TUSBController;
+procedure TUSB.SendDevice(USBDev: TUSBController);
 begin
-  result:=false;
-  if Assigned(FOnUSBDeviceChange) then
-  begin
-    // Check if our report fits the device report
-    if ((SizeOf(TReport)>=HidDev.Caps.OutputReportByteLength) AND (SizeOf(TReport)>=HidDev.Caps.InputReportByteLength)) then
-    begin
-      // Flush all pending reports
-      HidDev.FlushQueue;
-      // To prevent overlapped read/write errors
-      // Prevent frequent ERROR_OPERATION_ABORTED (0x3E3) and timeouts.
-      {$ifdef MSWINDOWS}
-      HidDev.NumInputBuffers:=128;
-      HidDev.NumOverlappedBuffers:=128;
-      {$endif}
-      // Create controller with serial
-      // Will be freed by the boss, if accepted
-      NewUSBController:=TUSBController.Create(HidDev,LocalSerial);
-      FOnUSBDeviceChange(Self,NewUSBController);
-      result:=NewUSBController.Accepted;
-      // if the controller is not accepted by the boss, we need to destroy it ourselves !
-      if (NOT result) then
-      begin
-        NewUSBController.Destroy;
-        NewUSBController:=nil;
-      end;
-    end
-    else
-    begin
-      raise EUSBException.Create('TReport size too small. Program will likely crash. Adjust TReport size and re-compile !')
-    end;
-  end;
+  if Assigned(FOnUSBDeviceChange) then FOnUSBDeviceChange(Self,USBDev);
 end;
 
 procedure TUSB.SetEnabled(Value: Boolean);
@@ -658,20 +580,25 @@ begin
 end;
 
 procedure TUSB.DeviceRemoval(HidDev: TJvHidDevice);
+var
+  Controller : TUSBController;
 begin
   //AddInfo('Device removal. VID: '+InttoStr(HidDev.Attributes.VendorID)+'. PID: '+InttoStr(HidDev.Attributes.ProductID)+'.');
   if (CheckVendorProduct(HidDev.Attributes.VendorID,HidDev.Attributes.ProductID) AND CheckHIDDevice(HidDev)) then
   begin
     AddInfo('Correct device removal. VID: '+InttoStr(HidDev.Attributes.VendorID)+'. PID: '+InttoStr(HidDev.Attributes.ProductID)+'.');
-    //if HidDev.IsCheckedOut then
+
+    // Retrieve the stored instance directly
+    Controller := TUSBController(FAcceptedDevices.Items[HidDev.PnPInfo.DevicePath]);
+
+    if Assigned(Controller) then
     begin
-      // Send device to boss [without serial to indicate possible removal]
-      if (NOT SendDevice(HidDev)) then
-      begin
-        // The device is not accepted by the boss, we might need to checkin !
-        if Assigned(HidDev) AND HidDev.IsCheckedOut then USBMasterController.CheckIn(HidDev);
-      end;
+      Controller.FlagForRemoval := true;
+      SendDevice(Controller);
+      FAcceptedDevices.Delete(HidDev.PnPInfo.DevicePath);
     end;
+
+    if HidDev.IsCheckedOut then USBMasterController.CheckIn(HidDev);
   end;
   FEmulation:=(USBMasterController.NumCheckedOutDevices=0);
   //if (MainThreadID=GetCurrentThreadID) then CheckSynchronize;
@@ -680,6 +607,7 @@ end;
 procedure TUSB.DeviceArrival(HidDev: TJvHidDevice);
 var
   LocalSerial      : string;
+  Controller : TUSBController;
 begin
   if (CheckVendorProduct(HidDev.Attributes.VendorID,HidDev.Attributes.ProductID) AND CheckHIDDevice(HidDev)) then
   begin
@@ -695,13 +623,35 @@ begin
     // Last resort serial
     if ((LocalSerial='') OR (Length(LocalSerial)<>29)) then LocalSerial:=InttoStr(HidDev.Attributes.VendorID)+'_'+InttoStr(HidDev.Attributes.ProductID)+'_'+InttoStr(HidDev.PnPInfo.DeviceID);
 
+    // Check serial
     if LocalSerial='' then
     begin
       AddInfo('Severe error while receiving serial number of controller !!!!');
       AddInfo('Therefor: ignoring the USB device !!');
     end
     else
+    // Check if our report fits the device report
+    if ((SizeOf(TReport)<HidDev.Caps.OutputReportByteLength) AND (SizeOf(TReport)<HidDev.Caps.InputReportByteLength)) then
     begin
+      AddInfo('Severe error whith app report length (too short) against that of the controller !!!!');
+      AddInfo('Therefor: ignoring the USB device !!');
+    end
+    else
+    begin
+      // Flush all pending reports
+      HidDev.FlushQueue;
+      // To prevent overlapped read/write errors
+      // Prevent frequent ERROR_OPERATION_ABORTED (0x3E3) and timeouts.
+      {$ifdef MSWINDOWS}
+      HidDev.NumInputBuffers:=128;
+      HidDev.NumOverlappedBuffers:=128;
+      {$endif}
+
+      // Create a new controller for this HID device
+      Controller := TUSBController.Create(HidDev,LocalSerial);
+      // Add controller into the list of HID controllers that we maintain
+      FAcceptedDevices.Add(HidDev.PnPInfo.DevicePath, Controller);
+
       if (NOT HidDev.IsCheckedOut) then
       begin
         // Perform checkout and send device to boss with serial to indicate arrival
@@ -712,9 +662,12 @@ begin
           //sleep(200);
           //AddInfo('Correct device arrival checked out. VID: '+InttoStr(HidDev.Attributes.VendorID)+'. PID: '+InttoStr(HidDev.Attributes.ProductID)+'.');
           // Send device to boss
-          if (NOT SendDevice(HidDev,LocalSerial)) then
+          SendDevice(Controller);
+          if (NOT Controller.Accepted) then
           begin
-            // The device is not accepted by the boss, we need to checkin !
+            // Remove the controller from the list of HID controllers that we maintain
+            FAcceptedDevices.Delete(HidDev.PnPInfo.DevicePath);
+            // The device is not accepted by the boss, we need to checkin again !
             USBMasterController.CheckIn(HidDev);
           end;
         end;
@@ -794,6 +747,35 @@ end;
 function TUSB.GetHidCtl:TJvHidDeviceController;
 begin
   result:=FHidCtl;
+end;
+
+procedure TUSB.FindByBoardNumber(Item: TObject; const Key: string; var Continue: Boolean);
+var
+  UC: TUSBController;
+begin
+  UC := TUSBController(Item);
+  if (UC.BoardNumber = FTargetBoardNumber) then
+  begin
+    FFoundController := UC;
+    Continue := False;
+  end
+  else
+  begin
+    Continue := True;
+  end;
+end;
+
+function TUSB.FindBoard(const BN: word): TUSBController;
+begin
+  FTargetBoardNumber := BN;
+  FFoundController := nil;
+  FAcceptedDevices.Iterate(FindByBoardNumber);
+  Result := FFoundController;
+end;
+
+function TUSB.FGetBoardCount:Longword;
+begin
+  result:=FAcceptedDevices.Count;
 end;
 
 end.

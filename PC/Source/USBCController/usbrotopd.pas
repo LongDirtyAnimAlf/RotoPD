@@ -10,7 +10,6 @@ interface
 
 uses
   SysUtils, Classes,
-  contnrs,
   usb,
   usbboard;
 
@@ -68,8 +67,6 @@ type
     //function  ReadSerial(board:word):string;
     //function  ReadFirmware(board:word):word;
     ErrorCounter       : word;
-    //FUSBBoards         : TList;
-    FUSBBoards         : TObjectList;
     FDataSource        : TMyUSB;
     FOnDeviceChange    : TDeviceEvent;
     FOnData            : TDataEvent;
@@ -96,8 +93,8 @@ type
 
     procedure SetEnabled(Value: Boolean);
 
-    function  FGetImax(board,position:word):word;
-    function  FGetCaldate(board,position:word):ansistring;
+    function  FGetImax(board:word):word;
+    function  FGetCaldate(board:word):ansistring;
 
     function  SetValueFine(board,position:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
     function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
@@ -270,14 +267,7 @@ begin
     Ini.Free;
   end;
   if NumTypes<1 then NumTypes  := 1;
-
-  FUSBBoards:=TObjectList.Create;
-  FUSBBoards.OwnsObjects:=False;
-  //FUSBBoards:=TList.Create;
   BoardCount:=NumTypes;
-  Inc(BoardCount); // we do not use board zero.
-
-  //FUSBBoards.Count:=BoardCount;
 
   FDataSource:=TMyUSB.Create;
   DataSource.MaxBoards:=BoardCount;
@@ -285,23 +275,8 @@ begin
 end;
 
 destructor TDataDevice.Destroy;
-var
-  Ctrl:TUSBController;
-  I: integer;
 begin
-  for I := 1 to FUSBBoards.Count - 1 do
-  begin
-    if Assigned(FUSBBoards.Items[I]) then
-    begin
-      Ctrl := (FUSBBoards.Items[I] AS TUSBController);
-      Ctrl.Destroy;
-    end;
-    FUSBBoards.Items[I] := nil;
-  end;
-
   FDataSource.Destroy;
-
-  FUSBBoards.Destroy;
 end;
 
 
@@ -476,7 +451,6 @@ var
   storedboard:word;
   localboardserial:ansistring;
   localfirmware:word;
-  Ctrl:TUSBController;
 function SerialDefault(s:string):boolean;
 var
   ds:string;
@@ -521,9 +495,14 @@ begin
     //Board.EnableReadThreading;
     //Board.HidCtrl.ThreadSleepTime:=150; // 500 for Win64
 
-    if Board.HidCtrl.IsPluggedIn then
+    // We perform a check
+    // If check fails, do not accept device !!
+    Board.Accepted:=false;
+
+    if (NOT Board.FlagForRemoval) then
     begin
       // Arrival
+
       // First, get the real USB (product-)serial from the HID-device itself
       localboardserial:=Board.ProductSerial;
 
@@ -577,41 +556,36 @@ begin
 
       if (NOT error) then
       begin
-        // Make room for the databoard into the list of FUSBBoards
-        while FUSBBoards.Count<=localboard do FUSBBoards.Add(nil);
-      end;
+        // Get firmware
+        //DataSource.GetBoardFirmware(Board,localfirmware);
 
-      if (NOT error) then
-      begin
-        if (NOT Assigned(FUSBBoards.Items[localboard])) then
+        // Set the correct boardnumber on the board itself, if needed
+        if (storedboard<>localboard) then
         begin
-          // Get firmware
-          DataSource.GetBoardFirmware(Board,localfirmware);
+          // We do NOT use boardnumbers for batteryboards
+          //AddInfo('Changing boardnumber from '+InttoStr(storedboard)+' to '+InttoStr(localboard));
+          //DataSource.SetBoardNumber(Board,localboard);
+        end;
 
-          // Set the correct boardnumber on the board itself, if needed
-          if (storedboard<>localboard) then
-          begin
-            // We do NOT yet use boardnumbers for RotoPD boards
-            //AddInfo('Changing boardnumber from '+InttoStr(storedboard)+' to '+InttoStr(localboard));
-            //DataSource.SetBoardNumber(Board,localboard);
-          end;
-
+        if (localboard<=DataSource.MaxBoards) then
+        begin
           AddInfo('Board accepted. S/N of USB controller #'+InttoStr(localboard)+': '+localboardserial+'. FW: '+InttoStr((localfirmware SHR 8) AND $FF)+'-'+InttoStr(localfirmware AND $FF));
           Board.Accepted:=True;
 
-          // As the firmware sends data by itself, allow auto-magic reception of this data
-          Board.OnDataReceived:=OnDeviceData;
+          // As the firmware might send data by itself, allow auto-magic reception of this data
+          //Board.OnDataReceived:=OnDeviceData;
+
+          // Set boardnumber
+          if Assigned(DataSource.FindBoard(localboard)) then
+          begin
+            raise EUSBException.Create('USBboard to be added with boardnumber that is already taken !! Should never happen. Please check code !');
+          end;
+
+          Board.BoardNumber:=localboard;
 
           Board.ControllerData:=TControllerData.Create;
 
-          // Add accepted databoard to the list of FUSBBoards
-          FUSBBoards.Items[localboard]:=Board;
-        end
-        else
-        begin
-          // In theory, we should never get her, but anyhow.
-          raise EUSBException.Create('Databoard already assigned. Should never happen. Please check code !');
-        end;
+          end;
 
         with TControllerData(Board.ControllerData) do
         begin
@@ -635,30 +609,10 @@ begin
     else
     begin
       // Removal
-      localboard:=FUSBBoards.Count;
-      // Find the board with the right HID device
-      while localboard>0 do
-      begin
-        Dec(localboard);
-        Ctrl:=(FUSBBoards.Items[localboard] AS TUSBController);
-        if NOT Assigned(Ctrl) then continue;
-        if NOT Assigned(Ctrl.HidCtrl) then continue;
-        if (Ctrl.HidCtrl=Board.HidCtrl) then
-        begin
-          // Got you !!
-          Ctrl.Destroy;
-          Ctrl:=nil;
+      localboard:=Board.BoardNumber;
+      AddInfo('Board [#'+InttoStr(localboard)+'] removed.');
 
-          // Delete controller from list by setting nil
-          FUSBBoards.Items[localboard]:=nil;
-
-          AddInfo('Board [#'+InttoStr(localboard)+'] removed.');
-
-          if Assigned(FOnDeviceChange) then FOnDeviceChange(Self,-1*localboard);
-
-          break;
-        end;
-      end;
+      if Assigned(FOnDeviceChange) then FOnDeviceChange(Self,-1*localboard);
 
       if (localboard=0) then
       begin
@@ -697,9 +651,9 @@ var
 begin
   result:=true;
   if FEmulation then exit;
-  if (FUSBBoards.Count=0) then exit;
-  if (board>=FUSBBoards.Count) then exit;
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  if DataSource.BoardCount=0 then exit;
+  if (board>DataSource.BoardCount) then exit;
+  Ctrl:=DataSource.FindBoard(board);
   if (NOT Assigned(Ctrl)) then exit;
   result:=(NOT Assigned(Ctrl.HidCtrl));
 end;
@@ -732,14 +686,14 @@ begin
   end;
 end;
 
-function TDataDevice.FGetImax(board,position:word):word;
+function TDataDevice.FGetImax(board:word):word;
 begin
-  result:=TControllerData(TUSBController(FUSBBoards.Items[board]).ControllerData).Imax;
+  result:=TControllerData(DataSource.FindBoard(board).ControllerData).Imax;
 end;
 
-function TDataDevice.FGetCaldate(board,position:word):ansistring;
+function TDataDevice.FGetCaldate(board:word):ansistring;
 begin
-  result:=TControllerData(TUSBController(FUSBBoards.Items[board]).ControllerData).Calibration;
+  result:=TControllerData(DataSource.FindBoard(board).ControllerData).Calibration;
 end;
 
 function  TDataDevice.GetPDOList(board:word):boolean;
@@ -759,7 +713,7 @@ begin
   ErrorCounter:=1;
   cmd := TCommands.CMD_get_PDOList;
 
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  Ctrl:=DataSource.FindBoard(board);
   with TControllerData(Ctrl.ControllerData) do
   begin
     PLocalData:=@Ctrl.LocalData;
@@ -797,7 +751,7 @@ begin
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_output;
 
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  Ctrl:=DataSource.FindBoard(board);
   with TControllerData(Ctrl.ControllerData) do
   begin
     PLocalData:=@Ctrl.LocalData;
@@ -843,7 +797,7 @@ begin
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_energy;
 
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  Ctrl:=DataSource.FindBoard(board);
   with TControllerData(Ctrl.ControllerData) do
   begin
     PLocalData:=@Ctrl.LocalData;
@@ -895,7 +849,7 @@ begin
 
   if (cmd=TCommands.CMD_unknown) then exit;
 
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  Ctrl:=DataSource.FindBoard(board);
   with TControllerData(Ctrl.ControllerData) do
   begin
     PLocalData:=@Ctrl.LocalData;
@@ -999,7 +953,7 @@ begin
   ErrorCounter:=1;
   cmd := TCommands.CMD_get_data;
 
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  Ctrl:=DataSource.FindBoard(board);
   with TControllerData(Ctrl.ControllerData) do
   begin
     PLocalData:=@Ctrl.LocalData;
@@ -1075,7 +1029,7 @@ begin
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_value;
 
-  Ctrl:=TUSBController(FUSBBoards.Items[board]);
+  Ctrl:=DataSource.FindBoard(board);
   begin
     PLocalData:=@Ctrl.LocalData;
 
