@@ -1,4 +1,9 @@
+#include "Arduino.h"
+#include <lvgl.h>
 #include "matrix_screen.h"
+
+#ifndef YOLO2222
+
 #include <stdlib.h>
 
 #define SCREEN_WIDTH   480
@@ -23,7 +28,9 @@ static const char matrix_source_chars[] = "DONALFREDO";
 #define SOURCE_CHAR_COUNT (sizeof(matrix_source_chars) - 1)
 
 static inline char get_random_matrix_char(void) {
-    return matrix_source_chars[rand() % SOURCE_CHAR_COUNT];
+    static uint8_t index = 0;
+    //return matrix_source_chars[rand() % SOURCE_CHAR_COUNT];
+    return matrix_source_chars[(255-index++) % SOURCE_CHAR_COUNT];
 }
 
 // 1. Optimized Draw Callback
@@ -139,14 +146,14 @@ void navigate_to_matrix_screen(void) {
     lv_obj_add_event_cb(matrix_scr, matrix_screen_delete_cb, LV_EVENT_DELETE, NULL);
 
     // Set frame tick interval to 50ms (20 FPS) to drastically cut RP2350 draw overhead
-    data->engine_timer = lv_timer_create(matrix_engine_timer_cb, 50, matrix_scr);
+    data->engine_timer = lv_timer_create(matrix_engine_timer_cb, 20, matrix_scr);
 
     lv_screen_load_anim(matrix_scr, LV_SCR_LOAD_ANIM_NONE, 100, 0, false);
 }
+#endif
 
 #ifdef YOLOMAAKMEGEK 
 
-#include "matrix_screen.h"
 #include <stdlib.h>
 
 #define SCREEN_WIDTH  480
@@ -169,15 +176,10 @@ typedef struct {
 static const char matrix_source_chars[] = "DONALFREDO";
 #define SOURCE_CHAR_COUNT (sizeof(matrix_source_chars) - 1)
 
-// Get a random printable Unicode/ASCII code point ('!' to 'Z')
-static uint32_t get_random_matrix_char(void) {
-    //return (uint32_t)(33 + (rand() % 58)); 
-
-    // Generates a random index strictly bounded by the length of "DONALFREDO"
-    uint32_t random_index = rand() % SOURCE_CHAR_COUNT;
-    
-    // Cast the specific character byte cleanly to a Unicode/ASCII code point
-    return (uint32_t)(matrix_source_chars[random_index]); 
+static inline char get_random_matrix_char(void) {
+    static uint8_t index = 0;
+    //return matrix_source_chars[rand() % SOURCE_CHAR_COUNT];
+    return matrix_source_chars[(index++) % SOURCE_CHAR_COUNT];
 }
 
 // 1. Blazing Fast Public Character Render Callback

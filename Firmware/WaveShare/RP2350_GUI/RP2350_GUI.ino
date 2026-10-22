@@ -1197,14 +1197,6 @@ void loop()
     }
   }
 
-  lv_timer_periodic_handler();
-
-  if (node.getCAN().checkInterrupt()) return;
-
-  check_screensaver_timeout();
-
-  if (node.getCAN().checkInterrupt()) return;
-
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
   TinyUSBDevice.task();
@@ -1526,7 +1518,7 @@ void loop()
       case bmIdle:
         SET->TestData.DataTriggerCounter = 0;
         // Do not engage the screensaver when idle
-        reset_screensaver_idle_timer();
+        //reset_screensaver_idle_timer();
         break;
       default:
         #ifdef DEBUG  
@@ -1680,6 +1672,12 @@ void loop()
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
     if (node.getCAN().checkInterrupt()) return;
   }
+
+  check_screensaver_timeout();
+
+  if (node.getCAN().checkInterrupt()) return;
+
+  lv_timer_periodic_handler();
 
   #ifdef STANDALONE
   if (StoreSettings)
