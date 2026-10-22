@@ -422,32 +422,18 @@ bool CanOpenNode::sendMsg(const Message &msg, bool prio) {
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
 
+    MCP2515::ERROR error; 
+
     if (prio)
     {
-        if (MCP2515::ERROR_OK == can.sendMessagePrio(&cansendmessageframe)){
-            Serial.println("Send prio message ok");
-            return true;
-        }
-        else
-        {
-            Serial.println("Send prio message error!");
-            return false;
-        }
-
+        error = can.sendMessagePrio(&cansendmessageframe);
     }
     else
     {
-        if (MCP2515::ERROR_OK == can.sendMessage(&cansendmessageframe)){
-            Serial.println("Send message ok");
-            return true;
-        }
-        else
-        {
-            Serial.println("Send message error!");
-            return false;
-        }
-
+        error = can.sendMessage(&cansendmessageframe);
     }
+
+    return (error == MCP2515::ERROR_OK);
 }
 
 // Write data to an object in the Object Dictionary

@@ -64,6 +64,7 @@ type
     Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
+    Panel4: TPanel;
     SourceEPRPDODrawGrid: TDrawGrid;
     SourcePDODrawGrid: TDrawGrid;
     SinkPDODrawGrid: TDrawGrid;
@@ -120,6 +121,7 @@ type
 
     NewPowerDisplay       : TLEDDisplay;
     NewEnergyDisplay      : TLEDDisplay;
+    NewAHDisplay          : TLEDDisplay;
     NewTemperatureDisplay : TLEDDisplay;
 
     Led                 : TShape;
@@ -128,6 +130,7 @@ type
 
     FVoltage            : double;
     FCurrent            : double;
+    FCapacity           : double;
     FEnergy             : double;
     FPower              : double;
     FTemperature        : double;
@@ -164,11 +167,14 @@ type
     function  CorrectCurrent(value:double):double;
 
     procedure SetActive(value:boolean);
+    procedure SetActiveTestType(const TT:TTestType);
 
     procedure SetVoltage(value:double);
     function  GetVoltage:double;
     procedure SetCurrent(value:double);
     function  GetCurrent:double;
+    procedure SetCapacity(value:double);
+    function  GetCapacity:double;
     procedure SetEnergy(value:double);
     function  GetEnergy:double;
     procedure SetPower(value:double);
@@ -176,11 +182,10 @@ type
     procedure SetTemperature(value:double);
     function  GetTemperature:double;
   public
-    Capacity                     : double;
-    CI,EI                        : qword;
     property SystemActive        : boolean read FSystemActive write SetActive;
     property Voltage             : double read GetVoltage write SetVoltage;
     property Current             : double read GetCurrent write SetCurrent;
+    property Capacity                  : double read GetCapacity write SetCapacity;
     property Energy              : double read GetEnergy write SetEnergy;
     property Power               : double read GetPower write SetPower;
     property Temperature         : double read GetTemperature write SetTemperature;
@@ -286,7 +291,7 @@ begin
   with NewTemperatureDisplay do begin
     Parent := Panel3;
     Align := alClient;
-    ColorLED:=clRed;
+    ColorLED:=clBlue;
     NumDigits := 4;
     LeadingZeros := false;
     LEDContrast := 7;
@@ -315,7 +320,7 @@ begin
   with NewPowerDisplay do begin
     Parent := Panel1;
     Align := alClient;
-    ColorLED:=clSilver;
+    ColorLED:=clRed;
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
@@ -337,13 +342,15 @@ begin
     Clear;
     Value:=0;
     FractionDigits:=3;
+    Hint:='Power [W]';
+    ShowHint:=True;
   end;
 
   NewEnergyDisplay := TLEDDisplay.Create(Panel2);
   with NewEnergyDisplay do begin
     Parent := Panel2;
     Align := alClient;
-    ColorLED:=clBlue;
+    ColorLED:=clRed;
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
@@ -365,7 +372,40 @@ begin
     Clear;
     Value:=0;
     FractionDigits:=3;
+    Hint:='Energy [WH]';
+    ShowHint:=True;
   end;
+
+  NewAHDisplay := TLEDDisplay.Create(Panel4);
+  with NewAHDisplay do begin
+    Parent := Panel4;
+    Align := alClient;
+    ColorLED:=clRed;
+    NumDigits := 5;
+    LeadingZeros := false;
+    LEDContrast := 7;
+    DigitLineWidth := 8;
+    if (Parent IS TPanel) then
+    begin
+      DigitHeight := Parent.Height-TPanel(Parent).BevelWidth*2;
+      if (TPanel(Parent).BevelInner<>TPanelBevel.bvNone) then DigitHeight := DigitHeight-TPanel(Parent).BevelWidth*2;
+      DigitWidth := Parent.Height * 2 div 4 - 1;
+    end
+    else
+    begin
+      DigitHeight := Parent.Height;
+      DigitWidth := DigitHeight * 2 div 4 - 1;
+    end;
+    Borderstyle := bsNone;
+    BevelStyle := bvNone;
+    Angle := 0;
+    Clear;
+    Value:=0;
+    FractionDigits:=3;
+    Hint:='Capacity [AH]';
+    ShowHint:=True;
+  end;
+
 
   if FileExists('types.dat')
      then TypesBox.Items.LoadFromFile('types.dat')
@@ -402,22 +442,27 @@ begin
     end;
     Dec(i);
 
-    if (i=0) then
+    SetLength(TestTypes,i+2);
+    for i:=Low(TestTypes) to High(TestTypes) do
     begin
-      i:=1;
-      Ini.WriteString('Test'+InttoStr(i), 'Name', 'Default');
-      Ini.WriteInteger('Test'+InttoStr(i), 'Voltage', 5000);
-      Ini.WriteInteger('Test'+InttoStr(i), 'Current', 1500);
-    end;
-
-    if (i>0) then
-    begin
-      SetLength(TestTypes,i);
-      for i:=Low(TestTypes) to High(TestTypes) do
+      if (i=Low(TestTypes)) then
       begin
-        TestTypes[i].Name:=Ini.ReadString('Test'+InttoStr(i+1), 'Name', '');
-        TestTypes[i].Voltage:=Ini.ReadInteger('Test'+InttoStr(i+1), 'Voltage', 0);
-        TestTypes[i].Current:=Ini.ReadInteger('Test'+InttoStr(i+1), 'Current', 0);
+        TestTypes[i].Name:='Default';
+        TestTypes[i].Voltage:=5000;
+        TestTypes[i].Current:=1500;
+      end
+      else
+      if (i=(Low(TestTypes)+1)) then
+      begin
+        TestTypes[i].Name:='PDMax';
+        TestTypes[i].Voltage:=0;
+        TestTypes[i].Current:=0;
+      end
+      else
+      begin
+        TestTypes[i].Name:=Ini.ReadString('Test'+InttoStr(i-1), 'Name', '');
+        TestTypes[i].Voltage:=Ini.ReadInteger('Test'+InttoStr(i-1), 'Voltage', 0);
+        TestTypes[i].Current:=Ini.ReadInteger('Test'+InttoStr(i-1), 'Current', 0);
       end;
     end;
 
@@ -1023,13 +1068,9 @@ begin
       begin
         SetEnable(Sender,false);
 
-        Voltage:=0;
-        Current:=0;
         Power:=0;
         Energy:=0;
         Capacity:=0;
-        CI:=0;
-        EI:=0;
 
         SetChartAxis(Sender);
 
@@ -1130,21 +1171,12 @@ begin
   if (Sender<>nil) then aCombo:=TComboBox(Sender);
   if ((aCombo<>nil) AND (aCombo.ItemIndex<>-1)) then
   begin
-    ActiveTestType.Name:=TestTypes[aCombo.ItemIndex].Name;
-    ActiveTestType.Current:=TestTypes[aCombo.ItemIndex].Current;
-    ActiveTestType.Voltage:=TestTypes[aCombo.ItemIndex].Voltage;
+    SetActiveTestType(TestTypes[aCombo.ItemIndex]);
   end
   else
   begin
-    ActiveTestType.Name:='';
-    ActiveTestType.Current:=0;
-    ActiveTestType.Voltage:=0;
+    SetActiveTestType(Default(TTestType));
   end;
-  CurrentEdit.Text:=InttoStr(ActiveTestType.Current);
-  VoltageEdit.Text:=InttoStr(ActiveTestType.Voltage);
-
-  CurrentEdit.ReadOnly:=((Pos('Power',ActiveTestType.Name)=0) AND (Pos('Variable',ActiveTestType.Name)=0));
-  VoltageEdit.ReadOnly:=CurrentEdit.ReadOnly;
 end;
 
 procedure TPowerbankMainForm.TestTimerTimer(Sender: TObject);
@@ -1229,6 +1261,21 @@ function  TPowerbankMainForm.GetCurrent:double;
 begin
   result:=FCurrent;
 end;
+
+procedure TPowerbankMainForm.SetCapacity(value:double);
+begin
+  if (FCapacity<>value) then
+  begin
+    FCapacity:=value;
+    NewAHDisplay.Value:=value;
+  end;
+end;
+
+function  TPowerbankMainForm.GetCapacity:double;
+begin
+  result:=FCapacity;
+end;
+
 
 procedure TPowerbankMainForm.SetEnergy(value:double);
 begin
@@ -1468,6 +1515,17 @@ begin
   end;
 end;
 
+procedure TPowerbankMainForm.SetActiveTestType(const TT:TTestType);
+begin
+  ActiveTestType.Name:=TT.Name;
+  ActiveTestType.Voltage:=TT.Voltage;
+  ActiveTestType.Current:=TT.Current;
+  CurrentEdit.Text:=InttoStr(ActiveTestType.Current);
+  VoltageEdit.Text:=InttoStr(ActiveTestType.Voltage);
+  CurrentEdit.ReadOnly:=((Pos('Power',ActiveTestType.Name)=0) AND (Pos('Variable',ActiveTestType.Name)=0));
+  VoltageEdit.ReadOnly:=CurrentEdit.ReadOnly;
+end;
+
 procedure TPowerbankMainForm.AfterShow(Sender: TObject; var Done: Boolean);
 begin
   Application.OnIdle := FOldOnIdle; // Restore catched OnIdle.
@@ -1491,6 +1549,7 @@ procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const D
 var
   cmd                  : TCommands;
   boardnumber          : byte;
+  length               : byte;
   counter              : integer;
   PDOCount,PDOIndex    : byte;
   RawPDO               : PDO_DATA_T;
@@ -1502,9 +1561,9 @@ var
 begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
+  length:=PByteArray(data)^[LENGTHPOSITION];
 
   USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
-
 
   case cmd of
     TCommands.CMD_get_data:
@@ -1541,47 +1600,49 @@ begin
 
       Inc(counter,2);
 
-      //IT2704 Voltage
-      wd.Bytes[0]:=PByteArray(data)^[counter];
-      wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      Voltage:=(wd.Raw/1000);
+      if (length>13) then
+      begin
+        //IT2704 Voltage
+        wd.Bytes[0]:=PByteArray(data)^[counter];
+        wd.Bytes[1]:=PByteArray(data)^[counter+1];
+        Voltage:=(wd.Raw/1000);
 
-      Inc(counter,2);
+        Inc(counter,2);
 
-      //IT2704 Current
-      wd.Bytes[0]:=PByteArray(data)^[counter];
-      wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      Current:=(wd.Raw/1000);
+        //IT2704 Current
+        wd.Bytes[0]:=PByteArray(data)^[counter];
+        wd.Bytes[1]:=PByteArray(data)^[counter+1];
+        Current:=(wd.Raw/1000);
 
-      Inc(counter,2);
+        Inc(counter,2);
 
-      //IT2704 Power
-      dwd.Bytes[0]:=PByteArray(data)^[counter];
-      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      Power:=(dwd.Raw/1000);
+        //IT2704 Power
+        dwd.Bytes[0]:=PByteArray(data)^[counter];
+        dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+        dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+        dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+        Power:=(dwd.Raw/1000);
 
-      Inc(counter,4);
+        Inc(counter,4);
 
-      //IT2704 Capacity
-      dwd.Bytes[0]:=PByteArray(data)^[counter];
-      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      Capacity:=(dwd.Raw/1000);
+        //IT2704 Capacity
+        dwd.Bytes[0]:=PByteArray(data)^[counter];
+        dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+        dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+        dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+        Capacity:=(dwd.Raw/1000);
 
-      Inc(counter,4);
+        Inc(counter,4);
 
-      //IT2704 Energy
-      dwd.Bytes[0]:=PByteArray(data)^[counter];
-      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      Energy:=(dwd.Raw/1000);
+        //IT2704 Energy
+        dwd.Bytes[0]:=PByteArray(data)^[counter];
+        dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+        dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+        dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+        Energy:=(dwd.Raw/1000);
 
-      Inc(counter,4);
-
+        Inc(counter,4);
+      end;
 
     end;
     TCommands.CMD_get_PDOList:
@@ -1600,6 +1661,16 @@ begin
         RawPDO.bytes.byte1 := PByteArray(data)^[Counter];
         Inc(Counter);
         DecodePDONew(PDOIndex,RawPDO,PDO);
+
+        if (PDOIndex=1) then
+        begin
+          TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
+          TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
+          if (ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+          begin
+            SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
+          end;
+        end;
 
         if (PDO.isEPR) then
           aSourcePDO := @DUT.SourceEPRPDOs[PDO.index-8]
@@ -1677,6 +1748,14 @@ begin
       DUT.ActiveSRCPDO:=PDOIndex;
 
       DUT.RDOPosition:=PDOIndex;
+
+      TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
+      TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
+
+      if (ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+      begin
+        SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
+      end;
 
       SourcePDODrawGrid.Invalidate;
       SourceEPRPDODrawGrid.Invalidate;

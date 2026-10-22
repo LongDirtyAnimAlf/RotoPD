@@ -442,13 +442,13 @@ static void main_event_handler(lv_event_t * e)
           TMeasurementData LatestBatteryData;
           LatestBatteryData = RDS->NewerRotoPDDatas.getLastData();
 
-          TMeasurementData LatestIT2704Data;
-          LatestIT2704Data  = RDS->NewerIT2704Datas.getLastData();
+          TMeasurementData LastIT2704Data;
+          LastIT2704Data  = RDS->NewerIT2704Datas.getLastData();
 
           switch(screenindex)
           {
             case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LatestIT2704Data);break;}
+            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastIT2704Data);break;}
             case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
             case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
@@ -1006,44 +1006,43 @@ void setup()
   Info_Add("GUI. Init RP2350 ready.");
 }
 
-void loop()
+/*
+void setup1() {
+  // Core 1 initialization (runs roughly at the same time as setup())
+}
+
+void loop1()
 {
-  lv_timer_periodic_handler();
+  static unsigned long startTimeLoop1 = millis();
 
-  check_screensaver_timeout();
+  if (millis() - startTimeLoop1 >= 1000)
+  {
+    // This runs every second !!
+    startTimeLoop1 = millis();
 
-  Message Msg;
+    Serial.println("Loop1");
 
-  uint8_t j;
-
-  static unsigned long startTime = millis();
-
-  bool DataOk = false;
-
-  byte INData[COMMAND_SIZE] = {0};
-  byte OUTData[COMMAND_SIZE] = {0};
-  byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
-  byte dataindexer = 0;
-
-  WORD_VAL w_data;
-  DWORD_VAL dw_data;
-  QWORD_VAL qw_data;
-
-  // We do not know when IT2704 data will arrive
-  // Data-order is also unknown
-  // So use a static to store latest data
-  static TMeasurementData LatestIT2704Data;
-
-  PBatterySetting SET = Battery;
-  PRunDatas RDS = &SET->TestData.RunDatas; 
-
-  int8_t PDOCount = 0;
-  AP33772S_PDO PDO;
-
-  #ifdef TINYUSB_NEED_POLLING_TASK
-  // Manual call tud_task since it isn't called by Core's background
-  TinyUSBDevice.task();
-  #endif
+    // Test connection with load IT2704
+    load.queryConnection();
+    if (!load.isConnected())
+    {
+      // if we are not connected, reset the static measurement data !!
+      LatestIT2704Data.V = 0;
+      LatestIT2704Data.I = 0;
+      LatestIT2704Data.P = 0;
+      LatestIT2704Data.T = 0;
+      LatestIT2704Data.E = 0;
+      LatestIT2704Data.S = 0;
+    }
+  }
+  return;
+  if (flagRequestIT2704Data)
+  {
+    flagRequestIT2704Data = false;
+    // Ask load IT2704 to send measurement results
+    // Result (when available) will be collected later by node.run()
+    load.collectData();
+  }
 
   if (node.run())
   {
@@ -1059,7 +1058,7 @@ void loop()
       // Check TPDO from load messages, if any
       if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
       {
-        Serial.println("GUI [IT2704]. Received correct TPDO message.");
+        //Serial.println("GUI [IT2704]. Received correct TPDO message.");
         ScreenPowerSetEnergyData(LatestIT2704Data.E);
       }
 
@@ -1073,32 +1072,166 @@ void loop()
           // Check for meter data that has the meaurement results from our meter data request
           if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
           {
-            Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
+            //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
             
             // Get the correct IT2704 data in the correct datastore
             load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.A, &LatestIT2704Data.E);
 
-            if (rxmsg.getSubID() == IT2704_METER_VOLTAGE) {ScreenPowerSetVoltageData(LatestIT2704Data.V);}
-            if (rxmsg.getSubID() == IT2704_METER_CURRENT) {ScreenPowerSetCurrentData(LatestIT2704Data.I);}
-            if (rxmsg.getSubID() == IT2704_METER_POWER)   {ScreenPowerSetPowerData(LatestIT2704Data.P);}
-            //if (rxmsg.getSubID() == IT2704_METER_AHOUR
-            if (rxmsg.getSubID() == IT2704_METER_WHOUR)   {ScreenPowerSetEnergyData(LatestIT2704Data.E);}            
+            switch(rxmsg.getSubID())
+            {
+              case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); break;}
+              case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); break;}
+              case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P); break;}
+              case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E); break;}            
+            }
           }
         }
 
         if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
         {
-          Serial.println("GUI [IT2704]. Receiving response from writing data.");
-
-          Serial.print("GUI [IT2704]. Writing data success. ");
-          Serial.print("Index 0x");
-          Serial.printf("%04X",rxmsg.getID());
-          Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
+          //Serial.println("GUI [IT2704]. Receiving response from writing data.");
+          //Serial.print("GUI [IT2704]. Writing data success. ");
+          //Serial.print("Index 0x");
+          //Serial.printf("%04X",rxmsg.getID());
+          //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
         }
       }
     }
 
     node.clearMessage();
+  }
+}
+*/
+
+void loop()
+{
+  Message Msg;
+
+  uint8_t j;
+
+  static unsigned long startTime = millis();
+
+  // We do not know when IT2704 data will arrive
+  // Data-order is also unknown
+  // So use a static to store latest data
+  static TMeasurementData LatestIT2704Data;
+
+  bool DataOk = false;
+
+  byte INData[COMMAND_SIZE] = {0};
+  byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
+  byte dataindexer = 0;
+
+  WORD_VAL w_data;
+  DWORD_VAL dw_data;
+  QWORD_VAL qw_data;
+
+  PBatterySetting SET = Battery;
+  PRunDatas RDS = &SET->TestData.RunDatas; 
+
+  int8_t PDOCount = 0;
+  AP33772S_PDO PDO;
+
+  unsigned long maxCANTime = millis();
+  while (node.run())
+  {
+    // We did receive a message that was not handled by ourselves
+    const Message& rxmsg = node.getMessage();
+
+    // ---- process the message ----
+    //Serial.print("GUI [IT2704]. External app message ID = 0x");
+    //Serial.printf("%04X.\r\n",rxmsg.id);
+    if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
+    {
+
+      // Check TPDO from load messages, if any
+      if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
+      {
+        //Serial.println("GUI [IT2704]. Received correct TPDO message.");
+        ScreenPowerSetEnergyData(LatestIT2704Data.E);
+      }
+
+      // Check SDO message from load
+      if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
+      {
+        //Serial.println("GUI [IT2704]. Receiving SDO response.");
+
+        if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+        {
+          // Check for meter data that has the meaurement results from our meter data request
+          if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
+          {
+            //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
+            
+            // Get the correct IT2704 data in the correct datastore
+            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.A, &LatestIT2704Data.E);
+
+            switch(rxmsg.getSubID())
+            {
+              case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); break;}
+              case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); break;}
+              case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P); break;}
+              case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E); break;}            
+            }
+          }
+        }
+
+        if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
+        {
+          //Serial.println("GUI [IT2704]. Receiving response from writing data.");
+          //Serial.print("GUI [IT2704]. Writing data success. ");
+          //Serial.print("Index 0x");
+          //Serial.printf("%04X",rxmsg.getID());
+          //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
+        }
+      }
+    }
+
+    node.clearMessage();
+
+    // Limit the amount of time inside this loop
+    if (millis() - maxCANTime > 100)
+    {
+      Serial.println("GUI [IT2704]. Timeout.");
+      break;
+    }
+  }
+
+  lv_timer_periodic_handler();
+
+  if (node.getCAN().checkInterrupt()) return;
+
+  check_screensaver_timeout();
+
+  if (node.getCAN().checkInterrupt()) return;
+
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
+  if (node.getCAN().checkInterrupt()) return;
+  #endif
+
+  if (flagCollectRotoPDData)
+  {
+    flagCollectRotoPDData = false;
+    // Get RotoPD measurement results for later averaging
+    // Runs every 100ms
+    collectRotoPDData();
+
+    // If we do not have TPDOs with energy, this might be a quick energy data solution
+    //load.collectDataEnergyOnly();
+
+    if (node.getCAN().checkInterrupt()) return;
+  }
+
+  if (flagRequestIT2704Data)
+  {
+    flagRequestIT2704Data = false;
+    // Ask load IT2704 to send measurement results
+    // Result (when available) will be collected later by node.run()
+    load.collectData();
+
+    if (node.getCAN().checkInterrupt()) return;
   }
 
   if (SoundButtonClick)
@@ -1113,20 +1246,10 @@ void loop()
     // This runs every second !!
     startTime = millis();
 
-    //Serial.println("Loop");
+    Serial.println("Loop");
 
     // Test connection with load IT2704
     load.queryConnection();
-    if (!load.isConnected())
-    {
-      // if we are not connected, reset the static measurement data !!
-      LatestIT2704Data.V = 0;
-      LatestIT2704Data.I = 0;
-      LatestIT2704Data.P = 0;
-      LatestIT2704Data.T = 0;
-      LatestIT2704Data.E = 0;
-      LatestIT2704Data.S = 0;
-    }
 
     PDOCount = taskRotoPDInit();
 
@@ -1186,26 +1309,11 @@ void loop()
 
       }
     }
+
+    if (node.getCAN().checkInterrupt()) return;
+
   }  
 
-  if (flagCollectRotoPDData)
-  {
-    flagCollectRotoPDData = false;
-    // Get RotoPD measurement results for later averaging
-    // Runs every 100ms
-    collectRotoPDData();
-
-    // If we do not have TPDOs with energy, this might be a quick energy data solution
-    //load.collectDataEnergyOnly();
-  }
-
-  if (flagRequestIT2704Data)
-  {
-    flagRequestIT2704Data = false;
-    // Ask load IT2704 to send measurement results
-    // Result will only be collected on next loop or later
-    load.collectData();
-  }
 
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
@@ -1252,6 +1360,8 @@ void loop()
         // Copy the result into the INData buffer for later processing !
         for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
       }
+
+      if (node.getCAN().checkInterrupt()) return;
     }  
   }
 
@@ -1266,9 +1376,12 @@ void loop()
       DataOk |= process_command(&SendCommand,&INData);
       // Reset the command
       SendCommand[COMMANDPOSITION] = CMD_unknown;
+  
     }
+    if (node.getCAN().checkInterrupt()) return;
   }
   #endif //STANDALONE
+
 
   if (DataOk)
   {
@@ -1388,8 +1501,12 @@ void loop()
         break;
       }
     }
+
+    if (node.getCAN().checkInterrupt()) return;
+
   }
 
+  
   #ifdef STANDALONE
   if (flagProcessMeasurementData)
   {
@@ -1417,11 +1534,12 @@ void loop()
     {
       // Request the measurement data
       memset(INData,0,COMMAND_SIZE);  
-      memset(OUTData,0,COMMAND_SIZE);  
-      OUTData[COMMANDPOSITION] = CMD_get_data;
-      OUTData[INDEXPOSITION]   = BoardInfo.getBoardNumber();
+      memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
-      process_command(&OUTData,&INData);
+      hid_report_in[COMMANDPOSITION] = CMD_get_data;
+      hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
+
+      process_command(&hid_report_in,&INData);
 
       // Get the measurement data results from the command above
       dataindexer = DATASTART;
@@ -1437,8 +1555,21 @@ void loop()
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(RDS->LastBatteryData);
 
-      //Also append the IT2704 data in IT2704 buffer
-      RDS->NewerIT2704Datas.push(LatestIT2704Data);
+      if (load.isConnected())
+      {
+        //Also append the IT2704 data in IT2704 buffer
+        RDS->NewerIT2704Datas.push(LatestIT2704Data);
+      }
+      else
+      {
+        // if we are not connected, reset the static measurement data !!
+        LatestIT2704Data.V = 0;
+        LatestIT2704Data.I = 0;
+        LatestIT2704Data.P = 0;
+        LatestIT2704Data.T = 0;
+        LatestIT2704Data.E = 0;
+        LatestIT2704Data.S = 0;
+      }
 
       // Append data into graphs
       ScreenChartAddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
@@ -1449,11 +1580,6 @@ void loop()
 
       //Append the normal data in storage
       AddMeasurementData(&RDS->LastBatteryData);
-
-      memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
-
-      hid_report_in[COMMANDPOSITION] = CMD_get_data;
-      hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
 
       dataindexer = DATASTART;
 
@@ -1501,6 +1627,8 @@ void loop()
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }
     }
+
+    if (node.getCAN().checkInterrupt()) return;
   }
   #endif
 
@@ -1544,14 +1672,8 @@ void loop()
     Screen1AddTData(RDS->Time);
 
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
+    if (node.getCAN().checkInterrupt()) return;
   }
-
-  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);
-  //lv_timer_periodic_handler();
-  //uint32_t task_delay_ms = lv_task_handler();
-  //vTaskDelay( pdMS_TO_TICKS(task_delay_ms) );
-  
-  //vTaskDelayUntil( &xLastWakeTime, ( 5 / portTICK_PERIOD_MS ) );
 
   #ifdef STANDALONE
   if (StoreSettings)

@@ -634,6 +634,21 @@ object PowerbankMainForm: TPowerbankMainForm
         BevelWidth = 5
         TabOrder = 4
       end
+      object Panel4: TPanel
+        AnchorSideLeft.Control = DisplaysPanel
+        AnchorSideTop.Control = Panel2
+        AnchorSideTop.Side = asrBottom
+        AnchorSideRight.Control = DisplaysPanel
+        AnchorSideRight.Side = asrBottom
+        Left = 1
+        Height = 80
+        Top = 271
+        Width = 284
+        Anchors = [akTop, akLeft, akRight]
+        BevelInner = bvLowered
+        BevelWidth = 5
+        TabOrder = 5
+      end
     end
     object Chart1: TChart
       AnchorSideLeft.Control = DisplaysPanel

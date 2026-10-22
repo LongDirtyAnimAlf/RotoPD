@@ -16,13 +16,13 @@ bool Receiver::run(void) {
       dlc = canmessageframe.can_dlc;
       memcpy(data, canmessageframe.data, 8);
       //#ifdef PRINT
-        printBuf(); 
+      //printBuf(); 
       //#endif
     }
     else
     {
       active = false;
-      Serial.println("Strange reception error !");
+      //Serial.println("Strange reception error !");
     }
   }
   else active = false; 

@@ -610,6 +610,8 @@ class MCP2515
         MCP2515(const uint32_t _SPI_CLOCK = DEFAULT_SPI_CLOCK);
         void begin();
         ERROR reset(void);
+
+        bool checkInterrupt(void);
         bool run(void);
 
         //

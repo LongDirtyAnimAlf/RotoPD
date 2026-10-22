@@ -109,6 +109,31 @@ MCP2515::ERROR MCP2515::reset(void)
     return ERROR_OK;
 }
 
+bool MCP2515::checkInterrupt(void)
+{
+    bool result = false;
+
+    if (_intPin < 0)
+    {
+        // Interrupt pin not enabled → fall back to register polling
+        // Read the IF register
+        uint8_t canintf = getInterrupts();
+        result = ((canintf & (CANINTF_RX0IF | CANINTF_RX1IF)));
+        //result = (canintf != 0);
+    }
+    else
+    {
+        result = (digitalRead(_intPin) == LOW);
+    }
+
+    if (result)
+    {
+        //Serial.println("MCP2515 interrupt !!.");
+        return true;
+    }    
+    return false;    
+}
+
 bool MCP2515::run(void)
 {
     uint8_t canintf = 0;
@@ -138,7 +163,7 @@ bool MCP2515::run(void)
         struct can_frame frame;
         ERROR rc = ERROR_NOMSG;
 
-        Serial.printf("Register canintf: %d.\r\n",canintf);        
+        //Serial.printf("Register canintf: %d.\r\n",canintf);        
 
         //Serial.println("Got MCP2515 interrupt !");
 
@@ -159,13 +184,14 @@ bool MCP2515::run(void)
             uint8_t eflg = readRegister(MCP_EFLG);
 
             if(eflg & EFLG_RX1OVR){
-                Serial.println("RX1OVR: receive buffer 1 overflow interrupt.");
+                Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
             }
 
             if(eflg & EFLG_RX0OVR){
-                Serial.println("RX0OVR: receive buffer 0 overflow interrupt.");
+                Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
             }
 
+            /*
             if(eflg & EFLG_TXBO){
                 Serial.println("TXBO: bus off interrupt.");
             }
@@ -190,7 +216,6 @@ bool MCP2515::run(void)
                 Serial.println("EWARN: error warning interrupt.");
             }
 
-            /*
             if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR))
             {
                 _rxHardwareOverflowCount++;
@@ -229,37 +254,42 @@ bool MCP2515::run(void)
             modifyRegister(MCP_CANINTF, canintf & (CANINTF_ERRIF | CANINTF_MERRF), 0);
         }
 
-        if (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
+        while (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
         {
             //Serial.println("RX interrupt.");
 
             if (canintf & CANINTF_RX0IF)
             {
-                Serial.println("RX0 interrupt.");
+                //Serial.println("RX0 interrupt.");
                 // This readMessage function also clears the CANINTF_RX0IF flag !!
                 rc = readMessage(RXB0, &frame);
                 if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
             }
+
             if (canintf & CANINTF_RX1IF)
             {
-                Serial.println("RX1 interrupt.");                
+                //Serial.println("RX1 interrupt.");                
                 // This readMessage function also clears the CANINTF_RX1IF flag !!            
                 rc = readMessage(RXB1, &frame);
                 if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
             }
+
+            canintf = getInterrupts();
         }
 
         if (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF))
         {
-            if (canintf & CANINTF_TX0IF) Serial.println("TX0 interrupt.");
-            if (canintf & CANINTF_TX1IF) Serial.println("TX1 interrupt.");
-            if (canintf & CANINTF_TX2IF) Serial.println("TX2 interrupt.");
+            //if (canintf & CANINTF_TX0IF) Serial.println("TX0 interrupt.");
+            //if (canintf & CANINTF_TX1IF) Serial.println("TX1 interrupt.");
+            //if (canintf & CANINTF_TX2IF) Serial.println("TX2 interrupt.");
 
             // This flag indicates that we can send a message !!
             modifyRegister(MCP_CANINTF, (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF)), 0);
 
             processTxQueue();
         }
+
+        
     }
 
     return (_rxQueue.getCount() > 0);
@@ -650,46 +680,15 @@ MCP2515::ERROR MCP2515::sendMessageDirectPrio(const struct can_frame *frame)
         return ERROR_FAILTX;
     }
 
-    TXBn txBuffers = TXB2;
-
-    const struct TXBn_REGS *txbuf = &TXB[txBuffers];
+    const struct TXBn_REGS *txbuf = &TXB[TXB2];
     uint8_t ctrlval = readRegister(txbuf->CTRL);
     if ( (ctrlval & TXB_TXREQ) == 0 ) {
-        return sendMessage(txBuffers, frame);
+        return sendMessage(TXB2, frame);
     }
 
     return ERROR_ALLTXBUSY;
 }
 
-
-/*
-MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
-{
-    // Try to drain any pending queued messages first
-    processTxQueue();
-
-    if (_intPin < 0)
-    {
-        // Try direct hardware transmission
-        ERROR result = sendMessageDirect(frame);
-        if (result == ERROR_OK) {
-            return ERROR_OK;
-        }
-    }
-
-    // Hardware buffers full - enqueue if room
-    bool enqueued = _txQueue.push(*frame);
-
-    if (enqueued) {
-        // Force set interrupt flag to indicate we want to send a message
-        //modifyRegister(MCP_CANINTF, (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF), 1);        
-        processTxQueue();
-        return ERROR_OK;
-    }
-
-    return ERROR_ALLTXBUSY;
-}
-*/
 
 MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
 {
@@ -725,6 +724,7 @@ bool MCP2515::processTxQueue(void)
         if (result != ERROR_OK) {
             return false;
         }
+        //Serial.println("MCP2515: Send prio message ok.");
         _txQueuePrio.pop(frame);
     }
 
@@ -734,8 +734,10 @@ bool MCP2515::processTxQueue(void)
         if (result != ERROR_OK) {
             return false;
         }
+        //Serial.println("MCP2515: Send normal message ok.");        
         _txQueue.pop(frame);
     }
+
     return ((!_txQueuePrio.isEmpty()) && (!_txQueue.isEmpty()));
 }
 
@@ -903,6 +905,7 @@ uint8_t MCP2515::getErrorFlags(void) const
 {
     uint8_t u8ErrorFlag = readRegister(MCP_EFLG);
 
+    /*
     if(u8ErrorFlag & EFLG_RX1OVR){
         Serial.println("MCP2515 error RX1OVR: receive buffer 1 overflow");
     }
@@ -936,6 +939,7 @@ uint8_t MCP2515::getErrorFlags(void) const
         Serial.println("MCP2515 error EWARN: error warning ");
         Serial.printf("TX count: %d. RX count: %d\r\n",errorCountTX(),errorCountRX());
     }
+    */
 
     return u8ErrorFlag;
 }
