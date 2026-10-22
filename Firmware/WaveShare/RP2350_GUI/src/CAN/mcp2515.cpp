@@ -137,6 +137,7 @@ bool MCP2515::checkInterrupt(void)
 bool MCP2515::run(void)
 {
     uint8_t canintf = 0;
+    uint8_t eflg = 0;
 
     if (_intPin < 0)
     {
@@ -181,14 +182,16 @@ bool MCP2515::run(void)
                 Serial.println("General Error interrupt.");
             }
 
-            uint8_t eflg = readRegister(MCP_EFLG);
-
-            if(eflg & EFLG_RX1OVR){
-                Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
-            }
+            eflg = readRegister(MCP_EFLG);
 
             if(eflg & EFLG_RX0OVR){
                 Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+                canintf |= (CANINTF_RX0IF); // force a read action
+            }
+
+            if(eflg & EFLG_RX1OVR){
+                Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+                canintf |= (CANINTF_RX1IF); // force a read action
             }
 
             /*
@@ -251,7 +254,6 @@ bool MCP2515::run(void)
                 if (eflg & EFLG_TXBO) setOperatingMode(MCP2515::CAN_MODE_NORMAL);
             }        
             */
-            modifyRegister(MCP_CANINTF, canintf & (CANINTF_ERRIF | CANINTF_MERRF), 0);
         }
 
         while (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
@@ -277,6 +279,15 @@ bool MCP2515::run(void)
             canintf = getInterrupts();
         }
 
+        if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR)){
+            modifyRegister(MCP_EFLG, (EFLG_RX0OVR | EFLG_RX1OVR), 0);            
+        }
+
+        if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
+        {
+            modifyRegister(MCP_CANINTF, (CANINTF_ERRIF | CANINTF_MERRF), 0);
+        }
+
         if (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF))
         {
             //if (canintf & CANINTF_TX0IF) Serial.println("TX0 interrupt.");
@@ -284,10 +295,11 @@ bool MCP2515::run(void)
             //if (canintf & CANINTF_TX2IF) Serial.println("TX2 interrupt.");
 
             // This flag indicates that we can send a message !!
-            modifyRegister(MCP_CANINTF, (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF)), 0);
+            modifyRegister(MCP_CANINTF, (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF), 0);
 
             processTxQueue();
         }
+
 
         
     }

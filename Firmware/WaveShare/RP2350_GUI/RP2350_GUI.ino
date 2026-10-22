@@ -1515,12 +1515,18 @@ void loop()
     switch(SET->TestData.Active)
     {
       case bmActive:
-        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
+        // Battery is active. Slowdown the data acquisition to get accurate data into a datastore
         if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
+        // Do not engage the screensaver when active
+        reset_screensaver_idle_timer();
         break;
       case bmReady:
+        SET->TestData.DataTriggerCounter = 0;
+        break;
       case bmIdle:
         SET->TestData.DataTriggerCounter = 0;
+        // Do not engage the screensaver when idle
+        reset_screensaver_idle_timer();
         break;
       default:
         #ifdef DEBUG  

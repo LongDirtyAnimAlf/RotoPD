@@ -1475,9 +1475,9 @@ begin
          write(F,'Human time',LocalFS.ListSeparator);
          write(F,'Time(sec)',LocalFS.ListSeparator);
          write(F,'Voltage(V)',LocalFS.ListSeparator);
-         write(F,'Current(mA)',LocalFS.ListSeparator);
-         write(F,'Capacity(mAh)',LocalFS.ListSeparator);
-         write(F,'Energy(mWh)',LocalFS.ListSeparator);
+         write(F,'Current(A)',LocalFS.ListSeparator);
+         write(F,'Capacity(Ah)',LocalFS.ListSeparator);
+         write(F,'Energy(Wh)',LocalFS.ListSeparator);
          writeln(F);
        end;
 
@@ -1494,9 +1494,9 @@ begin
     write(F,FormatDateTime('dd-mm-yyyy hh:nn:ss',NowUTC),LocalFS.ListSeparator);
     write(F,FloattoStrF((Elapsed/1000),ffFixed,6,1,LocalFS),LocalFS.ListSeparator);
     write(F,FloattoStrF(Voltage,ffFixed,10,3,LocalFS),LocalFS.ListSeparator);
-    write(F,FloattoStrF(Current,ffFixed,10,4,LocalFS),LocalFS.ListSeparator);
-    write(F,FloattoStrF(Capacity,ffFixed,10,1,LocalFS),LocalFS.ListSeparator);
-    write(F,FloattoStrF(Energy,ffFixed,10,1,LocalFS),LocalFS.ListSeparator);
+    write(F,FloattoStrF(Current,ffFixed,10,3,LocalFS),LocalFS.ListSeparator);
+    write(F,FloattoStrF(Capacity,ffFixed,10,3,LocalFS),LocalFS.ListSeparator);
+    write(F,FloattoStrF(Energy,ffFixed,10,3,LocalFS),LocalFS.ListSeparator);
 
     writeln(F);
   finally
