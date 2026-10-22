@@ -1021,6 +1021,7 @@ void loop()
   bool DataOk = false;
 
   byte INData[COMMAND_SIZE] = {0};
+  byte OUTData[COMMAND_SIZE] = {0};
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
   byte dataindexer = 0;
 
@@ -1214,62 +1215,66 @@ void loop()
   // Do we have a valid command ?
   // This is a command coming from the USB HID interface
   // Most likely, this command originates from a desktop PC
-  if (HIDData[ActiveBatteryIndex].DataReceived)
+  if (!DataOk)
   {
-    #ifndef TINYUSB_NEED_POLLING_TASK
-    // Make a local copy of the data 
-    // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
-    noInterrupts();
-    for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[ActiveBatteryIndex].HIDEPOUTData[j];
-    LocalHDCopy.DataReceived = HIDData[ActiveBatteryIndex].DataReceived;
-    HIDData[ActiveBatteryIndex].DataReceived = false;
-    interrupts();
-    PLocalHD = &LocalHDCopy; 
-    #else
-    PLocalHD = (THIDData*)&HIDData[ActiveBatteryIndex];
-    PLocalHD->DataReceived = false;
-    #endif
-
-    //Now perform the Data update  
-    DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
-    if (DataOk)
+    if (HIDData[ActiveBatteryIndex].DataReceived)
     {
-      //ARDUINO_GENERIC_RP2350
-      //ARDUINO_ARCH_RP2040
-
-      // Send report back to host
-      #ifdef ENABLEUSB
-      #ifdef ARDUINO_ESP32S3_DEV
-      HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+      #ifndef TINYUSB_NEED_POLLING_TASK
+      // Make a local copy of the data 
+      // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
+      noInterrupts();
+      for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[ActiveBatteryIndex].HIDEPOUTData[j];
+      LocalHDCopy.DataReceived = HIDData[ActiveBatteryIndex].DataReceived;
+      HIDData[ActiveBatteryIndex].DataReceived = false;
+      interrupts();
+      PLocalHD = &LocalHDCopy; 
       #else
-      HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+      PLocalHD = (THIDData*)&HIDData[ActiveBatteryIndex];
+      PLocalHD->DataReceived = false;
       #endif
-      #endif
 
-      for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
-    }
-  }  
+      //Now perform the Data update  
+      DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+      if (DataOk)
+      {
+        //ARDUINO_GENERIC_RP2350
+        //ARDUINO_ARCH_RP2040
 
-  #ifdef STANDALONE
-  
-  // Do we have a valid command ?
-  // This is a command coming from the touch-screen logic = main_event_handler()
+        // Send report back to host
+        #ifdef ENABLEUSB
+        #ifdef ARDUINO_ESP32S3_DEV
+        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        #else
+        HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        #endif
+        #endif
 
-  if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
-  {
-    // Process the command and 
-    DataOk |= process_command(&SendCommand,&INData);
-    // Reset the command
-    SendCommand[COMMANDPOSITION] = CMD_unknown;
+        // Copy the result into the INData buffer for later processing !
+        for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
+      }
+    }  
   }
 
+  #ifdef STANDALONE
+  if (!DataOk)
+  {
+    // Do we have a valid command ?
+    // This is a command coming from the touch-screen logic = main_event_handler()
+    if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
+    {
+      // Process the command and 
+      DataOk |= process_command(&SendCommand,&INData);
+      // Reset the command
+      SendCommand[COMMANDPOSITION] = CMD_unknown;
+    }
+  }
   #endif //STANDALONE
 
   if (DataOk)
   {
     DataOk = false;
 
-    // We have received a command from the screen or through USB-HID.
+    // We have received a command from the screen or through USB-HID or the standalone measurement timer.
     // The command has been processed.
     // Now we can or might use the results of this processed command.
     // This is mostly for GUI updates !
@@ -1390,10 +1395,6 @@ void loop()
   {
     flagProcessMeasurementData = false;
 
-    #ifdef DEBUG
-    //Serial.println("Getting data");
-    #endif
-
     switch(SET->TestData.Active)
     {
       case bmActive:
@@ -1414,30 +1415,40 @@ void loop()
 
     if (SET->TestData.DataTriggerCounter == 0)
     {
-      TMeasurementData LatestRotoPDData;
+      // Request the measurement data
+      memset(INData,0,COMMAND_SIZE);  
+      memset(OUTData,0,COMMAND_SIZE);  
+      OUTData[COMMANDPOSITION] = CMD_get_data;
+      OUTData[INDEXPOSITION]   = BoardInfo.getBoardNumber();
 
-      getRotoPDData(&LatestRotoPDData.I,&LatestRotoPDData.V,&LatestRotoPDData.P,&LatestRotoPDData.T);    
+      process_command(&OUTData,&INData);
 
-      RDS->LastBatteryData.I = LatestRotoPDData.I;
-      RDS->LastBatteryData.V = LatestRotoPDData.V;
-      RDS->LastBatteryData.P = LatestRotoPDData.P;
-      RDS->LastBatteryData.T = LatestRotoPDData.T;
+      // Get the measurement data results from the command above
+      dataindexer = DATASTART;
+      for ( j=0; j<2; j++ ) {w_data.v[j] = INData[dataindexer++];}
+      RDS->LastBatteryData.V = w_data.Val;
+      for ( j=0; j<2; j++ ) {w_data.v[j] = INData[dataindexer++];}
+      RDS->LastBatteryData.I = w_data.Val;
+      for ( j=0; j<4; j++ ) {dw_data.v[j] = INData[dataindexer++];}
+      RDS->LastBatteryData.P = dw_data.Val;
+      for ( j=0; j<2; j++ ) {w_data.v[j] = INData[dataindexer++];}
+      RDS->LastBatteryData.T = w_data.Val;
 
       //Append the data in RotoPD buffer
-      RDS->NewerRotoPDDatas.push(LatestRotoPDData);
+      RDS->NewerRotoPDDatas.push(RDS->LastBatteryData);
 
       //Also append the IT2704 data in IT2704 buffer
       RDS->NewerIT2704Datas.push(LatestIT2704Data);
 
       // Append data into graphs
-      ScreenChartAddData(LatestRotoPDData.V, LatestRotoPDData.I);
+      ScreenChartAddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
       //ScreenChartAddData(LatestIT2704Data.V, LatestIT2704Data.I);
       
       // Show data on screen 1
-      Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
+      Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
 
       //Append the normal data in storage
-      AddMeasurementData(&LatestRotoPDData);
+      AddMeasurementData(&RDS->LastBatteryData);
 
       memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
@@ -1447,13 +1458,13 @@ void loop()
       dataindexer = DATASTART;
 
       // Send the RotoPD data
-      w_data.Val  = LatestRotoPDData.V;
+      w_data.Val  = RDS->LastBatteryData.V;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      w_data.Val  = LatestRotoPDData.I;
+      w_data.Val  = RDS->LastBatteryData.I;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      dw_data.Val = LatestRotoPDData.P;
+      dw_data.Val = RDS->LastBatteryData.P;
       for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
-      w_data.Val  = LatestRotoPDData.T;
+      w_data.Val  = RDS->LastBatteryData.T;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
 
       if (load.isConnected())
@@ -1483,7 +1494,7 @@ void loop()
       HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #endif      
       #endif
-      
+
       if (SET->TestData.Active == bmActive)
       {
         // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
@@ -1491,7 +1502,7 @@ void loop()
       }
     }
   }
-  #endif //STANDALONE
+  #endif
 
   if (CalcBatteryData)
   {

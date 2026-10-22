@@ -27,13 +27,6 @@ IT2704::IT2704(CanOpenNode *node, uint8_t id, uint8_t channel)
 {
     _connected = false;
     _checkTimer = millis();
-
-    gotV = true;
-    gotI = true;
-    gotP = true;
-    gotA = true;
-
-
 }
 
 // ── begin() ──────────────────────────────────────────────────────────────────
@@ -68,11 +61,6 @@ void IT2704::initDevice(bool reset)
 {
   Message Msg;
   DWORD_FLOAT data;  
-
-  gotV = true;
-  gotI = true;
-  gotP = true;
-  gotA = true;
 
   if (_connected)
   {
@@ -343,7 +331,7 @@ void IT2704::setOutput(bool enabled)
     Msg.setSubID(IT2704_OUTPUT_ONOFF_STATE);
     Msg.setData(enabled ? 1 : 0);
 
-    _node->sendMsg(Msg);
+    _node->sendMsg(Msg,true); // Setting output always with priority !!
   }
 }
 
@@ -363,26 +351,25 @@ void IT2704::collectData(void)
     Msg.setCommand(READ_REQ_4BYTE_CMD);
     Msg.setID(IT2704_METER + (_channel * 0x100));
 
+    // Toogling needed due to some of these messages not getting through
+    // So only two messages at a time !
+
     ToggleDataRequest = !ToggleDataRequest;
 
     if (ToggleDataRequest)
     {
       Msg.setSubID(IT2704_METER_VOLTAGE);
-      //if (gotV) {gotV = false; _node->sendMsg(Msg);}
       _node->sendMsg(Msg);
 
       Msg.setSubID(IT2704_METER_CURRENT);
-      //if (gotI) {gotI = false; _node->sendMsg(Msg);}
       _node->sendMsg(Msg);
     }
     else
     {
       Msg.setSubID(IT2704_METER_POWER);
-      //if (gotP) {gotP = false; _node->sendMsg(Msg);}
       _node->sendMsg(Msg);
 
       Msg.setSubID(IT2704_METER_AHOUR);
-      //if (gotA) {gotA = false; _node->sendMsg(Msg);}
       _node->sendMsg(Msg);
     }
     //Msg.setSubID(IT2704_METER_WHOUR);
@@ -415,10 +402,10 @@ void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, 
     data.f *= 1000; 
     switch(Msg->getSubID())
     {
-      case IT2704_METER_VOLTAGE   : {*V = round(data.f); gotV = true; break;}
-      case IT2704_METER_CURRENT   : {*I = round(data.f); gotI = true; break;}      
-      case IT2704_METER_POWER     : {*P = round(data.f); gotP = true; break;}
-      case IT2704_METER_AHOUR     : {*A = round(data.f); gotA = true; break;}      
+      case IT2704_METER_VOLTAGE   : {*V = round(data.f); break;}
+      case IT2704_METER_CURRENT   : {*I = round(data.f); break;}      
+      case IT2704_METER_POWER     : {*P = round(data.f); break;}
+      case IT2704_METER_AHOUR     : {*A = round(data.f); break;}      
       case IT2704_METER_WHOUR     : {*E = round(data.f); break;}
     }
 }

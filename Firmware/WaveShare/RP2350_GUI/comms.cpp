@@ -263,7 +263,7 @@ bool initINA238(void)
 {
   if(!ina238.begin())
   {
-    //Info_Add("Comms. Init INA238 failed !");
+    Info_Add("Comms. Init INA238 failed !");
     return false;
   }
   else
@@ -298,7 +298,7 @@ bool initINA238(void)
     ina238.clearDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Transparent
     ina238.clearDiagnoseAlertBit(INA238_DIAG_ALERT_POLARITY);
 
-    //Info_Add("Comms. Init INA238 success.");
+    Info_Add("Comms. Init INA238 success.");
   }
   return true;
 }
@@ -382,7 +382,6 @@ bool initROTOPD(void)
     //pd.setOVPOffset_mV(2000);
     //pd.setUVPThreshold(UVP_80PCT);
 
-    Info_Add("Comms. Init AP33772S success.");
 
     pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
 
@@ -394,6 +393,7 @@ bool initROTOPD(void)
     // Switch off output
     //pd.setOutput(false);
 
+    Info_Add("Comms. Init AP33772S success.");
     if (pd.getOutput())
       Info_Add("Comms. AP33772S output on.");
     else
@@ -718,7 +718,7 @@ bool process_command(void const *data, void *result)
 
     GUIUpdateNeeded = true;
   }
-  
+
   // Start processing the collected data !!
   
   // Data start at position 3 !!
