@@ -1003,16 +1003,6 @@ void setup()
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
   //lv_timer_handler();
 
-  /*
-  lv_mem_monitor_t mon_before, mon_after;
-  lv_mem_monitor(&mon_before);
-  navigate_to_matrix_screen();          // or just the object-creation part
-  lv_mem_monitor(&mon_after);
-  Info_Add_Fmt("Used by NEWSAVER: %u bytes",
-       (unsigned)(mon_before.free_size - mon_after.free_size));
-  //lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 100, 0, true);       
-  //lv_timer_handler();
-  */
 
   Info_Add("GUI. Init RP2350 ready.");
 }
@@ -1482,6 +1472,8 @@ void loop()
         LatestIT2704Data.E = 0;
         LatestIT2704Data.S = 0;
       }
+
+      telemetry_screensaver_update_i2c(&RDS->LastBatteryData);
 
       // Append data into graphs
       ScreenChartAddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);

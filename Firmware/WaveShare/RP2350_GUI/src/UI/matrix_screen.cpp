@@ -20,7 +20,7 @@ typedef struct {
     int16_t x, y;
     int8_t vx, vy;
     uint16_t width, height;
-    float last_value;
+    uint32_t last_value;
 } bouncing_box_t;
 
 typedef struct {
@@ -29,7 +29,7 @@ typedef struct {
     lv_obj_t *scr;
 } telemetry_screen_data_t;
 
-static telemetry_data_t current_telemetry = {12.42f, 1.85f, 22.98f, 104.5f};
+static TMeasurementData current_telemetry = {12420, 1850, 22980, 230, 24750, 104500, 0};
 static bool telemetry_dirty = true;
 
 static const lv_color_t colors[4] = {
@@ -83,21 +83,24 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
         telemetry_dirty = false;
 
-        float vals[4] = {
-            current_telemetry.voltage,
-            current_telemetry.current,
-            current_telemetry.power,
-            current_telemetry.energy
+        uint32_t vals[4] = {
+            current_telemetry.V,
+            current_telemetry.I,
+            current_telemetry.P,
+            current_telemetry.E
         };
 
         for ( i = 0; i < 4; i++ ) {
             bouncing_box_t *b = &data->boxes[i];
-            if (fabsf(vals[i] - b->last_value) <= 0.01f) continue;
+
+            // Dismiss noise
+            if (abs((int32_t)(vals[i] - b->last_value)) <= 1) continue;
 
             b->last_value = vals[i];
 
-            if (b->label_display != NULL) SetDisplaymV(b->label_display, lroundf(vals[i] * 1000.0f));
+            if (b->label_display != NULL) SetDisplaymV(b->label_display, vals[i]);
 
+            /*
             if (b->label_val != NULL)            
             {
                 if ((i == 2) || (i == 3))
@@ -107,6 +110,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
                 //lv_obj_invalidate(b->label_val);                
             }
+            */
         }
     }
 }
@@ -160,7 +164,7 @@ void navigate_to_matrix_screen(void)
         b->vy = initial_velocities[i][1];
         b->width  = BOX_WIDTH;
         b->height = BOX_HEIGHT;
-        b->last_value = -999.0f;
+        b->last_value = -1;
 
         b->container = NULL;
         b->label_title = NULL;
@@ -177,7 +181,7 @@ void navigate_to_matrix_screen(void)
 
         lv_obj_set_size(b->container, b->width, b->height);
         lv_obj_set_pos(b->container, b->x, b->y);
-        lv_obj_remove_flag(b->container, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollable(b->container, false);
 
         lv_obj_set_style_bg_color(b->container, lv_color_make(0x12, 0x18, 0x24), 0);
         lv_obj_set_style_bg_opa(b->container, LV_OPA_COVER, 0);
@@ -236,7 +240,7 @@ void navigate_to_matrix_screen(void)
     lv_screen_load_anim(telemetry_scr, LV_SCR_LOAD_ANIM_NONE, 100, 0, false);
 }
 
-void telemetry_screensaver_update_i2c(const telemetry_data_t *data)
+void telemetry_screensaver_update_i2c(const PMeasurementData data)
 {
     if (data) {
         current_telemetry = *data;
