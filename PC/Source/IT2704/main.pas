@@ -5,7 +5,7 @@ unit main;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls,
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   lazserial;
 
 type
@@ -21,6 +21,10 @@ type
     Button4: TButton;
     cmboSerialPorts: TComboBox;
     Memo1: TMemo;
+    Timer1: TTimer;
+    Timer2: TTimer;
+    TimerHeartbeat: TTimer;
+    ToggleBox1: TToggleBox;
     procedure btnAskVoltageDataClick(Sender: TObject);
     procedure btnConnectClick({%H-}Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -29,7 +33,17 @@ type
     procedure Button4Click(Sender: TObject);
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+    procedure Timer2Timer(Sender: TObject);
+    procedure TimerHeartbeatTimer(Sender: TObject);
+    procedure ToggleBox1Change(Sender: TObject);
+    procedure ToggleBox1Click(Sender: TObject);
   private
+    V:double;
+    I:double;
+    C:double;
+    E:double;
+    P:double;
     comm:TLazSerial;
     procedure InitMain({%H-}Data: PtrInt);
     procedure SerialRxData({%H-}Sender: TObject);
@@ -173,6 +187,44 @@ begin
   comm.WriteString('C'+#13);
 end;
 
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+  // Simulate IT2704 !!
+  E:=E+0.01;
+  comm.WriteString('t'+'181'+'8'+SingleToHex(E)+SingleToHex(E+1)+#13);
+  comm.WriteString('t'+'281'+'8'+SingleToHex(26.4)+SingleToHex(88.2)+#13);
+  comm.WriteString('t'+'381'+'8'+SingleToHex(26.4)+SingleToHex(88.2)+#13);
+  comm.WriteString('t'+'481'+'8'+SingleToHex(26.4)+SingleToHex(88.2)+#13);
+end;
+
+procedure TForm1.Timer2Timer(Sender: TObject);
+begin
+  V:=Random(20000)/1000;
+  I:=Random(5000)/1000;
+  P:=123+Random(5000)/1000;
+  comm.WriteString('t'+'581'+'8'+'430B3001'+SingleToHex(V)+#13);
+  comm.WriteString('t'+'581'+'8'+'430B3002'+SingleToHex(I)+#13);
+  comm.WriteString('t'+'581'+'8'+'430B3003'+SingleToHex(P)+#13);
+  comm.WriteString('t'+'581'+'8'+'430B300C'+SingleToHex(55.8)+#13);
+end;
+
+procedure TForm1.TimerHeartbeatTimer(Sender: TObject);
+begin
+  comm.WriteString('t'+'701'+'1'+'00'+#13);
+end;
+
+procedure TForm1.ToggleBox1Change(Sender: TObject);
+begin
+  Timer1.Enabled:=TToggleBox(Sender).Checked;
+  //Timer2.Enabled:=TToggleBox(Sender).Checked;
+  TimerHeartbeat.Enabled:=TToggleBox(Sender).Checked;
+end;
+
+procedure TForm1.ToggleBox1Click(Sender: TObject);
+begin
+
+end;
+
 
 procedure TForm1.InitMain(Data: PtrInt);
 {$ifdef UNIX}
@@ -225,8 +277,8 @@ begin
     comm.Active:=True;
 
     // Command to get the Gravity CAN interface going
-    //comm.WriteString('S5'+#13);
-    //comm.WriteString('O'+#13);
+    comm.WriteString('S5'+#13);
+    comm.WriteString('O'+#13);
 
     // Command to get the IT2704 going
     // ID   = 00000000
@@ -298,6 +350,27 @@ end;
 procedure TForm1.SerialRxData(Sender: TObject);
 begin
   Memo1.Lines.Append(comm.Data);
+  if (comm.Data='t6018430B300100000000') then
+  begin
+    V:=Random(20000)/1000;
+    comm.WriteString('t'+'581'+'8'+'430B3001'+SingleToHex(V)+#13);
+  end;
+  if (comm.Data='t6018430B300200000000') then
+  begin
+    I:=Random(5000)/1000;
+    comm.WriteString('t'+'581'+'8'+'430B3002'+SingleToHex(I)+#13);
+  end;
+
+  if (comm.Data='t6018430B300300000000') then
+  begin
+    P:=123+Random(5000)/1000;
+    comm.WriteString('t'+'581'+'8'+'430B3003'+SingleToHex(P)+#13);
+  end;
+
+  if (comm.Data='t6018430B300C00000000') then
+  begin
+    comm.WriteString('t'+'581'+'8'+'430B300C'+SingleToHex(55.8)+#13);
+  end;
 end;
 
 end.

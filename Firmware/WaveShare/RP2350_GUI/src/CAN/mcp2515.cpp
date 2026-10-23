@@ -265,17 +265,19 @@ bool MCP2515::run(void)
 
             if (canintf & CANINTF_RX0IF)
             {
-                //Serial.println("RX0 interrupt.");
+                Serial.println("RX0 interrupt.");
                 // This readMessage function also clears the CANINTF_RX0IF flag !!
                 rc = readMessage(RXB0, &frame);
+                if (rc != ERROR_OK) Serial.println("RX0 interrupt could not read message.");                                
                 if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
             }
 
             if (canintf & CANINTF_RX1IF)
             {
-                //Serial.println("RX1 interrupt.");                
+                Serial.println("RX1 interrupt.");                
                 // This readMessage function also clears the CANINTF_RX1IF flag !!            
                 rc = readMessage(RXB1, &frame);
+                if (rc != ERROR_OK) Serial.println("RX1 interrupt could not read message.");                
                 if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
             }
 

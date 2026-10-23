@@ -11,8 +11,9 @@
 #include "hardware/clocks.h"
 
 #include <lvgl.h>
-#include "pico/stdlib.h"
-
+#include <pico/stdlib.h>
+#include <pico/multicore.h>
+#include <pico/mutex.h>
 #include "./src/bsp/bsp_i2c.h"
 #include "./src/bsp/bsp_st7701.h"
 #include "./src/bsp/bsp_buzzer.h"
@@ -37,6 +38,9 @@
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
+
+bool core1_separate_stack = true;
+
 
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
@@ -78,6 +82,8 @@ static Ticker dataupdateticker;
 static volatile bool flagCollectRotoPDData = false;
 static volatile bool flagRequestIT2704Data = false;
 static bool SoundButtonClick = false;
+
+auto_init_mutex(can_mutex);
 
 #ifdef STANDALONE
 //GT911_Lite tp; // touchscreen through TwoWire
@@ -462,11 +468,15 @@ static void main_event_handler(lv_event_t * e)
           #ifdef DEBUG                      
           Serial.println("Zero button pressed");
           #endif
-          if (event_object == zerocapacitybutton) RDS->Capacity = 0;
-          if (event_object == zeroenergybutton)   RDS->Energy = 0;
-          if (event_object == zerotimebutton)     RDS->Time = 0;          
-          Screen1AddEPData(0,0);        
-          ScreenPowerAddEPData(0,0);        
+          if ((event_object == zeroenergybutton) || (event_object == zerocapacitybutton))
+          {
+            if (event_object == zerocapacitybutton) RDS->Capacity = 0;
+            if (event_object == zeroenergybutton) RDS->Energy = 0;
+            load.clearEnergy();
+          }
+          if (event_object == zerotimebutton) RDS->Time = 0;          
+          Screen1AddEPData(RDS->Energy,0);        
+          ScreenPowerAddEPData(RDS->Energy,0);        
 
         }
         else
@@ -686,6 +696,28 @@ void dataupdatecb()
 {
   // Inform the loop to collect the battery data
   CalcBatteryData = true;
+}
+
+// Running on core1
+void setup1() {
+  delay(1000);
+  Serial.printf("C1: Red leader standing by...\n");
+}
+
+void loop1() {
+  //Serial.printf("C1: Stay on target...\n");
+  //ScreenPowerSetEnergyData(1234);  
+  //delay(500);
+  static uint32_t counter = 0;
+
+  delay(1);
+
+  //rp2040.fifo.push_nb(counter++);   // safe non-blocking if you use push_nb
+
+  mutex_enter_blocking(&can_mutex);
+  node.getCAN().checkInterrupt();
+  mutex_exit(&can_mutex);  
+
 }
 
 void setup()
@@ -1005,6 +1037,9 @@ void setup()
 
 
   Info_Add("GUI. Init RP2350 ready.");
+
+// Force-launch core 1
+  //multicore_launch_core1(core1_entry);  
 }
 
 void loop()
@@ -1037,6 +1072,15 @@ void loop()
   AP33772S_PDO PDO;
 
   unsigned long maxCANTime = millis();
+
+  uint32_t msg;
+
+  if (rp2040.fifo.pop_nb(&msg)) {
+    //Serial.printf("From core1: %lu\n", msg);
+    Serial.println("GUI. From core1.");
+  }  
+
+  mutex_enter_blocking(&can_mutex);
   while (node.run())
   {
     // We did receive a message that was not handled by ourselves
@@ -1100,11 +1144,12 @@ void loop()
       break;
     }
   }
+  mutex_exit(&can_mutex);  
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
   TinyUSBDevice.task();
-  if (node.getCAN().checkInterrupt()) return;
+  //if (node.getCAN().checkInterrupt()) return;
   #endif
 
   if (flagCollectRotoPDData)
@@ -1117,17 +1162,18 @@ void loop()
     // If we do not have TPDOs with energy, this might be a quick energy data solution
     //load.collectDataEnergyOnly();
 
-    if (node.getCAN().checkInterrupt()) return;
+    //if (node.getCAN().checkInterrupt()) return;
   }
 
   if (flagRequestIT2704Data)
   {
+    mutex_enter_blocking(&can_mutex);
     flagRequestIT2704Data = false;
     // Ask load IT2704 to send measurement results
     // Result (when available) will be collected later by node.run()
     load.collectData();
-
-    if (node.getCAN().checkInterrupt()) return;
+    mutex_exit(&can_mutex);  
+    //if (node.getCAN().checkInterrupt()) return;
   }
 
   if (SoundButtonClick)
@@ -1145,7 +1191,9 @@ void loop()
     Serial.println("Loop");
 
     // Test connection with load IT2704
+    mutex_enter_blocking(&can_mutex);
     load.queryConnection();
+    mutex_exit(&can_mutex);  
 
     PDOCount = taskRotoPDInit();
 
@@ -1206,7 +1254,7 @@ void loop()
       }
     }
 
-    if (node.getCAN().checkInterrupt()) return;
+    //if (node.getCAN().checkInterrupt()) return;
 
   }  
 
@@ -1257,7 +1305,7 @@ void loop()
         for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
       }
 
-      if (node.getCAN().checkInterrupt()) return;
+      //if (node.getCAN().checkInterrupt()) return;
     }  
   }
 
@@ -1274,7 +1322,7 @@ void loop()
       SendCommand[COMMANDPOSITION] = CMD_unknown;
   
     }
-    if (node.getCAN().checkInterrupt()) return;
+    //if (node.getCAN().checkInterrupt()) return;
   }
   #endif //STANDALONE
 
@@ -1306,7 +1354,6 @@ void loop()
       case CMD_set_value:
       {
         Screen1SetStageData(&CurrentBoard->BM);
-        ClearRunData(RDS);
         break;
       }
 
@@ -1323,12 +1370,24 @@ void loop()
         if (cCmd == CMD_set_time) Info_Add("GUI. CMD_set_time received.");
         Info_Add_Fmt("GUI. DataValue [length %d]: %d.", Length, qw_data.Val);
 
-        if (cCmd == CMD_set_energy) RDS->Energy = qw_data.Val; // in nAh
+        if (cCmd == CMD_set_energy)
+        {
+          RDS->Energy = qw_data.Val; // in nAh
+          Screen1AddEData(RDS->Energy / 1000000ULL);
+          if (RDS->Energy == 0)
+          {
+            mutex_enter_blocking(&can_mutex);
+            load.clearEnergy();
+            mutex_exit(&can_mutex);  
+          }
+        }
         if (cCmd == CMD_set_capacity) RDS->Capacity = qw_data.Val; // in nWh
-        if (cCmd == CMD_set_time) RDS->Time = qw_data.Val;  // in ms
 
-        if (cCmd == CMD_set_energy) Screen1AddEData(RDS->Energy / 1000000ULL);
-        if (cCmd == CMD_set_time) Screen1AddTData(RDS->Time);
+        if (cCmd == CMD_set_time)
+        {
+          RDS->Time = qw_data.Val;  // in ms
+          Screen1AddTData(RDS->Time);
+        }
 
         break;
       }
@@ -1398,7 +1457,7 @@ void loop()
       }
     }
 
-    if (node.getCAN().checkInterrupt()) return;
+    //if (node.getCAN().checkInterrupt()) return;
 
   }
 
@@ -1414,7 +1473,7 @@ void loop()
         // Battery is active. Slowdown the data acquisition to get accurate data into a datastore
         if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
         // Do not engage the screensaver when active
-        //reset_screensaver_idle_timer();
+        reset_screensaver_idle_timer();
         break;
       case bmReady:
         SET->TestData.DataTriggerCounter = 0;
@@ -1533,7 +1592,7 @@ void loop()
       }
     }
 
-    if (node.getCAN().checkInterrupt()) return;
+    //if (node.getCAN().checkInterrupt()) return;
   }
   #endif
 
@@ -1577,16 +1636,16 @@ void loop()
     Screen1AddTData(RDS->Time);
 
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
-    if (node.getCAN().checkInterrupt()) return;
+    //if (node.getCAN().checkInterrupt()) return;
   }
 
   check_screensaver_timeout();
 
-  if (node.getCAN().checkInterrupt()) return;
+  //if (node.getCAN().checkInterrupt()) return;
 
   lv_timer_periodic_handler();
 
-  if (node.getCAN().checkInterrupt()) return;
+  //if (node.getCAN().checkInterrupt()) return;
 
   #ifdef STANDALONE
   if (StoreSettings)
@@ -1668,8 +1727,6 @@ void ClearRunData(PRunDatas RDS)
 
   RDS->NewerRotoPDDatas.clear();  
   RDS->NewerIT2704Datas.clear();  
-
-  load.clearEnergy();
 }
 
 void ClearStageData(PStageData SD)
