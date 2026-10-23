@@ -27,6 +27,8 @@ static lv_obj_t * energy_display;
 static lv_obj_t * voltage_display;
 static lv_obj_t * current_display;
 
+static char power_label[8] = {0};
+
 void gauge_set_voltage(int16_t V)
 {
     if (voltage_display != NULL) SetDisplaymV(voltage_display, (V));
@@ -57,7 +59,11 @@ void gauge_set_power(int32_t P)
     lv_scale_set_line_needle_value(scale, needle_line, NEEDLE_LENGTH, P);
 
     //lv_label_set_text_fmt(label_value, "%d", (int)P);
-    lv_label_set_text_fmt(label_value, "%03d", P);    
+    //lv_label_set_text_fmt(label_value, "%03d", P); 
+   
+    snprintf(power_label, sizeof(power_label), "%03d", P);
+    lv_obj_invalidate(label_value); 
+
 }
 
 // ============== Create ==============
@@ -301,7 +307,10 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
     lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
     lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, LV_PART_MAIN);
-    lv_label_set_text_fmt(label_value, "%03d", 0);
+    //lv_label_set_text_fmt(label_value, "%03d", 0);
+    snprintf(power_label, sizeof(power_label), "%03d", 0);
+    lv_label_set_text_static(label_value, power_label); 
+    lv_obj_invalidate(label_value); 
 
     lv_obj_t *digits_back = lv_label_create(cont);
     lv_obj_remove_style_all(digits_back);

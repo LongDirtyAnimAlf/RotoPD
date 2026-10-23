@@ -8,7 +8,7 @@ const char ZEROS[]    = "000000000000";
 const char ALL[]      = "888888888888";
 const char INVALID[]  = "------------";
 
-char tmpArray[12] = "";
+static char tmpArray[12] = "";
 
 lv_obj_t * create_display(lv_obj_t * parent, lv_color_t c, bool size, byte count)
 {

@@ -27,19 +27,31 @@ void Setup_ScreenPower(byte index)
 
 void ScreenPowerSetVoltageData(word V)
 {
-  gauge_set_voltage(V);
+  if (!lv_obj_is_hidden(screenpower))
+  {
+    gauge_set_voltage(V);
+  }
 }
 void ScreenPowerSetCurrentData(word I)
 {
-  gauge_set_current(I);
+  if (!lv_obj_is_hidden(screenpower))
+  {
+    gauge_set_current(I);
+  }
 }
 void ScreenPowerSetPowerData(dword P)
 {
-  gauge_set_power(P / 1000);
+  if (!lv_obj_is_hidden(screenpower))
+  {
+    gauge_set_power(P / 1000);
+  }
 }
 void ScreenPowerSetEnergyData(dword E)
 {
-  gauge_set_energy(E);  
+  if (!lv_obj_is_hidden(screenpower))
+  {
+    gauge_set_energy(E);  
+  }
 }
 
 void ScreenPowerAddEPData(dword E, dword P)

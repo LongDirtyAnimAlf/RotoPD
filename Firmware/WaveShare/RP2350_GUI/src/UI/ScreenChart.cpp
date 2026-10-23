@@ -161,13 +161,17 @@ void ScreenChartAddData(word V, word I)
 {
   dword tempcalc;
 
-  tempcalc = V;
-  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempcalc);
-  if (voltage_series != NULL) lv_chart_set_next_value(chart, voltage_series, (word)tempcalc);
+  if (!lv_obj_is_hidden(screenchart))
+  {
+    tempcalc = V;
+    if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempcalc);
+    if (voltage_series != NULL) lv_chart_set_next_value(chart, voltage_series, (word)tempcalc);
 
-  tempcalc = I;
-  if (ScreenChartCurrentDisplay != NULL)  SetDisplaymV(ScreenChartCurrentDisplay, (word)tempcalc);
-  if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempcalc);
+    tempcalc = I;
+    if (ScreenChartCurrentDisplay != NULL)  SetDisplaymV(ScreenChartCurrentDisplay, (word)tempcalc);
+    if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempcalc);
+  }
+
 }
 
 byte ScreenChartGetActive(void)

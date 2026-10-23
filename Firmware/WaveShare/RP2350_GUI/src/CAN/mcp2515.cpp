@@ -111,6 +111,9 @@ MCP2515::ERROR MCP2515::reset(void)
 
 bool MCP2515::checkInterrupt(void)
 {
+    run();
+    return false;
+
     bool result = false;
 
     if (_intPin < 0)

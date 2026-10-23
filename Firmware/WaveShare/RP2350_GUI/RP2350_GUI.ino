@@ -1003,105 +1003,19 @@ void setup()
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
   //lv_timer_handler();
 
+  /*
+  lv_mem_monitor_t mon_before, mon_after;
+  lv_mem_monitor(&mon_before);
+  navigate_to_matrix_screen();          // or just the object-creation part
+  lv_mem_monitor(&mon_after);
+  Info_Add_Fmt("Used by NEWSAVER: %u bytes",
+       (unsigned)(mon_before.free_size - mon_after.free_size));
+  //lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 100, 0, true);       
+  //lv_timer_handler();
+  */
+
   Info_Add("GUI. Init RP2350 ready.");
 }
-
-/*
-void setup1() {
-  // Core 1 initialization (runs roughly at the same time as setup())
-}
-
-void loop1()
-{
-  static unsigned long startTimeLoop1 = millis();
-
-  if (millis() - startTimeLoop1 >= 1000)
-  {
-    // This runs every second !!
-    startTimeLoop1 = millis();
-
-    Serial.println("Loop1");
-
-    // Test connection with load IT2704
-    load.queryConnection();
-    if (!load.isConnected())
-    {
-      // if we are not connected, reset the static measurement data !!
-      LatestIT2704Data.V = 0;
-      LatestIT2704Data.I = 0;
-      LatestIT2704Data.P = 0;
-      LatestIT2704Data.T = 0;
-      LatestIT2704Data.E = 0;
-      LatestIT2704Data.S = 0;
-    }
-  }
-  return;
-  if (flagRequestIT2704Data)
-  {
-    flagRequestIT2704Data = false;
-    // Ask load IT2704 to send measurement results
-    // Result (when available) will be collected later by node.run()
-    load.collectData();
-  }
-
-  if (node.run())
-  {
-    // We did receive a message that was not handled by ourselves
-    const Message& rxmsg = node.getMessage();
-
-    // ---- process the message ----
-    //Serial.print("GUI [IT2704]. External app message ID = 0x");
-    //Serial.printf("%04X.\r\n",rxmsg.id);
-    if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
-    {
-
-      // Check TPDO from load messages, if any
-      if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
-      {
-        //Serial.println("GUI [IT2704]. Received correct TPDO message.");
-        ScreenPowerSetEnergyData(LatestIT2704Data.E);
-      }
-
-      // Check SDO message from load
-      if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
-      {
-        //Serial.println("GUI [IT2704]. Receiving SDO response.");
-
-        if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
-        {
-          // Check for meter data that has the meaurement results from our meter data request
-          if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
-          {
-            //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
-            
-            // Get the correct IT2704 data in the correct datastore
-            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.A, &LatestIT2704Data.E);
-
-            switch(rxmsg.getSubID())
-            {
-              case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); break;}
-              case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); break;}
-              case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P); break;}
-              case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E); break;}            
-            }
-          }
-        }
-
-        if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
-        {
-          //Serial.println("GUI [IT2704]. Receiving response from writing data.");
-          //Serial.print("GUI [IT2704]. Writing data success. ");
-          //Serial.print("Index 0x");
-          //Serial.printf("%04X",rxmsg.getID());
-          //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
-        }
-      }
-    }
-
-    node.clearMessage();
-  }
-}
-*/
 
 void loop()
 {
