@@ -21,7 +21,10 @@ void reset_screensaver_idle_timer(void) {
         // Load the main screen and cleanly delete the Matrix screensaver screen (true)
         //lv_screen_load_anim(home_scr, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, true);
 
-        lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 100, 0, true);
+        lv_obj_t * saver = lv_scr_act();
+        //lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 100, 0, true);
+        lv_scr_load(screenbase);
+        lv_obj_del(saver);
     }
 }
 

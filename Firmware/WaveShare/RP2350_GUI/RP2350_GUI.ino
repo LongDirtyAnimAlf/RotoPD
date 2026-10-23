@@ -1414,7 +1414,7 @@ void loop()
         // Battery is active. Slowdown the data acquisition to get accurate data into a datastore
         if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
         // Do not engage the screensaver when active
-        reset_screensaver_idle_timer();
+        //reset_screensaver_idle_timer();
         break;
       case bmReady:
         SET->TestData.DataTriggerCounter = 0;
@@ -1473,7 +1473,8 @@ void loop()
         LatestIT2704Data.S = 0;
       }
 
-      telemetry_screensaver_update_i2c(&RDS->LastBatteryData);
+      //telemetry_screensaver_update_i2c(&RDS->LastBatteryData);
+      telemetry_screensaver_update_i2c(&LatestIT2704Data);
 
       // Append data into graphs
       ScreenChartAddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
@@ -1584,6 +1585,8 @@ void loop()
   if (node.getCAN().checkInterrupt()) return;
 
   lv_timer_periodic_handler();
+
+  if (node.getCAN().checkInterrupt()) return;
 
   #ifdef STANDALONE
   if (StoreSettings)
