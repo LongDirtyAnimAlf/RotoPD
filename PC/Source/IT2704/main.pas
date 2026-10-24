@@ -21,6 +21,7 @@ type
     Button4: TButton;
     cmboSerialPorts: TComboBox;
     Memo1: TMemo;
+    Memo2: TMemo;
     Timer1: TTimer;
     Timer2: TTimer;
     TimerHeartbeat: TTimer;
@@ -47,6 +48,7 @@ type
     comm:TLazSerial;
     procedure InitMain({%H-}Data: PtrInt);
     procedure SerialRxData({%H-}Sender: TObject);
+    procedure SerialTxData(s:string);
   public
 
   end;
@@ -180,21 +182,21 @@ begin
   // DLC  = 2
   // Data = 0201  ; 02 = Stop Remote Node. 01 = Device instrument address
   // This stops a regular sending of data from IT2704 to PC over CAN.
-  comm.WriteString('t'+'000'+'2'+'0205'+#13);
-  comm.WriteString('O'+#13);
+  SerialTxData('t'+'000'+'2'+'0205');
+  SerialTxData('O');
 
   // Command to stop the Gravity CAN interface
-  comm.WriteString('C'+#13);
+  SerialTxData('C');
 end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
   // Simulate IT2704 !!
   E:=E+0.01;
-  comm.WriteString('t'+'181'+'8'+SingleToHex(E)+SingleToHex(E+1)+#13);
-  comm.WriteString('t'+'281'+'8'+SingleToHex(26.4)+SingleToHex(88.2)+#13);
-  comm.WriteString('t'+'381'+'8'+SingleToHex(26.4)+SingleToHex(88.2)+#13);
-  comm.WriteString('t'+'481'+'8'+SingleToHex(26.4)+SingleToHex(88.2)+#13);
+  SerialTxData('t'+'181'+'8'+SingleToHex(E)+SingleToHex(E+1));
+  SerialTxData('t'+'281'+'8'+SingleToHex(26.4)+SingleToHex(88.2));
+  SerialTxData('t'+'381'+'8'+SingleToHex(26.4)+SingleToHex(88.2));
+  SerialTxData('t'+'481'+'8'+SingleToHex(26.4)+SingleToHex(88.2));
 end;
 
 procedure TForm1.Timer2Timer(Sender: TObject);
@@ -202,15 +204,15 @@ begin
   V:=Random(20000)/1000;
   I:=Random(5000)/1000;
   P:=123+Random(5000)/1000;
-  comm.WriteString('t'+'581'+'8'+'430B3001'+SingleToHex(V)+#13);
-  comm.WriteString('t'+'581'+'8'+'430B3002'+SingleToHex(I)+#13);
-  comm.WriteString('t'+'581'+'8'+'430B3003'+SingleToHex(P)+#13);
-  comm.WriteString('t'+'581'+'8'+'430B300C'+SingleToHex(55.8)+#13);
+  SerialTxData('t'+'581'+'8'+'430B3001'+SingleToHex(V));
+  SerialTxData('t'+'581'+'8'+'430B3002'+SingleToHex(I));
+  SerialTxData('t'+'581'+'8'+'430B3003'+SingleToHex(P));
+  SerialTxData('t'+'581'+'8'+'430B300C'+SingleToHex(55.8));
 end;
 
 procedure TForm1.TimerHeartbeatTimer(Sender: TObject);
 begin
-  comm.WriteString('t'+'701'+'1'+'00'+#13);
+  SerialTxData('t'+'701'+'1'+'00');
 end;
 
 procedure TForm1.ToggleBox1Change(Sender: TObject);
@@ -277,16 +279,16 @@ begin
     comm.Active:=True;
 
     // Command to get the Gravity CAN interface going
-    comm.WriteString('S5'+#13);
-    comm.WriteString('O'+#13);
+    SerialTxData('S5');
+    SerialTxData('O');
 
     // Command to get the IT2704 going
     // ID   = 00000000
     // DLC  = 2
     // Data = 0101  ; 01 = Start Remote Node. 01 = Device instrument address
     // This starts a regular sending of data from IT2704 to PC over CAN.
-    //comm.WriteString('t'+'000'+'2'+'0101'+#13);
-    //comm.WriteString('O'+#13);
+    //SerialTxData('t'+'000'+'2'+'0101');
+    //SerialTxData('O');
 
 
   end;
@@ -295,26 +297,26 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   // Send a Node Guarding Request
-  //comm.WriteString('t'+'701'+'0'+'00'+'0000'+'00'+'00000000'+#13);
-  comm.WriteString('t'+'701'+'0'+#13);
+  //SerialTxData('t'+'701'+'0'+'00'+'0000'+'00'+'00000000');
+  SerialTxData('t'+'701'+'0');
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
   // Set IT2700 CANopen remote control mode on
-  comm.WriteString('t'+'000'+'2'+'0101'+#13);
+  SerialTxData('t'+'000'+'2'+'0101');
   // Set Set the transmission type of TPDO1 to 254
-  comm.WriteString('t'+'601'+'8'+'2F001802FE000000'+#13);
+  SerialTxData('t'+'601'+'8'+'2F001802FE000000');
   //Modify TPDO1 timer cycle as 0ms
-  comm.WriteString('t'+'601'+'8'+'2B00180500000000'+#13);
+  SerialTxData('t'+'601'+'8'+'2B00180500000000');
 
 
-  comm.WriteString('t'+'601'+'8'+'2F011802FE000000'+#13);
-  comm.WriteString('t'+'601'+'8'+'2B01180500000000'+#13);
-  comm.WriteString('t'+'601'+'8'+'2F021802FE000000'+#13);
-  comm.WriteString('t'+'601'+'8'+'2B02180500000000'+#13);
-  comm.WriteString('t'+'601'+'8'+'2F031802FE000000'+#13);
-  comm.WriteString('t'+'601'+'8'+'2B03180500000000'+#13);
+  SerialTxData('t'+'601'+'8'+'2F011802FE000000');
+  SerialTxData('t'+'601'+'8'+'2B01180500000000');
+  SerialTxData('t'+'601'+'8'+'2F021802FE000000');
+  SerialTxData('t'+'601'+'8'+'2B02180500000000');
+  SerialTxData('t'+'601'+'8'+'2F031802FE000000');
+  SerialTxData('t'+'601'+'8'+'2B03180500000000');
 
 end;
 
@@ -322,13 +324,13 @@ procedure TForm1.Button3Click(Sender: TObject);
 
 begin
   Memo1.Lines.Append(SingleToHex(2.5));
-  comm.WriteString('t'+'601'+'8'+'23023001'+SingleToHex(0.2)+#13);
-  comm.WriteString('t'+'601'+'8'+'2F08300101000000'+#13);
+  SerialTxData('t'+'601'+'8'+'23023001'+SingleToHex(0.2));
+  SerialTxData('t'+'601'+'8'+'2F08300101000000');
 end;
 
 procedure TForm1.Button4Click(Sender: TObject);
 begin
-  comm.WriteString('t'+'601'+'8'+'2F08300100000000'+#13);
+  SerialTxData('t'+'601'+'8'+'2F08300100000000');
 end;
 
 procedure TForm1.btnAskVoltageDataClick(Sender: TObject);
@@ -336,40 +338,68 @@ begin
   // This will only work in pre-operational and operational mode !!
 
   // Force set pre-operational mode !!
-  //comm.WriteString('t'+'000'+'2'+'8001'+#13);
+  //SerialTxData('t'+'000'+'2'+'8001');
 
   // Ask for data through correct SDO
-  //comm.WriteString('t'+'601'+'8'+'40'+'0220'+'01'+'00000000'+#13);
+  //SerialTxData('t'+'601'+'8'+'40'+'0220'+'01'+'00000000');
 
 
-  comm.WriteString('t'+'601'+'8'+'40'+'0B30'+'01'+'00000000'+#13);
+  SerialTxData('t'+'601'+'8'+'40'+'0B30'+'01'+'00000000');
 
 
 end;
 
-procedure TForm1.SerialRxData(Sender: TObject);
+procedure TForm1.SerialTxData(s:string);
 begin
-  Memo1.Lines.Append(comm.Data);
-  if (comm.Data='t6018430B300100000000') then
-  begin
-    V:=Random(20000)/1000;
-    comm.WriteString('t'+'581'+'8'+'430B3001'+SingleToHex(V)+#13);
-  end;
-  if (comm.Data='t6018430B300200000000') then
-  begin
-    I:=Random(5000)/1000;
-    comm.WriteString('t'+'581'+'8'+'430B3002'+SingleToHex(I)+#13);
-  end;
+  comm.WriteString(s+#13);
+  Memo2.Lines.Append(s);
+end;
 
-  if (comm.Data='t6018430B300300000000') then
+procedure TForm1.SerialRxData(Sender: TObject);
+var
+  s:string;
+begin
+  s:=Trim(comm.Data);
+  if Length(s)>0 then
   begin
-    P:=123+Random(5000)/1000;
-    comm.WriteString('t'+'581'+'8'+'430B3003'+SingleToHex(P)+#13);
-  end;
+    if (s='t6018430B300100000000') then
+    begin
+      V:=Random(20000)/1000;
+      SerialTxData('t'+'581'+'8'+'430B3001'+SingleToHex(V));
+    end;
+    if (s='t6018430B300200000000') then
+    begin
+      I:=Random(5000)/1000;
+      SerialTxData('t'+'581'+'8'+'430B3002'+SingleToHex(I));
+    end;
 
-  if (comm.Data='t6018430B300C00000000') then
-  begin
-    comm.WriteString('t'+'581'+'8'+'430B300C'+SingleToHex(55.8)+#13);
+    if (s='t6018430B300300000000') then
+    begin
+      P:=123+Random(5000)/1000;
+      SerialTxData('t'+'581'+'8'+'430B3003'+SingleToHex(P));
+    end;
+
+    if (s='t6018430B300C00000000') then
+    begin
+      SerialTxData('t'+'581'+'8'+'430B300C'+SingleToHex(55.8));
+    end;
+
+    if (s='t60182F08300100000000') then
+    begin
+      SerialTxData('t'+'581'+'8'+'6008300100000000');
+    end;
+
+    if (s='t60182F08300000000000') then
+    begin
+      SerialTxData('t'+'581'+'8'+'6008300000000000');
+    end;
+
+    if (Pos('t6018230230',s)=1) then
+    begin
+      SerialTxData('t'+'581'+'8'+'6002300000000000');
+    end;
+
+    Memo1.Lines.Append(s);
   end;
 end;
 

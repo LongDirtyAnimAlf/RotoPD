@@ -179,51 +179,6 @@ byte ScreenChartGetActive(void)
   return 0;
 }
 
-void ScreenChartSetData(PRunDatas MAD)
-{
-  if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, 0);          
-  if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, 0);
-
-  for(int i = 0; i < CHARTSIZE; i++) {
-    my_voltage_values[i] = LV_CHART_POINT_NONE;
-    my_current_values[i] = LV_CHART_POINT_NONE;
-  }
-
-  //if (voltage_series != NULL) lv_chart_set_all_value(chart, voltage_series, LV_CHART_POINT_NONE);
-  //if (current_series != NULL) lv_chart_set_all_value(chart, current_series, LV_CHART_POINT_NONE);
-
-
-  if (MAD->Head != -1)
-  {
-    word i,j;
-    dword tempvcalc,tempicalc = 0;
-    int start,stop,runner;
-    PMeasurementData BD;
-  
-    stop = (MAD->Head + DATASIZE);
-    if (MAD->Tail == -1) start = DATASIZE; start = (MAD->Tail + DATASIZE);
-
-    if (start>stop) stop += DATASIZE;
-    if ((stop-start)>=CHARTSIZE)  start = (stop - CHARTSIZE);
-
-    for(runner = start; runner <= stop; runner++)
-    {
-      j = runner % DATASIZE;
-      BD = &MAD->BatteryDatas[j];
-
-      tempvcalc = BD->V;
-      if (voltage_series != NULL) lv_chart_set_next_value(chart, voltage_series, (word)tempvcalc);
-
-      tempicalc = BD->I;
-      if (current_series != NULL) lv_chart_set_next_value(chart, current_series, (word)tempicalc);
-    }
-
-    if (ScreenChartVoltageDisplay != NULL) SetDisplaymV(ScreenChartVoltageDisplay, (word)tempvcalc);
-    if (ScreenChartCurrentDisplay != NULL) SetDisplaymV(ScreenChartCurrentDisplay, (word)tempicalc);
-
-  }
-}
-
 void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE>& q)
 {
   dword tempvcalc,tempicalc = 0;

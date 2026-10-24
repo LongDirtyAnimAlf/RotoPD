@@ -28,7 +28,7 @@ object Form1: TForm1
   end
   object Memo1: TMemo
     Left = 162
-    Height = 294
+    Height = 227
     Top = 45
     Width = 285
     Font.CharSet = ANSI_CHARSET
@@ -87,14 +87,29 @@ object Form1: TForm1
     OnClick = Button4Click
   end
   object ToggleBox1: TToggleBox
-    Left = 154
+    Left = 16
     Height = 29
-    Top = 455
+    Top = 296
     Width = 108
     Caption = 'ToggleBox1'
     TabOrder = 8
     OnChange = ToggleBox1Change
     OnClick = ToggleBox1Click
+  end
+  object Memo2: TMemo
+    Left = 162
+    Height = 272
+    Top = 288
+    Width = 285
+    Font.CharSet = ANSI_CHARSET
+    Font.Name = 'Courier'
+    Font.Pitch = fpFixed
+    Font.Quality = fqDraft
+    Lines.Strings = (
+      'Memo1'
+    )
+    ParentFont = False
+    TabOrder = 9
   end
   object Timer1: TTimer
     Enabled = False

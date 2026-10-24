@@ -9,6 +9,8 @@
 #ifdef ARDUINO_ARCH_RP2040
 #ifdef USE_TINYUSB
 #include "Adafruit_TinyUSB.h"
+#else
+#include <USB.h>
 #endif
 #endif
 

@@ -236,7 +236,7 @@ typedef struct
   word  I;   // current
   dword P;   // power
   word  T;   // temperature
-  dword A;   // Ah energy
+  dword C;   // Ah energy
   dword E;   // Wh energy
   qword S;   // timestamp ms
 } TMeasurementData,*PMeasurementData;
@@ -262,22 +262,27 @@ typedef struct
   bool NeedsDataUpdate;
 } TBatteryBoard,*PBatteryBoard;
 
+static void ClearMeasurementData(PMeasurementData MAD)
+{
+  MAD->V = 0;
+  MAD->I = 0;  
+  MAD->P = 0;
+  MAD->T = 0;
+  MAD->C = 0;
+  MAD->E = 0;
+  MAD->S = 0;
+}
+
 typedef struct
 {
   #ifdef __cplusplus          // only compile the class when using a C++ compiler
   CircularDataQueue<TMeasurementData, DATASIZE> NewerRotoPDDatas;
   CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
   #endif
-  TMeasurementData *BatteryDatas;
-  TMeasurementData LastBatteryData;
-  TMeasurementData *IT2704Datas;
-  TMeasurementData LastIT2704Data;
+  // Cumulative datas
   qword Capacity; // in nAh
   qword Energy; // in nWh
   qword Time;  // in ms
-  //word Temperature; // in deci-Celcius = 100mC
-  int16_t Tail;
-  int16_t Head;
   byte CurrentStageNumber;
   TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
 } TRunDatas,*PRunDatas;

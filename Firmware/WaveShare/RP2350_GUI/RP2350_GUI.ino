@@ -41,11 +41,10 @@
 
 bool core1_separate_stack = true;
 
-
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
-#ifdef USE_TINYUSB
 #ifdef ENABLEUSB
+#ifdef USE_TINYUSB
 Adafruit_USBD_HID HID;
 #endif
 #endif
@@ -76,32 +75,40 @@ PBatteryBoard const CurrentBoard = BatteryBoards;
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static PBatterySetting const Battery = Batteries;
 
-static volatile bool CalcBatteryData = false;
 static Ticker dataupdateticker;
+static volatile bool CalcBatteryData = false;
 
+static Ticker tickerCollectRotoPDData;
 static volatile bool flagCollectRotoPDData = false;
+
+static Ticker tickerRequestIT2704Data;
 static volatile bool flagRequestIT2704Data = false;
-static bool SoundButtonClick = false;
+
+static Ticker SoundButtonTicker;
+static bool flagSoundButton = false;
+
+static Ticker tickerProcessData;
+static volatile bool flagProcessMeasurementData = false;
 
 auto_init_mutex(can_mutex);
 
-#ifdef STANDALONE
-//GT911_Lite tp; // touchscreen through TwoWire
-static Ticker tickerCollectRotoPDData;
-static Ticker tickerRequestIT2704Data;
-static Ticker tickerProcessData;
-static Ticker datastartticker;
-static Ticker SoundButtonTicker;
-static volatile bool flagProcessMeasurementData = false;
-static bool StoreSettings = false;
+// Flag flash dirty for storing board info
 static bool StoreBoardInfo = false;
+
+//GT911_Lite tp; // touchscreen through TwoWire
+
+#ifdef STANDALONE
+// Used for delayed start
+static Ticker datastartticker;
+// Flag flash dirty for storing settings
+static bool StoreSettings = false;
+// Used by touch-screen to send data
+// Simulates commands coming from USB HID
 static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
 void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
-
-dword GetMaxVData(PRunDatas RDS);
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -322,7 +329,7 @@ static void main_event_handler(lv_event_t * e)
     {
       if(code == LV_EVENT_VALUE_CHANGED)
       {
-        SoundButtonClick = true;
+        flagSoundButton = true;
 
         //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
         bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
@@ -426,7 +433,7 @@ static void main_event_handler(lv_event_t * e)
       else
       if(code == LV_EVENT_CLICKED)
       {
-        SoundButtonClick = true;
+        flagSoundButton = true;
 
         if (event_object == sw_savesettings)
         {
@@ -445,16 +452,18 @@ static void main_event_handler(lv_event_t * e)
           if ( (event_object == backbutton) && (screenindex>1) ) screenindex--; // back button
           if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
 
-          TMeasurementData LatestBatteryData;
-          LatestBatteryData = RDS->NewerRotoPDDatas.getLastData();
-
-          TMeasurementData LastIT2704Data;
-          LastIT2704Data  = RDS->NewerIT2704Datas.getLastData();
 
           switch(screenindex)
           {
             case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
-            case 2: {Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastIT2704Data);break;}
+            case 2:
+              {
+                TMeasurementData LastData;
+                //LastData = RDS->NewerRotoPDDatas.getLastData();
+                LastData  = RDS->NewerIT2704Datas.getLastData();
+                Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastData);
+                break;
+              }
             case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
             case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
             case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
@@ -494,7 +503,7 @@ static void main_event_handler(lv_event_t * e)
         }
         else
         {
-          SoundButtonClick = false;
+          flagSoundButton = false;
           #ifdef DEBUG                      
           Serial.println("Unknown button pressed");
           #endif
@@ -505,7 +514,7 @@ static void main_event_handler(lv_event_t * e)
             #endif
             if (object_user_data != NULL)
             {
-              SoundButtonClick = true;
+              flagSoundButton = true;
 
               // WE got a PDO select click !!
               byte SelectPDOindex = ((byte)(uintptr_t)object_user_data);      
@@ -528,7 +537,7 @@ static void main_event_handler(lv_event_t * e)
 
     if ( (lv_obj_check_type(event_object, &lv_keyboard_class)) || (lv_obj_check_type(event_object, &lv_checkbox_class)) )
     {
-      SoundButtonClick = true;
+      flagSoundButton = true;
 
       #ifdef DEBUG                      
       Serial.println("Event: keyboard/checkbox value event");
@@ -623,39 +632,6 @@ static void main_event_handler(lv_event_t * e)
   }
 }
 
-void AddMeasurementData(PMeasurementData MD)
-{
-  PRunDatas RDS = &Battery->TestData.RunDatas;     
-
-  static bool GoAround = false;
-
-  // Reset GoAround in needed
-  if ((RDS->Head == -1) && (RDS->Tail == -1)) GoAround = false;
-
-  if (GoAround)
-  {
-    RDS->Tail++;
-    if (RDS->Tail >= DATASIZE) RDS->Tail = 0;
-  }
-
-  RDS->Head++;
-  if (RDS->Head >= DATASIZE)
-  {
-    RDS->Head = 0;
-    if (!GoAround) RDS->Tail = 1; // Preset tail to last added value
-    GoAround = true;
-  }
-
-  //RDS->Temperature = T;    
-
-  PMeasurementData LocalMD = &RDS->BatteryDatas[RDS->Head];
-
-  LocalMD->V = MD->V;
-  LocalMD->I = MD->I;
-  LocalMD->P = MD->P;
-  LocalMD->T = MD->T;    
-}
-
 #ifdef STANDALONE
 static void cbCollectRotoPDData()
 {
@@ -701,23 +677,15 @@ void dataupdatecb()
 // Running on core1
 void setup1() {
   delay(1000);
-  Serial.printf("C1: Red leader standing by...\n");
+  Serial.printf("Core1: Ready for CAN sampling.\n");
 }
 
 void loop1() {
-  //Serial.printf("C1: Stay on target...\n");
-  //ScreenPowerSetEnergyData(1234);  
-  //delay(500);
-  static uint32_t counter = 0;
-
-  delay(1);
-
-  //rp2040.fifo.push_nb(counter++);   // safe non-blocking if you use push_nb
-
+  //delay(1);
   mutex_enter_blocking(&can_mutex);
   node.getCAN().checkInterrupt();
   mutex_exit(&can_mutex);  
-
+  yield();
 }
 
 void setup()
@@ -894,8 +862,6 @@ void setup()
     SET = &Batteries[index];
 
     RDS = &SET->TestData.RunDatas;
-    RDS->BatteryDatas = (TMeasurementData*)pmalloc(DATASIZE * sizeof(TMeasurementData));
-    RDS->IT2704Datas = (TMeasurementData*)pmalloc(DATASIZE * sizeof(TMeasurementData));
     ClearRunData(RDS);
   
     SET->TestData.Active = bmIdle;
@@ -1054,6 +1020,8 @@ void loop()
   // Data-order is also unknown
   // So use a static to store latest data
   static TMeasurementData LatestIT2704Data;
+  // For uniformity, also use this method for RotoPD data
+  static TMeasurementData LatestRotoPDData;
 
   bool DataOk = false;
 
@@ -1097,6 +1065,7 @@ void loop()
       {
         //Serial.println("GUI [IT2704]. Received correct TPDO message.");
         ScreenPowerSetEnergyData(LatestIT2704Data.E);
+        telemetry_screensaver_update_E(LatestIT2704Data.E);
       }
 
       // Check SDO message from load
@@ -1112,14 +1081,14 @@ void loop()
             //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
             
             // Get the correct IT2704 data in the correct datastore
-            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.A, &LatestIT2704Data.E);
+            load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
 
             switch(rxmsg.getSubID())
             {
-              case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); break;}
-              case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); break;}
-              case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P); break;}
-              case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E); break;}            
+              case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
+              case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
+              case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
+              case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
             }
           }
         }
@@ -1149,7 +1118,6 @@ void loop()
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
   TinyUSBDevice.task();
-  //if (node.getCAN().checkInterrupt()) return;
   #endif
 
   if (flagCollectRotoPDData)
@@ -1161,24 +1129,21 @@ void loop()
 
     // If we do not have TPDOs with energy, this might be a quick energy data solution
     //load.collectDataEnergyOnly();
-
-    //if (node.getCAN().checkInterrupt()) return;
   }
 
   if (flagRequestIT2704Data)
   {
-    mutex_enter_blocking(&can_mutex);
+    mutex_enter_timeout_ms(&can_mutex,10);
     flagRequestIT2704Data = false;
     // Ask load IT2704 to send measurement results
     // Result (when available) will be collected later by node.run()
     load.collectData();
     mutex_exit(&can_mutex);  
-    //if (node.getCAN().checkInterrupt()) return;
   }
 
-  if (SoundButtonClick)
+  if (flagSoundButton)
   {
-    SoundButtonClick = false;
+    flagSoundButton = false;
     bsp_buzzer_enable(true);
     SoundButtonTicker.once_ms(100U, StopClickCB);
   }
@@ -1188,10 +1153,10 @@ void loop()
     // This runs every second !!
     startTime = millis();
 
-    Serial.println("Loop");
+    //Serial.println("Loop");
 
     // Test connection with load IT2704
-    mutex_enter_blocking(&can_mutex);
+    mutex_enter_timeout_ms(&can_mutex,10);
     load.queryConnection();
     mutex_exit(&can_mutex);  
 
@@ -1253,11 +1218,7 @@ void loop()
 
       }
     }
-
-    //if (node.getCAN().checkInterrupt()) return;
-
   }  
-
 
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
@@ -1304,8 +1265,6 @@ void loop()
         // Copy the result into the INData buffer for later processing !
         for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
       }
-
-      //if (node.getCAN().checkInterrupt()) return;
     }  
   }
 
@@ -1322,7 +1281,6 @@ void loop()
       SendCommand[COMMANDPOSITION] = CMD_unknown;
   
     }
-    //if (node.getCAN().checkInterrupt()) return;
   }
   #endif //STANDALONE
 
@@ -1379,9 +1337,17 @@ void loop()
             mutex_enter_blocking(&can_mutex);
             load.clearEnergy();
             mutex_exit(&can_mutex);  
+
+            ClearRunData(RDS); 
+            ClearMeasurementData(&LatestRotoPDData);
+            ClearMeasurementData(&LatestIT2704Data);
           }
         }
-        if (cCmd == CMD_set_capacity) RDS->Capacity = qw_data.Val; // in nWh
+        if (cCmd == CMD_set_capacity)
+        {
+          RDS->Capacity = qw_data.Val; // in nWh
+          //Screen1AddCData(RDS->Capacity);
+        }
 
         if (cCmd == CMD_set_time)
         {
@@ -1456,9 +1422,6 @@ void loop()
         break;
       }
     }
-
-    //if (node.getCAN().checkInterrupt()) return;
-
   }
 
   
@@ -1497,6 +1460,7 @@ void loop()
       memset(INData,0,COMMAND_SIZE);  
       memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
+      // Simulate get_data command to get the RotoPD data
       hid_report_in[COMMANDPOSITION] = CMD_get_data;
       hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
 
@@ -1505,16 +1469,16 @@ void loop()
       // Get the measurement data results from the command above
       dataindexer = DATASTART;
       for ( j=0; j<2; j++ ) {w_data.v[j] = INData[dataindexer++];}
-      RDS->LastBatteryData.V = w_data.Val;
+      LatestRotoPDData.V = w_data.Val;
       for ( j=0; j<2; j++ ) {w_data.v[j] = INData[dataindexer++];}
-      RDS->LastBatteryData.I = w_data.Val;
+      LatestRotoPDData.I = w_data.Val;
       for ( j=0; j<4; j++ ) {dw_data.v[j] = INData[dataindexer++];}
-      RDS->LastBatteryData.P = dw_data.Val;
+      LatestRotoPDData.P = dw_data.Val;
       for ( j=0; j<2; j++ ) {w_data.v[j] = INData[dataindexer++];}
-      RDS->LastBatteryData.T = w_data.Val;
+      LatestRotoPDData.T = w_data.Val;
 
       //Append the data in RotoPD buffer
-      RDS->NewerRotoPDDatas.push(RDS->LastBatteryData);
+      RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
       if (load.isConnected())
       {
@@ -1524,37 +1488,29 @@ void loop()
       else
       {
         // if we are not connected, reset the static measurement data !!
-        LatestIT2704Data.V = 0;
-        LatestIT2704Data.I = 0;
-        LatestIT2704Data.P = 0;
-        LatestIT2704Data.T = 0;
-        LatestIT2704Data.E = 0;
-        LatestIT2704Data.S = 0;
+        ClearMeasurementData(&LatestIT2704Data);
       }
 
       //telemetry_screensaver_update_i2c(&RDS->LastBatteryData);
-      telemetry_screensaver_update_i2c(&LatestIT2704Data);
+      //telemetry_screensaver_update_i2c(&LatestIT2704Data);
 
       // Append data into graphs
-      ScreenChartAddData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
+      ScreenChartAddData(LatestRotoPDData.V, LatestRotoPDData.I);
       //ScreenChartAddData(LatestIT2704Data.V, LatestIT2704Data.I);
       
       // Show data on screen 1
-      Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-
-      //Append the normal data in storage
-      AddMeasurementData(&RDS->LastBatteryData);
+      Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
 
       dataindexer = DATASTART;
 
       // Send the RotoPD data
-      w_data.Val  = RDS->LastBatteryData.V;
+      w_data.Val  = LatestRotoPDData.V;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      w_data.Val  = RDS->LastBatteryData.I;
+      w_data.Val  = LatestRotoPDData.I;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
-      dw_data.Val = RDS->LastBatteryData.P;
+      dw_data.Val = LatestRotoPDData.P;
       for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
-      w_data.Val  = RDS->LastBatteryData.T;
+      w_data.Val  = LatestRotoPDData.T;
       for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
 
       if (load.isConnected())
@@ -1566,7 +1522,7 @@ void loop()
         for ( j=0; j<2; j++ ) {hid_report_in[dataindexer++] = w_data.v[j];}
         dw_data.Val = LatestIT2704Data.P;
         for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
-        dw_data.Val = LatestIT2704Data.A;
+        dw_data.Val = LatestIT2704Data.C;
         for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
         dw_data.Val = LatestIT2704Data.E;
         for ( j=0; j<4; j++ ) {hid_report_in[dataindexer++] = dw_data.v[j];}
@@ -1591,8 +1547,6 @@ void loop()
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }
     }
-
-    //if (node.getCAN().checkInterrupt()) return;
   }
   #endif
 
@@ -1611,18 +1565,18 @@ void loop()
         //RDS->Time++;
         RDS->Time += CALCULATIONTIME;
 
-        if (RDS->LastBatteryData.I != 0)
+        if (LatestRotoPDData.I != 0)
         {
           // Capacity calculations
-          qcalc = RDS->LastBatteryData.I * 1000ULL;
+          qcalc = LatestRotoPDData.I * 1000ULL;
           // qcalc is now uA
           qcalc *= (CALCULATIONTIME);
           RDS->Capacity += (qcalc / (3600ULL)); // this is nAh !!      
 
-          if (RDS->LastBatteryData.V != 0)
+          if (LatestRotoPDData.V != 0)
           {
             // Energy calculations
-            dcalc = RDS->LastBatteryData.V;
+            dcalc = LatestRotoPDData.V;
             // dcalc is now mV
             qcalc *= dcalc; // this is now mV * nAs = pWs
             qcalc /= (1000ULL); // this is nWs !!            
@@ -1632,20 +1586,15 @@ void loop()
       } 
     }
 
-    Screen1AddEPData((RDS->Energy / 1000000),(RDS->LastBatteryData.P));
+    Screen1AddEPData((RDS->Energy / 1000000),(LatestRotoPDData.P));
     Screen1AddTData(RDS->Time);
 
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
-    //if (node.getCAN().checkInterrupt()) return;
   }
 
   check_screensaver_timeout();
 
-  //if (node.getCAN().checkInterrupt()) return;
-
   lv_timer_periodic_handler();
-
-  //if (node.getCAN().checkInterrupt()) return;
 
   #ifdef STANDALONE
   if (StoreSettings)
@@ -1691,30 +1640,10 @@ unsigned long TicksBetween(unsigned long InitTicks, unsigned long EndTicks)
 
 void ClearRunData(PRunDatas RDS)
 {
-  memset(RDS->BatteryDatas, 0, DATASIZE * sizeof(TMeasurementData));
-  memset(RDS->IT2704Datas, 0, DATASIZE * sizeof(TMeasurementData));
-
   RDS->CurrentStageNumber = 0;
   RDS->Capacity = 0;
   RDS->Energy = 0;
   RDS->Time = 0;
-  
-  RDS->LastBatteryData.V = 0;
-  RDS->LastBatteryData.I = 0;
-  RDS->LastBatteryData.P = 0;
-  RDS->LastBatteryData.T = 0;
-  RDS->LastBatteryData.E = 0;
-  RDS->LastBatteryData.S = 0;
-
-  RDS->LastIT2704Data.V = 0;
-  RDS->LastIT2704Data.I = 0;
-  RDS->LastIT2704Data.P = 0;
-  RDS->LastIT2704Data.T = 0;
-  RDS->LastIT2704Data.E = 0;
-  RDS->LastIT2704Data.S = 0;
-
-  RDS->Head = -1;
-  RDS->Tail = -1;  
 
   for(byte i=tmNONE; i<tmLast; i++)
   {
@@ -1743,6 +1672,7 @@ void ClearStageData(PStageData SD)
   }
 }
 
+/*
 dword GetMaxVData(PRunDatas RDS)
 {
   dword tempvcalc = 0;
@@ -1779,6 +1709,6 @@ dword GetMaxVData(PRunDatas RDS)
       tempvcalcsum += BD->V;
     }
   }
-
   return (tempvcalc);
 }
+*/

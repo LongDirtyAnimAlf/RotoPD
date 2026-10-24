@@ -650,15 +650,10 @@ void Screen1SetData(PBatterySetting SET)
     DischargeStatus(dischargedisabled);
 
     PRunDatas RDS = &SET->TestData.RunDatas;
-    Screen1AddVIData(RDS->LastBatteryData.V, RDS->LastBatteryData.I);
-    Screen1AddEPData(RDS->Energy / 1000, RDS->LastBatteryData.P);
+    TMeasurementData Last = RDS->NewerRotoPDDatas.getLastData();
+    Screen1AddVIData(Last.V, Last.I);
+    Screen1AddEPData(Last.E / 1000, Last.P);
     Screen1AddTData(RDS->Time);
-
-    //TMeasurementData Last = RDS->NewerRotoPDDatas.getLastData();
-    //Screen1AddVIData(Last.V, Last.I);
-    //Screen1AddEPData(Last.E / 1000, Last.P);
-    //Screen1AddTData(RDS->Time);
-
 
     if (SET->TestData.Active == bmActive) {
         if (SET->TestData.SetStageMode == smCurrent) setbuttons(startdischargebutton, true);

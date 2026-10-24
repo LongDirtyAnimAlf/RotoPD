@@ -170,6 +170,8 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
     for (size_t i = 0; i < color_height; i++)
     {
         memcpy(&freeframebuffer[(i + y1) * g_pio_rgb_info->width + x1], &color_p[i * color_width], color_width * sizeof(uint16_t));    
+        //rp2040.memcpyDMA(&freeframebuffer[(i + y1) * g_pio_rgb_info->width + x1], &color_p[i * color_width], color_width * sizeof(uint16_t));    
+
     }
 }
 

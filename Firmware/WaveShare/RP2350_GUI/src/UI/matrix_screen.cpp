@@ -1,4 +1,5 @@
 #include "matrix_screen.h"
+#include "pico/rand.h"
 #include <stdlib.h>
 #include <string.h>          // ← required for memset
 #include <math.h>
@@ -64,6 +65,12 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
         b->x += b->vx;
         b->y += b->vy;
+
+        uint32_t rand32;
+        rand32 = get_rand_32();
+        if (rand32<0xFFFFFFU) b->x++;
+        rand32 = get_rand_32();
+        if (rand32<0xFFFFFFU) b->y++;
 
         if (b->x <= 0) { b->x = 0; b->vx = -b->vx; }
         else if (b->x + b->width >= SCREEN_WIDTH) {
@@ -155,6 +162,7 @@ void navigate_to_matrix_screen(void)
     const int16_t initial_positions[4][2] = {{20, 30}, {260, 40}, {40, 260}, {250, 280}};
     //const int8_t  initial_velocities[4][2] = {{3, 2}, {-2, 3}, {3, -3}, {-3, -2}};
     const int8_t  initial_velocities[4][2] = {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}};
+    //const int8_t initial_velocities[4][2] = {{2, 1}, {-1, 2}, {2, -2}, {-2, -1}};    
 
     for (int i = 0; i < 4; i++) {
         bouncing_box_t *b = &data->boxes[i];
@@ -231,7 +239,7 @@ void navigate_to_matrix_screen(void)
 
     lv_obj_add_event_cb(telemetry_scr, telemetry_screen_delete_cb, LV_EVENT_DELETE, NULL);
 
-    data->engine_timer = lv_timer_create(telemetry_engine_timer_cb, 100, data);
+    data->engine_timer = lv_timer_create(telemetry_engine_timer_cb, 40, data);
     if (!data->engine_timer) {
         lv_obj_delete(telemetry_scr);
         return;
@@ -247,6 +255,39 @@ void telemetry_screensaver_update_i2c(const PMeasurementData data)
         telemetry_dirty = true;
     }
 }
+
+void telemetry_screensaver_update_V(const uint32_t data)
+{
+    if (data) {
+        current_telemetry.V = data;
+        telemetry_dirty = true;
+    }
+}
+
+void telemetry_screensaver_update_I(const uint32_t data)
+{
+    if (data) {
+        current_telemetry.I = data;
+        telemetry_dirty = true;
+    }
+}
+
+void telemetry_screensaver_update_P(const uint32_t data)
+{
+    if (data) {
+        current_telemetry.P = data;
+        telemetry_dirty = true;
+    }
+}
+
+void telemetry_screensaver_update_E(const uint32_t data)
+{
+    if (data) {
+        current_telemetry.E = data;
+        telemetry_dirty = true;
+    }
+}
+
 
 #endif
 
