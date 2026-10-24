@@ -424,12 +424,13 @@ int8_t taskRotoPDInit(void)
 
     if (j & STATUS_FAULTS)
     {
-      String out = "RotoPD fault:";
-      if (j & STATUS_OVP) out += " OVP";
-      if (j & STATUS_UVP) out += " UVP";
-      if (j & STATUS_OCP) out += " OCP";
-      if (j & STATUS_OTP) out += " OTP";
-      Info_Add_Fmt("Comms. %s.",out);
+      static char error_label[4] = {0};
+      error_label[0] = '\0'; 
+      if (j & STATUS_OVP) strcpy(error_label,"OVP");
+      if (j & STATUS_UVP) strcpy(error_label,"UVP");
+      if (j & STATUS_OCP) strcpy(error_label,"OCP");
+      if (j & STATUS_OTP) strcpy(error_label,"OTP");
+      Info_Add_Fmt("Comms. [RotoPD] RotoPD fault: %s.",error_label);
     }
 
     if (j & STATUS_STARTED)

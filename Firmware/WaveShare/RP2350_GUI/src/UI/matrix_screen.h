@@ -33,6 +33,8 @@ void telemetry_screensaver_update_I(const uint16_t data);
 void telemetry_screensaver_update_P(const uint32_t data);
 void telemetry_screensaver_update_E(const uint32_t data);
 
+void pause_matrix_screen(void);
+
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif
