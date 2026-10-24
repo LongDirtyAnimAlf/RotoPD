@@ -75,7 +75,7 @@ PBatteryBoard const CurrentBoard = BatteryBoards;
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static PBatterySetting const Battery = Batteries;
 
-static Ticker dataupdateticker;
+static Ticker tickerDataUpdate;
 static volatile bool CalcBatteryData = false;
 
 static Ticker tickerCollectRotoPDData;
@@ -674,19 +674,52 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
+
 // Running on core1
 void setup1() {
-  delay(10000);
-  Serial.printf("Core1: Ready for CAN sampling.\n");
+  delay(1);
+  /*
+  mutex_enter_blocking(&can_mutex);
+  Info_Add("GUI. Setting up CANOpen.");
+  initCANopen();
+  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
+  Info_Add("GUI. Setting up CANOpen ready.");
+  mutex_exit(&can_mutex);  
+  */
 }
 
 void loop1() {
   bool yieldNeeded = false;
+  bool mutexOk = false;
   //mutex_enter_blocking(&can_mutex);
-  mutex_enter_timeout_ms(&can_mutex,1);  
-  yieldNeeded = node.getCAN().checkInterrupt();
+  mutexOk = mutex_enter_timeout_ms(&can_mutex,5);  
+  //yieldNeeded = node.getCAN().checkInterrupt();
+  yieldNeeded = node.getCAN().run();  
   //Serial.printf("Core1: Checking CAN.\n");
   mutex_exit(&can_mutex);  
+
+  if (mutexOk)
+  {
+    yieldNeeded = node.getCAN().checkInterrupt();
+    if (yieldNeeded)
+    {
+      yield();
+    }
+    else
+    {
+      delay(1);
+    }
+    // Might have been a very fast check, so add some delay
+    //delay(1);
+  }
+  else
+  {
+    // Mutex acquisition failed
+    // So, we have already waited for 1ms
+    // Simple yield sufficient
+    yield();
+  }
+  /*
   if (yieldNeeded)
   {
     yield();
@@ -695,6 +728,7 @@ void loop1() {
   {
     delay(1);
   }
+  */
 }
 
 void setup()
@@ -704,6 +738,9 @@ void setup()
   char myHex[10] = "";
 
   //delay(250);
+
+  // Start by blocking all CAN activity
+  mutex_enter_blocking(&can_mutex);
 
   #ifdef ARDUINO_ARCH_RP2040
 
@@ -932,23 +969,13 @@ void setup()
   else
     Info_Add("GUI. RotoPD not connected or not found.");
 
-  Info_Add("GUI. Setting up CANOpen.");
-
-  initCANopen();
-
-  Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.getBoardNumber());
-  Info_Add_Fmt("GUI. Channel-number: %d.",BoardInfo.IT2704Channel);
-  Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
-  Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
-  Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
-
   Info_Add("GUI. Init timers.");      
 
   #ifdef STANDALONE
 
   tickerCollectRotoPDData.attach_ms(ROTOPDDATAGETTIME, cbCollectRotoPDData);
-  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
   tickerProcessData.attach_ms(DATACOLLECTTIMEFAST, cbProcessData);
+  tickerDataUpdate.attach_ms(CALCULATIONTIME, dataupdatecb);  
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
@@ -962,7 +989,6 @@ void setup()
   lv_indev_set_read_cb(indev, my_touchpad_read);
   #endif
   
-  dataupdateticker.attach_ms(CALCULATIONTIME, dataupdatecb);  
 
   String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Info_Add(LVGL_Arduino.c_str());
@@ -1010,11 +1036,30 @@ void setup()
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
   //lv_timer_handler();
 
+  /*
+  mutex_enter_blocking(&can_mutex);
+  //Info_Add("GUI. Setting up CANOpen.");
+  //initCANopen();
+  //tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
+  mutex_exit(&can_mutex);  
+  */
+
+  Info_Add("GUI. Setting up CANOpen.");
+
+  Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.getBoardNumber());
+  Info_Add_Fmt("GUI. Channel-number: %d.",BoardInfo.IT2704Channel);
+  Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
+  Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
+  Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
+
+  initCANopen();
+  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
+  Info_Add("GUI. Setting up CANOpen ready.");
 
   Info_Add("GUI. Init RP2350 ready.");
 
-// Force-launch core 1
-  //multicore_launch_core1(core1_entry);  
+  // Release the CAN activity
+  mutex_exit(&can_mutex);  
 }
 
 void loop()
@@ -1057,7 +1102,8 @@ void loop()
     Serial.println("GUI. From core1.");
   }  
 
-  mutex_enter_blocking(&can_mutex);
+  //mutex_enter_blocking(&can_mutex);
+  mutex_enter_timeout_ms(&can_mutex,5);
   while (node.run())
   {
     // We did receive a message that was not handled by ourselves

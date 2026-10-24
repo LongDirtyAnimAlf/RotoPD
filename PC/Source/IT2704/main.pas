@@ -269,18 +269,27 @@ begin
     comm.Device:=s;
     {$endif}
 
-    comm.BaudRate:=br115200;
-    comm.FlowControl:=fcNone;
+    comm.FlowControl:=fcHardware;
     comm.Parity:=pNone;
     comm.DataBits:=db8bits;
     comm.StopBits:=sbOne;
     comm.OnRxData:=@SerialRxData;
     comm.Async:=True;
+
+    (*
+    comm.BaudRate:=br115200;
+    comm.Active:=True;
+    SerialTxData('Ub9');
+    comm.Active:=False;
+    *)
+
+    comm.BaudRate:=br921600;
     comm.Active:=True;
 
     // Command to get the Gravity CAN interface going
-    SerialTxData('S5');
+    //SerialTxData('S5');
     SerialTxData('O');
+    SerialTxData('h');
 
     // Command to get the IT2704 going
     // ID   = 00000000
