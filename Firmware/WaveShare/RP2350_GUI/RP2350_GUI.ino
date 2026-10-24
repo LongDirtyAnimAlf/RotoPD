@@ -676,16 +676,25 @@ void dataupdatecb()
 
 // Running on core1
 void setup1() {
-  delay(1000);
+  delay(10000);
   Serial.printf("Core1: Ready for CAN sampling.\n");
 }
 
 void loop1() {
-  //delay(1);
-  mutex_enter_blocking(&can_mutex);
-  node.getCAN().checkInterrupt();
+  bool yieldNeeded = false;
+  //mutex_enter_blocking(&can_mutex);
+  mutex_enter_timeout_ms(&can_mutex,1);  
+  yieldNeeded = node.getCAN().checkInterrupt();
+  //Serial.printf("Core1: Checking CAN.\n");
   mutex_exit(&can_mutex);  
-  yield();
+  if (yieldNeeded)
+  {
+    yield();
+  }
+  else
+  {
+    delay(1);
+  }
 }
 
 void setup()
