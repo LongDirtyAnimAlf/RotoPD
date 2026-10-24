@@ -90,10 +90,10 @@ static bool flagSoundButton = false;
 static Ticker tickerProcessData;
 static volatile bool flagProcessMeasurementData = false;
 
-auto_init_mutex(can_mutex);
-
 // Flag flash dirty for storing board info
-static bool StoreBoardInfo = false;
+static volatile bool StoreBoardInfo = false;
+static volatile byte pending_screen_index = 0;
+
 
 //GT911_Lite tp; // touchscreen through TwoWire
 
@@ -101,11 +101,13 @@ static bool StoreBoardInfo = false;
 // Used for delayed start
 static Ticker datastartticker;
 // Flag flash dirty for storing settings
-static bool StoreSettings = false;
+static volatile bool StoreSettings = false;
 // Used by touch-screen to send data
 // Simulates commands coming from USB HID
 static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
+
+auto_init_mutex(can_mutex);
 
 void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
@@ -307,11 +309,18 @@ static void main_event_handler(lv_event_t * e)
 {
   static byte screenindex = 1;
 
+  // Re-entrancy Guard
+  static bool in_handler = false;
+  if (in_handler) return;
+  in_handler = true;
+
   bool GotSettings = false;
 
   PBatterySetting SET = Battery;
   PRunDatas RDS = &SET->TestData.RunDatas;
   PStageData SD = NULL;  
+
+
 
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
@@ -451,24 +460,7 @@ static void main_event_handler(lv_event_t * e)
         {
           if ( (event_object == backbutton) && (screenindex>1) ) screenindex--; // back button
           if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
-
-
-          switch(screenindex)
-          {
-            case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
-            case 2:
-              {
-                TMeasurementData LastData;
-                //LastData = RDS->NewerRotoPDDatas.getLastData();
-                LastData  = RDS->NewerIT2704Datas.getLastData();
-                Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastData);
-                break;
-              }
-            case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
-            case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
-            case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
-            case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
-          }
+          pending_screen_index = screenindex; // Defer screen change
         }
         else
         // Zero buttons
@@ -481,7 +473,9 @@ static void main_event_handler(lv_event_t * e)
           {
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
+            mutex_enter_blocking(&can_mutex);
             load.clearEnergy();
+            mutex_exit(&can_mutex);  
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
           Screen1AddEPData(RDS->Energy,0);        
@@ -630,6 +624,8 @@ static void main_event_handler(lv_event_t * e)
     }   
     #endif
   }
+
+  in_handler = false;
 }
 
 #ifdef STANDALONE
@@ -1274,6 +1270,28 @@ void loop()
       }
     }
   }  
+
+  if (pending_screen_index != 0)
+  {
+    byte target = pending_screen_index;
+    pending_screen_index = 0;
+    switch(target)
+    {
+      case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
+      case 2:
+        {
+          TMeasurementData LastData;
+          //LastData = RDS->NewerRotoPDDatas.getLastData();
+          LastData  = RDS->NewerIT2704Datas.getLastData();
+          Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastData);
+          break;
+        }
+      case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
+      case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
+      case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
+      case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
+    }
+  }
 
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
