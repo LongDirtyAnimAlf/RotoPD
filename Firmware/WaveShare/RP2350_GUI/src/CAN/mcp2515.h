@@ -18,7 +18,8 @@ class CircularQueue {
     static_assert(SIZE <= 65535, "CircularQueue size exceeds uint16_t counter range");
 
 private:
-    T* frames;
+    T frames[SIZE];
+    //T* frames;
     T lastItem;
     uint16_t head;
     uint16_t tail;
@@ -30,7 +31,7 @@ public:
     CircularQueue() : head(0), tail(0), count(0) {
         mutex_init(&queue_mutex);
         //frames = (T*)pmalloc(SIZE * sizeof(T));
-        frames = (T*)malloc(SIZE * sizeof(T));
+        //frames = (T*)malloc(SIZE * sizeof(T));
     }
 
     ~CircularQueue() {
