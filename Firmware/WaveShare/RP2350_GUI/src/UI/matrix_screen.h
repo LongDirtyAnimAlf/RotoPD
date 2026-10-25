@@ -6,6 +6,8 @@
 #include "sevensegment.h"
 #include "./../../shared.h"
 
+#define BOX_COUNT     6
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,6 +34,8 @@ void telemetry_screensaver_update_V(const uint16_t data);
 void telemetry_screensaver_update_I(const uint16_t data);
 void telemetry_screensaver_update_P(const uint32_t data);
 void telemetry_screensaver_update_E(const uint32_t data);
+void telemetry_screensaver_update_box5(const uint32_t data);
+void telemetry_screensaver_update_box6(const uint32_t data);
 
 void pause_matrix_screen(void);
 

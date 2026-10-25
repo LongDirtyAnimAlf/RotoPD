@@ -238,7 +238,7 @@ typedef struct
   word  T;   // temperature
   dword C;   // Ah energy
   dword E;   // Wh energy
-  qword S;   // timestamp ms
+  dword S;   // timestamp ms
 } TMeasurementData,*PMeasurementData;
 
 typedef struct

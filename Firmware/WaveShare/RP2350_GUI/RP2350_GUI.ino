@@ -1077,8 +1077,12 @@ void loop()
   //mutex_enter_blocking(&can_mutex);
   if (mutex_enter_timeout_ms(&can_mutex,5))
   {
+    telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+    telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);
+
     while (node.run())
     {
+
       // We did receive a message that was not handled by ourselves
       const Message& rxmsg = node.getMessage();
 
@@ -1118,6 +1122,7 @@ void loop()
                 case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
                 case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
               }
+              //telemetry_screensaver_update_box5((rp2040.getFreeHeap() / 1024));
             }
           }
 

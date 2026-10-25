@@ -22,10 +22,11 @@ typedef struct {
     int8_t vx, vy;
     uint16_t width, height;
     uint32_t last_value;
+    void (*set_value)(lv_obj_t * target, unsigned long value);
 } bouncing_box_t;
 
 typedef struct {
-    bouncing_box_t boxes[4];
+    bouncing_box_t boxes[BOX_COUNT];
     lv_timer_t *engine_timer;
     lv_obj_t *scr;
 } telemetry_screen_data_t;
@@ -37,17 +38,19 @@ static bool s_telemetry_scr_initialized = false;
 static volatile TMeasurementData current_telemetry = {12420, 1850, 22980, 230, 24750, 104500, 0};
 static volatile bool telemetry_dirty = true;
 
-static const lv_color_t colors[4] = {
+static const lv_color_t colors[BOX_COUNT] = {
     lv_color_make(0x00, 0xE5, 0xFF),
     lv_color_make(0xFF, 0xB3, 0x00),
     lv_color_make(0xD5, 0x00, 0xF9),
-    lv_color_make(0x00, 0xE6, 0x76)
+    lv_color_make(0x00, 0xE6, 0x76),
+    lv_color_make(0xD5, 0xE6, 0x76),
+    lv_color_make(0x00, 0x00, 0xFF)
 };
 
-static const char *titles[4] = {"VOLTAGE", "CURRENT", "POWER", "ENERGY"};
-static const char *units[4]  = {"V", "A", "W", "Wh"};
+static const char *titles[BOX_COUNT] = {"VOLTAGE", "CURRENT", "POWER", "ENERGY", "TEMPERATURE", "TIME"};
+static const char *units[BOX_COUNT]  = {"V", "A", "W", "Wh", "°C", "s"};
 
-static char label_buffer[4][16] = {0};
+static char label_buffer[BOX_COUNT][16] = {0};
 
 extern const lv_font_t lv_font_montserrat_12;
 extern const lv_font_t lv_font_montserrat_18;
@@ -61,9 +64,9 @@ static inline bool check_box_collision(bouncing_box_t *a, bouncing_box_t *b) {
 }
 
 // Box-to-Box Bounce & Separation Logic
-static void resolve_box_collisions(bouncing_box_t boxes[4]) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = i + 1; j < 4; j++) {
+static void resolve_box_collisions(bouncing_box_t boxes[BOX_COUNT]) {
+    for (int i = 0; i < BOX_COUNT; i++) {
+        for (int j = i + 1; j < BOX_COUNT; j++) {
             bouncing_box_t *b1 = &boxes[i];
             bouncing_box_t *b2 = &boxes[j];
 
@@ -121,7 +124,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
     if (!data || !data->scr) return;
 
     // 1. Move all boxes according to their current velocity
-    for ( i = 0; i < 4; i++ ) {
+    for ( i = 0; i < BOX_COUNT; i++ ) {
         bouncing_box_t *b = &data->boxes[i];
         if (!b->container) continue;
 
@@ -133,7 +136,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
     resolve_box_collisions(data->boxes);
 
     // 3. Screen edge collision checks & boundary clamping
-    for ( i = 0; i < 4; i++ ) {
+    for ( i = 0; i < BOX_COUNT; i++ ) {
         bouncing_box_t *b = &data->boxes[i];
         if (!b->container) continue;
 
@@ -161,14 +164,16 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
         telemetry_dirty = false;
 
-        uint32_t vals[4] = {
+        uint32_t vals[BOX_COUNT] = {
             current_telemetry.V,
             current_telemetry.I,
             current_telemetry.P,
-            current_telemetry.E
+            current_telemetry.E,
+            current_telemetry.T,
+            current_telemetry.S
         };
 
-        for ( i = 0; i < 4; i++ ) {
+        for ( i = 0; i < BOX_COUNT; i++ ) {
             bouncing_box_t *b = &data->boxes[i];
 
             // Dismiss noise
@@ -176,7 +181,10 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
             b->last_value = vals[i];
 
-            if (b->label_display != NULL) SetDisplaymV(b->label_display, vals[i]);
+            if ( (b->label_display != NULL) || (b->set_value != NULL) )
+            {
+                b->set_value(b->label_display, vals[i]);
+            }
         }
     }
 }
@@ -194,20 +202,20 @@ static void init_telemetry_screen_once(void)
     lv_obj_set_style_bg_color(telemetry_scr, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(telemetry_scr, LV_OPA_COVER, 0);
 
-    const int16_t initial_positions[4][2] = {{20, 30}, {260, 40}, {40, 260}, {250, 280}};
-    const int8_t  initial_velocities[4][2] = {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}};
+    const int16_t initial_positions[BOX_COUNT][2] = {{20, 30}, {260, 40}, {40, 260}, {250, 280}, {(SCREEN_WIDTH-BOX_WIDTH-4), (SCREEN_HEIGHT-BOX_HEIGHT-4)},{((SCREEN_WIDTH / 2) - (BOX_WIDTH / 2)), ((SCREEN_HEIGHT / 2) - (BOX_HEIGHT / 2))}};
+    const int8_t  initial_velocities[BOX_COUNT][2] = {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}, {-2, -2}, {0, 0}};
 
-    uint32_t rand32;
+    //uint32_t rand32;
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < BOX_COUNT; i++) {
         bouncing_box_t *b = &s_telemetry_data.boxes[i];
         b->x = initial_positions[i][0];
         b->y = initial_positions[i][1];
 
-        rand32 = get_rand_32();
-        b->x += (rand32 % 10);
-        rand32 = get_rand_32();
-        b->y += (rand32 % 10);
+        //rand32 = get_rand_32();
+        //b->x += (rand32 % 10);
+        //rand32 = get_rand_32();
+        //b->y += (rand32 % 10);
 
         b->vx = initial_velocities[i][0];
         b->vy = initial_velocities[i][1];
@@ -247,6 +255,16 @@ static void init_telemetry_screen_once(void)
         b->label_display = create_display(b->container, lv_palette_main(LV_PALETTE_RED), false, count);
         if (!b->label_display) return;
         lv_obj_align(b->label_display, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+        if ( (i==4) || (i==5) )
+        {
+            b->set_value = SetDisplayV;
+        }
+        else
+        {
+            b->set_value = SetDisplaymV;
+        }
+
     }
 
     s_telemetry_data.engine_timer = lv_timer_create(telemetry_engine_timer_cb, 40, &s_telemetry_data);
@@ -267,7 +285,7 @@ void navigate_to_matrix_screen(void)
     if (!s_telemetry_data.scr) return;
 
     // Reset last_value on load to force full display refresh
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < BOX_COUNT; i++) {
         s_telemetry_data.boxes[i].last_value = -1;
     }
     telemetry_dirty = true;
@@ -295,6 +313,8 @@ void telemetry_screensaver_update_i2c(const PMeasurementData data)
         telemetry_screensaver_update_I(data->I);
         telemetry_screensaver_update_P(data->P);
         telemetry_screensaver_update_E(data->E);
+        telemetry_screensaver_update_box5(data->T);
+        telemetry_screensaver_update_box6(data->S);
     }
 }
 
@@ -333,6 +353,26 @@ void telemetry_screensaver_update_E(const uint32_t data)
     static uint32_t oldData = -1;
     if (oldData != data) {
         current_telemetry.E = data;
+        telemetry_dirty = true;
+        oldData = data;
+    }
+}
+
+void telemetry_screensaver_update_box5(const uint32_t data)
+{
+    static uint32_t oldData = -1;
+    if (oldData != data) {
+        current_telemetry.T = data;
+        telemetry_dirty = true;
+        oldData = data;
+    }
+}
+
+void telemetry_screensaver_update_box6(const uint32_t data)
+{
+    static uint32_t oldData = -1;
+    if (oldData != data) {
+        current_telemetry.S = data;
         telemetry_dirty = true;
         oldData = data;
     }
