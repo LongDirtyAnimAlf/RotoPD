@@ -26,6 +26,8 @@ static lv_style_t style_btn;
 static lv_style_t style_btn_label;
 static bool styles_inited = false;
 
+static char textlabel[32] = {0};
+
 static void init_styles_once(void)
 {
     if (styles_inited) return;
@@ -306,14 +308,21 @@ void ScreenPDOSetPDO(
         int whole = cv / 100;
         int hundredths = cv % 100;
 
+        textlabel[0] = '\0';
         if (type == PDO_TYPE_FIXED) {
-            lv_label_set_text_fmt(obj, "%d.%02d Volts", whole, hundredths);
+
+            //lv_label_set_text_fmt(obj, "%d.%02d Volts", whole, hundredths);
+            snprintf(textlabel, sizeof(textlabel), "%d.%02d Volts", whole, hundredths);
+            lv_label_set_text(obj, textlabel);
         } else {
             int cv_min = (minVoltage_mV + 5) / 10;
             int min_whole = cv_min / 100;
             int min_hund  = cv_min % 100;
-            lv_label_set_text_fmt(obj, "%d.%02d - %d.%02d Volts",
+            //lv_label_set_text_fmt(obj, "%d.%02d - %d.%02d Volts",
+            //                      min_whole, min_hund, whole, hundredths);
+            snprintf(textlabel, sizeof(textlabel), "%d.%02d - %d.%02d Volts",
                                   min_whole, min_hund, whole, hundredths);
+            lv_label_set_text(obj, textlabel);
         }
     }
 
@@ -327,7 +336,11 @@ void ScreenPDOSetPDO(
         int cv = (maxCurrent_mA + 5) / 10;
         int whole = cv / 100;
         int hundredths = cv % 100;
-        lv_label_set_text_fmt(obj, "%d.%02d Amps", whole, hundredths);
+
+        //lv_label_set_text_fmt(obj, "%d.%02d Amps", whole, hundredths);
+        textlabel[0] = '\0';
+        snprintf(textlabel, sizeof(textlabel), "%d.%02d Amps", whole, hundredths);
+        lv_label_set_text(obj, textlabel);
     }
 
     /* Child 4 – Select button */

@@ -8,7 +8,7 @@
       <Unit>
         <Filename Value="IT2704CAN.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="34"/>
+        <UsageCount Value="36"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="13"/>
         <CursorPos Y="27"/>
@@ -21,16 +21,15 @@
         <ResourceBaseClass Value="Form"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
-        <UsageCount Value="34"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="359"/>
-        <CursorPos X="23" Y="364"/>
+        <UsageCount Value="36"/>
+        <TopLine Value="184"/>
+        <CursorPos Y="393"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\tools.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="16"/>
-        <EditorIndex Value="3"/>
+        <UsageCount Value="17"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="184"/>
         <CursorPos X="22" Y="200"/>
       </Unit>
@@ -45,23 +44,25 @@
         <Filename Value="..\Common\serial\lazserial.pas"/>
         <UnitName Value="LazSerial"/>
         <Loaded Value="True"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="17"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="75"/>
-        <CursorPos X="44" Y="88"/>
+        <TopLine Value="131"/>
+        <CursorPos X="14" Y="143"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\serial\lazsynaser.pas"/>
         <UnitName Value="LazSynaSer"/>
-        <UsageCount Value="10"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="1336"/>
-        <CursorPos Y="1353"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="11"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="2114"/>
+        <CursorPos X="32" Y="2155"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\bits.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="15"/>
+        <UsageCount Value="16"/>
         <EditorIndex Value="1"/>
       </Unit>
       <Unit>
@@ -71,126 +72,54 @@
         <TopLine Value="262"/>
         <CursorPos X="18" Y="279"/>
       </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\Screen1.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="15"/>
+        <CursorPos Y="31"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\powermeter.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="7"/>
+        <CursorPos X="19" Y="30"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenLogger.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="151"/>
+        <CursorPos X="15" Y="171"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenPDO.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="324"/>
+        <CursorPos X="11" Y="343"/>
+      </Unit>
     </Units>
-    <JumpHistory HistoryIndex="29">
+    <JumpHistory HistoryIndex="4">
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="273" Column="3" TopLine="260"/>
+        <Filename Value="..\Common\serial\lazsynaser.pas"/>
+        <Caret Line="1902" Column="13" TopLine="1879"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="253" Column="5" TopLine="230"/>
+        <Caret Line="366" TopLine="346"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="229" Column="5" TopLine="225"/>
+        <Caret Line="240" Column="71" TopLine="227"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="236" Column="5" TopLine="232"/>
+        <Caret Line="393" TopLine="184"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="264" Column="59" TopLine="210"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="185" Column="26" TopLine="178"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="192" Column="19" TopLine="154"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="199" Column="19" TopLine="172"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="194" Column="26" TopLine="182"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="196" Column="26" TopLine="184"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="211" Column="9" TopLine="185"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="194" Column="17" TopLine="164"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="212" TopLine="195"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="219" Column="5" TopLine="195"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="375" TopLine="350"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="392" Column="43" TopLine="357"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="357" Column="20" TopLine="345"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="51" Column="21" TopLine="37"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="347" Column="20" TopLine="340"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="196" Column="16" TopLine="173"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="181" Column="41" TopLine="173"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="400" Column="56" TopLine="378"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="385" Column="37" TopLine="378"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="403" TopLine="379"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="402" TopLine="378"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="403" TopLine="378"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="284" Column="23" TopLine="260"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="286" TopLine="266"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="273" Column="26" TopLine="266"/>
+        <Filename Value="..\Common\bits.pas"/>
       </Position>
     </JumpHistory>
     <RunParams>

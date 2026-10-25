@@ -27,6 +27,8 @@ static lv_obj_t * chargelabel = NULL;
 
 static lv_obj_t * ThresholdLed[tmLast] = {NULL};
 
+static char textlabel[32] = {0};
+
 const char * const ThresholdNames[] = {
     "None",
     "Vmax",
@@ -231,8 +233,11 @@ void Setup_Screen1(byte index)
 
     obj = GetInfoObject();
     if (obj != NULL)
-        lv_label_set_text_fmt(obj, "CHANNEL %d", index);
-
+    {
+        textlabel[0] = '\0';
+        snprintf(textlabel, sizeof(textlabel), "CHANNEL %d", index);
+        lv_label_set_text(obj, textlabel);
+    }
     obj = GetButtonLabelObject();
     if (obj != NULL)
         lv_label_set_text(obj, "Power");
@@ -709,7 +714,9 @@ void Screen1SetData(PBatterySetting SET)
 
 void Screen1SetDischargeCurrent(word I)
 {
-    lv_label_set_text_fmt(ta1, "%d", I);
+    textlabel[0] = '\0';
+    snprintf(textlabel, sizeof(textlabel), "%d", I);
+    lv_label_set_text(ta1, textlabel);
 }
 
 word Screen1GetDischargeCurrent(void)
@@ -721,7 +728,9 @@ word Screen1GetDischargeCurrent(void)
 
 void Screen1SetChargeCurrent(word I)
 {
-    lv_label_set_text_fmt(ta2, "%d", I);
+    textlabel[0] = '\0';
+    snprintf(textlabel, sizeof(textlabel), "%d", I);
+    lv_label_set_text(ta2, textlabel);
 }
 
 word Screen1GetChargeCurrent(void)

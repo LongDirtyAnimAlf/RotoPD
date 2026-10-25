@@ -612,7 +612,7 @@ class MCP2515
         ERROR reset(void);
 
         bool checkInterrupt(void);
-        bool run(void);
+        bool run(bool single = false);
 
         //
         // Interrupt

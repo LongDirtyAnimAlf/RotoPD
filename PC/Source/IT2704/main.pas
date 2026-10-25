@@ -237,6 +237,7 @@ var
 begin
   EnumerateCOMPorts(cmboSerialPorts.Items);
   if (cmboSerialPorts.Items.Count>0) then cmboSerialPorts.ItemIndex:=0;
+  if (cmboSerialPorts.Items.Count>1) then cmboSerialPorts.ItemIndex:=1;
   {$ifdef UNIX}
   // Make life easy on RPi: pick first available USB serial port.
   // Not necessary correct, but ok for testing.
@@ -258,6 +259,8 @@ procedure TForm1.btnConnectClick(Sender: TObject);
 var
   s:string;
 begin
+  Memo1.Lines.Clear;
+
   if (cmboSerialPorts.ItemIndex<>-1) then
   begin
     comm.Active:=False;
@@ -268,6 +271,8 @@ begin
     {$else}
     comm.Device:=s;
     {$endif}
+
+    comm.SynSer.ConvertLineEnd:=true;
 
     comm.FlowControl:=fcHardware;
     comm.Parity:=pNone;
@@ -299,6 +304,11 @@ begin
     //SerialTxData('t'+'000'+'2'+'0101');
     //SerialTxData('O');
 
+
+    if (comm.SynSer.LastError<>0) then
+    begin
+      Memo1.Lines.Append(comm.SynSer.LastErrorDesc);
+    end;
 
   end;
 end;
@@ -360,6 +370,10 @@ end;
 
 procedure TForm1.SerialTxData(s:string);
 begin
+  if (comm.SynSer.LastError<>0) then
+  begin
+    Memo1.Lines.Append(comm.SynSer.LastErrorDesc);
+  end;
   comm.WriteString(s+#13);
   Memo2.Lines.Append(s);
 end;
@@ -368,7 +382,16 @@ procedure TForm1.SerialRxData(Sender: TObject);
 var
   s:string;
 begin
-  s:=Trim(comm.Data);
+  if (comm.SynSer.LastError<>0) then
+  begin
+    Memo1.Lines.Append(comm.SynSer.LastErrorDesc);
+  end;
+
+  s:=comm.Data;
+
+  if (Length(s)>0) then Memo1.Lines.Append(s);
+
+  s:=Trim(s);
   if Length(s)>0 then
   begin
     if (s='t6018430B300100000000') then
@@ -407,8 +430,6 @@ begin
     begin
       SerialTxData('t'+'581'+'8'+'6002300000000000');
     end;
-
-    Memo1.Lines.Append(s);
   end;
 end;
 
