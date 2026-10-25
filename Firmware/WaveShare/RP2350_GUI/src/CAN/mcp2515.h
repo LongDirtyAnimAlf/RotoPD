@@ -16,65 +16,102 @@
 template<typename T, size_t SIZE>
 class CircularQueue {
     static_assert(SIZE <= 65535, "CircularQueue size exceeds uint16_t counter range");
+
 private:
-    T frames[SIZE];
+    T* frames;
+    T lastItem;
     uint16_t head;
     uint16_t tail;
     uint16_t count;
 
-public:
-    CircularQueue() : head(0), tail(0), count(0) {}
+    mutable mutex_t queue_mutex;   // mutable so const methods can lock
 
+public:
+    CircularQueue() : head(0), tail(0), count(0) {
+        mutex_init(&queue_mutex);
+        //frames = (T*)pmalloc(SIZE * sizeof(T));
+        frames = (T*)malloc(SIZE * sizeof(T));
+    }
+
+    ~CircularQueue() {
+        if (frames) free(frames);
+    }
+
+    // ---------- write side ----------
     bool push(const T& item) {
+        mutex_enter_blocking(&queue_mutex);
+
         if (count >= SIZE) {
-            return false;
+            // overwrite oldest
+            head = (head + 1) % SIZE;
+            count--;
         }
-        frames[tail] = item;
+        lastItem = item;
+        frames[tail] = lastItem;
         tail = (tail + 1) % SIZE;
         count++;
+
+        mutex_exit(&queue_mutex);
         return true;
     }
 
+    // ---------- read side ----------
     bool pop(T& item) {
+        mutex_enter_blocking(&queue_mutex);
+
         if (count == 0) {
+            mutex_exit(&queue_mutex);
             return false;
         }
         item = frames[head];
         head = (head + 1) % SIZE;
         count--;
+
+        mutex_exit(&queue_mutex);
         return true;
     }
 
     bool peek(T& item) const {
+        mutex_enter_blocking(&queue_mutex);
+
         if (count == 0) {
+            mutex_exit(&queue_mutex);
             return false;
         }
         item = frames[head];
+
+        mutex_exit(&queue_mutex);
         return true;
     }
 
     uint16_t getCount() const {
-        return count;
+        mutex_enter_blocking(&queue_mutex);
+        uint16_t c = count;
+        mutex_exit(&queue_mutex);
+        return c;
     }
 
     bool isEmpty() const {
-        return count == 0;
+        return getCount() == 0;
     }
 
     bool isFull() const {
-        return count >= SIZE;
+        return getCount() >= SIZE;
     }
 
     void clear() {
+        mutex_enter_blocking(&queue_mutex);
         head = 0;
         tail = 0;
         count = 0;
+        mutex_exit(&queue_mutex);
     }
 
     // Remove the first element for which pred() returns true.
     // Preserves relative order of remaining elements.
     // Returns true if an element was removed.
     bool removeIf(bool (*pred)(const T&)) {
+        mutex_enter_blocking(&queue_mutex);
         if (count == 0 || pred == nullptr) {
             return false;
         }
@@ -102,7 +139,15 @@ public:
             count = newCount;
             tail  = write;
         }
+        mutex_exit(&queue_mutex);
         return removed;
+    }
+
+    T getLastData() const {
+        mutex_enter_blocking(&queue_mutex);
+        T result = (count == 0) ? T{} : lastItem;
+        mutex_exit(&queue_mutex);
+        return result;
     }
 };
 

@@ -518,7 +518,7 @@ bool process_command(void const *data, void *result)
   PBatteryBoard LocalBatteryBoard = CurrentBoard;
 
 	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
-  BN    = databuffer[INDEXPOSITION];
+  BN    = databuffer[BOARDPOSITION];
   // datalength = databuffer[LENGTHPOSITION];
 
   // Data start at position 3 !!
@@ -730,8 +730,8 @@ bool process_command(void const *data, void *result)
 
   // Echo back command and index/number
   resultbuffer[COMMANDPOSITION]=cCmd;
-  //resultbuffer[INDEXPOSITION]=BN;
-  resultbuffer[INDEXPOSITION]=BoardInfo.getBoardNumber();
+  //resultbuffer[BOARDPOSITION]=BN;
+  resultbuffer[BOARDPOSITION]=BoardInfo.getBoardNumber();
 
   if (BN != BoardInfo.getBoardNumber())
   {

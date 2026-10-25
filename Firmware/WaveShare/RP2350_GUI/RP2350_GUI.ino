@@ -348,7 +348,7 @@ static void main_event_handler(lv_event_t * e)
           // Prepare the command to engage the hardware
           memset(SendCommand, 0, COMMAND_SIZE); 
           SendCommand[COMMANDPOSITION] = CMD_set_output;
-          SendCommand[INDEXPOSITION] = BoardInfo.getBoardNumber();
+          SendCommand[BOARDPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 1U; // length
           SendCommand[DATASTART] = (uint8_t)buttondown;
         }    
@@ -415,7 +415,7 @@ static void main_event_handler(lv_event_t * e)
           // Prepare the command to engage the hardware
           memset(SendCommand, 0, COMMAND_SIZE);           
           SendCommand[COMMANDPOSITION] = CMD_set_value;
-          SendCommand[INDEXPOSITION] = BoardInfo.getBoardNumber();
+          SendCommand[BOARDPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 5U; // length
           SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
           DWORD_VAL valuedata;
@@ -473,9 +473,15 @@ static void main_event_handler(lv_event_t * e)
           {
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
-            mutex_enter_blocking(&can_mutex);
-            load.clearEnergy();
-            mutex_exit(&can_mutex);  
+            if (mutex_enter_timeout_ms(&can_mutex,100))
+            {
+              load.clearEnergy();
+              mutex_exit(&can_mutex);  
+            }
+            else
+            {
+              Info_Add("GUI. CAN mutex timeout.");
+            }
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
           Screen1AddEPData(RDS->Energy,0);        
@@ -492,7 +498,7 @@ static void main_event_handler(lv_event_t * e)
           // Prepare the command to engage the hardware
           memset(SendCommand, 0, COMMAND_SIZE); 
           SendCommand[COMMANDPOSITION]   = CMD_get_PDOList;
-          SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
+          SendCommand[BOARDPOSITION]     = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION]    = 0U; // length
         }
         else
@@ -519,7 +525,7 @@ static void main_event_handler(lv_event_t * e)
               // Prepare the command to engage the hardware
               memset(SendCommand, 0, COMMAND_SIZE); 
               SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
-              SendCommand[INDEXPOSITION]     = BoardInfo.getBoardNumber();
+              SendCommand[BOARDPOSITION]     = BoardInfo.getBoardNumber();
               SendCommand[LENGTHPOSITION]    = 1U; // length
               SendCommand[DATASTART]         = SelectPDOindex;
             }
@@ -1074,80 +1080,81 @@ void loop()
 
   if (node.getCAN().checkRxQueue())
   {
-  //mutex_enter_blocking(&can_mutex);
-  if (mutex_enter_timeout_ms(&can_mutex,5))
-  {
-    telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
-    telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);
-
-    while (node.run())
+    //mutex_enter_blocking(&can_mutex);
+    if (mutex_enter_timeout_ms(&can_mutex,100))
     {
-
-      // We did receive a message that was not handled by ourselves
-      const Message& rxmsg = node.getMessage();
-
-      // ---- process the message ----
-      //Serial.print("GUI [IT2704]. External app message ID = 0x");
-      //Serial.printf("%04X.\r\n",rxmsg.id);
-      if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
+      while (node.run())
       {
 
-        // Check TPDO from load messages, if any
-        if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
-        {
-          //Serial.println("GUI [IT2704]. Received correct TPDO message.");
-          ScreenPowerSetEnergyData(LatestIT2704Data.E);
-          telemetry_screensaver_update_E(LatestIT2704Data.E);
-        }
+        // We did receive a message that was not handled by ourselves
+        const Message& rxmsg = node.getMessage();
 
-        // Check SDO message from load
-        if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
+        // ---- process the message ----
+        //Serial.print("GUI [IT2704]. External app message ID = 0x");
+        //Serial.printf("%04X.\r\n",rxmsg.id);
+        if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
         {
-          //Serial.println("GUI [IT2704]. Receiving SDO response.");
 
-          if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+          // Check TPDO from load messages, if any
+          if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
           {
-            // Check for meter data that has the meaurement results from our meter data request
-            if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
-            {
-              //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
-              
-              // Get the correct IT2704 data in the correct datastore
-              load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+            //Serial.println("GUI [IT2704]. Received correct TPDO message.");
+            ScreenPowerSetEnergyData(LatestIT2704Data.E);
+            telemetry_screensaver_update_E(LatestIT2704Data.E);
+          }
 
-              switch(rxmsg.getSubID())
+          // Check SDO message from load
+          if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
+          {
+            //Serial.println("GUI [IT2704]. Receiving SDO response.");
+
+            if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+            {
+              // Check for meter data that has the meaurement results from our meter data request
+              if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
               {
-                case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
-                case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
-                case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
-                case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
+                //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
+                
+                // Get the correct IT2704 data in the correct datastore
+                load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+
+                switch(rxmsg.getSubID())
+                {
+                  case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
+                  case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
+                  case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
+                  case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
+                }
+                //telemetry_screensaver_update_box5((rp2040.getFreeHeap() / 1024));
               }
-              //telemetry_screensaver_update_box5((rp2040.getFreeHeap() / 1024));
+            }
+
+            if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
+            {
+              //Serial.println("GUI [IT2704]. Receiving response from writing data.");
+              //Serial.print("GUI [IT2704]. Writing data success. ");
+              //Serial.print("Index 0x");
+              //Serial.printf("%04X",rxmsg.getID());
+              //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
             }
           }
+        }
 
-          if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
-          {
-            //Serial.println("GUI [IT2704]. Receiving response from writing data.");
-            //Serial.print("GUI [IT2704]. Writing data success. ");
-            //Serial.print("Index 0x");
-            //Serial.printf("%04X",rxmsg.getID());
-            //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
-          }
+        node.clearMessage();
+
+        // Limit the amount of time inside this loop
+        if (millis() - maxCANTime > 100)
+        {
+          Serial.println("GUI [IT2704]. Timeout.");
+          break;
         }
       }
-
-      node.clearMessage();
-
-      // Limit the amount of time inside this loop
-      if (millis() - maxCANTime > 100)
-      {
-        Serial.println("GUI [IT2704]. Timeout.");
-        break;
-      }
+      mutex_exit(&can_mutex);  
     }
-    mutex_exit(&can_mutex);  
-  }
+    else
+    {
+      Info_Add("GUI. CAN mutex timeout.");
+    }
   }
 
   #ifdef TINYUSB_NEED_POLLING_TASK
@@ -1168,7 +1175,7 @@ void loop()
 
   if (flagRequestIT2704Data)
   {
-    if (mutex_enter_timeout_ms(&can_mutex,5))
+    if (mutex_enter_timeout_ms(&can_mutex,100))
     {
       flagRequestIT2704Data = false;
       // Ask load IT2704 to send measurement results
@@ -1176,6 +1183,11 @@ void loop()
       load.collectData();
       mutex_exit(&can_mutex);
     }
+    else
+    {
+      Info_Add("GUI. CAN mutex timeout.");
+    }
+
   }
 
   if (flagSoundButton)
@@ -1192,12 +1204,20 @@ void loop()
 
     Serial.println("Loop");
 
+    telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+    telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);
+
     // Test connection with load IT2704
-    if (mutex_enter_timeout_ms(&can_mutex,5))
+    if (mutex_enter_timeout_ms(&can_mutex,100))
     {
       load.queryConnection();
       mutex_exit(&can_mutex);  
     }
+    else
+    {
+      Info_Add("GUI. CAN mutex timeout.");
+    }
+
 
     PDOCount = taskRotoPDInit();
 
@@ -1218,7 +1238,7 @@ void loop()
         memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
         hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
-        hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
+        hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
 
         dataindexer = DATASTART;
 
@@ -1356,7 +1376,7 @@ void loop()
     // This is mostly for GUI updates !
 
     CommandType_t cCmd = (CommandType_t)INData[COMMANDPOSITION];
-    byte BoardNumber = INData[INDEXPOSITION];
+    byte BoardNumber = INData[BOARDPOSITION];
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
@@ -1395,10 +1415,15 @@ void loop()
           Screen1AddEData(RDS->Energy / 1000000ULL);
           if (RDS->Energy == 0)
           {
-            mutex_enter_blocking(&can_mutex);
-            load.clearEnergy();
-            mutex_exit(&can_mutex);  
-
+            if (mutex_enter_timeout_ms(&can_mutex,100))
+            {
+              load.clearEnergy();
+              mutex_exit(&can_mutex);  
+            }
+            else
+            {
+              Info_Add("GUI. CAN mutex timeout.");
+            }
             ClearRunData(RDS); 
             ClearMeasurementData(&LatestRotoPDData);
             ClearMeasurementData(&LatestIT2704Data);
@@ -1523,7 +1548,7 @@ void loop()
 
       // Simulate get_data command to get the RotoPD data
       hid_report_in[COMMANDPOSITION] = CMD_get_data;
-      hid_report_in[INDEXPOSITION] = BoardInfo.getBoardNumber();
+      hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
 
       process_command(&hid_report_in,&INData);
 

@@ -35,7 +35,7 @@ typedef struct {
 static telemetry_screen_data_t s_telemetry_data;
 static bool s_telemetry_scr_initialized = false;
 
-static volatile TMeasurementData current_telemetry = {12420, 1850, 22980, 230, 24750, 104500, 0};
+static volatile TMeasurementData current_telemetry = {12420, 1850, 22980, 0, 24750, 104500, 0};
 static volatile bool telemetry_dirty = true;
 
 static const lv_color_t colors[BOX_COUNT] = {
@@ -43,7 +43,7 @@ static const lv_color_t colors[BOX_COUNT] = {
     lv_color_make(0xFF, 0xB3, 0x00),
     lv_color_make(0xD5, 0x00, 0xF9),
     lv_color_make(0x00, 0xE6, 0x76),
-    lv_color_make(0xD5, 0xE6, 0x76),
+    lv_color_make(0xFF, 0x00, 0x00),
     lv_color_make(0x00, 0x00, 0xFF)
 };
 
@@ -252,6 +252,8 @@ static void init_telemetry_screen_once(void)
         byte count = 5;
         if (i == 2) count = 6;
         if (i == 3) count = 6;
+        if (i == 4) count = 3;
+        if (i == 5) count = 6;
         b->label_display = create_display(b->container, lv_palette_main(LV_PALETTE_RED), false, count);
         if (!b->label_display) return;
         lv_obj_align(b->label_display, LV_ALIGN_BOTTOM_MID, 0, 0);

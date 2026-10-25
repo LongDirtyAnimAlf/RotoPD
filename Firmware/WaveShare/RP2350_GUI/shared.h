@@ -42,8 +42,7 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   6000u
-
+#define    DATASIZE                   400u
 
 #define INA238_ADDRESS                0x40
 
