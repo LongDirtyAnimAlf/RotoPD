@@ -325,6 +325,11 @@ bool MCP2515::run(bool single)
     return (_rxQueue.getCount() > 0);
 }
 
+bool MCP2515::checkRxQueue(void)
+{
+    return (_rxQueue.getCount() > 0);
+}
+
 void MCP2515::enableInterrupt(int intPin, void (*callback)(void))
 {
     _intPin = intPin;

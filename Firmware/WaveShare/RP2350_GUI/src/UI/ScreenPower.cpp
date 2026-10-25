@@ -11,10 +11,9 @@ void Setup_ScreenPower(byte index)
 
   obj = GetInfoObject();
   if (obj != NULL) lv_label_set_text(obj,"IT2704");
-  //if (obj != NULL) lv_label_set_text_fmt(obj, "Power %d", index);
 
   obj = GetButtonLabelObject();
-  if (obj != NULL) lv_label_set_text(obj,"Graph");
+  if (obj != NULL) lv_label_set_text(obj,"Chart");
 
   SetContentObject(screenpower,true);
   cont = screenpower;

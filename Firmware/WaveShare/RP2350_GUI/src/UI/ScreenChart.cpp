@@ -58,6 +58,7 @@ void Setup_ScreenChart(byte index)
     cell = lv_obj_create(grid);
     lv_obj_remove_style_all(cell);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+    lv_obj_set_scrollable(cell, false);
 
     ScreenChartVoltageDisplay = create_display(cell, lv_palette_main(LV_PALETTE_RED), true, 5);
     //lv_obj_null_on_delete(&ScreenChartVoltageDisplay);
@@ -67,6 +68,8 @@ void Setup_ScreenChart(byte index)
     cell = lv_obj_create(grid);
     lv_obj_remove_style_all(cell);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+    lv_obj_set_scrollable(cell, false);
+
 
     ScreenChartCurrentDisplay = create_display(cell, lv_palette_main(LV_PALETTE_GREEN), true, 5);
     //lv_obj_null_on_delete(&ScreenChartCurrentDisplay);
@@ -77,7 +80,6 @@ void Setup_ScreenChart(byte index)
     lv_obj_remove_style_all(cell);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_STRETCH, 1, 1);
     lv_obj_set_scrollable(cell, false);
-
     
     lv_obj_t * scale_left = lv_scale_create(cell);
     lv_obj_set_size(scale_left, lv_pct(8), lv_pct(96));

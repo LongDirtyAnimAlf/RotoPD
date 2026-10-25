@@ -673,15 +673,14 @@ void dataupdatecb()
 
 // Running on core1
 void setup1() {
-  delay(1);
-  /*
+  //delay(1);
   mutex_enter_blocking(&can_mutex);
-  Info_Add("GUI. Setting up CANOpen.");
-  initCANopen();
-  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
-  Info_Add("GUI. Setting up CANOpen ready.");
+  node.getCAN().run();
+  //Info_Add("GUI. Setting up CANOpen.");
+  //initCANopen();
+  //tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
+  //Info_Add("GUI. Setting up CANOpen ready.");
   mutex_exit(&can_mutex);  
-  */
 }
 
 void loop1() {
@@ -1073,6 +1072,8 @@ void loop()
     Serial.println("GUI. From core1.");
   }  
 
+  if (node.getCAN().checkRxQueue())
+  {
   //mutex_enter_blocking(&can_mutex);
   if (mutex_enter_timeout_ms(&can_mutex,5))
   {
@@ -1141,6 +1142,7 @@ void loop()
       }
     }
     mutex_exit(&can_mutex);  
+  }
   }
 
   #ifdef TINYUSB_NEED_POLLING_TASK

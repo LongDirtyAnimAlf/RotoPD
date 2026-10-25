@@ -45,19 +45,19 @@
         <UnitName Value="LazSerial"/>
         <Loaded Value="True"/>
         <UsageCount Value="17"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="131"/>
-        <CursorPos X="14" Y="143"/>
+        <TopLine Value="469"/>
+        <CursorPos X="39" Y="490"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\serial\lazsynaser.pas"/>
         <UnitName Value="LazSynaSer"/>
         <Loaded Value="True"/>
         <UsageCount Value="11"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="2114"/>
-        <CursorPos X="32" Y="2155"/>
+        <TopLine Value="2151"/>
+        <CursorPos X="10" Y="2174"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\bits.pas"/>
@@ -97,11 +97,24 @@
         <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenPDO.cpp"/>
         <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="324"/>
-        <CursorPos X="11" Y="343"/>
+        <TopLine Value="288"/>
+        <CursorPos Y="315"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenPower.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="48" Y="16"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenSettings.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="357"/>
+        <CursorPos X="22" Y="368"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="4">
+    <JumpHistory HistoryIndex="8">
       <Position>
         <Filename Value="..\Common\serial\lazsynaser.pas"/>
         <Caret Line="1902" Column="13" TopLine="1879"/>
@@ -120,6 +133,22 @@
       </Position>
       <Position>
         <Filename Value="..\Common\bits.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="..\Common\serial\lazserial.pas"/>
+        <Caret Line="490" Column="39" TopLine="469"/>
+      </Position>
+      <Position>
+        <Filename Value="..\Common\serial\lazsynaser.pas"/>
+        <Caret Line="136" Column="3" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="..\Common\serial\lazsynaser.pas"/>
+        <Caret Line="738" Column="74" TopLine="717"/>
+      </Position>
+      <Position>
+        <Filename Value="..\Common\serial\lazserial.pas"/>
+        <Caret Line="490" Column="39" TopLine="469"/>
       </Position>
     </JumpHistory>
     <RunParams>

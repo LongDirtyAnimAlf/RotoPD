@@ -365,6 +365,7 @@ void create_canopen_setup_screen(lv_obj_t * parent)
     lv_obj_set_style_bg_opa(line, LV_OPA_COVER, LV_PART_MAIN);
 
     /* 5. Three Address Spinboxes */
+    char textlabel[64] = {0};
     for(int i = 0; i < 4; i++)
     {
         const node_spinbox_cfg_t * cfg = &node_cfgs[i];
@@ -375,12 +376,14 @@ void create_canopen_setup_screen(lv_obj_t * parent)
         lv_obj_set_layout(row, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_scrollable(row, false);
+
 
         lv_obj_t * lbl = lv_label_create(row);
-        //lv_label_set_text(lbl, cfg->label);
-        lv_label_set_text_fmt(lbl, "%s (%d-%d):", cfg->label, cfg->min, cfg->max);
+        textlabel[0] = '\0';
+        snprintf(textlabel, sizeof(textlabel), "%s (%d-%d):", cfg->label, cfg->min, cfg->max);
+        lv_label_set_text(lbl, textlabel);
         //lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
-
         create_node_address_spinbox(row, cfg);
     }
 }

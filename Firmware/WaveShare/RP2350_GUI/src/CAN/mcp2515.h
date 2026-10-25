@@ -613,6 +613,7 @@ class MCP2515
 
         bool checkInterrupt(void);
         bool run(bool single = false);
+        bool checkRxQueue(void);
 
         //
         // Interrupt
