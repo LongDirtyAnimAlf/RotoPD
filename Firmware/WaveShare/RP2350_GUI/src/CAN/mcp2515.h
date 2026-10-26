@@ -35,7 +35,8 @@ public:
     }
 
     ~CircularQueue() {
-        if (frames) free(frames);
+        clear();
+        //if (frames) free(frames);  // only needed when using malloc
     }
 
     // ---------- write side ----------

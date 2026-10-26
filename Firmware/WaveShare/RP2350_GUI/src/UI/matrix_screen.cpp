@@ -39,13 +39,13 @@ typedef struct {
 } bouncing_box_t;
 
 typedef struct {
-    bouncing_box_t boxes[BOX_COUNT] = {0};
+    bouncing_box_t boxes[BOX_COUNT];
     lv_timer_t *engine_timer;
     lv_obj_t *scr;
 } telemetry_screen_data_t;
 
 // Persistent, single-instance structures to eliminate dynamic heap allocation
-static telemetry_screen_data_t s_telemetry_data;
+static telemetry_screen_data_t s_telemetry_data = {0};
 static bool s_telemetry_scr_initialized = false;
 
 static volatile TMeasurementData current_telemetry = {12420, 1850, 22980, 0, 24750, 104500, 0};

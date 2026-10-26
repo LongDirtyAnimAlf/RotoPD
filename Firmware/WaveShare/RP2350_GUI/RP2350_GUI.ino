@@ -1213,7 +1213,7 @@ void loop()
 
     static uint32_t loopcounter = 0;
     //Serial.println("Loop");
-    Serial.printf("Loop: %d\n",loopcounter);
+    Serial.printf("Loop: %d\n",loopcounter++);
 
     telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
     telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);
