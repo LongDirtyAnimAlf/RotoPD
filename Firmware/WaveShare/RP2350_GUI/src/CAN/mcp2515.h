@@ -19,39 +19,44 @@ class CircularQueue {
 
 private:
     T frames[SIZE];
-    //T* frames;
     T lastItem;
-    uint16_t head;
-    uint16_t tail;
-    uint16_t count;
+    uint16_t head = 0;
+    uint16_t tail = 0;
+    uint16_t count = 0;
 
-    mutable mutex_t queue_mutex;   // mutable so const methods can lock
+    // mutable so const methods can lock
+    mutable mutex_t queue_mutex;
 
 public:
     CircularQueue() : head(0), tail(0), count(0) {
         mutex_init(&queue_mutex);
-        //frames = (T*)pmalloc(SIZE * sizeof(T));
-        //frames = (T*)malloc(SIZE * sizeof(T));
     }
 
     ~CircularQueue() {
         clear();
-        //if (frames) free(frames);  // only needed when using malloc
     }
+
+    // CRITICAL FIX: Prevent C++ from shallow-copying the Pico mutex or raw pointers
+    CircularQueue(const CircularQueue&) = delete;
+    CircularQueue& operator=(const CircularQueue&) = delete;
+    CircularQueue(CircularQueue&&) = delete;
+    CircularQueue& operator=(CircularQueue&&) = delete;
 
     // ---------- write side ----------
     bool push(const T& item) {
+        if (!frames) return false;
+
         mutex_enter_blocking(&queue_mutex);
 
         if (count >= SIZE) {
-            // overwrite oldest
             head = (head + 1) % SIZE;
-            count--;
+        } else {
+            count++;
         }
+        
         lastItem = item;
-        frames[tail] = lastItem;
+        frames[tail] = item; // Perfectly safe for POD structs
         tail = (tail + 1) % SIZE;
-        count++;
 
         mutex_exit(&queue_mutex);
         return true;
@@ -103,18 +108,82 @@ public:
 
     void clear() {
         mutex_enter_blocking(&queue_mutex);
+        // Call destructors for all live items remaining in the queue
+        while (count > 0) {
+            head = (head + 1) % SIZE;
+            count--;
+        }
         head = 0;
         tail = 0;
         count = 0;
         mutex_exit(&queue_mutex);
     }
 
-    // Remove the first element for which pred() returns true.
-    // Preserves relative order of remaining elements.
-    // Returns true if an element was removed.
+    // Copies up to 'maxItems' of the oldest available items up to the newest.
+    uint16_t peekLast(T* dest, uint16_t maxItems) const {
+        if (dest == nullptr || maxItems == 0) return 0;
+
+        mutex_enter_blocking(&queue_mutex);
+
+        if (count == 0) {
+            mutex_exit(&queue_mutex);
+            return 0;
+        }
+
+        uint16_t toCopy = (maxItems > count) ? count : maxItems;
+        // FIX: Find the correct oldest index slice boundary relative to the current tail
+        uint32_t startIdx = (static_cast<uint32_t>(tail) + SIZE - toCopy) % SIZE;
+
+        for (uint16_t i = 0; i < toCopy; i++) {
+            dest[i] = frames[(startIdx + i) % SIZE];
+        }
+
+        mutex_exit(&queue_mutex);
+        return toCopy;
+    }
+
+    // Newest item at dest[0], then older ones.
+    uint16_t peekNewest(T* dest, uint16_t maxItems) const {
+        if (dest == nullptr || maxItems == 0) return 0;
+
+        mutex_enter_blocking(&queue_mutex);
+
+        if (count == 0) {
+            mutex_exit(&queue_mutex);
+            return 0;
+        }
+
+        uint16_t toCopy = (maxItems > count) ? count : maxItems;
+
+        for (uint16_t i = 0; i < toCopy; i++) {
+            uint32_t idx = (static_cast<uint32_t>(tail) + SIZE - 1 - i) % SIZE;
+            dest[i] = frames[idx];
+        }
+
+        mutex_exit(&queue_mutex);
+        return toCopy;
+    }
+
+    // Index 0 = newest, Index (count-1) = oldest
+    bool peekFromNewest(uint16_t offsetFromNewest, T& item) const {
+        mutex_enter_blocking(&queue_mutex);
+
+        if (offsetFromNewest >= count) {
+            mutex_exit(&queue_mutex);
+            return false;
+        }
+
+        uint32_t idx = (static_cast<uint32_t>(tail) + SIZE - 1 - offsetFromNewest) % SIZE;
+        item = frames[idx];
+
+        mutex_exit(&queue_mutex);
+        return true;
+    }
+
     bool removeIf(bool (*pred)(const T&)) {
         mutex_enter_blocking(&queue_mutex);
         if (count == 0 || pred == nullptr) {
+            mutex_exit(&queue_mutex);
             return false;
         }
 
@@ -125,7 +194,6 @@ public:
 
         for (uint16_t i = 0; i < count; i++) {
             if (!removed && pred(frames[read])) {
-                // skip this element (first match only)
                 removed = true;
             } else {
                 if (write != read) {

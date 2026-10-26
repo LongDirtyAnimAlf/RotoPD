@@ -50,7 +50,7 @@ public:
 
         if (count >= SIZE) {
             // Explicitly call destructor of the item being overwritten
-            frames[head].~T();
+            //frames[head].~T();
             head = (head + 1) % SIZE;
         } else {
             count++;
