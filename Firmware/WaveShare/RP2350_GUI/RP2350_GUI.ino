@@ -320,8 +320,6 @@ static void main_event_handler(lv_event_t * e)
   PRunDatas RDS = &SET->TestData.RunDatas;
   PStageData SD = NULL;  
 
-
-
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
   lv_obj_t * event_object = lv_event_get_target_obj(e);
@@ -473,6 +471,7 @@ static void main_event_handler(lv_event_t * e)
           {
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
+            // Not the best place to do this !!
             if (mutex_enter_timeout_ms(&can_mutex,100))
             {
               load.clearEnergy();
@@ -480,7 +479,9 @@ static void main_event_handler(lv_event_t * e)
             }
             else
             {
-              Info_Add("GUI. CAN mutex timeout.");
+              #ifdef DEBUG                      
+              Serial.println("GUI. CAN mutex timeout.");
+              #endif
             }
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
@@ -692,7 +693,7 @@ void setup1() {
 void loop1() {
   bool mutexOk = false;
   //mutex_enter_blocking(&can_mutex);
-  mutexOk = mutex_enter_timeout_ms(&can_mutex,1);
+  mutexOk = mutex_enter_timeout_ms(&can_mutex, 1/*ms*/);
   if (mutexOk)
   {
     node.getCAN().run(true);
@@ -1077,11 +1078,6 @@ void loop()
 
   uint32_t msg;
 
-  if (rp2040.fifo.pop_nb(&msg)) {
-    //Serial.printf("From core1: %lu\n", msg);
-    Serial.println("GUI. From core1.");
-  }  
-
   if (node.getCAN().checkRxQueue())
   {
     //mutex_enter_blocking(&can_mutex);
@@ -1089,13 +1085,10 @@ void loop()
     {
       while (node.run())
       {
-
         // We did receive a message that was not handled by ourselves
         const Message& rxmsg = node.getMessage();
 
         // ---- process the message ----
-        //Serial.print("GUI [IT2704]. External app message ID = 0x");
-        //Serial.printf("%04X.\r\n",rxmsg.id);
         if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
         {
 
@@ -1117,8 +1110,6 @@ void loop()
               // Check for meter data that has the meaurement results from our meter data request
               if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
               {
-                //Serial.println("GUI [IT2704]. We got meter data as requested by this board.");
-                
                 // Get the correct IT2704 data in the correct datastore
                 load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
 
@@ -1129,17 +1120,18 @@ void loop()
                   case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
                   case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
                 }
-                //telemetry_screensaver_update_box5((rp2040.getFreeHeap() / 1024));
               }
             }
 
             if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
             {
+              #ifdef DEBUG                      
               //Serial.println("GUI [IT2704]. Receiving response from writing data.");
               //Serial.print("GUI [IT2704]. Writing data success. ");
               //Serial.print("Index 0x");
               //Serial.printf("%04X",rxmsg.getID());
               //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
+              #endif
             }
           }
         }
@@ -1149,7 +1141,9 @@ void loop()
         // Limit the amount of time inside this loop
         if (millis() - maxCANTime > 100)
         {
-          Serial.println("GUI [IT2704]. Timeout.");
+          #ifdef DEBUG                      
+          Serial.println("GUI. CAN node.run() timeout.");
+          #endif
           break;
         }
       }
@@ -1157,7 +1151,9 @@ void loop()
     }
     else
     {
-      Info_Add("GUI. CAN mutex timeout.");
+      #ifdef DEBUG                      
+      Serial.println("GUI. CAN mutex timeout.");
+      #endif
     }
   }
 
@@ -1172,11 +1168,6 @@ void loop()
     // Get RotoPD measurement results for later averaging
     // Runs every 100ms
     collectRotoPDData();
-
-    // for testing only
-    TMeasurementData RotoPDData;
-    getRotoPDData(&RotoPDData.I,&RotoPDData.V,&RotoPDData.P,&RotoPDData.T);
-    RDS->NewerRotoPDDatas.push(RotoPDData);
 
     // If we do not have TPDOs with energy, this might be a quick energy data solution
     //load.collectDataEnergyOnly();
@@ -1194,7 +1185,9 @@ void loop()
     }
     else
     {
-      Info_Add("GUI. CAN mutex timeout.");
+      #ifdef DEBUG                      
+      Serial.println("GUI. CAN mutex timeout.");
+      #endif
     }
 
   }
@@ -1211,22 +1204,22 @@ void loop()
     // This runs every second !!
     startTime = millis();
 
+    #ifdef DEBUG                      
     static uint32_t loopcounter = 0;
-    //Serial.println("Loop");
     Serial.printf("Loop: %d\n",loopcounter++);
-
-    telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
-    telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);
+    #endif
 
     // Test connection with load IT2704
-    if (mutex_enter_timeout_ms(&can_mutex,100))
+    if (mutex_enter_timeout_ms(&can_mutex, 100 /*ms*/))
     {
       load.queryConnection();
       mutex_exit(&can_mutex);  
     }
     else
     {
-      Info_Add("GUI. CAN mutex timeout.");
+      #ifdef DEBUG                      
+      Serial.println("GUI. CAN mutex timeout.");
+      #endif
     }
 
 
@@ -1433,7 +1426,9 @@ void loop()
             }
             else
             {
-              Info_Add("GUI. CAN mutex timeout.");
+              #ifdef DEBUG                      
+              Serial.println("GUI. CAN mutex timeout.");
+              #endif
             }
             ClearRunData(RDS); 
             ClearMeasurementData(&LatestRotoPDData);
@@ -1575,7 +1570,10 @@ void loop()
       LatestRotoPDData.T = w_data.Val;
 
       //Append the data in RotoPD buffer
-      //RDS->NewerRotoPDDatas.push(LatestRotoPDData);
+      RDS->NewerRotoPDDatas.push(LatestRotoPDData);
+
+      telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+      telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
 
       if (load.isConnected())
       {

@@ -416,12 +416,16 @@ int8_t taskRotoPDInit(void)
 
   if (pd.isConnected())
   {
-    //Serial.println("RotoPD Pro connected.");
+    #ifdef DEBUG
+    Serial.println("RotoPD Pro connected.");
+    #endif
 
     j = pd.getStatus();
 
-    //Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
-
+    #ifdef DEBUG
+    Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+    #endif
+    
     if (j & STATUS_FAULTS)
     {
       static char error_label[4] = {0};
@@ -757,16 +761,6 @@ bool process_command(void const *data, void *result)
     for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
     w_data.Val = LocalBatteryBoard->RotoPDData.T;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-
-    #ifdef DEBUG
-    /*
-    Serial.printf("GetData command results.\r\n");
-    Serial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
-    Serial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
-    Serial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
-    */
-    #endif
-
   }
 
   if (cCmd == CMD_set_value)

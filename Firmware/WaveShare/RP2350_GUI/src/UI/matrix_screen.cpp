@@ -8,6 +8,8 @@
 
 #ifdef BOUNCINGSAVER
 
+//#define BOX_COUNT     6
+
 #define SCREEN_WIDTH  480
 #define SCREEN_HEIGHT 480
 #define BOX_WIDTH     140
@@ -21,8 +23,9 @@ typedef enum {
   dtT,
   dtS,
   //dtC,
-  NumTypes
+  BOX_COUNT
 } DataType_t;
+
 
 typedef struct {
     lv_obj_t *container;
@@ -52,16 +55,35 @@ static volatile TMeasurementData current_telemetry = {12420, 1850, 22980, 0, 247
 static volatile bool telemetry_dirty = true;
 
 static const lv_color_t colors[BOX_COUNT] = {
-    lv_color_make(0x00, 0xE5, 0xFF),
-    lv_color_make(0xFF, 0xB3, 0x00),
-    lv_color_make(0xD5, 0x00, 0xF9),
-    lv_color_make(0x00, 0xE6, 0x76),
-    lv_color_make(0xFF, 0x00, 0x00),
-    lv_color_make(0x00, 0x00, 0xFF)
+    [dtV] = lv_color_make(0x00, 0xE5, 0xFF),
+    [dtI] = lv_color_make(0xFF, 0xB3, 0x00),
+    [dtP] = lv_color_make(0xD5, 0x00, 0xF9),
+    [dtE] = lv_color_make(0x00, 0xE6, 0x76),
+    [dtT] = lv_color_make(0xFF, 0x00, 0x00),
+    [dtS] = lv_color_make(0x00, 0x00, 0xFF),
+    //[dtC] = lv_color_make(0x00, 0xFF, 0x00),
 };
 
-static const char *titles[BOX_COUNT] = {"VOLTAGE", "CURRENT", "POWER", "ENERGY", "TEMPERATURE", "TIME"};
-static const char *units[BOX_COUNT]  = {"V", "A", "W", "Wh", "°C", "s"};
+static const char *titles[BOX_COUNT] = {
+    [dtV] = "VOLTAGE",
+    [dtI] = "CURRENT",
+    [dtP] = "POWER",
+    [dtE] = "ENERGY",
+    [dtT] = "TEMPERATURE",
+    [dtS] = "TIME",
+    // [dtC] = "CAPACITY", // Uncommenting this will auto-align without breaking indices
+};
+
+static const char *units[BOX_COUNT]  = {
+    [dtV] = "V",
+    [dtI] = "A",
+    [dtP] = "W",
+    [dtE] = "Wh",
+    [dtT] = "°C",
+    [dtS] = "s",
+    //[dtC] = "Ah",
+};
+
 static char label_buffer[BOX_COUNT][16] = {0};
 
 extern const lv_font_t lv_font_montserrat_12;
@@ -130,6 +152,7 @@ static void resolve_box_collisions(bouncing_box_t boxes[BOX_COUNT]) {
 static void telemetry_engine_timer_cb(lv_timer_t * timer)
 {
     int i;
+    DataType_t DT;
 
     telemetry_screen_data_t * data =
         static_cast<telemetry_screen_data_t *>(lv_timer_get_user_data(timer));
@@ -137,7 +160,8 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
     // 1. Move all boxes according to their current velocity
     for ( i = 0; i < BOX_COUNT; i++ ) {
-        bouncing_box_t *b = &data->boxes[i];
+        DT = (DataType_t)i;
+        bouncing_box_t *b = &data->boxes[DT];
         if (!b->container) continue;
 
         b->x += b->vx;
@@ -149,7 +173,8 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
     // 3. Screen edge collision checks & boundary clamping
     for ( i = 0; i < BOX_COUNT; i++ ) {
-        bouncing_box_t *b = &data->boxes[i];
+        DT = (DataType_t)i;
+        bouncing_box_t *b = &data->boxes[DT];
         if (!b->container) continue;
 
         if (b->x <= 0) { 
@@ -188,7 +213,8 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
         */
 
         for ( i = 0; i < BOX_COUNT; i++ ) {
-            bouncing_box_t *b = &data->boxes[i];
+            DT = (DataType_t)i;
+            bouncing_box_t *b = &data->boxes[DT];
 
             if (!b->dirty) continue;
 
@@ -223,26 +249,41 @@ static void init_telemetry_screen_once(void)
     lv_obj_set_style_bg_color(telemetry_scr, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(telemetry_scr, LV_OPA_COVER, 0);
 
-    const int16_t initial_positions[BOX_COUNT][2] = {{20, 30}, {260, 40}, {40, 260}, {250, 280}, {(SCREEN_WIDTH-BOX_WIDTH-4), (SCREEN_HEIGHT-BOX_HEIGHT-4)},{((SCREEN_WIDTH / 2) - (BOX_WIDTH / 2)), ((SCREEN_HEIGHT / 2) - (BOX_HEIGHT / 2))}};
-    const int8_t  initial_velocities[BOX_COUNT][2] = {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}, {-2, -2}, {0, 0}};
+    const int16_t initial_positions[BOX_COUNT][2] = {
+        [dtV] = {20, 30},
+        [dtI] = {260, 40},
+        [dtP] = {40, 260},
+        [dtE] = {250, 280},
+        [dtT] = {(SCREEN_WIDTH-BOX_WIDTH-4), (SCREEN_HEIGHT-BOX_HEIGHT-4)},
+        [dtS] = {((SCREEN_WIDTH / 2) - (BOX_WIDTH / 2)), ((SCREEN_HEIGHT / 2) - (BOX_HEIGHT / 2))},
+    };
+    
+    const int8_t  initial_velocities[BOX_COUNT][2] = {
+        [dtV] = {1, 1},
+        [dtI] = {-1, 1},
+        [dtP] = {1, -1},
+        [dtE] = {-1, -1},
+        [dtT] = {-2, -2},
+        [dtS] = {0, 0},
+    };
 
     //uint32_t rand32;
-
+    DataType_t DT;
     for (int i = 0; i < BOX_COUNT; i++) {
 
-        DataType_t DT = (DataType_t)i;
+        DT = (DataType_t)i;
+        bouncing_box_t *b = &s_telemetry_data.boxes[DT];
 
-        bouncing_box_t *b = &s_telemetry_data.boxes[i];
-        b->x = initial_positions[i][0];
-        b->y = initial_positions[i][1];
+        b->x = initial_positions[DT][0];
+        b->y = initial_positions[DT][1];
 
         //rand32 = get_rand_32();
         //b->x += (rand32 % 10);
         //rand32 = get_rand_32();
         //b->y += (rand32 % 10);
 
-        b->vx = initial_velocities[i][0];
-        b->vy = initial_velocities[i][1];
+        b->vx = initial_velocities[DT][0];
+        b->vy = initial_velocities[DT][1];
         b->width  = BOX_WIDTH;
         b->height = BOX_HEIGHT;
         b->last_value = -1;
@@ -263,28 +304,28 @@ static void init_telemetry_screen_once(void)
 
         lv_obj_set_style_bg_color(b->container, lv_color_make(0x12, 0x18, 0x24), 0);
         lv_obj_set_style_bg_opa(b->container, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_color(b->container, colors[i], 0);
+        lv_obj_set_style_border_color(b->container, colors[DT], 0);
         lv_obj_set_style_border_width(b->container, 2, 0);
         lv_obj_set_style_radius(b->container, 8, 0);
         lv_obj_set_style_pad_all(b->container, 6, 0);
 
         b->label_title = lv_label_create(b->container);
         if (!b->label_title) return;
-        lv_label_set_text(b->label_title, titles[i]);
-        lv_obj_set_style_text_color(b->label_title, colors[i], 0);
+        lv_label_set_text(b->label_title, titles[DT]);
+        lv_obj_set_style_text_color(b->label_title, colors[DT], 0);
         lv_obj_set_style_text_font(b->label_title, &lv_font_montserrat_12, 0);
         lv_obj_align(b->label_title, LV_ALIGN_TOP_MID, 0, 0);
 
         byte count = 5;
-        if (i == 2) count = 6;
-        if (i == 3) count = 6;
-        if (i == 4) count = 3;
-        if (i == 5) count = 6;
+        if (DT == dtP) count = 6;
+        if (DT == dtE) count = 6;
+        if (DT == dtT) count = 3;
+        if (DT == dtS) count = 6;
         b->label_display = create_display(b->container, lv_palette_main(LV_PALETTE_RED), false, count);
         if (!b->label_display) return;
         lv_obj_align(b->label_display, LV_ALIGN_BOTTOM_MID, 0, 0);
 
-        if ( (i==4) || (i==5) )
+        if ( (DT == dtT) || (DT == dtS) )
         {
             b->set_value = SetDisplayV;
         }
@@ -314,7 +355,8 @@ void navigate_to_matrix_screen(void)
 
     // Reset last_value on load to force full display refresh
     for (int i = 0; i < BOX_COUNT; i++) {
-        s_telemetry_data.boxes[i].last_value = -1;
+        DataType_t DT = (DataType_t)i;
+        s_telemetry_data.boxes[DT].last_value = -1;
     }
     telemetry_dirty = true;
 

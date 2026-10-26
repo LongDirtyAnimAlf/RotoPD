@@ -6,8 +6,6 @@
 #include "sevensegment.h"
 #include "./../../shared.h"
 
-#define BOX_COUNT     6
-
 #ifdef __cplusplus
 extern "C" {
 #endif
