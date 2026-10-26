@@ -713,6 +713,10 @@ void setup()
   word tempintcalc;
   char myHex[10] = "";
 
+  // If this throws an error during compilation, you know you need to adjust your padding array size!
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 88, 
+              "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+
   //delay(250);
 
   // Start by blocking all CAN activity
@@ -1169,6 +1173,11 @@ void loop()
     // Runs every 100ms
     collectRotoPDData();
 
+    // for testing only
+    TMeasurementData RotoPDData;
+    getRotoPDData(&RotoPDData.I,&RotoPDData.V,&RotoPDData.P,&RotoPDData.T);
+    RDS->NewerRotoPDDatas.push(RotoPDData);
+
     // If we do not have TPDOs with energy, this might be a quick energy data solution
     //load.collectDataEnergyOnly();
   }
@@ -1202,7 +1211,9 @@ void loop()
     // This runs every second !!
     startTime = millis();
 
-    Serial.println("Loop");
+    static uint32_t loopcounter = 0;
+    //Serial.println("Loop");
+    Serial.printf("Loop: %d\n",loopcounter);
 
     telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
     telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);
@@ -1564,7 +1575,7 @@ void loop()
       LatestRotoPDData.T = w_data.Val;
 
       //Append the data in RotoPD buffer
-      RDS->NewerRotoPDDatas.push(LatestRotoPDData);
+      //RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
       if (load.isConnected())
       {

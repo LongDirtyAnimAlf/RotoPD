@@ -2,7 +2,8 @@
 #define _QUEUE_H_
 
 #include "Arduino.h"
-#include "pico/mutex.h"          // required for mutex
+#include "pico/mutex.h"
+#include <new> // Required for placement new
 
 #ifdef __cplusplus
 
@@ -11,37 +12,54 @@ class CircularDataQueue {
     static_assert(SIZE <= 65535, "CircularDataQueue size exceeds uint16_t counter range");
 
 private:
-    T* frames;
+    T* frames = NULL;
     T lastItem;
-    uint16_t head;
-    uint16_t tail;
-    uint16_t count;
+    uint16_t head = 0;
+    uint16_t tail = 0;
+    uint16_t count = 0;
 
-    mutable mutex_t queue_mutex;   // mutable so const methods can lock
+    // mutable so const methods can lock
+    mutable mutex_t queue_mutex;
 
 public:
     CircularDataQueue() : head(0), tail(0), count(0) {
         mutex_init(&queue_mutex);
+        // Use standard malloc or generic pvPortMalloc/pmalloc depending on framework
         frames = (T*)pmalloc(SIZE * sizeof(T));
     }
 
     ~CircularDataQueue() {
-        if (frames) free(frames);
+        if (frames) {
+            // Explicitly destroy any remaining live objects before freeing memory
+            clear();
+            free(frames);
+        }
     }
+
+    // CRITICAL FIX: Prevent C++ from shallow-copying the Pico mutex or raw pointers
+    CircularDataQueue(const CircularDataQueue&) = delete;
+    CircularDataQueue& operator=(const CircularDataQueue&) = delete;
+    CircularDataQueue(CircularDataQueue&&) = delete;
+    CircularDataQueue& operator=(CircularDataQueue&&) = delete;
 
     // ---------- write side ----------
     bool push(const T& item) {
+        if (!frames) return false;
+
         mutex_enter_blocking(&queue_mutex);
 
         if (count >= SIZE) {
-            // overwrite oldest
+            // Explicitly call destructor of the item being overwritten
+            frames[head].~T();
             head = (head + 1) % SIZE;
-            count--;
+        } else {
+            count++;
         }
+        
         lastItem = item;
-        frames[tail] = lastItem;
+        //::new (static_cast<void*>(&frames[tail])) T(item); // Use placement new to construct the object in memory safely
+        frames[tail] = item; // Perfectly safe for POD structs
         tail = (tail + 1) % SIZE;
-        count++;
 
         mutex_exit(&queue_mutex);
         return true;
@@ -56,6 +74,8 @@ public:
             return false;
         }
         item = frames[head];
+        // Explicitly destroy the popped object
+        //frames[head].~T();
         head = (head + 1) % SIZE;
         count--;
 
@@ -93,14 +113,19 @@ public:
 
     void clear() {
         mutex_enter_blocking(&queue_mutex);
+        // Call destructors for all live items remaining in the queue
+        while (count > 0) {
+            //frames[head].~T();
+            head = (head + 1) % SIZE;
+            count--;
+        }
         head = 0;
         tail = 0;
         count = 0;
         mutex_exit(&queue_mutex);
     }
 
-    // Copies up to 'maxItems' of the most recent entries into dest array.
-    // Returns the actual number of items copied.
+    // Copies up to 'maxItems' of the oldest available items up to the newest.
     uint16_t peekLast(T* dest, uint16_t maxItems) const {
         if (dest == nullptr || maxItems == 0) return 0;
 
@@ -112,7 +137,8 @@ public:
         }
 
         uint16_t toCopy = (maxItems > count) ? count : maxItems;
-        uint16_t startIdx = (tail + SIZE - toCopy) % SIZE;
+        // FIX: Find the correct oldest index slice boundary relative to the current tail
+        uint32_t startIdx = (static_cast<uint32_t>(tail) + SIZE - toCopy) % SIZE;
 
         for (uint16_t i = 0; i < toCopy; i++) {
             dest[i] = frames[(startIdx + i) % SIZE];
@@ -136,7 +162,7 @@ public:
         uint16_t toCopy = (maxItems > count) ? count : maxItems;
 
         for (uint16_t i = 0; i < toCopy; i++) {
-            uint16_t idx = (tail + SIZE - 1 - i) % SIZE;
+            uint32_t idx = (static_cast<uint32_t>(tail) + SIZE - 1 - i) % SIZE;
             dest[i] = frames[idx];
         }
 
@@ -153,19 +179,17 @@ public:
             return false;
         }
 
-        uint16_t idx = (tail + SIZE - 1 - offsetFromNewest) % SIZE;
+        uint32_t idx = (static_cast<uint32_t>(tail) + SIZE - 1 - offsetFromNewest) % SIZE;
         item = frames[idx];
 
         mutex_exit(&queue_mutex);
         return true;
     }
 
-    // Remove the first element for which pred() returns true.
-    // Preserves relative order of remaining elements.
-    // Returns true if an element was removed.
     bool removeIf(bool (*pred)(const T&)) {
         mutex_enter_blocking(&queue_mutex);
         if (count == 0 || pred == nullptr) {
+            mutex_exit(&queue_mutex);
             return false;
         }
 
@@ -176,10 +200,14 @@ public:
 
         for (uint16_t i = 0; i < count; i++) {
             if (!removed && pred(frames[read])) {
-                // skip this element (first match only)
+                // skip this element (first match only) and call destructor
+                //frames[read].~T();
                 removed = true;
             } else {
                 if (write != read) {
+                    // Move using placement new and then destroy old location
+                    //::new (static_cast<void*>(&frames[write])) T(frames[read]);
+                    //frames[read].~T();
                     frames[write] = frames[read];
                 }
                 write = (write + 1) % SIZE;

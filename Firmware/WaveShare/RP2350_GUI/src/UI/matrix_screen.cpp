@@ -13,6 +13,17 @@
 #define BOX_WIDTH     140
 #define BOX_HEIGHT    70
 
+typedef enum {
+  dtV,
+  dtI,
+  dtP,
+  dtE,
+  dtT,
+  dtS,
+  //dtC,
+  NumTypes
+} DataType_t;
+
 typedef struct {
     lv_obj_t *container;
     lv_obj_t *label_title;
@@ -22,11 +33,13 @@ typedef struct {
     int8_t vx, vy;
     uint16_t width, height;
     uint32_t last_value;
+    uint32_t new_value;
+    bool dirty;
     void (*set_value)(lv_obj_t * target, unsigned long value);
 } bouncing_box_t;
 
 typedef struct {
-    bouncing_box_t boxes[BOX_COUNT];
+    bouncing_box_t boxes[BOX_COUNT] = {0};
     lv_timer_t *engine_timer;
     lv_obj_t *scr;
 } telemetry_screen_data_t;
@@ -49,7 +62,6 @@ static const lv_color_t colors[BOX_COUNT] = {
 
 static const char *titles[BOX_COUNT] = {"VOLTAGE", "CURRENT", "POWER", "ENERGY", "TEMPERATURE", "TIME"};
 static const char *units[BOX_COUNT]  = {"V", "A", "W", "Wh", "°C", "s"};
-
 static char label_buffer[BOX_COUNT][16] = {0};
 
 extern const lv_font_t lv_font_montserrat_12;
@@ -160,8 +172,9 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
         lv_obj_set_pos(b->container, b->x, b->y);
     }
 
-    if (telemetry_dirty) {
-
+    //if (telemetry_dirty)
+    {
+        /*
         telemetry_dirty = false;
 
         uint32_t vals[BOX_COUNT] = {
@@ -172,18 +185,26 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
             current_telemetry.T,
             current_telemetry.S
         };
+        */
 
         for ( i = 0; i < BOX_COUNT; i++ ) {
             bouncing_box_t *b = &data->boxes[i];
 
-            // Dismiss noise
-            if (abs((int32_t)(vals[i] - b->last_value)) <= 1) continue;
+            if (!b->dirty) continue;
 
-            b->last_value = vals[i];
+            b->dirty = false;
+
+            // Dismiss noise
+            //if (abs((int32_t)(vals[i] - b->last_value)) <= 1) continue;
+            //if (abs((int32_t)(b->new_value - b->last_value)) <= 1) continue;
+
+            //b->last_value = vals[i];
+            b->last_value = b->new_value;
 
             if ( (b->label_display != NULL) || (b->set_value != NULL) )
             {
-                b->set_value(b->label_display, vals[i]);
+                //b->set_value(b->label_display, vals[i]);
+                b->set_value(b->label_display, b->last_value);
             }
         }
     }
@@ -208,6 +229,9 @@ static void init_telemetry_screen_once(void)
     //uint32_t rand32;
 
     for (int i = 0; i < BOX_COUNT; i++) {
+
+        DataType_t DT = (DataType_t)i;
+
         bouncing_box_t *b = &s_telemetry_data.boxes[i];
         b->x = initial_positions[i][0];
         b->y = initial_positions[i][1];
@@ -222,11 +246,13 @@ static void init_telemetry_screen_once(void)
         b->width  = BOX_WIDTH;
         b->height = BOX_HEIGHT;
         b->last_value = -1;
+        b->new_value = -1;
 
         b->container = NULL;
         b->label_title = NULL;
         b->label_val = NULL;
         b->label_display = NULL;
+        b->dirty = true;
 
         b->container = lv_obj_create(telemetry_scr);
         if (!b->container) return;
@@ -323,9 +349,15 @@ void telemetry_screensaver_update_i2c(const PMeasurementData data)
 void telemetry_screensaver_update_V(const uint16_t data)
 {
     static uint16_t oldData = -1;
-    if (oldData != data) {
-        current_telemetry.V = data;
-        telemetry_dirty = true;
+    if (oldData != data)
+    {
+        if (s_telemetry_scr_initialized)
+        {
+            s_telemetry_data.boxes[dtV].new_value = data;
+            s_telemetry_data.boxes[dtV].dirty = true;
+        }
+        //current_telemetry.V = data;
+        //telemetry_dirty = true;
         oldData = data;
     }
 }
@@ -334,8 +366,13 @@ void telemetry_screensaver_update_I(const uint16_t data)
 {
     static uint16_t oldData = -1;
     if (oldData != data) {
-        current_telemetry.I = data;
-        telemetry_dirty = true;
+        if (s_telemetry_scr_initialized)
+        {
+            s_telemetry_data.boxes[dtI].new_value = data;
+            s_telemetry_data.boxes[dtI].dirty = true;
+        }
+        //current_telemetry.I = data;
+        //telemetry_dirty = true;
         oldData = data;
     }
 }
@@ -344,8 +381,13 @@ void telemetry_screensaver_update_P(const uint32_t data)
 {
     static uint32_t oldData = -1;
     if (oldData != data) {
-        current_telemetry.P = data;
-        telemetry_dirty = true;
+        if (s_telemetry_scr_initialized)
+        {
+            s_telemetry_data.boxes[dtP].new_value = data;
+            s_telemetry_data.boxes[dtP].dirty = true;
+        }
+        //current_telemetry.P = data;
+        //telemetry_dirty = true;
         oldData = data;
     }
 }
@@ -354,8 +396,13 @@ void telemetry_screensaver_update_E(const uint32_t data)
 {
     static uint32_t oldData = -1;
     if (oldData != data) {
-        current_telemetry.E = data;
-        telemetry_dirty = true;
+        if (s_telemetry_scr_initialized)
+        {
+            s_telemetry_data.boxes[dtE].new_value = data;
+            s_telemetry_data.boxes[dtE].dirty = true;
+        }
+        //current_telemetry.E = data;
+        //telemetry_dirty = true;
         oldData = data;
     }
 }
@@ -364,8 +411,13 @@ void telemetry_screensaver_update_box5(const uint32_t data)
 {
     static uint32_t oldData = -1;
     if (oldData != data) {
-        current_telemetry.T = data;
-        telemetry_dirty = true;
+        if (s_telemetry_scr_initialized)
+        {
+            s_telemetry_data.boxes[dtT].new_value = data;
+            s_telemetry_data.boxes[dtT].dirty = true;
+        }
+        //current_telemetry.T = data;
+        //telemetry_dirty = true;
         oldData = data;
     }
 }
@@ -374,8 +426,13 @@ void telemetry_screensaver_update_box6(const uint32_t data)
 {
     static uint32_t oldData = -1;
     if (oldData != data) {
-        current_telemetry.S = data;
-        telemetry_dirty = true;
+        if (s_telemetry_scr_initialized)
+        {
+            s_telemetry_data.boxes[dtS].new_value = data;
+            s_telemetry_data.boxes[dtS].dirty = true;
+        }
+        //current_telemetry.S = data;
+        //telemetry_dirty = true;
         oldData = data;
     }
 }

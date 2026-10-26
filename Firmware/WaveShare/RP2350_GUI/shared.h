@@ -234,10 +234,10 @@ typedef struct
   word  V;   // voltage
   word  I;   // current
   dword P;   // power
-  word  T;   // temperature
-  dword C;   // Ah energy
+  dword C;   // Ah capacity
   dword E;   // Wh energy
   dword S;   // timestamp ms
+  word  T;   // temperature
 } TMeasurementData,*PMeasurementData;
 
 typedef struct
@@ -274,16 +274,21 @@ static void ClearMeasurementData(PMeasurementData MAD)
 
 typedef struct
 {
-  #ifdef __cplusplus          // only compile the class when using a C++ compiler
-  CircularDataQueue<TMeasurementData, DATASIZE> NewerRotoPDDatas;
-  CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
-  #endif
   // Cumulative datas
   qword Capacity; // in nAh
   qword Energy; // in nWh
   qword Time;  // in ms
   byte CurrentStageNumber;
   TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
+  //Queue memory region at the bottom
+  #ifdef __cplusplus          // only compile the class when using a C++ compiler
+  CircularDataQueue<TMeasurementData, DATASIZE> NewerRotoPDDatas;
+  CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
+  #else
+  // The Pure C compiler reserves exactly 88 bytes here.
+  // This keeps subsequent memory fields from overlapping or mismatching offsets.
+  uint8_t _cpp_queue_padding[88];   
+  #endif
 } TRunDatas,*PRunDatas;
 
 typedef struct
