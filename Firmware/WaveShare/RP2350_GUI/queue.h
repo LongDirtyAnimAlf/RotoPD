@@ -2,8 +2,31 @@
 #define _QUEUE_H_
 
 #include "Arduino.h"
-#include "pico/mutex.h"
-#include <new> // Required for placement new
+//#include <new> // Required for placement new
+
+#if defined(ARDUINO_ARCH_ESP32)
+  // --- ESP32 TRANSLATION LAYER ---
+  typedef SemaphoreHandle_t mutex_t;
+
+  // Translates RP2350 timeout locks to ESP32 FreeRTOS ticks
+  inline bool mutex_enter_timeout_ms(mutex_t* mtx, uint32_t timeout_ms) {
+      return (xSemaphoreTake(*mtx, pdMS_TO_TICKS(timeout_ms)) == pdTRUE);
+  }
+
+  // Translates RP2350 unlocks to ESP32 FreeRTOS semaphore releases
+  inline void mutex_exit(mutex_t* mtx) {
+      xSemaphoreGive(*mtx);
+  }
+
+  // Translates RP2350 mutex creation to ESP32 FreeRTOS creation
+  inline void mutex_init(mutex_t* mtx) {
+      *mtx = xSemaphoreCreateMutex();
+  }
+
+#elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+  // --- NATIVE RP2350 SDK ---
+  #include "pico/mutex.h"
+#endif
 
 #ifdef __cplusplus
 

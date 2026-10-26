@@ -1,20 +1,33 @@
 #ifndef _SHARED_H_
 #define _SHARED_H_
 
+//#pragma once          // or classic include guards
+
 #include <Arduino.h>
-//#include "longunion.h"
+#include "queue.h"
+
+#include "./src/AP33772SS/AP33772S.h"
+#include "./src/INA238/INA238.h"
+#include "./src/IT2704/IT2704.h"
 
 #define    DEBUG
+
+#define    ENABLEUSB
 
 #ifndef ARDUINO_ARCH_SAMD
 // Only SenseCap can be standalone !!
 #define    STANDALONE
 #endif
 
-#define DATAGETTIME 50 // ms
-#define DATACOLLECTTIMEFAST 500 // ms
-#define DATACOLLECTTIMENORMAL 10000 // ms
-#define CALCULATIONTIME 100 // ms
+#define ROTOPDDATAGETTIME             50 // ms
+#define IT2704DATAREQUESTTIME         250 // ms
+#define DATACOLLECTTIMEFAST           500 // ms
+#define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
+#define CALCULATIONTIME               100 // ms
+
+#define SAVERTIME                     (1000u * 60u * 1u) // 10 minutes in ms
+#define DVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
+#define PVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 
 // RotoPD
 #define WITHINA238TEMPERATURE
@@ -29,12 +42,15 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   600u
-
-#define    DVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
-#define    PVTIME                     (1000u * 60u * 10u) // 10 minutes in ms
+#define    DATASIZE                   10000u
 
 #define INA238_ADDRESS                0x40
+
+#define DEFAULT_IT2704_CHANNEL                0
+#define DEFAULT_BOARDNUMBER                   (DEFAULT_IT2704_CHANNEL + 1)
+#define DEFAULT_IT2704_NODEID                 1
+#define DEFAULT_MASTER_NODEID                 10
+#define DEFAULT_LOCAL_NODEID                  20
 
 #ifdef CFG_TUD_ENDPOINT0_SIZE
 #undef CFG_TUD_ENDPOINT0_SIZE
@@ -63,6 +79,13 @@
 
 #define    USB_CMD_error              0xFF
 
+typedef struct
+{
+  byte HIDEPOUTData[HID_INT_OUT_EP_SIZE];
+  byte HIDEPINData[HID_INT_IN_EP_SIZE];
+  bool DataReceived;
+} THIDData;
+
 //typedef uint16_t word;
 typedef uint32_t dword;
 typedef uint64_t qword;
@@ -80,16 +103,17 @@ typedef union
 
 typedef union
 {
-    dword Val;
-    byte v[4];// __PACKED;
-    word w[2];// __PACKED;
+    uint32_t Val;
+    uint8_t v[4];// __PACKED;
+    uint16_t w[2];// __PACKED;
     struct //__PACKED
     {
-        byte LB;
-        byte HB;
-        byte UB;
-        byte MB;
+        uint8_t LB;
+        uint8_t HB;
+        uint8_t UB;
+        uint8_t MB;
     } bytes;
+    float f;
 } DWORD_VAL, DWORD_BITS;
 
 typedef union
@@ -164,29 +188,6 @@ typedef struct
   word GetValue;
 } TThresholdDataItem;
 
-typedef struct
-{
-  word V;
-  word I;
-  dword P;
-  //dword E;
-  word T;
-} TMeasurementData,*PMeasurementData;
-
-typedef struct
-{
-  TMeasurementData *BatteryDatas;
-  TMeasurementData LastBatteryData;
-  qword Capacity; // in nAh
-  qword Energy; // in nWh
-  qword Time;  // in deci-seconds = 100ms
-  //word Temperature; // in deci-Celcius = 100mC
-  int16_t Tail;
-  int16_t Head;
-  byte CurrentStageNumber;
-  TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
-} TRunDatas,*PRunDatas;
-
 typedef enum
 {
   ieOk = 0,
@@ -221,20 +222,74 @@ typedef enum
   bmError
 } TBatteryMode;
 
-typedef enum
-{
-  pmFixed = 0,
-  pmPPS,
-  pmAVS,
-  pmMAX
-} TPDOMode;
-
 typedef struct
 {
   TStageMode Status;
   dword SetValue;
   TThresholdDataItem ThresholdSettings[tmLast]; // all threshold possibilities
 } TStageData, *PStageData;
+
+typedef struct
+{
+  word  V;   // voltage
+  word  I;   // current
+  dword P;   // power
+  dword C;   // Ah capacity
+  dword E;   // Wh energy
+  dword S;   // timestamp ms
+  word  T;   // temperature
+} TMeasurementData,*PMeasurementData;
+
+typedef struct
+{
+  // Actual board data
+  TMeasurementData RotoPDData;
+  TMeasurementData IT2704Data;
+  TStageData BM;
+  // PDO stuff
+  AP33772S_PDO PDO;
+  //TPDOMode pdoMode;
+  //int pdoIndex;
+  //int pdoTargetVoltage;
+  //int pdoMaxCurrent;
+  // Board hardware info
+  byte Serial[8];
+  word Firmware;
+  // Miscellaneous
+  bool NeedsGUIUpdate;
+  bool NeedsStatusUpdate;
+  bool NeedsDataUpdate;
+} TBatteryBoard,*PBatteryBoard;
+
+static void ClearMeasurementData(PMeasurementData MAD)
+{
+  MAD->V = 0;
+  MAD->I = 0;  
+  MAD->P = 0;
+  MAD->T = 0;
+  MAD->C = 0;
+  MAD->E = 0;
+  MAD->S = 0;
+}
+
+typedef struct
+{
+  // Cumulative datas
+  qword Capacity; // in nAh
+  qword Energy; // in nWh
+  qword Time;  // in ms
+  byte CurrentStageNumber;
+  TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
+  //Queue memory region at the bottom
+  #ifdef __cplusplus          // only compile the class when using a C++ compiler
+  CircularDataQueue<TMeasurementData, DATASIZE> NewerRotoPDDatas;
+  CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
+  #else
+  // The Pure C compiler reserves exactly 88 bytes here.
+  // This keeps subsequent memory fields from overlapping or mismatching offsets.
+  uint8_t _cpp_queue_padding[88];   
+  #endif
+} TRunDatas,*PRunDatas;
 
 typedef struct
 {
@@ -247,41 +302,6 @@ typedef struct
   TRunDatas            RunDatas;
 } TTestData;
 
-typedef struct {
-  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-  bool InValid;
-  #endif
-  #if defined(ARDUINO_ARCH_SAMD)  
-  bool Valid;
-  #endif
-  #ifdef ARDUINO_ESP32S3_DEV
-  bool Valid;
-  #endif
-  byte BoardSerial[12];
-  byte BoardCalDate[4];  // YYMD
-  byte BoardNumber;
-  int16_t shuntcorrection;
-} TBoardInfo;
-
-typedef struct
-{
-  word Voltage;
-  word Current;
-  dword Power;
-  word Temperature;  
-  //bool OutputOn;
-  TPDOMode pdoMode;
-  int pdoIndex;
-  int targetVoltage;
-  int maxCurrent;
-  byte Serial[8];
-  TStageData BM;
-  word Firmware;
-  bool NeedsGUIUpdate;
-  bool NeedsStatusUpdate;
-  bool NeedsDataUpdate;
-} TBatteryBoard,*PBatteryBoard;
-
 typedef struct
 {
   char code[10];
@@ -293,11 +313,95 @@ typedef struct
   TTestData TestData;
 } TBatterySetting,*PBatterySetting;
 
-typedef struct
-{
-  byte HIDEPOUTData[HID_INT_OUT_EP_SIZE];
-  byte HIDEPINData[HID_INT_IN_EP_SIZE];
-  bool DataReceived;
-} THIDData;
+extern TwoWire WireBattery;
+extern AP33772S pd;
+extern IT2704 load;
+extern CanOpenNode node;
 
-#endif
+extern TBatteryBoard BatteryBoards[];
+extern PBatteryBoard const CurrentBoard;
+
+#ifdef __cplusplus          // only compile the class when using a C++ compiler
+
+class TBoardInfo {
+private:
+  // Board-specific validity flag (hidden)
+  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+  bool InValid;
+  #endif
+
+  #if defined(ARDUINO_ARCH_SAMD)
+  bool Valid;
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32          // note: matches your latest list
+  bool Valid;
+  #endif
+
+  #ifdef ARDUINO_ARCH_RP2040
+  bool InValid;
+  #endif
+
+public:
+  // Common board information
+  byte BoardSerial[12];
+  byte BoardCalDate[4];   // YYMD
+  byte LocalNodeID;
+  byte MasterNodeID;
+  byte IT2704NodeID;
+  byte IT2704Channel;
+  int16_t shuntcorrection;
+  bool UIDarkEnabled;
+  bool BeepEnabled;
+
+  // ---------- Default constructor (uses the values from your list) ----------
+  TBoardInfo() {
+    // Arrays
+    memset(BoardSerial, 0, sizeof(BoardSerial));
+    memset(BoardCalDate, 0, sizeof(BoardCalDate));
+
+    // Other members
+    LocalNodeID     = DEFAULT_LOCAL_NODEID;
+    MasterNodeID    = DEFAULT_MASTER_NODEID;
+    IT2704NodeID    = DEFAULT_IT2704_NODEID;
+    IT2704Channel   = DEFAULT_IT2704_CHANNEL;
+    shuntcorrection = 44;           // Default INA238 shunt correction value (in uOhm, signed, int16_t)
+    UIDarkEnabled   = true;         // Dark
+    BeepEnabled     = true;         // Beep
+
+    // Use the helper instead of setting the flag directly
+    setValid(false);
+  }
+
+  // ---------- Validity helpers ----------
+  bool isValid() const {
+    #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+    return !InValid;
+    #elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_ESP32)
+    return Valid;
+    #elif defined(ARDUINO_ARCH_RP2040)
+    return !InValid;
+    #else
+    return true;
+    #endif
+  }
+
+  void setValid(bool value) {
+    #ifdef ARDUINO_SEEED_INDICATOR_RP2040
+    InValid = !value;
+    #elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_ESP32)
+    Valid = value;
+    #elif defined(ARDUINO_ARCH_RP2040)
+    InValid = !value;
+    #endif
+  }
+
+  // Always returns LocalNodeID + 1
+  byte getBoardNumber() const {
+    return (IT2704Channel + 1);
+  }
+};
+
+#endif // __cplusplus
+
+#endif /*_SHARED_H_*/

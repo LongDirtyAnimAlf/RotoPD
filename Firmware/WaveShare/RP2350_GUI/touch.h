@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include <Wire.h>
+
 #include "./src/sensors/TouchDrvGT911.hpp"
 
 #ifdef ARDUINO_ARCH_ESP32
-#include "./src/CH32/WS_CH32_IO.h"
+#include "./src/ESP32/CH32/WS_CH32_IO.h"
 extern USBCDC USBSerial;
 #else
 #define USBSerial Serial

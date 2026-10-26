@@ -7,6 +7,13 @@
 #include "sevensegment.h"
 #include "./../../shared.h"
 
+#include "Screen1.h"
+#include "ScreenChart.h"
+#include "ScreenPDO.h"
+#include "ScreenPower.h"
+#include "ScreenSettings.h"
+#include "ScreenLogger.h"
+
 extern const lv_font_t lv_font_montserrat_12;
 extern const lv_font_t lv_font_montserrat_14;
 extern const lv_font_t lv_font_montserrat_18;
@@ -19,6 +26,8 @@ extern PBatterySetting Settings;
 extern lv_style_t input_label_style;
 
 extern lv_obj_t * screenbase;
+extern lv_obj_t * screensave;
+
 extern lv_obj_t * backbutton;
 extern lv_obj_t * morebutton;
 
@@ -29,6 +38,7 @@ extern "C" {
 #endif
 
 void CreateBaseScreen(lv_event_cb_t event_cb_more);
+void CreateSaveScreen(const char *text);
 
 //lv_obj_t * GetContentObject(byte contentindexnumber);
 void SetContentObject(lv_obj_t * content, bool show);

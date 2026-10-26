@@ -1,5 +1,22 @@
 #include "comms.h"
 
+#ifdef ENABLEUSB
+
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef USE_TINYUSB
+extern Adafruit_USBD_HID HID;
+#endif
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+extern USBHID HID;
+extern USBCDC USBSerial;
+#endif
+#endif
+
+#endif //ENABLEUSB
+
 #if defined(ARDUINO_ARCH_SAMD)
 MYSERCOM mysercom(PIN_WIRE_SERCOM);
 TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
@@ -9,30 +26,26 @@ TwoWire MyWire(&mysercom, PIN_WIRE_BATT_SDA, PIN_WIRE_BATT_SCL);
 #define DELAYUS(_us) busy_wait_us_32(_us)
 #define USBSerial Serial
 #include <PacketSerial.h>
-extern Adafruit_USBD_HID HID;
 extern COBSPacketSerial myPacketSerial; // for logging
 #endif
 #if defined(ARDUINO_ARCH_SAMD)  
 #define DELAYUS(_us) delayMicroseconds(_us)
 #define USBSerial Serial
 #endif
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 #include "./src/UI/screenlogger.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
-extern USBCDC USBSerial;
-extern USBHID HID;
-extern USBCDC USBSerial;
 #endif
 
-extern TwoWire WireBattery;
+#ifdef ARDUINO_ARCH_RP2040
+#include "./src/UI/screenlogger.h"
+#define DELAYUS(_us) delayMicroseconds(_us)
+#endif
 
-extern TBatteryBoard BatteryBoards[];//[DAUGHTERBOARDCOUNT];
-
-//extern AP33772S usbpd;
-extern AP33772S pd;
-extern INA238 ina238;
+INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
 volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
+//THIDData* const CurrentHIDData = HIDData;
 
 static float ina_mA_c       = 0;
 static float ina_mV_c       = 0;
@@ -42,25 +55,7 @@ static float ina_T_c        = 0;
 #endif
 static int   ina_counter_c  = 0;
 
-#ifdef ARDUINO_ESP32S3_DEV
-DRAM_ATTR 
-#endif
-TBoardInfo BoardInfo = 
-{
-  #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-  true, // DataInValid
-  #endif
-  #if defined(ARDUINO_ARCH_SAMD)  
-  false, // DataValid
-  #endif
-  #ifdef ARDUINO_ESP32S3_DEV
-  false, // DataValid
-  #endif
-  {0},  // Default BoardSerial
-  {0},  // Default BoardCalDate  
-  DEFAULTBOARDNUMBER,    // Default BoardNumber
-  44    // Default INA238 shunt correction value (in uOhm, signed, int16_t)
-};
+TBoardInfo BoardInfo;
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
 {
@@ -79,10 +74,10 @@ void Info_Add(const char *txt)
   if (txt == NULL) return;
 
   #ifdef DEBUG
-  USBSerial.println(txt);
+  Serial.println(txt);
   #endif
 
-  #ifdef ARDUINO_ESP32S3_DEV
+  #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_RP2040) 
   ScreenLogger_Add(txt,true);
   #endif
 
@@ -116,8 +111,10 @@ void Info_Add_Fmt(const char *format, ...)
 
 static inline bool CheckWireStuck(void)
 {
-  #ifdef ARDUINO_ESP32S3_DEV
+  #if defined(ARDUINO_ARCH_ESP32)
   return WS_CH32_IO::checkI2CBus();
+  #elif defined(ARDUINO_ARCH_RP2040) 
+  return false; 
   #else
   bool Result = false;
   Result |= (digitalRead(PIN_WIRE_BATT_SDA) == LOW);  
@@ -126,7 +123,7 @@ static inline bool CheckWireStuck(void)
   #endif
 }
 
-#ifndef ARDUINO_ESP32S3_DEV
+#if !defined(ARDUINO_ARCH_ESP32) && !defined(ARDUINO_ARCH_RP2040) 
 
 // Emulate opendrain pins
 void PinLow(uint32_t ulPin)
@@ -143,13 +140,15 @@ void PinHigh(uint32_t ulPin)
 
 void ResetWire(void)
 {
-  #ifdef ARDUINO_ESP32S3_DEV
+  #if defined(ARDUINO_ARCH_ESP32)
   WS_CH32_IO::recoverI2CBus();
+  #elif defined(ARDUINO_ARCH_RP2040) 
+  return;
   #else
   byte bits;
 
   #ifdef DEBUG
-  USBSerial.println("Wire reset starting.");
+  Serial.println("Wire reset starting.");
   #endif
 
   pinMode(PIN_WIRE_BATT_SDA, INPUT_PULLUP);
@@ -165,7 +164,7 @@ void ResetWire(void)
   if ( (digitalRead(PIN_WIRE_BATT_SDA) == LOW) && (digitalRead(PIN_WIRE_BATT_SCL) == HIGH) )
   {
     #ifdef DEBUG
-    USBSerial.println("Wire reset manual clock.");
+    Serial.println("Wire reset manual clock.");
     #endif
 
     // Send at max 9 clock pulses
@@ -186,7 +185,7 @@ void ResetWire(void)
       PinHigh(PIN_WIRE_BATT_SDA);
     }
     #ifdef DEBUG
-    USBSerial.printf("Wire reset manual clock bits needed: #%d.\r\n", bits);
+    Serial.printf("Wire reset manual clock bits needed: #%d.\r\n", bits);
     #endif
   }
 
@@ -197,7 +196,7 @@ void ResetWire(void)
     if (digitalRead(PIN_WIRE_BATT_SCL) == HIGH)
     {
       #ifdef DEBUG
-      USBSerial.println("Wire reset for SCL low 50ms.");
+      Serial.println("Wire reset for SCL low 50ms.");
       #endif
       // Force clock low for 50ms should reset all SAMD10 slaves.
       PinLow(PIN_WIRE_BATT_SCL);
@@ -211,21 +210,64 @@ void ResetWire(void)
   #ifdef DEBUG
   if (CheckWireStuck())
   {
-    USBSerial.println("Resetting wire failed.");
+    Serial.println("Resetting wire failed.");
   }
   else
   {
-    USBSerial.println("Resetting wire successful.");
+    Serial.println("Resetting wire successful.");
   }
   #endif
   #endif
+}
+
+bool initCANopen(void)
+{
+  // Init IT2704
+  load.setID(BoardInfo.IT2704NodeID);
+  load.setChannel(BoardInfo.IT2704Channel);
+
+  // Init CANOpen
+  node.setNodeId(BoardInfo.LocalNodeID);
+
+  // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
+  ///node.disableNMT(true); 
+  node.setHeartbeatTime(5000);      // 5 s heartbeat
+
+  node.begin();
+  
+  #ifdef ARDUINO_ARCH_RP2040
+
+  // =========================================================================
+  // Start config of MCP2515 filters to limit can pressure
+  // =========================================================================
+  MCP2515& mcp2515 = node.getCAN();
+
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
+
+  mcp2515.setFilterMask(MCP2515::MASK0, false, 0x7FF);
+  mcp2515.setFilter(MCP2515::RXF0, false, 0x580 + BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF1, false, 0x580 + BoardInfo.MasterNodeID);
+
+  // Set Mask 1 to require an exact 11-bit ID match
+  mcp2515.setFilterMask(MCP2515::MASK1, false, 0x7FF);
+  mcp2515.setFilter(MCP2515::RXF2, false, 0x000);
+  mcp2515.setFilter(MCP2515::RXF3, false, 0x180 + BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF4, false, 0x600 + BoardInfo.IT2704NodeID);
+  mcp2515.setFilter(MCP2515::RXF5, false, 0x600 + BoardInfo.MasterNodeID);
+
+  // Switch back to normal operation mode
+  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+
+  #endif //ARDUINO_ARCH_RP2040
+
+  return true;
 }
 
 bool initINA238(void)
 {
   if(!ina238.begin())
   {
-    //Info_Add("Comms. Init INA238 failed !");
+    Info_Add("Comms. Init INA238 failed !");
     return false;
   }
   else
@@ -253,9 +295,14 @@ bool initINA238(void)
     //ina238.setCurrentConversionTime(INA2XX_TIME_280_us);    
 
     ina238.setAverage(INA238_16_SAMPLES); 
-    ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
+    //ina238.setDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Alert latch
 
-    //Info_Add("Comms. Init INA238 success.");
+
+    ina238.setDiagnoseAlertBit(INA238_DIAG_SHUNT_OVER_LIMIT);
+    ina238.clearDiagnoseAlertBit(INA238_DIAG_ALERT_LATCH); //Set to Transparent
+    ina238.clearDiagnoseAlertBit(INA238_DIAG_ALERT_POLARITY);
+
+    Info_Add("Comms. Init INA238 success.");
   }
   return true;
 }
@@ -307,7 +354,7 @@ void getRotoPDData(word* I,word* V,dword* P,word* T)
   }
 
   #ifdef REV11
-  // Compensate for XRS40N10 Static Drain-Source On-Resistance and shutn resistor
+  // Compensate for XRS40N10 Static Drain-Source On-Resistance and shunt resistor
   word VC = ((*I * (XRS40N10ONRESISTANCE+SHUNTRESISTANCE)) / 1000);
   *V += VC;
   #endif
@@ -329,7 +376,7 @@ bool initROTOPD(void)
       if (pd.begin() != AP33772S_OK)
       {
         Info_Add("Comms. Init AP33772S failed !");
-        pd.dumpRegisters(USBSerial);
+        pd.dumpRegisters(Serial);
         return (false);
       }
     }
@@ -339,7 +386,6 @@ bool initROTOPD(void)
     //pd.setOVPOffset_mV(2000);
     //pd.setUVPThreshold(UVP_80PCT);
 
-    Info_Add("Comms. Init AP33772S success.");
 
     pd.setOCPThreshold_mA(0);      // auto = 110% of PDO
 
@@ -351,6 +397,7 @@ bool initROTOPD(void)
     // Switch off output
     //pd.setOutput(false);
 
+    Info_Add("Comms. Init AP33772S success.");
     if (pd.getOutput())
       Info_Add("Comms. AP33772S output on.");
     else
@@ -373,20 +420,29 @@ int8_t taskRotoPDInit(void)
 
   if (pd.isConnected())
   {
-    //USBSerial.println("RotoPD Pro connected.");
+    #ifdef DEBUG
+    //Serial.println("RotoPD Pro connected.");
+    #endif
 
     j = pd.getStatus();
 
-    //USBSerial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+    #ifdef DEBUG
+    //Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+    #endif
 
     if (j & STATUS_FAULTS)
     {
-      String out = "RotoPD fault:";
-      if (j & STATUS_OVP) out += " OVP";
-      if (j & STATUS_UVP) out += " UVP";
-      if (j & STATUS_OCP) out += " OCP";
-      if (j & STATUS_OTP) out += " OTP";
-      Info_Add_Fmt("Comms. %s.",out);
+      char error_label[4];
+      error_label[0] = '\0';
+      switch(j)
+      {
+        case STATUS_OVP : {strcpy(error_label,"OVP"); break;}
+        case STATUS_UVP : {strcpy(error_label,"UVP"); break;}
+        case STATUS_OCP : {strcpy(error_label,"OCP"); break;}
+        case STATUS_OTP : {strcpy(error_label,"OTP"); break;}
+        default         : {strcpy(error_label,"UNK"); break;}
+      }
+      Info_Add_Fmt("Comms. [RotoPD] RotoPD fault: %s.",error_label);
     }
 
     if (j & STATUS_STARTED)
@@ -394,7 +450,7 @@ int8_t taskRotoPDInit(void)
       PDOCount = 0;
 
       Info_Add("Comms. RotoPD Pro started.");
-      Info_Add_Fmt("Comms. Status:= 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+      Info_Add_Fmt("Comms. Status = 0x%02X (%d).", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
 
       PDOCount = pd.getValidPDOCount();
 
@@ -415,9 +471,9 @@ int8_t taskRotoPDInit(void)
           if (PDOCount>0)
           {
             #ifdef DEBUG
-            USBSerial.println("PDO list below.");
-            pd.printPDOs(USBSerial);
-            USBSerial.println("Done.");
+            Serial.println("PDO list below.");
+            pd.printPDOs(Serial);
+            Serial.println("Done.");
             #endif
           }
         }
@@ -470,10 +526,11 @@ bool process_command(void const *data, void *result)
   bool DEBUGONSCREEN = false;
   #endif
 
-  PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
+  //PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
+  PBatteryBoard LocalBatteryBoard = CurrentBoard;
 
 	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
-  BN    = databuffer[INDEXPOSITION];
+  BN    = databuffer[BOARDPOSITION];
   // datalength = databuffer[LENGTHPOSITION];
 
   // Data start at position 3 !!
@@ -490,52 +547,74 @@ bool process_command(void const *data, void *result)
     // Process the settings !
     // Settings start at index DATASTART
     // PD Index
-    LocalBatteryBoard->pdoIndex=(databuffer[dataindexer++]);
+    LocalBatteryBoard->PDO.index=(databuffer[dataindexer++]);
     // maxCurrent
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->maxCurrent=dw_data.Val;
+    LocalBatteryBoard->PDO.maxCurrent_mA=dw_data.Val;
     // targetVoltage
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->targetVoltage=dw_data.Val;
+    LocalBatteryBoard->PDO.targetVoltage_mV=dw_data.Val;    
 
     Info_Add("Comms. Received SetPD command.");
-    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->pdoIndex);
-    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->maxCurrent);
-    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->targetVoltage);
+    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->PDO.index);
+    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->PDO.maxCurrent_mA);
+    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->PDO.targetVoltage_mV);
+
+    // Always stop the load current before switching PDO's
+    // Just to be sure
+    load.setOutput(false);
 
     switch (cCmd)
     {
       case CMD_set_MAXPDO:
       {
-        Info_Add("Comms. Max PDO.");
+        Info_Add("Comms. Set max PDO.");
         
-        LocalBatteryBoard->pdoMode = pmMAX; 
-        pd.setMaxPDO(LocalBatteryBoard->pdoIndex);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_MAX; 
+        pd.setMaxPDO(LocalBatteryBoard->PDO.index);
+
+        j = AP33772S_OK;
+
         break;
       }
 
       case CMD_set_FIXEDPDO:
       {
-        Info_Add("Comms. Fixed PDO.");
+        Info_Add("Comms. Set fxed PDO.");
 
-        LocalBatteryBoard->pdoMode = pmFixed; 
-        j = pd.setFixPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->maxCurrent);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_FIXED; 
+        j = pd.setFixPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.maxCurrent_mA);
+        if (AP33772S_OK != j)
+        {
+          Info_Add("Comms. Set max PDO returned an error.");
+        }
+
         break;
       }
       case CMD_set_PPSPDO:
       {
-        Info_Add("Comms. PPS PDO.");
+        Info_Add("Comms. Set PPS PDO.");
 
-        LocalBatteryBoard->pdoMode = pmPPS; 
-        j = pd.setPPSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_PPS; 
+        j = pd.setPPSPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.targetVoltage_mV, LocalBatteryBoard->PDO.maxCurrent_mA);
+        if (AP33772S_OK != j)
+        {
+          Info_Add("Comms. Set PPS PDO returned an error.");
+        }
+
         break;
       }
       case CMD_set_AVSPDO:
       {
-        Info_Add("Comms. AVS PDO.");
+        Info_Add("Comms. Set AVS PDO.");
 
-        LocalBatteryBoard->pdoMode = pmAVS; 
-        j = pd.setAVSPDO(LocalBatteryBoard->pdoIndex, LocalBatteryBoard->targetVoltage, LocalBatteryBoard->maxCurrent);
+        LocalBatteryBoard->PDO.type = PDO_TYPE_AVS; 
+        j = pd.setAVSPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.targetVoltage_mV, LocalBatteryBoard->PDO.maxCurrent_mA);
+        if (AP33772S_OK != j)
+        {
+          Info_Add("Comms. Set AVS PDO returned an error.");
+        }
+
         break;
       }
       default:
@@ -543,6 +622,20 @@ bool process_command(void const *data, void *result)
         j = AP33772S_ERR_I2C;
       }
     }
+
+    if (j == AP33772S_OK)
+    {
+      if (pd.readPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO))
+      {
+        if (PDO.valid)
+        {
+          // Set the PDO with the real values
+          LocalBatteryBoard->PDO.maxCurrent_mA    = pd.getRequestedCurrent_mA();
+          LocalBatteryBoard->PDO.targetVoltage_mV = pd.getRequestedVoltage_mV();
+        }
+      }
+    }
+
   }
 
   if (cCmd == CMD_get_PDOList)
@@ -570,17 +663,18 @@ bool process_command(void const *data, void *result)
     {
       Info_Add("Comms. Output OFF.");
     }
-    //LocalBatteryBoard->OutputOn = Engage; 
-    pd.setOutput(Engage);
+    if (!Engage) load.setOutput(Engage);
+    //pd.setOutput(Engage);
+    if (Engage) load.setOutput(Engage);
   }
 
   if (cCmd == CMD_set_value)
   {
-    Info_Add("Comms. Received SetValue command.");
-
     LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     LocalBatteryBoard->BM.SetValue=dw_data.Val;
+
+    Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",LocalBatteryBoard->BM.SetValue);
 
     StatusUpdateNeeded = true;
     Engage = false;
@@ -588,9 +682,21 @@ bool process_command(void const *data, void *result)
     switch(LocalBatteryBoard->BM.Status)
     {
       case smCurrent :
+      {
+        Info_Add("Comms. SetValue current.");
+        load.setCurrent(LocalBatteryBoard->BM.SetValue);
+        Engage = true;
+        break;
+      }
       case smPower :
+      {
+        Info_Add("Comms. SetValue power.");
+        Engage = true;
+        break;
+      }
       case smResistor : 
       {
+        Info_Add("Comms. SetValue resistor.");
         Engage = true;
         break;
       }
@@ -612,20 +718,22 @@ bool process_command(void const *data, void *result)
     {
       Info_Add("Comms. Output OFF.");
     }
-    //LocalBatteryBoard->OutputOn = Engage; 
-    pd.setOutput(Engage);
+    if (!Engage) load.setOutput(Engage);
+    //pd.setOutput(Engage);
+    if (Engage) load.setOutput(Engage);
   }
 
   if (cCmd == CMD_get_data)
   {
     //Info_Add("Comms. Received GetData command.");
 
-    getRotoPDData(&LocalBatteryBoard->Current,&LocalBatteryBoard->Voltage,&LocalBatteryBoard->Power,&LocalBatteryBoard->Temperature);
+    getRotoPDData(&LocalBatteryBoard->RotoPDData.I,&LocalBatteryBoard->RotoPDData.V,&LocalBatteryBoard->RotoPDData.P,&LocalBatteryBoard->RotoPDData.T);
 
     GUIUpdateNeeded = true;
   }
-  
+
   // Start processing the collected data !!
+  
   // Data start at position 3 !!
   // 0   = Command
   // 1   = BoardNumber
@@ -633,16 +741,15 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
 
   // Echo back command and index/number
-  //resultbuffer[COMMANDPOSITION]=databuffer[COMMANDPOSITION];
-  //resultbuffer[INDEXPOSITION]=databuffer[INDEXPOSITION];
-
   resultbuffer[COMMANDPOSITION]=cCmd;
-  resultbuffer[INDEXPOSITION]=BN;
+  //resultbuffer[BOARDPOSITION]=BN;
+  resultbuffer[BOARDPOSITION]=BoardInfo.getBoardNumber();
 
-  if (BN != BoardInfo.BoardNumber)
+  if (BN != BoardInfo.getBoardNumber())
   {
     // Should never happen !!
-    Info_Add_Fmt("Comms. Severe error. Wrong boardnumber ! Received %d. Board has %d.", BN, BoardInfo.BoardNumber);
+    Info_Add("Comms. Severe error. Wrong boardnumber !!!");
+    Info_Add_Fmt("Comms. Received board %d. BoardInfo has %d.", BN, BoardInfo.getBoardNumber());
   }
 
   // Skip length
@@ -654,24 +761,14 @@ bool process_command(void const *data, void *result)
   {
     //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
     //i += 2;
-    w_data.Val = LocalBatteryBoard->Voltage;
+    w_data.Val = LocalBatteryBoard->RotoPDData.V;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    w_data.Val = LocalBatteryBoard->Current;
+    w_data.Val = LocalBatteryBoard->RotoPDData.I;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    dw_data.Val = LocalBatteryBoard->Power;
+    dw_data.Val = LocalBatteryBoard->RotoPDData.P;
     for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-    w_data.Val = LocalBatteryBoard->Temperature;
+    w_data.Val = LocalBatteryBoard->RotoPDData.T;
     for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-
-    #ifdef DEBUG
-    /*
-    USBSerial.printf("GetData command results.\r\n");
-    USBSerial.printf("Voltage:%dmV.\r\n", LocalBatteryBoard->Voltage);
-    USBSerial.printf("Current:%dmA.\r\n", LocalBatteryBoard->Current);
-    USBSerial.printf("Temperature:%d°C.\r\n", (LocalBatteryBoard->Temperature / 10));
-    */
-    #endif
-
   }
 
   if (cCmd == CMD_set_value)
@@ -719,36 +816,24 @@ bool process_command(void const *data, void *result)
   if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
 
-    resultbuffer[dataindexer++] = LocalBatteryBoard->pdoIndex;
+    resultbuffer[dataindexer++] = LocalBatteryBoard->PDO.index;
     
-    w_data.Val = pd.getRequestedCurrent_mA();
+    w_data.Val = LocalBatteryBoard->PDO.maxCurrent_mA;
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->maxCurrent=w_data.Val;
 
-    w_data.Val = pd.getRequestedVoltage_mV();
+    w_data.Val = LocalBatteryBoard->PDO.targetVoltage_mV;
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
-    LocalBatteryBoard->targetVoltage=w_data.Val;
 
-    w_data.Val = 0;
-    if (pd.readPDO(LocalBatteryBoard->pdoIndex, PDO))
-    {
-      if (PDO.valid)
-      {
-        LocalBatteryBoard->pdoMode=(TPDOMode)PDO.type;
-        //LocalBatteryBoard->maxCurrent=PDO.maxCurrent_mA;
-        //LocalBatteryBoard->targetVoltage=PDO.maxVoltage_mV;
-        w_data.Val = PDO.raw;
-      }
-    }
+    w_data.Val = LocalBatteryBoard->PDO.raw;
     resultbuffer[dataindexer++] = w_data.v[0];
     resultbuffer[dataindexer++] = w_data.v[1];
   }
 
   if (cCmd == CMD_get_firmware)
   {
-    LocalBatteryBoard->NeedsDataUpdate;
+    //LocalBatteryBoard->NeedsDataUpdate;
   }
 
   if (dataindexer == DATASTART)
@@ -775,14 +860,15 @@ bool process_command(void const *data, void *result)
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ENABLEUSB
+#ifdef ARDUINO_ARCH_ESP32
 void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize)
 #else
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize)
 #endif
 {
   (void) report_id;
-  #ifndef ARDUINO_ESP32S3_DEV
+  #ifndef ARDUINO_ARCH_ESP32
   (void) report_type;
   #endif
   (void) bufsize;
@@ -819,15 +905,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         BoardInfo.BoardSerial[j] = hid_report_out[j+1];
         hid_report_in[j+1] = BoardInfo.BoardSerial[j];
       }
-      #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-      BoardInfo.InValid = false;
-      #endif
-      #if defined(ARDUINO_ARCH_SAMD)  
-      BoardInfo.Valid = true;
-      #endif
-      #if defined(ARDUINO_ESP32S3_DEV)  
-      BoardInfo.Valid = true;
-      #endif
+      BoardInfo.setValid(true);
       storePutBoardInfo(&BoardInfo);
 			break;
 		}
@@ -841,23 +919,19 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
     case USB_CMD_get_board_number:
     {
-      hid_report_in[1] = BoardInfo.BoardNumber;
+      hid_report_in[1] = BoardInfo.getBoardNumber();
+      //hid_report_in[1] = (BoardInfo.IT2704Channel + 1);
       break;
     }
 
     case USB_CMD_set_board_number:
     {
-      BoardInfo.BoardNumber = hid_report_out[1];
-      #ifdef ARDUINO_SEEED_INDICATOR_RP2040
-      BoardInfo.InValid = false;
-      #endif
-      #if defined(ARDUINO_ARCH_SAMD)  
-      BoardInfo.Valid = true;
-      #endif
-      #if defined(ARDUINO_ESP32S3_DEV)  
-      BoardInfo.Valid = true;
-      #endif
+      // Do not allow setting of board-number !!
+      // This will be done through GUI by setting IT2704 channel !!
+      /*
+      BoardInfo.setValid(true);
       storePutBoardInfo(&BoardInfo);
+      */      
       break;
     }
 
@@ -883,10 +957,12 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
   {
      // This delay seems necessary for communication with PC host
      // I do not know why ... :-()
+    #ifdef ARDUINO_ARCH_ESP32
     delayMicroseconds(1000U);
+    #endif
 
     // Send report back to host
-    #ifdef ARDUINO_ESP32S3_DEV
+    #ifdef ARDUINO_ARCH_ESP32
     HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
     #else
     HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
@@ -894,3 +970,4 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
   }
 }
+#endif // ENABLEUSB

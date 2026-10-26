@@ -417,23 +417,27 @@ int8_t taskRotoPDInit(void)
   if (pd.isConnected())
   {
     #ifdef DEBUG
-    Serial.println("RotoPD Pro connected.");
+    //Serial.println("RotoPD Pro connected.");
     #endif
 
     j = pd.getStatus();
 
     #ifdef DEBUG
-    Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
+    //Serial.printf("Status:= 0x%02X (%d).\r\n", (uint8_t)(j<0?0xFF:j), (uint8_t)(j<0?0:j));
     #endif
-    
+
     if (j & STATUS_FAULTS)
     {
-      static char error_label[4] = {0};
-      error_label[0] = '\0'; 
-      if (j & STATUS_OVP) strcpy(error_label,"OVP");
-      if (j & STATUS_UVP) strcpy(error_label,"UVP");
-      if (j & STATUS_OCP) strcpy(error_label,"OCP");
-      if (j & STATUS_OTP) strcpy(error_label,"OTP");
+      char error_label[4];
+      error_label[0] = '\0';
+      switch(j)
+      {
+        case STATUS_OVP : {strcpy(error_label,"OVP"); break;}
+        case STATUS_UVP : {strcpy(error_label,"UVP"); break;}
+        case STATUS_OCP : {strcpy(error_label,"OCP"); break;}
+        case STATUS_OTP : {strcpy(error_label,"OTP"); break;}
+        default         : {strcpy(error_label,"UNK"); break;}
+      }
       Info_Add_Fmt("Comms. [RotoPD] RotoPD fault: %s.",error_label);
     }
 

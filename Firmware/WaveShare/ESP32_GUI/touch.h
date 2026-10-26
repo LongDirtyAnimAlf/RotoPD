@@ -1,12 +1,16 @@
+#include <Arduino.h>
 #include <Wire.h>
+
 #include "./src/sensors/TouchDrvGT911.hpp"
-#include "./src/CH32/WS_CH32_IO.h"
+
+#ifdef ARDUINO_ARCH_ESP32
+#include "./src/ESP32/CH32/WS_CH32_IO.h"
+extern USBCDC USBSerial;
+#else
+#define USBSerial Serial
+#endif
 
 #define maxTouchPoints 5
-
-#ifdef ARDUINO_ESP32S3_DEV
-extern USBCDC USBSerial;
-#endif
 
 int16_t touch_last_x = 0, touch_last_y = 0;
 
@@ -65,7 +69,12 @@ bool touch_init(int16_t w, int16_t h, uint8_t r)
   uint8_t gt911_i2c_addr = GT911_SLAVE_ADDRESS_L;
 
   GT911.setPins(-1, -1);
+
+  #ifdef ARDUINO_ARCH_ESP32
   if (GT911.begin(Wire, gt911_i2c_addr, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL)) {
+  #else
+  if (GT911.begin(Wire1)) {
+  #endif
     USBSerial.print("GT911 initialized successfully at address 0x");
     USBSerial.println(gt911_i2c_addr, HEX);
     gt911_available = true;

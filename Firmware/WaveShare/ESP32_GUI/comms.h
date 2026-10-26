@@ -1,6 +1,29 @@
 #ifndef _COMMS_H_
 #define _COMMS_H_
 
+#include <Arduino.h>
+#include "shared.h"
+
+#ifdef ENABLEUSB
+
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef USE_TINYUSB
+#include "Adafruit_TinyUSB.h"
+#else
+#include <USB.h>
+#endif
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+#include "USB.h"
+#include "USBHID.h"
+#include "esp32-hal-tinyusb.h"
+#endif
+#endif
+
+#endif //ENABLEUSB
+
 #ifdef ARDUINO_WIO_TERMINAL
 #define USE_LCD 
 #define BUZZER_PIN WIO_BUZZER /* sig pin of the buzzer */
@@ -21,33 +44,18 @@
 #ifdef ARDUINO_SEEED_INDICATOR_RP2040
 #define PIN_WIRE_BATT_SDA  PIN_WIRE0_SDA
 #define PIN_WIRE_BATT_SCL  PIN_WIRE0_SCL
-#include "Adafruit_TinyUSB.h"
 #include "storage.h"
 #endif
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 #define USE_LCD 
-#include "USB.h"
-#include "USBHID.h"
-#include "storage.h"
 #endif
 
-#include <Arduino.h>
-#include "shared.h"
 #include "extras.h"
 
 #ifdef ARDUINO_SEEED_INDICATOR_RP2040
 #include <Wire.h>
 #endif
-
-// USB HID report descriptor.
-uint8_t const desc_hid_report[] = 
-{
-  TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
-};
-const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
-const byte DefaultCalDate[4] = {20,26,01,01};
-#define DEFAULTBOARDNUMBER 1
 
 #if defined(ARDUINO_ARCH_SAMD)
 #define WireBattery MyWire
@@ -57,9 +65,26 @@ const byte DefaultCalDate[4] = {20,26,01,01};
 #define WireBattery Wire
 #endif
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
+#include "storage.h"
 #define WireBattery Wire
 #endif
+
+#ifdef ARDUINO_ARCH_RP2040
+#include "storage.h"
+#define WireBattery Wire1
+#endif
+
+#ifdef ENABLEUSB
+// USB HID report descriptor.
+uint8_t const desc_hid_report[] = 
+{
+  TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
+};
+#endif
+
+const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
+const byte DefaultCalDate[4] = {20,26,01,01};
 
 extern TBoardInfo BoardInfo;
 extern volatile THIDData HIDData[];//[DAUGHTERBOARDCOUNT];
@@ -69,6 +94,8 @@ void Info_Add_Fmt(const char *format, ...);
 
 bool process_command(void const *data, void *result);
 
+bool initCANopen(void);
+
 bool initINA238(void);
 
 bool initROTOPD(void);
@@ -76,10 +103,12 @@ int8_t taskRotoPDInit(void);
 void collectRotoPDData(void);
 void getRotoPDData(word* I,word* V,dword* P,word* T);
 
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ENABLEUSB
+#ifdef ARDUINO_ARCH_ESP32
 void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize);
 #else
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize);
+#endif
 #endif
 
 #endif

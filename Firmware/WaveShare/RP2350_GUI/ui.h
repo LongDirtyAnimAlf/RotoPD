@@ -1,7 +1,8 @@
-#include "./src/lvgl/lv_port/lv_port_disp.h"
+#ifdef ARDUINO_ARCH_RP2040
+#include "./src/RP2350/lvgl/lv_port_disp.h"
+//#include "./src/RP2350/lvgl/lv_port_indev.h"
+#endif
 
-//#include "./src/lvgl/lv_port/lv_port_indev.h"
-//#include "./src/touch/gt911_lite.h"
 #include "touch.h"
 
 #include "./src/UI/screenbase.h"

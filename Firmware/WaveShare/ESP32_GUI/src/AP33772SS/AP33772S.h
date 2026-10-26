@@ -108,6 +108,8 @@
 #define PDO_TYPE_FIXED       (0)
 #define PDO_TYPE_PPS         (1)   // type=1 in SPR slot (index 1–7)
 #define PDO_TYPE_AVS         (2)   // type=1 in EPR slot (index 8–13)
+#define PDO_TYPE_MAX         (3)
+
 
 // ── Return codes ─────────────────────────────────────────────────────────────
 #define AP33772S_OK          (0)
@@ -156,6 +158,7 @@ typedef struct {
             uint8_t byte0;  // LSB (voltage_max + lower bits of byte1)
             uint8_t byte1;  // MSB (detect, type, current_max, voltage_min)
         };
+        uint16_t Val;
     };
 } PDO_DATA_T;
 
@@ -167,6 +170,7 @@ struct AP33772S_PDO {
     uint8_t  type;           // PDO_TYPE_FIXED / _PPS / _AVS
     uint16_t minVoltage_mV;  // 0 for Fixed; 3300 for PPS; 15000 for AVS
     uint16_t maxVoltage_mV;
+    uint16_t targetVoltage_mV;
     uint16_t maxCurrent_mA;  // Approximate upper bound of current range
     uint8_t  currentCode;    // Raw 4-bit current_max field (for CURRENT_SEL)
     uint16_t raw;            // Raw 16-bit register value

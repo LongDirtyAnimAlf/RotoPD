@@ -1,15 +1,16 @@
-#ifdef SENSECAP
-#include "./src/Display/Indicator_SWSPI.h"
+#ifdef ARDUINO_ARCH_RP2040
+#include "./src/RP2350/lvgl/lv_port_disp.h"
+//#include "./src/RP2350/lvgl/lv_port_indev.h"
 #endif
-#include "./src/Display/st7701.h"
-#include "./src/Display/lvgldriver.h"
 
-//#include "touch.h"
+#ifdef ARDUINO_ARCH_ESP32
+#include "./src/ESP32/lvgl/lvgldriver.h"
+#include "./src/ESP32/lvgl/st7701.h"
+#endif
+
+#include "touch.h"
 
 #include "./src/UI/screenbase.h"
-#include "./src/UI/screen1.h"
-#include "./src/UI/screen2.h"
-#include "./src/UI/screen3.h"
-#include "./src/UI/screenlogger.h"
-#include "./src/UI/sevensegment.h"
+#include "./src/UI/matrix_screen.h"
+#include "./src/UI/screensaver.h"
 #include "./src/Fonts/fonts.h"

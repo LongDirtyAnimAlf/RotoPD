@@ -1,8 +1,38 @@
-#define RP2350_PSRAM_CS 47
-
-//#include "waveshare_rp2350_touch_lcd_4.h"
-
 #include <Arduino.h>
+
+//#include <mutex>
+//#include <chrono>
+//#include <functional>
+
+#include <lvgl.h>
+#include <Ticker.h>
+
+#ifdef ARDUINO_ARCH_ESP32
+
+#include <Arduino_GFX_Library.h>
+#include "USB.h"
+#include "USBHID.h"
+#include "esp32-hal-tinyusb.h"
+#include "customhid.h"
+
+#define HOR_RES 480
+#define VER_RES 480
+
+#define PACKET_UART_RXD 20
+#define PACKET_UART_TXD 19
+
+#define CAN_TX GPIO_NUM_6 // Transmit GPIO number for CAN
+#define CAN_RX GPIO_NUM_0 // Receive GPIO number for CAN
+
+//#define BUTTON_PIN 38
+
+#define GFX_DEV_DEVICE ESP32_S3_RGB
+#define RGB_PANEL
+//#define GFX_BL 45
+
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
 
 #include "hardware/vreg.h"
 #include "hardware/powman.h"
@@ -10,13 +40,16 @@
 #include "hardware/sync.h"
 #include "hardware/clocks.h"
 
-#include <lvgl.h>
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
-#include <pico/mutex.h>
-#include "./src/bsp/bsp_i2c.h"
-#include "./src/bsp/bsp_st7701.h"
-#include "./src/bsp/bsp_buzzer.h"
+
+#include "./src/RP2350/bsp/bsp_i2c.h"
+#include "./src/RP2350/bsp/bsp_st7701.h"
+#include "./src/RP2350/bsp/bsp_buzzer.h"
+
+bool core1_separate_stack = true;
+
+#endif
 
 //#include "./src/CAN/mcp2515.h"
 #include "./src/CANOpen/canOpenNode.h"
@@ -31,15 +64,11 @@
 #include "shared.h"
 #include "comms.h"
 
-#include <Ticker.h>
-
 #define HOR_RES 480
 #define VER_RES 480
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
-
-bool core1_separate_stack = true;
 
 // USB HID object
 #ifdef ARDUINO_ARCH_RP2040
@@ -59,6 +88,8 @@ USBCDC USBSerial;
 #endif
 #endif
 
+unsigned long loopStartTime = 0;
+
 // Must be a global variable !!!
 char mySerial[30];
 char myFirmware[30];
@@ -68,6 +99,36 @@ AP33772S pd((TwoWire*)&WireBattery);
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
+
+#ifdef ARDUINO_ARCH_ESP32
+
+Arduino_DataBus *bus = new Arduino_SWSPI(
+    GFX_NOT_DEFINED /* DC */, 42 /* CS */,
+    2 /* SCK */, 1 /* MOSI */, GFX_NOT_DEFINED /* MISO */);
+
+Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
+    40 /* DE */, 39 /* VSYNC */, 38 /* HSYNC */, 41 /* PCLK */,
+    46 /* R0 */, 3 /* R1 */, 8 /* R2 */, 18 /* R3 */, 17 /* R4 */,
+    14 /* G0 */, 13 /* G1 */, 12 /* G2 */, 11 /* G3 */, 10 /* G4 */, 9 /* G5 */,
+    5 /* B0 */, 45 /* B1 */, 48 /* B2 */, 47 /* B3 */, 21 /* B4 */,
+    1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
+    1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
+    #ifndef ALTERNATIVE
+    ,0 /* pclk_active_neg */, 20000000 /* prefer_speed */, false /* useBigEndian  */,
+    0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
+    #else
+    );
+    #endif
+
+Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
+    #ifndef ALTERNATIVE
+    HOR_RES /* width */, VER_RES /* height */, rgbpanel, 0 /* rotation */, false /* auto_flush */,
+    bus, GFX_NOT_DEFINED /* RST */, st7701_indicator_init_operations, sizeof(st7701_indicator_init_operations));
+    #else
+    HOR_RES /* width */, VER_RES /* height */, rgbpanel, 2 /* rotation */, true /* auto_flush */,
+    bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
+    #endif
+#endif
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 PBatteryBoard const CurrentBoard = BatteryBoards;
@@ -94,7 +155,6 @@ static volatile bool flagProcessMeasurementData = false;
 static volatile bool StoreBoardInfo = false;
 static volatile byte pending_screen_index = 0;
 
-
 //GT911_Lite tp; // touchscreen through TwoWire
 
 #ifdef STANDALONE
@@ -107,7 +167,38 @@ static volatile bool StoreSettings = false;
 static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
-auto_init_mutex(can_mutex);
+//auto_init_mutex(can_mutex);
+
+#if defined(ARDUINO_ARCH_ESP32)
+  // --- ESP32 TRANSLATION LAYER ---
+  typedef SemaphoreHandle_t mutex_t;
+
+  // Translates RP2350 timeout locks to ESP32 FreeRTOS ticks
+  inline bool mutex_enter_timeout_ms(mutex_t* mtx, uint32_t timeout_ms) {
+      return (xSemaphoreTake(*mtx, pdMS_TO_TICKS(timeout_ms)) == pdTRUE);
+  }
+
+// A blocking enter maps to waiting forever (portMAX_DELAY)
+  inline void mutex_enter_blocking(mutex_t* mtx) {
+      xSemaphoreTake(*mtx, portMAX_DELAY);
+  }
+
+  // Translates RP2350 unlocks to ESP32 FreeRTOS semaphore releases
+  inline void mutex_exit(mutex_t* mtx) {
+      xSemaphoreGive(*mtx);
+  }
+
+  // Translates RP2350 mutex creation to ESP32 FreeRTOS creation
+  inline void mutex_init(mutex_t* mtx) {
+      *mtx = xSemaphoreCreateMutex();
+  }
+
+#elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+  // --- NATIVE RP2350 SDK ---
+  #include "pico/mutex.h"
+#endif
+
+mutex_t can_mutex;
 
 void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
@@ -472,7 +563,7 @@ static void main_event_handler(lv_event_t * e)
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
             // Not the best place to do this !!
-            if (mutex_enter_timeout_ms(&can_mutex,100))
+            if (mutex_enter_timeout_ms(&can_mutex, 100))
             {
               load.clearEnergy();
               mutex_exit(&can_mutex);  
@@ -677,16 +768,33 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
+#ifdef ARDUINO_ARCH_ESP32
+void Core0WorkerTask(void *pvParameters) {
+  
+  // --- THIS REPLACES void setup1() ---
+  mutex_enter_blocking(&can_mutex);
+  node.getCAN().run();
+  mutex_exit(&can_mutex);  
 
+  // --- THIS REPLACES void loop1() ---
+  for (;;) {
+    bool mutexOk = false;
+    mutexOk = mutex_enter_timeout_ms(&can_mutex, 1 /*ms*/);
+    if (mutexOk) {
+      node.getCAN().run(true);
+      mutex_exit(&can_mutex);  
+    }  
+    vTaskDelay(pdMS_TO_TICKS(1)); 
+  }
+}
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
 // Running on core1
 void setup1() {
   //delay(1);
   mutex_enter_blocking(&can_mutex);
   node.getCAN().run();
-  //Info_Add("GUI. Setting up CANOpen.");
-  //initCANopen();
-  //tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
-  //Info_Add("GUI. Setting up CANOpen ready.");
   mutex_exit(&can_mutex);  
 }
 
@@ -707,6 +815,7 @@ void loop1() {
     yield();
   }
 }
+#endif
 
 void setup()
 {
@@ -721,6 +830,7 @@ void setup()
   //delay(250);
 
   // Start by blocking all CAN activity
+  mutex_init(&can_mutex);
   mutex_enter_blocking(&can_mutex);
 
   #ifdef ARDUINO_ARCH_RP2040
@@ -774,6 +884,28 @@ void setup()
 
   #ifdef ENABLEUSB
 
+  #ifdef ARDUINO_ARCH_ESP32
+
+  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+  
+  USB.firmwareVersion(0x0100);
+  USB.manufacturerName("Consulab for pleasure");
+  USB.productName("USB PD controller with HID");
+  USB.VID(0x04D8);
+  USB.PID(0x003F);  
+  USB.usbVersion(0x0200);
+
+  tinyusb_add_string_descriptor(myFirmware);
+
+  Device.begin();
+
+  USBSerial.begin();
+
+  USB.begin();
+
+  #endif
+  #endif
+
   #ifndef DEBUG
   // This will remove the unwanted default string descriptor
   // And kill the unwanted (unneeded) serial port.
@@ -820,16 +952,6 @@ void setup()
 
   #endif
 
-  #ifdef ARDUINO_ARCH_ESP32
-  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
-  USB.serialNumber(mySerial);  
-  tinyusb_add_string_descriptor(myFirmware);
-  Device.begin();
-  USBSerial.begin(115200);
-  USB.begin();
-  #endif
-  #endif
-
   #endif // ENABLEUSB
 
   #ifdef DEBUG  
@@ -838,19 +960,30 @@ void setup()
   // Serial.setDebugOutput(true);
   #endif
 
+  #ifdef ARDUINO_ARCH_RP2040
   Serial.println("Starting RP2350 init.");
 
   WireBattery.setSDA(BSP_I2C_SDA_PIN);
   WireBattery.setSCL(BSP_I2C_SCL_PIN);
   //WireBattery.setClock(400000);   // or even 50000
+  #endif
+
   WireBattery.begin();
 
   bsp_buzzer_init();
 
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();
+
+  #ifdef ARDUINO_ARCH_ESP32
+  lv_screen_init(gfx, HOR_RES, VER_RES);
+  #endif
+
+  #ifdef ARDUINO_ARCH_RP2040
   lv_screen_init(HOR_RES, VER_RES);
   lv_screen_brightness(0);
+  #endif
+
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
 
   // Create and show flash-screen
@@ -961,15 +1094,11 @@ void setup()
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
   touch_init(HOR_RES, VER_RES, 0);
-  //tp.begin(&Wire1,10,480,480);
-  //tp.setRotate180(true,480,480);
-
   /*Initialize the input device driver*/
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
   lv_indev_set_read_cb(indev, my_touchpad_read);
   #endif
-  
 
   String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Info_Add(LVGL_Arduino.c_str());
@@ -1017,14 +1146,6 @@ void setup()
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
   //lv_timer_handler();
 
-  /*
-  mutex_enter_blocking(&can_mutex);
-  //Info_Add("GUI. Setting up CANOpen.");
-  //initCANopen();
-  //tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
-  mutex_exit(&can_mutex);  
-  */
-
   Info_Add("GUI. Setting up CANOpen.");
 
   Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.getBoardNumber());
@@ -1033,7 +1154,30 @@ void setup()
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
+  #ifdef ARDUINO_ARCH_ESP32
+
+  // Set pins
+  ESP32Can.setPins(CAN_TX, CAN_RX);
+
+  // You can set custom size for the queues - those are default
+  ESP32Can.setRxQueueSize(5);
+  ESP32Can.setTxQueueSize(5);
+
+  // .setSpeed() and .begin() functions require to use TwaiSpeed enum,
+  // but you can easily convert it from numerical value using .convertSpeed()
+  ESP32Can.setSpeed(ESP32Can.convertSpeed(500));
+
+  // You can also just use .begin()..
+  if(ESP32Can.begin())
+    Info_Add("GUI. CAN bus started!");
+  else
+    Info_Add("GUI. CAN bus failed!");
+  #endif
+
+  #ifdef ARDUINO_ARCH_RP2040
   initCANopen();
+  #endif
+
   tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
   Info_Add("GUI. Setting up CANOpen ready.");
 
@@ -1045,9 +1189,9 @@ void setup()
 
 void loop()
 {
-  Message Msg;
-
   uint8_t j;
+
+  loopStartTime = millis();
 
   static unsigned long startTime = millis();
 
@@ -1060,8 +1204,9 @@ void loop()
 
   bool DataOk = false;
 
-  byte INData[COMMAND_SIZE] = {0};
-  byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
+  static byte INData[COMMAND_SIZE] = {0};
+  static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
+
   byte dataindexer = 0;
 
   WORD_VAL w_data;
@@ -1072,17 +1217,29 @@ void loop()
   PRunDatas RDS = &SET->TestData.RunDatas; 
 
   int8_t PDOCount = 0;
-  AP33772S_PDO PDO;
+  static AP33772S_PDO PDO;
 
-  unsigned long maxCANTime = millis();
-
-  uint32_t msg;
+  #if defined(ARDUINO_ARCH_ESP32)
+  // Pin and run your setup1/loop1 emulation function on Core 0
+  xTaskCreatePinnedToCore(
+    Core0WorkerTask,   // The worker function above
+    "CAN_Worker",      // Debug name of the task
+    4096,              // Stack size (4KB is usually safe for CAN operations)
+    NULL,              // Task input parameters
+    2,                 // Priority (Set slightly higher than 1 to ensure responsive CAN updates)
+    NULL,              // Task handle
+    0                  // Core ID (0 = The background core)
+  );
+  #endif
 
   if (node.getCAN().checkRxQueue())
   {
     //mutex_enter_blocking(&can_mutex);
-    if (mutex_enter_timeout_ms(&can_mutex,100))
+    if (mutex_enter_timeout_ms(&can_mutex, 100))
     {
+
+      unsigned long maxCANTime = millis();
+
       while (node.run())
       {
         // We did receive a message that was not handled by ourselves
@@ -1175,7 +1332,7 @@ void loop()
 
   if (flagRequestIT2704Data)
   {
-    if (mutex_enter_timeout_ms(&can_mutex,100))
+    if (mutex_enter_timeout_ms(&can_mutex, 100))
     {
       flagRequestIT2704Data = false;
       // Ask load IT2704 to send measurement results
@@ -1208,6 +1365,13 @@ void loop()
     static uint32_t loopcounter = 0;
     Serial.printf("Loop: %d\n",loopcounter++);
     #endif
+
+    if (!load.isConnected())
+    {
+      #ifdef DEBUG
+      Serial.println("GUI. IT2704 disconnected !");
+      #endif
+    }
 
     // Test connection with load IT2704
     if (mutex_enter_timeout_ms(&can_mutex, 100 /*ms*/))
@@ -1250,6 +1414,8 @@ void loop()
 
         for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
         {
+          memset(&PDO, 0, sizeof(PDO));
+
           if (pd.readPDO(j, PDO))
           {
             if (PDO.valid)
@@ -1419,7 +1585,7 @@ void loop()
           Screen1AddEData(RDS->Energy / 1000000ULL);
           if (RDS->Energy == 0)
           {
-            if (mutex_enter_timeout_ms(&can_mutex,100))
+            if (mutex_enter_timeout_ms(&can_mutex, 100))
             {
               load.clearEnergy();
               mutex_exit(&can_mutex);  

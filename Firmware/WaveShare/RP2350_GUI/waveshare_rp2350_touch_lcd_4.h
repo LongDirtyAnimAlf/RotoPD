@@ -1,6 +1,11 @@
 #ifndef _BOARDS_WAVESHARE_RP2350_TOUCH_LCD_4_H
 #define _BOARDS_WAVESHARE_RP2350_TOUCH_LCD_4_H
 
+#ifdef ARDUINO_ARCH_RP2040
+
+// For psram
+#define RP2350_PSRAM_CS 47
+
 // For board detection
 #define WAVESHARE_RP2350_TOUCH_LCD_4
 
@@ -46,6 +51,8 @@
 
 #ifndef PICO_RP2350_A2_SUPPORTED
 #define PICO_RP2350_A2_SUPPORTED 1
+#endif
+
 #endif
 
 #endif

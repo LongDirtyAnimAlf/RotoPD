@@ -1,18 +1,22 @@
 #include <Arduino.h>
 
+#ifdef ENABLEUSB
+
 #include "USB.h"
 #include "USBHID.h"
-//#include "esp32-hal-tinyusb.h"
 
 USBHID HID;
 
 class CustomHIDDevice : public USBHIDDevice {
+private:
+  // USB HID report descriptor.
+  uint8_t const desc_hid_report_esp32[] = {TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)};
 public:
   CustomHIDDevice(void) {
     static bool initialized = false;
     if (!initialized) {
       initialized = true;
-      HID.addDevice(this, sizeof(desc_hid_report));
+      HID.addDevice(this, sizeof(desc_hid_report_esp32));
     }
   }
 
@@ -22,8 +26,8 @@ public:
 
   // Called by the USB stack to get the report descriptor
   uint16_t _onGetDescriptor(uint8_t *buffer) {
-    memcpy(buffer, desc_hid_report, sizeof(desc_hid_report));
-    return sizeof(desc_hid_report);
+    memcpy(buffer, desc_hid_report_esp32, sizeof(desc_hid_report_esp32));
+    return sizeof(desc_hid_report_esp32);
   }
 
   // Called by the USB stack on set report 
@@ -33,3 +37,5 @@ public:
 };
 
 CustomHIDDevice Device;
+
+#endif
