@@ -1,5 +1,4 @@
 #include "matrix_screen.h"
-#include "pico/rand.h"
 #include <stdlib.h>
 #include <string.h>          // required for memset
 #include <math.h>
@@ -267,7 +266,6 @@ static void init_telemetry_screen_once(void)
         [dtS] = {0, 0},
     };
 
-    //uint32_t rand32;
     DataType_t DT;
     for (int i = 0; i < BOX_COUNT; i++) {
 
@@ -276,11 +274,6 @@ static void init_telemetry_screen_once(void)
 
         b->x = initial_positions[DT][0];
         b->y = initial_positions[DT][1];
-
-        //rand32 = get_rand_32();
-        //b->x += (rand32 % 10);
-        //rand32 = get_rand_32();
-        //b->y += (rand32 % 10);
 
         b->vx = initial_velocities[DT][0];
         b->vy = initial_velocities[DT][1];

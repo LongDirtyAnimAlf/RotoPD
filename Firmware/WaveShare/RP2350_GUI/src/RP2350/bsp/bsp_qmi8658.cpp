@@ -1,4 +1,7 @@
 #include "bsp_qmi8658.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "bsp_i2c.h"
 
 enum
@@ -501,3 +504,5 @@ unsigned char bsp_qmi8658_init(void)
 	}
 	// return QMI8658_chip_id;
 }
+
+#endif

@@ -1,6 +1,8 @@
 #ifndef __BSP_QMI8658_H__
 #define __BSP_QMI8658_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -517,6 +519,8 @@ void bsp_qmi8658_disableWakeOnMotion(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif

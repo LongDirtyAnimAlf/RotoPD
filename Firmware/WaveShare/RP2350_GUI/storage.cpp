@@ -1,5 +1,9 @@
 #include "storage.h"
 //#include <EEPROM.h>
+
+#ifdef ARDUINO_ARCH_RP2040
+
+
 #include <LittleFS.h>
 
 constexpr uint32_t MAGIC = 0xDEADBEEF;
@@ -214,3 +218,15 @@ bool __not_in_flash_func(storeGetBatteryChargeSetting)(uint8_t Index, TStageData
   *SD = blob.data;
   return true;
 }
+
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+void storeInit(void) {}
+void storePutBoardInfo(TBoardInfo * Info) {}
+bool storeGetBoardInfo(TBoardInfo * Info) { return true; }
+void storePutBatteryDischargeSetting(uint8_t Index, TStageData *SD) {}
+void storePutBatteryChargeSetting(uint8_t Index, TStageData *SD) {}
+bool storeGetBatteryDischargeSetting(uint8_t Index, TStageData *SD) { return true; }
+bool storeGetBatteryChargeSetting(uint8_t Index, TStageData *SD) { return true; }
+#endif

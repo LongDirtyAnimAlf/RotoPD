@@ -13,6 +13,11 @@
       return (xSemaphoreTake(*mtx, pdMS_TO_TICKS(timeout_ms)) == pdTRUE);
   }
 
+  // A blocking enter maps to waiting forever (portMAX_DELAY)
+  inline void mutex_enter_blocking(mutex_t* mtx) {
+      xSemaphoreTake(*mtx, portMAX_DELAY);
+  }
+
   // Translates RP2350 unlocks to ESP32 FreeRTOS semaphore releases
   inline void mutex_exit(mutex_t* mtx) {
       xSemaphoreGive(*mtx);
@@ -48,7 +53,12 @@ public:
     CircularDataQueue() : head(0), tail(0), count(0) {
         mutex_init(&queue_mutex);
         // Use standard malloc or generic pvPortMalloc/pmalloc depending on framework
+        #ifdef ARDUINO_ARCH_RP2040        
         frames = (T*)pmalloc(SIZE * sizeof(T));
+        #endif
+        #if defined(ARDUINO_ARCH_ESP32)
+        frames = (T*)heap_caps_aligned_alloc(4, (SIZE * sizeof(T)) , MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+        #endif
     }
 
     ~CircularDataQueue() {
@@ -59,7 +69,7 @@ public:
         }
     }
 
-    // CRITICAL FIX: Prevent C++ from shallow-copying the Pico mutex or raw pointers
+    // CRITICAL FIX: Prevent C++ from shallow-copying the mutex or raw pointers
     CircularDataQueue(const CircularDataQueue&) = delete;
     CircularDataQueue& operator=(const CircularDataQueue&) = delete;
     CircularDataQueue(CircularDataQueue&&) = delete;

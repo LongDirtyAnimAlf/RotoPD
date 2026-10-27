@@ -1,5 +1,8 @@
 #ifndef __BSP_ST7701s_H__    
 #define __BSP_ST7701s_H__
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "bsp_display.h"
 
 #include "pico/stdlib.h"
@@ -47,6 +50,8 @@ bool bsp_display_new_st7701(bsp_display_interface_t **interface, bsp_display_inf
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

@@ -210,6 +210,8 @@ void CanOpenNode::setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibi
 // ------------------------------------------------------------------
 void CanOpenNode::begin() {
     can.begin();
+
+    #ifdef ARDUINO_ARCH_RP2040
     if (MCP2515::ERROR_OK == can.reset()) {
         can.setBitrate(CAN_250KBPS);
         can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
@@ -221,6 +223,11 @@ void CanOpenNode::begin() {
     } else {
         Serial.println("CANopen. MCP2515 Initialize Failure !!!");
     }
+    #endif
+
+    #ifdef ARDUINO_ARCH_ESP32
+    
+    #endif
 }
 
 // Run function to handle the core communication loop with NMT handling

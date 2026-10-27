@@ -1,5 +1,8 @@
 #include "Arduino.h"
 #include "pio_rgb.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "pio_rgb.pio.h"
 
 #include "hardware/pio.h"
@@ -407,3 +410,5 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
 
     dma_complete_handler();
 }
+
+#endif

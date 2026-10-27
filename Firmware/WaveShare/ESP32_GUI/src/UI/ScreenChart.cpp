@@ -64,17 +64,18 @@ void Setup_ScreenChart(byte index)
     //lv_obj_null_on_delete(&ScreenChartVoltageDisplay);
     lv_obj_add_style(ScreenChartVoltageDisplay, &style2, 0);  
     lv_obj_align(ScreenChartVoltageDisplay, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_scrollable(ScreenChartVoltageDisplay, false);
 
     cell = lv_obj_create(grid);
     lv_obj_remove_style_all(cell);
     lv_obj_set_grid_cell(cell, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_set_scrollable(cell, false);
 
-
     ScreenChartCurrentDisplay = create_display(cell, lv_palette_main(LV_PALETTE_GREEN), true, 5);
     //lv_obj_null_on_delete(&ScreenChartCurrentDisplay);
     lv_obj_add_style(ScreenChartCurrentDisplay, &style2, 0);  
     lv_obj_align(ScreenChartCurrentDisplay, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_scrollable(ScreenChartCurrentDisplay, false);
 
     cell = lv_obj_create(grid);
     lv_obj_remove_style_all(cell);

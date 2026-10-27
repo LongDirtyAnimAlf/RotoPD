@@ -1,5 +1,8 @@
 #ifndef __BSP_GT911_H__
 #define __BSP_GT911_H__
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +33,8 @@ bsp_touch_interface_t *bsp_gt911_get_touch_interface(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef __BSP_DMA_CHANNEL_IRQ_H__
 #define __BSP_DMA_CHANNEL_IRQ_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +19,8 @@ void bsp_dma_channel_irq_add(uint8_t irq_num, uint dma_channel, channel_irq_call
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif // __BSP_DMA_CHANNEL_IRQ_H__

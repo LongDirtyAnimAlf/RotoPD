@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "nvs.h"
 #include "shared.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,7 +15,6 @@ extern "C" {
 int indicator_nvs_init(void);
 
 esp_err_t IRAM_ATTR indicator_nvs_write(char *p_key, void *p_data, size_t len);
-
 //p_len : inout
 esp_err_t IRAM_ATTR indicator_nvs_read(char *p_key, void *p_data, size_t *p_len);
 

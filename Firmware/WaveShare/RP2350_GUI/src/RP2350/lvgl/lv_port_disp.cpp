@@ -1,6 +1,9 @@
-#include "Arduino.h"
 #include "lv_port_disp.h"
+
 #include <lvgl.h>
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdbool.h>
 #include "./../bsp/pio_rgb.h"
 #include "./../bsp/bsp_st7701.h"
@@ -187,3 +190,5 @@ uint32_t lv_port_get_buffer_heap_usage(void)
 {
     return (usedheapbytes);
 }
+
+#endif

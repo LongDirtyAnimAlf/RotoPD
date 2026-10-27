@@ -5,6 +5,11 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 namespace WS_CH32_IO {
 
 static constexpr uint8_t I2C_ADDRESS = 0x24;
@@ -63,5 +68,9 @@ bool readBatteryVoltage(TwoWire &wire, float *voltage, uint16_t *raw = nullptr,
                         uint8_t samples = 8);
 
 } // namespace WS_CH32_IO
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
 
 #endif

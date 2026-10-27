@@ -1,4 +1,4 @@
-#ifdef ARDUINO_ESP32S3_DEV
+#ifdef ARDUINO_ARCH_ESP32
 #ifdef SENSECAP
 #include "./src/ESP32/Storage/indicator_storage_nvs.h"
 #else

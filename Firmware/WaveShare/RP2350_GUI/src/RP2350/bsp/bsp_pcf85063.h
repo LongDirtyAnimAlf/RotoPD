@@ -1,6 +1,8 @@
 #ifndef __BSP_PCF85063_H__
 #define __BSP_PCF85063_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +45,8 @@ void bsp_pcf85063_set_time(struct tm *now_tm);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif

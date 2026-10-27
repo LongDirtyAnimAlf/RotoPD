@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +17,8 @@ uint32_t lv_port_get_buffer_heap_usage(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif /*LV_PORT_DISP_TEMPL_H*/

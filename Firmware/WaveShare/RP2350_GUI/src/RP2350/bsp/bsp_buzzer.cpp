@@ -1,4 +1,7 @@
 #include "bsp_buzzer.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
 
@@ -33,3 +36,5 @@ void bsp_buzzer_enable(bool enable)
     else
         pwm_set_chan_level(slice_num, pwm_channel, 0);
 }
+
+#endif

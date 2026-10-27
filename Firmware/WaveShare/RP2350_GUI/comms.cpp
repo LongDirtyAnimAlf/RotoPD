@@ -11,7 +11,7 @@ extern Adafruit_USBD_HID HID;
 #ifdef ARDUINO_ARCH_ESP32
 #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
 extern USBHID HID;
-extern USBCDC USBSerial;
+//extern USBCDC USBSerial;
 #endif
 #endif
 
@@ -141,7 +141,7 @@ void PinHigh(uint32_t ulPin)
 void ResetWire(void)
 {
   #if defined(ARDUINO_ARCH_ESP32)
-  return WS_CH32_IO::checkI2CBus();
+  WS_CH32_IO::recoverI2CBus();
   #elif defined(ARDUINO_ARCH_RP2040) 
   return;
   #else
@@ -235,6 +235,8 @@ bool initCANopen(void)
 
   node.begin();
   
+  #ifdef ARDUINO_ARCH_RP2040
+
   // =========================================================================
   // Start config of MCP2515 filters to limit can pressure
   // =========================================================================
@@ -255,6 +257,8 @@ bool initCANopen(void)
 
   // Switch back to normal operation mode
   mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
+
+  #endif //ARDUINO_ARCH_RP2040
 
   return true;
 }
@@ -314,7 +318,7 @@ void collectRotoPDData(void)
   ina_counter_c++;
 }
 
-void getRotoPDData(word* I,word* V,dword* P,word* T)
+void getRotoPDData(uint16_t* I,uint16_t* V,uint32_t* P,uint16_t* T)
 {
   float li;
   if (ina_counter_c == 0)
@@ -959,7 +963,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
 
     // Send report back to host
     #ifdef ARDUINO_ARCH_ESP32
-    HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
     #else
     HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
     #endif

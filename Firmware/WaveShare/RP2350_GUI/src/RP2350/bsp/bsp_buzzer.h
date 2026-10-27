@@ -1,6 +1,8 @@
 #ifndef __BSP_LCD_BUZZER_H__
 #define __BSP_LCD_BUZZER_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +20,8 @@ void bsp_buzzer_enable(bool enable);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif //__BSP_LCD_BUZZER_H__

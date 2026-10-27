@@ -1,4 +1,7 @@
 #include "bsp_st7701.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/clocks.h"
 
 #include "hardware/dma.h"
@@ -292,3 +295,5 @@ bool bsp_display_new_st7701(bsp_display_interface_t **interface, bsp_display_inf
     g_display_info = &display_info;
     return true;
 }
+
+#endif

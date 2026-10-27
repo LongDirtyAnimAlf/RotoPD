@@ -1,4 +1,7 @@
 #include "bsp_dma_channel_irq.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/irq.h"
 #include "hardware/dma.h"
 
@@ -59,3 +62,5 @@ void bsp_dma_channel_irq1_init(void)
     irq_set_priority(DMA_IRQ_1, 0x40);   // higher than typical USB (0x80)
     irq_set_enabled(DMA_IRQ_1, true);
 }
+
+#endif

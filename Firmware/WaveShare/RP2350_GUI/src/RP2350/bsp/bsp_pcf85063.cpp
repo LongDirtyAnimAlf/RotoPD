@@ -1,4 +1,7 @@
 #include "bsp_pcf85063.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "bsp_i2c.h"
 #include <time.h>
 
@@ -94,3 +97,5 @@ void bsp_pcf85063_set_time(struct tm *now_tm)
 // {
 //     xTaskCreate(bsp_pcf85063_task, "bsp_pcf85063_task", 256, NULL, tskIDLE_PRIORITY + 1, NULL);
 // }
+
+#endif

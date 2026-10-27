@@ -1,7 +1,15 @@
 #ifndef CAN_OPEN_NODE_H
 #define CAN_OPEN_NODE_H
 
-#include "../CAN/mcp2515.h"
+#ifdef ARDUINO_ARCH_RP2040
+#include "./../RP2350/CAN/mcp2515.h"
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#include "./../ESP32/CAN/ESP32-TWAI-CAN.hpp"
+typedef TwaiCAN MCP2515;
+#define BSP_XL2515_INT_PIN -1
+#endif
 
 #include "../../config.h"
 #include "message.hpp"
@@ -18,7 +26,7 @@ public:
      * @param csPin    MCP2515 chip-select pin
      * @param intPin   MCP2515 interrupt pin
      * @param baudRate (kept for future use / compatibility)
-     * @param nodeId   CANopen Node-ID (1 � 127). Defaults to DEFAULT_NODE_ID.
+     * @param nodeId   CANopen Node-ID (1 .. 127). Defaults to DEFAULT_NODE_ID.
      */
     CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate,
                 uint8_t nodeId = DEFAULT_NODE_ID);

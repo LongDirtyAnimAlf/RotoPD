@@ -124,6 +124,11 @@ void lv_screen_init(void * gfx, word W, word H)
   lv_display_set_flush_cb(disp, my_disp_flush_direct);
   lv_display_set_buffers(disp, sbuf2_1, sbuf2_2, W * H * BYTE_PER_PIXEL, LV_DISPLAY_RENDER_MODE_DIRECT);
   lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
+
+  // Configure the backlight pin as an output
+  //pinMode(LCD_BL, OUTPUT);
+  // Set initial brightness (e.g., ~60% brightness)
+  //analogWrite(LCD_BL, 255); 
 }
 
 #else // DIRECT_MODE
@@ -191,5 +196,10 @@ void lv_screen_init(void * gfx, word W, word H)
 }
 
 #endif
+
+void lv_screen_brightness(uint8_t b)
+{
+  //analogWrite(LCD_BL, b);
+}
 
 #endif

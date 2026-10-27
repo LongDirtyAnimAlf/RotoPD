@@ -1,4 +1,7 @@
 #include "bsp_xl2515.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/spi.h"
 #include <string.h>
 
@@ -202,3 +205,5 @@ bool bsp_xl2515_recv(uint32_t *can_id, uint8_t *data, uint8_t *len)
     xl2515_write_reg_byte(RXB0SIDL, 0x60);
     return true;
 }
+
+#endif

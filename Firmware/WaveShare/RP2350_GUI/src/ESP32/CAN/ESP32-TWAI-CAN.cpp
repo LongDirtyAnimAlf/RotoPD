@@ -303,4 +303,67 @@ bool TwaiCAN::end() {
     return ret;
 }
 
+TwaiCAN::ERROR TwaiCAN::sendMessage(const struct can_frame *frame)
+{
+    CanFrame txFrame         = {0};
+
+    bool ext = (frame->can_id & CAN_EFF_FLAG); // Extended Frame Format (0 = standard 11-bit, 1 = extended 29-bit)
+    bool rtr = (frame->can_id & CAN_RTR_FLAG); // Remote Transmission Request (0 = data frame, 1 = remote frame)
+
+    txFrame.identifier       = (frame->can_id & CAN_ERR_MASK);
+    txFrame.extd             = ext ? 1 : 0;; // 0 for standard, 1 for extended
+    txFrame.rtr              = rtr ? 1 : 0;; // 0 for standard, 1 for extended
+    txFrame.data_length_code = frame->can_dlc;
+    txFrame.data[0]          = frame->data[0];
+    txFrame.data[1]          = frame->data[1];
+    txFrame.data[2]          = frame->data[2];
+    txFrame.data[3]          = frame->data[3];
+    txFrame.data[4]          = frame->data[4];
+    txFrame.data[5]          = frame->data[5];
+    txFrame.data[6]          = frame->data[6];
+    txFrame.data[7]          = frame->data[7];
+
+    if (writeFrame(txFrame))
+    {
+        return TwaiCAN::ERROR_OK;
+    }
+    else
+    {
+        return TwaiCAN::ERROR_FAILTX;
+    }
+}
+
+TwaiCAN::ERROR TwaiCAN::sendMessagePrio(const struct can_frame *frame)
+{
+    return sendMessage(frame);
+}
+
+TwaiCAN::ERROR TwaiCAN::readMessage(struct can_frame *frame)
+{
+    CanFrame rxFrame         = {0};
+
+    if (readFrame(rxFrame, 0))
+    {
+        frame->can_id   = rxFrame.identifier;
+        bool ext = rxFrame.extd;
+        if (ext) frame->can_id += CAN_EFF_FLAG;
+        bool rtr = rxFrame.rtr;
+        if (rtr) frame->can_id += CAN_RTR_FLAG;
+
+        frame->can_dlc  = rxFrame.data_length_code;
+        frame->data[0]  = rxFrame.data[0];
+        frame->data[1]  = rxFrame.data[1];
+        frame->data[2]  = rxFrame.data[2];
+        frame->data[3]  = rxFrame.data[3];
+        frame->data[4]  = rxFrame.data[4];
+        frame->data[5]  = rxFrame.data[5];
+        frame->data[6]  = rxFrame.data[6];
+        frame->data[7]  = rxFrame.data[7];
+
+        return TwaiCAN::ERROR_OK;
+    }    
+
+    return TwaiCAN::ERROR_NOMSG;
+}
+
 TwaiCAN ESP32Can;

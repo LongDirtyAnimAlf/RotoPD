@@ -1,6 +1,8 @@
 #ifndef __XL2515_H__
 #define __XL2515_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include "pico/stdlib.h"
 
@@ -414,6 +416,8 @@ bool bsp_xl2515_recv(uint32_t *can_id, uint8_t *data, uint8_t *len);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

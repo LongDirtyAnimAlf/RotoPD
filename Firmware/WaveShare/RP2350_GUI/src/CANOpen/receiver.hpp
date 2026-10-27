@@ -2,7 +2,15 @@
 #define RECEIVER_H
 
 #include "message.hpp"
-#include "../CAN/mcp2515.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+#include "./../RP2350/CAN/mcp2515.h"
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#include "./../ESP32/CAN/ESP32-TWAI-CAN.hpp"
+typedef TwaiCAN MCP2515;
+#endif
 
 // Receiver message type
 struct Receiver : public Message {

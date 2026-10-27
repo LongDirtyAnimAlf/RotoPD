@@ -1,5 +1,7 @@
 #include "bsp_i2c.h"
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/i2c.h"
 
 void bsp_i2c_write(uint8_t device_addr, uint8_t *buffer, size_t len)
@@ -47,3 +49,5 @@ void bsp_i2c_init(void)
     gpio_pull_up(BSP_I2C_SDA_PIN);
     gpio_pull_up(BSP_I2C_SCL_PIN);
 }
+
+#endif
