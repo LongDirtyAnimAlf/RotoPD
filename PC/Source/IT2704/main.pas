@@ -218,7 +218,7 @@ end;
 procedure TForm1.ToggleBox1Change(Sender: TObject);
 begin
   Timer1.Enabled:=TToggleBox(Sender).Checked;
-  //Timer2.Enabled:=TToggleBox(Sender).Checked;
+  Timer2.Enabled:=TToggleBox(Sender).Checked;
   TimerHeartbeat.Enabled:=TToggleBox(Sender).Checked;
 end;
 

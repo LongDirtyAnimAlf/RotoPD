@@ -918,11 +918,57 @@ void setup()
   else
     Info_Add("GUI. RotoPD not connected or not found.");
 
+
+  // CAN !!!!
+
+  #ifdef ARDUINO_ARCH_ESP32
+
+  twai_filter_config_t myFilter;
+  myFilter.single_filter = true;
+  // Calculate a mask that allows your Node ID or Master Node ID bit patterns
+  // We want the hardware to completely ignore the top bits (base functions) 
+  // and only validate the lower Node ID bits.
+  uint32_t common_mask = 0x000; // Allow upper function bits to pass through hardware
+  // Only require bits to match where IT2704NodeID and MasterNodeID share identical bit values
+  // Unmatched bits between the two node IDs must be masked out (ignored by hardware)
+  uint32_t node_match_mask = ~(BoardInfo.IT2704NodeID ^ BoardInfo.MasterNodeID) & 0x7F; 
+  uint32_t combined_mask = common_mask | node_match_mask;
+  // Set Code and Mask (Shifted 21 bits left for Standard 11-bit IDs)
+  myFilter.acceptance_code = ((BoardInfo.IT2704NodeID & combined_mask) << 21);
+  myFilter.acceptance_mask = ~(combined_mask << 21);
+
+  bool success = ESP32Can.begin(
+    ESP32Can.convertSpeed(250), // twaiSpeed
+    CAN_TX,                     // txPin
+    CAN_RX,                     // rxPin
+    10,                         // txQueue size
+    50,                         // rxQueue size
+    &myFilter,                  // fConfig (Your custom hardware filter)
+    nullptr,                    // gConfig (Let library handle automatically)
+    nullptr                     // tConfig (Let library handle automatically)
+  );
+
+  if (success) {
+    Info_Add("GUI. ESP32 CAN bus started!");
+  } else {
+    Info_Add("GUI. ESP32 CAN bus failed!");
+  }
+
+  #endif // ARDUINO_ARCH_ESP32
+
+  #ifdef ARDUINO_ARCH_RP2040
+  initCANopen();
+  #endif
+
+  Info_Add("GUI. Setting up CANOpen ready.");
+
   Info_Add("GUI. Init timers.");      
+
+  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
+  tickerCollectRotoPDData.attach_ms(ROTOPDDATAGETTIME, cbCollectRotoPDData);
 
   #ifdef STANDALONE
 
-  tickerCollectRotoPDData.attach_ms(ROTOPDDATAGETTIME, cbCollectRotoPDData);
   tickerProcessData.attach_ms(DATACOLLECTTIMEFAST, cbProcessData);
   tickerDataUpdate.attach_ms(CALCULATIONTIME, dataupdatecb);  
 
@@ -1020,6 +1066,24 @@ void loop()
   static AP33772S_PDO PDO;
 
   static unsigned long startTime = millis();
+
+#ifdef BUTTON_PINNNNNNNNNNNN
+if (digitalRead(BUTTON_PIN) == LOW)
+{
+  startTime = millis();
+  while (digitalRead(BUTTON_PIN) == LOW)
+  {
+    if (millis() - startTime >= 2000)
+    {
+      ESP.restart();
+      //esp_restart();
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));      
+  }
+}  
+#endif
+
+
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
