@@ -36,7 +36,7 @@ CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_
     // Load cycle times from Object Dictionary (fallback to #defines already set)
     nmt.cycleTime       = getProducerHeartbeatTime();
 
-    const uint16_t txComm[4] = {TX_PDO1_COMM_INDEX, TX_PDO2_COMM_INDEX, TX_PDO3_COMM_INDEX, TX_PDO4_COMM_INDEX};
+    const uint16_t txComm[4] = {TX_PDO01_COMM_INDEX, TX_PDO02_COMM_INDEX, TX_PDO03_COMM_INDEX, TX_PDO04_COMM_INDEX};
     const uint16_t rxComm[4] = {RX_PDO1_COMM_INDEX, RX_PDO2_COMM_INDEX, RX_PDO3_COMM_INDEX, RX_PDO4_COMM_INDEX};
 
     for (int i = 0; i < 4; ++i) {
@@ -97,10 +97,10 @@ uint16_t CanOpenNode::getPdoEventTimer(uint16_t commIndex) const {
     if (idx < 0) {
         // Fallback to the corresponding #define
         switch (commIndex) {
-            case TX_PDO1_COMM_INDEX: return PDO1_TX_CYCLE_TIME;
-            case TX_PDO2_COMM_INDEX: return PDO2_TX_CYCLE_TIME;
-            case TX_PDO3_COMM_INDEX: return PDO3_TX_CYCLE_TIME;
-            case TX_PDO4_COMM_INDEX: return PDO4_TX_CYCLE_TIME;
+            case TX_PDO01_COMM_INDEX: return PDO1_TX_CYCLE_TIME;
+            case TX_PDO02_COMM_INDEX: return PDO2_TX_CYCLE_TIME;
+            case TX_PDO03_COMM_INDEX: return PDO3_TX_CYCLE_TIME;
+            case TX_PDO04_COMM_INDEX: return PDO4_TX_CYCLE_TIME;
             case RX_PDO1_COMM_INDEX: return PDO1_RX_CYCLE_TIME;
             case RX_PDO2_COMM_INDEX: return PDO2_RX_CYCLE_TIME;
             case RX_PDO3_COMM_INDEX: return PDO3_RX_CYCLE_TIME;
@@ -161,8 +161,8 @@ void CanOpenNode::setTxPdoCycleTime(uint8_t num, uint16_t ms) {
     if (num < 1 || num > 4) return;
     txPdo[num - 1].cycleTime = ms;
     static const uint16_t indices[4] = {
-        TX_PDO1_COMM_INDEX, TX_PDO2_COMM_INDEX,
-        TX_PDO3_COMM_INDEX, TX_PDO4_COMM_INDEX
+        TX_PDO01_COMM_INDEX, TX_PDO02_COMM_INDEX,
+        TX_PDO03_COMM_INDEX, TX_PDO04_COMM_INDEX
     };
     updateOdUint16(indices[num - 1], SUBIDX_PDO_EVENT_TIMER, ms);
 }
@@ -179,7 +179,7 @@ void CanOpenNode::setRxPdoCycleTime(uint8_t num, uint16_t ms) {
 
 void CanOpenNode::setPdoTransmissionType(PDO::Type type, uint8_t num, uint8_t transmissionType) {
     if (num < 1 || num > 4) return;
-    static const uint16_t txIdx[4] = {TX_PDO1_COMM_INDEX, TX_PDO2_COMM_INDEX, TX_PDO3_COMM_INDEX, TX_PDO4_COMM_INDEX};
+    static const uint16_t txIdx[4] = {TX_PDO01_COMM_INDEX, TX_PDO02_COMM_INDEX, TX_PDO03_COMM_INDEX, TX_PDO04_COMM_INDEX};
     static const uint16_t rxIdx[4] = {RX_PDO1_COMM_INDEX, RX_PDO2_COMM_INDEX, RX_PDO3_COMM_INDEX, RX_PDO4_COMM_INDEX};
 
     if (type == PDO::Type::TX) {
@@ -193,7 +193,7 @@ void CanOpenNode::setPdoTransmissionType(PDO::Type type, uint8_t num, uint8_t tr
 
 void CanOpenNode::setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibitTime) {
     if (num < 1 || num > 4) return;
-    static const uint16_t txIdx[4] = {TX_PDO1_COMM_INDEX, TX_PDO2_COMM_INDEX, TX_PDO3_COMM_INDEX, TX_PDO4_COMM_INDEX};
+    static const uint16_t txIdx[4] = {TX_PDO01_COMM_INDEX, TX_PDO02_COMM_INDEX, TX_PDO03_COMM_INDEX, TX_PDO04_COMM_INDEX};
     static const uint16_t rxIdx[4] = {RX_PDO1_COMM_INDEX, RX_PDO2_COMM_INDEX, RX_PDO3_COMM_INDEX, RX_PDO4_COMM_INDEX};
 
     if (type == PDO::Type::TX) {
@@ -317,7 +317,7 @@ void CanOpenNode::clear(PDO::Type type, uint8_t num, uint8_t position)
             if (pdo->getObject(i) != nullptr) pdo->numObjects++;
 
         uint16_t base = (type == PDO::Type::TX)
-                            ? TX_PDO1_MAPPING_INDEX + (num-1)
+                            ? TX_PDO01_MAPPING_INDEX + (num-1)
                             : RX_PDO1_MAPPING_INDEX + (num-1);
         updateOdUint8(base, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
         pdoMapped = false;
@@ -335,7 +335,7 @@ void CanOpenNode::clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t sub
             if (pdo->getObject(i) != nullptr) pdo->numObjects++;
 
         uint16_t base = (type == PDO::Type::TX)
-                            ? TX_PDO1_MAPPING_INDEX + (num-1)
+                            ? TX_PDO01_MAPPING_INDEX + (num-1)
                             : RX_PDO1_MAPPING_INDEX + (num-1);
         updateOdUint8(base, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
         pdoMapped = false;
@@ -350,7 +350,7 @@ void CanOpenNode::clearAll(PDO::Type type, uint8_t num)
     pdo->clearAll();
 
     uint16_t base = (type == PDO::Type::TX)
-                        ? TX_PDO1_MAPPING_INDEX + (num-1)
+                        ? TX_PDO01_MAPPING_INDEX + (num-1)
                         : RX_PDO1_MAPPING_INDEX + (num-1);
     updateOdUint8(base, SUBIDX_PDO_MAP_COUNT, 0);
     pdoMapped = false;
@@ -374,7 +374,7 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
     }
 
     // Keep Object Dictionary Sub-Index 0 (Map Count) in sync
-    uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO1_MAPPING_INDEX + pdoNum) 
+    uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO01_MAPPING_INDEX + pdoNum) 
                                                     : (RX_PDO1_MAPPING_INDEX + pdoNum);
     updateOdUint8(baseMapIndex, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
 
@@ -405,7 +405,7 @@ void CanOpenNode::set(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIn
     }
 
     // Keep Object Dictionary Sub-Index 0 (Map Count) in sync
-    uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO1_MAPPING_INDEX + pdoNum)
+    uint16_t baseMapIndex = (type == PDO::Type::TX) ? (TX_PDO01_MAPPING_INDEX + pdoNum)
                                                     : (RX_PDO1_MAPPING_INDEX + pdoNum);
     updateOdUint8(baseMapIndex, SUBIDX_PDO_MAP_COUNT, pdo->numObjects);
 
@@ -450,7 +450,7 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
 
     // Invalidate PDO mapping cache if mapping objects are modified
     bool isRxMapping = (obj.index >= RX_PDO1_MAPPING_INDEX && obj.index <= RX_PDO4_MAPPING_INDEX);
-    bool isTxMapping = (obj.index >= TX_PDO1_MAPPING_INDEX && obj.index <= TX_PDO4_MAPPING_INDEX);
+    bool isTxMapping = (obj.index >= TX_PDO01_MAPPING_INDEX && obj.index <= TX_PDO04_MAPPING_INDEX);
 
     if (isRxMapping || isTxMapping) {
         // Drop the cached mapping status flag so mapPDOs() re-evaluates the array next loop
@@ -460,7 +460,7 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
         if (obj.subIndex == SUBIDX_PDO_MAP_COUNT) {
             uint8_t pdoNum = 0;
             if (isTxMapping) {
-                pdoNum = obj.index - TX_PDO1_MAPPING_INDEX;
+                pdoNum = obj.index - TX_PDO01_MAPPING_INDEX;
                 if (pdoNum < 4) txPdo[pdoNum].numObjects = obj.data[0];
             } else {
                 pdoNum = obj.index - RX_PDO1_MAPPING_INDEX;
@@ -476,10 +476,10 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
     else if (obj.subIndex == SUBIDX_PDO_TRANSMISSION_TYPE) {
         uint8_t tt = obj.data[0];
         switch (obj.index) {
-            case TX_PDO1_COMM_INDEX: txPdo[0].transmissionType = tt; break;
-            case TX_PDO2_COMM_INDEX: txPdo[1].transmissionType = tt; break;
-            case TX_PDO3_COMM_INDEX: txPdo[2].transmissionType = tt; break;
-            case TX_PDO4_COMM_INDEX: txPdo[3].transmissionType = tt; break;
+            case TX_PDO01_COMM_INDEX: txPdo[0].transmissionType = tt; break;
+            case TX_PDO02_COMM_INDEX: txPdo[1].transmissionType = tt; break;
+            case TX_PDO03_COMM_INDEX: txPdo[2].transmissionType = tt; break;
+            case TX_PDO04_COMM_INDEX: txPdo[3].transmissionType = tt; break;
             case RX_PDO1_COMM_INDEX: rxPdo[0].transmissionType = tt; break;
             case RX_PDO2_COMM_INDEX: rxPdo[1].transmissionType = tt; break;
             case RX_PDO3_COMM_INDEX: rxPdo[2].transmissionType = tt; break;
@@ -489,10 +489,10 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
     else if (obj.subIndex == SUBIDX_PDO_INHIBIT_TIME) {
         uint16_t it = static_cast<uint16_t>(obj.data[0] | (obj.data[1] << 8));
         switch (obj.index) {
-            case TX_PDO1_COMM_INDEX: txPdo[0].inhibitTime = it; break;
-            case TX_PDO2_COMM_INDEX: txPdo[1].inhibitTime = it; break;
-            case TX_PDO3_COMM_INDEX: txPdo[2].inhibitTime = it; break;
-            case TX_PDO4_COMM_INDEX: txPdo[3].inhibitTime = it; break;
+            case TX_PDO01_COMM_INDEX: txPdo[0].inhibitTime = it; break;
+            case TX_PDO02_COMM_INDEX: txPdo[1].inhibitTime = it; break;
+            case TX_PDO03_COMM_INDEX: txPdo[2].inhibitTime = it; break;
+            case TX_PDO04_COMM_INDEX: txPdo[3].inhibitTime = it; break;
             case RX_PDO1_COMM_INDEX: rxPdo[0].inhibitTime = it; break;
             case RX_PDO2_COMM_INDEX: rxPdo[1].inhibitTime = it; break;
             case RX_PDO3_COMM_INDEX: rxPdo[2].inhibitTime = it; break;
@@ -502,10 +502,10 @@ void CanOpenNode::writeData(Object &obj, uint8_t data[4]) {
     else if (obj.subIndex == SUBIDX_PDO_EVENT_TIMER) {
         uint16_t value = static_cast<uint16_t>(obj.data[0] | (obj.data[1] << 8));
         switch (obj.index) {
-            case TX_PDO1_COMM_INDEX: txPdo[0].cycleTime = value; break;
-            case TX_PDO2_COMM_INDEX: txPdo[1].cycleTime = value; break;
-            case TX_PDO3_COMM_INDEX: txPdo[2].cycleTime = value; break;
-            case TX_PDO4_COMM_INDEX: txPdo[3].cycleTime = value; break;
+            case TX_PDO01_COMM_INDEX: txPdo[0].cycleTime = value; break;
+            case TX_PDO02_COMM_INDEX: txPdo[1].cycleTime = value; break;
+            case TX_PDO03_COMM_INDEX: txPdo[2].cycleTime = value; break;
+            case TX_PDO04_COMM_INDEX: txPdo[3].cycleTime = value; break;
             case RX_PDO1_COMM_INDEX: rxPdo[0].cycleTime = value; break;
             case RX_PDO2_COMM_INDEX: rxPdo[1].cycleTime = value; break;
             case RX_PDO3_COMM_INDEX: rxPdo[2].cycleTime = value; break;
@@ -692,7 +692,7 @@ void CanOpenNode::mapPDOArray(PDO* pdoArray, uint16_t baseIndex) {
 
 // Map Tx and Rx PDOs
 void CanOpenNode::mapPDOs() {
-    mapPDOArray(txPdo, TX_PDO1_MAPPING_INDEX); // TPDOs
+    mapPDOArray(txPdo, TX_PDO01_MAPPING_INDEX); // TPDOs
     mapPDOArray(rxPdo, RX_PDO1_MAPPING_INDEX); // RPDOs
     pdoMapped = true;
 }
