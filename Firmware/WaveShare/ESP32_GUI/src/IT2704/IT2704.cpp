@@ -253,7 +253,16 @@ void IT2704::initDevice(bool reset)
         Msg.setID(TPO_TX_COMM_ID[tpoindex]);
         Msg.setCommand(WRITE_REQ_4BYTE_CMD);
         Msg.setSubID(SUBIDX_PDO_COB_ID);
-        data.Val = (0x80000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 1 
+        data.Val = (0x80000000U); // bit 31 = 1 
+        Msg.setData(data.Val);
+        _node->sendMsg(Msg,true);
+
+        // Write the new COB-ID into TPDO: Keep Bit 31 = 1
+        Msg.clearData();
+        Msg.setID(TPO_TX_COMM_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_COB_ID);
+        data.Val = (0x80000000U + TPO_COB_ID_EXTENDED[tpoindex] + _id); // bit 31 = 1 
         Msg.setData(data.Val);
         _node->sendMsg(Msg,true);
 
@@ -312,13 +321,29 @@ void IT2704::initDevice(bool reset)
         Msg.setID(TPO_TX_COMM_ID[tpoindex]);
         Msg.setCommand(WRITE_REQ_4BYTE_CMD);
         Msg.setSubID(SUBIDX_PDO_COB_ID);
-        data.Val = (0x00000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 0 
+        data.Val = (0x00000000U + TPO_COB_ID_EXTENDED[tpoindex] + _id); // bit 31 = 0 
         Msg.setData(data.Val);
         _node->sendMsg(Msg,true);
 
         tpoindex++;
       }
     }
+
+    // We might use the remaining TPDOs for output status !!
+    /*
+    "TPDO1
+    (0x180+ID)"	Channel1 onoff	char	1	"channel 2,5 on;channel 1,3,4,6,7,8 off
+    00 01 00 00 01 00 00 00"	Only valid if the channel exists
+	  Channel2 onoff	char	1		
+	  Channel3 onoff	char	1		
+	  Channel4 onoff	char	1		
+	  Channel5 onoff	char	1		
+	  Channel6 onoff	char	1		
+	  Channel7 onoff	char	1		
+	  Channel8 onoff	char	1		
+    */
+
+
   }
 }
 
