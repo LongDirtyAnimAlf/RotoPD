@@ -2,15 +2,16 @@
 
 #ifdef ENABLEUSB
 
-#include "USB.h"
-#include "USBHID.h"
+#include "comms.h"
 
 USBHID HID;
 
 class CustomHIDDevice : public USBHIDDevice {
 private:
-  // USB HID report descriptor.
-  uint8_t const desc_hid_report_esp32[] = {TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)};
+  // Declare the HID report descriptor array as a private static member
+  // USB HID report descriptor.  
+  inline static const uint8_t desc_hid_report_esp32[] = {TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)}; 
+  //static const uint8_t desc_hid_report_esp32[]; 
 public:
   CustomHIDDevice(void) {
     static bool initialized = false;
@@ -24,6 +25,14 @@ public:
     HID.begin();
   }
 
+  void end(void) {
+    HID.end();
+  }
+
+  void ready(void) {
+    HID.ready();
+  }
+
   // Called by the USB stack to get the report descriptor
   uint16_t _onGetDescriptor(uint8_t *buffer) {
     memcpy(buffer, desc_hid_report_esp32, sizeof(desc_hid_report_esp32));
@@ -35,6 +44,13 @@ public:
     set_report_callback(report_id, buffer, len);
   }
 };
+
+/*
+// Define and initialize the array outside the class body
+const uint8_t CustomHIDDevice::desc_hid_report_esp32[] = {
+  TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
+};
+*/
 
 CustomHIDDevice Device;
 

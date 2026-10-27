@@ -1,19 +1,24 @@
 #include <Arduino.h>
-
-//#include <mutex>
-//#include <chrono>
-//#include <functional>
-
 #include <lvgl.h>
 #include <Ticker.h>
+
+#include "shared.h"
+#include "comms.h"
+
+#include "ui.h"
+#include "extras.h"
 
 #ifdef ARDUINO_ARCH_ESP32
 
 #include <Arduino_GFX_Library.h>
-#include "USB.h"
-#include "USBHID.h"
-#include "esp32-hal-tinyusb.h"
+
 #include "customhid.h"
+
+// Default placeholder due to re-use of existing software
+#define ActiveBatteryIndex 0
+
+#define HOR_RES 480
+#define VER_RES 480
 
 #define PACKET_UART_RXD 20
 #define PACKET_UART_TXD 19
@@ -26,78 +31,6 @@
 #define GFX_DEV_DEVICE ESP32_S3_RGB
 #define RGB_PANEL
 //#define GFX_BL 45
-
-#endif
-
-#ifdef ARDUINO_ARCH_RP2040
-
-#include "hardware/vreg.h"
-#include "hardware/powman.h"
-#include "hardware/structs/qmi.h"
-#include "hardware/sync.h"
-#include "hardware/clocks.h"
-
-#include <pico/stdlib.h>
-#include <pico/multicore.h>
-
-#include "./src/RP2350/bsp/bsp_i2c.h"
-#include "./src/RP2350/bsp/bsp_st7701.h"
-#include "./src/RP2350/bsp/bsp_buzzer.h"
-
-bool core1_separate_stack = true;
-
-#endif
-
-//#include "./src/CAN/mcp2515.h"
-#include "./src/CANOpen/canOpenNode.h"
-#include "./src/CANOpen/sdo.hpp"
-#include "./src/CANOpen/message.hpp"
-
-#include "ui.h"
-
-//#include <WiFi.h>
-
-#include "extras.h"
-#include "shared.h"
-#include "comms.h"
-
-#define HOR_RES 480
-#define VER_RES 480
-
-// Default placeholder due to re-use of existing software
-#define ActiveBatteryIndex 0
-
-// USB HID object
-#ifdef ARDUINO_ARCH_RP2040
-#ifdef ENABLEUSB
-#ifdef USE_TINYUSB
-Adafruit_USBD_HID HID;
-#endif
-#endif
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-#if defined(ARDUINO_USB_MODE) && (ARDUINO_USB_MODE == 0)  // USB-OTG / TinyUSB
-#ifdef ENABLEUSB
-USBHID HID;
-#endif
-USBCDC USBSerial;
-#endif
-#endif
-
-unsigned long loopStartTime = 0;
-
-// Must be a global variable !!!
-char mySerial[30];
-char myFirmware[30];
-
-AP33772S pd((TwoWire*)&WireBattery);
-
-//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
-IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
-
-#ifdef ARDUINO_ARCH_ESP32
 
 Arduino_DataBus *bus = new Arduino_SWSPI(
     GFX_NOT_DEFINED /* DC */, 42 /* CS */,
@@ -125,7 +58,25 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     HOR_RES /* width */, VER_RES /* height */, rgbpanel, 2 /* rotation */, true /* auto_flush */,
     bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
     #endif
+
 #endif
+
+#include "./src/CANOpen/canOpenNode.h"
+#include "./src/CANOpen/sdo.hpp"
+#include "./src/CANOpen/message.hpp"
+
+#if !ARDUINO_USB_CDC_ON_BOOT
+USBCDC USBSerial;
+#endif
+
+// Must be a global variable !!!
+char mySerial[30];
+char myFirmware[30];
+
+AP33772S pd((TwoWire*)&WireBattery);
+//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
+CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
+IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 PBatteryBoard const CurrentBoard = BatteryBoards;
@@ -165,9 +116,6 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
 mutex_t can_mutex;
-
-void ClearRunData(PRunDatas RDS);
-void ClearStageData(PStageData SD);
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -246,7 +194,26 @@ static uint32_t my_tick_get_cb(void) {
   return millis();
 }
 
+
 #ifdef STANDALONE
+
+#ifdef ARDUINO_ARCH_RP2040
+static void __not_in_flash_func(storeSettings)(byte BI)
+{
+    PBatterySetting SET = &Batteries[BI];
+    storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
+    storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
+}
+#endif // ARDUINO_ARCH_RP2040
+#ifdef ARDUINO_ARCH_ESP32
+static void IRAM_ATTR storeSettings(byte BI)
+{
+  // placeholder
+}
+#endif // ARDUINO_ARCH_ESP32
+
+#endif // STANDALONE
+
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 //static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
@@ -270,52 +237,6 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
-/*
-static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
-{
-  bool changed = tp.read();  
-
-  if (changed)
-  {
-    data->point.x = tp.last_x;
-    data->point.y = tp.last_y;
-  }
-
-  //if (tp.isTouched)
-  if (tp.down)
-  {
-    data->state = LV_INDEV_STATE_PRESSED;
-    //Set the coordinates
-  }
-  else
-  {
-    data->state = LV_INDEV_STATE_RELEASED;
-  }
-}
-*/
-#endif
-
-#ifdef STANDALONE
-
-#ifdef ARDUINO_ARCH_RP2040
-static void __not_in_flash_func(storeSettings)(byte BI)
-{
-    PBatterySetting SET = &Batteries[BI];
-    storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
-    storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
-}
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-static void IRAM_ATTR storeSettings(byte BI)
-{
-  //PBatterySetting SET = &Batteries[BI];
-  //storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
-  //storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
-}
-#endif
-
-#endif
 
 static void main_event_handler(lv_event_t * e)
 {
@@ -647,7 +568,42 @@ static void main_event_handler(lv_event_t * e)
   in_handler = false;
 }
 
+void ClearRunData(PRunDatas RDS)
+{
+  RDS->CurrentStageNumber = 0;
+  RDS->Capacity = 0;
+  RDS->Energy = 0;
+  RDS->Time = 0;
+
+  for(byte i=tmNONE; i<tmLast; i++)
+  {
+    RDS->ThresholdResult[i].Enabled = false;
+    RDS->ThresholdResult[i].Triggered = false;      
+    RDS->ThresholdResult[i].Mode = tmNONE;
+    RDS->ThresholdResult[i].SetValue = 0;
+    RDS->ThresholdResult[i].GetValue = 0;      
+  }
+
+  RDS->NewerRotoPDDatas.clear();  
+  RDS->NewerIT2704Datas.clear();  
+}
+
+void ClearStageData(PStageData SD)
+{
+  SD->Status = smOff;
+  SD->SetValue = 0;
+  for(byte i=tmNONE; i<tmLast; i++)
+  {
+    SD->ThresholdSettings[i].Enabled = false;
+    SD->ThresholdSettings[i].Triggered = false;      
+    SD->ThresholdSettings[i].Mode = tmNONE;
+    SD->ThresholdSettings[i].SetValue = 0;
+    SD->ThresholdSettings[i].GetValue = 0;      
+  }
+}
+
 #ifdef STANDALONE
+
 static void cbCollectRotoPDData()
 {
   flagCollectRotoPDData = true;
@@ -665,7 +621,9 @@ static void cbProcessData()
 
 static void StopClickCB()
 {
+  #ifdef ARDUINO_ARCH_RP2040
   bsp_buzzer_enable(false);
+  #endif
 }
 
 
@@ -681,7 +639,7 @@ static void datastartcb(byte index)
   flagProcessMeasurementData = true;
 }
 
-#endif
+#endif // STANDALONE
 
 void dataupdatecb()
 {
@@ -689,28 +647,8 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
-#ifdef ARDUINO_ARCH_ESP32
-void Core0WorkerTask(void *pvParameters) {
-  
-  // --- THIS REPLACES void setup1() ---
-  mutex_enter_blocking(&can_mutex);
-  node.getCAN().run();
-  mutex_exit(&can_mutex);  
-
-  // --- THIS REPLACES void loop1() ---
-  for (;;) {
-    bool mutexOk = false;
-    mutexOk = mutex_enter_timeout_ms(&can_mutex, 1 /*ms*/);
-    if (mutexOk) {
-      node.getCAN().run(true);
-      mutex_exit(&can_mutex);  
-    }  
-    vTaskDelay(pdMS_TO_TICKS(1)); 
-  }
-}
-#endif
-
 #ifdef ARDUINO_ARCH_RP2040
+
 // Running on core1
 void setup1() {
   //delay(1);
@@ -736,23 +674,14 @@ void loop1() {
     yield();
   }
 }
-#endif
+
+#endif // ARDUINO_ARCH_RP2040
 
 void setup()
 {
   byte index;
   word tempintcalc;
   char myHex[10] = "";
-
-  // If this throws an error during compilation, you know you need to adjust your padding array size!
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 88, 
-              "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
-
-  //delay(250);
-
-  // Start by blocking all CAN activity
-  mutex_init(&can_mutex);
-  mutex_enter_blocking(&can_mutex);
 
   #ifdef ARDUINO_ARCH_RP2040
 
@@ -777,15 +706,15 @@ void setup()
   // This results in best LCD performance without glitches and noise
   set_psram_timing_auto();
   delay(10);
-  #endif
 
-  for (index=0; index<12;index++)
-  {
-    BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
-  }
+  #endif // ARDUINO_ARCH_RP2040
 
-  storeInit();
-  storeGetBoardInfo(&BoardInfo);
+  // Start by blocking all CAN activity
+  mutex_init(&can_mutex);
+  mutex_enter_blocking(&can_mutex);
+
+  // Get default boardserial
+  for ( index=0; index<12 ;index++ ) BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
 
   index = 0;
   mySerial[0] = '\0';  
@@ -803,37 +732,28 @@ void setup()
   sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
   myFirmware[18] = '\0';   
 
-  #ifdef ENABLEUSB
-
   #ifdef ARDUINO_ARCH_ESP32
-
-  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
-  
+  #ifdef ENABLEUSB
   USB.firmwareVersion(0x0100);
   USB.manufacturerName("Consulab for pleasure");
   USB.productName("USB PD controller with HID");
   USB.VID(0x04D8);
-  USB.PID(0x003F);  
+  USB.PID(0x003E);  
   USB.usbVersion(0x0200);
-
+  USB.serialNumber(mySerial);  
   tinyusb_add_string_descriptor(myFirmware);
 
   Device.begin();
-
-  USBSerial.begin();
-
+  Serial.begin();
   USB.begin();
+  #else  // ENABLEUSB
+  Serial.begin();
+  #endif // ENABLEUSB
+  #endif // ARDUINO_ARCH_ESP32
 
-  #endif
-  #endif
-
-  #ifndef DEBUG
-  // This will remove the unwanted default string descriptor
-  // And kill the unwanted (unneeded) serial port.
-  //USBSerial.end();
-  #endif
-
-  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
+  #ifdef ARDUINO_ARCH_RP2040
+  #ifdef ENABLEUSB
+  #ifdef USE_TINYUSB
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
   if (!TinyUSBDevice.isInitialized()) {
     TinyUSBDevice.begin(0);
@@ -843,20 +763,7 @@ void setup()
   USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
   USBDevice.setProductDescriptor("USB-C PD controller");
-  #endif
 
-  #ifdef ARDUINO_ARCH_ESP32
-  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
-  USB.VID(0x04D8);
-  USB.PID(0x003F);  
-  USB.usbVersion(0x0200);
-  USB.firmwareVersion(0x0100);
-  USB.manufacturerName("Consulab for pleasure");
-  USB.productName("USB PD controller with HID");
-  #endif
-  #endif
-
-  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
   USBDevice.setSerialDescriptor(mySerial);  
   HID.setReportCallback(NULL, set_report_callback);
   HID.enableOutEndpoint(true);
@@ -865,53 +772,47 @@ void setup()
   USBDevice.addStringDescriptor(myFirmware);  
 
   HID.begin();
-
-  // Enable serial (again) for programming and debugging
-  #ifdef DEBUG  
-  Serial.begin(115200);
-  #endif
-
-  #endif
-
+  #endif // USE_TINYUSB
   #endif // ENABLEUSB
+  // Enable serial (again) for programming and debugging
+  Serial.begin(115200);
+  #endif // ARDUINO_ARCH_RP2040
 
-  #ifdef DEBUG  
-  int cnt = 1000;     // Will wait for up to ~1 second for Serial to connect.
-  while (!Serial && cnt--) {delay(1);}
-  // Serial.setDebugOutput(true);
-  #endif
 
-  #ifdef ARDUINO_ARCH_RP2040
-  Serial.println("Starting RP2350 init.");
 
-  WireBattery.setSDA(BSP_I2C_SDA_PIN);
-  WireBattery.setSCL(BSP_I2C_SCL_PIN);
-  //WireBattery.setClock(400000);   // or even 50000
-  #endif
-
-  WireBattery.begin();
-
-  bsp_buzzer_init();
-
-  Info_Add("GUI. Init our LVGL display wonder.");    
-  lv_init();
 
   #ifdef ARDUINO_ARCH_ESP32
+  // Init buf /  expander / i2c
+  // This also runs initDisplayPower !!
+  if (!WS_CH32_IO::begin(Wire, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL, WS_CH32_IO::DEFAULT_I2C_FREQ, &Serial))
+  {
+        Serial.println("CH32V003 init failed, continuing for display debug");
+  }
+  gfx->begin();
+  lv_init();
+  /*Set a tick source so that LVGL will know how much time elapsed. */
+  lv_tick_set_cb([](){ 
+    //return (uint32_t) (esp_timer_get_time() / 1000LL);
+    return (xTaskGetTickCount());    
+    //return ((uint32_t)millis());        
+  });
   lv_screen_init(gfx, HOR_RES, VER_RES);
-  #endif
+  #endif // ARDUINO_ARCH_ESP32
+
 
   #ifdef ARDUINO_ARCH_RP2040
   lv_screen_init(HOR_RES, VER_RES);
   lv_screen_brightness(0);
-  #endif
-
   lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
+  #endif // ARDUINO_ARCH_RP2040
 
   // Create and show flash-screen
   CreateSaveScreen(NULL);
   lv_timer_handler();
   lv_screen_brightness(100);
 
+  // We have created and are showing our bootscreen
+  // Now do the rest of the setup.
   CreateBaseScreen(main_event_handler);
   Setup_ScreenLogger(BoardInfo.IT2704Channel,false);
 
@@ -928,7 +829,20 @@ void setup()
   SetIT2704Adress(BoardInfo.IT2704NodeID);
   SetIT2704Channel(BoardInfo.IT2704Channel);
 
-  Info_Add("GUI. Controller startup");
+
+  #ifdef ARDUINO_ARCH_RP2040
+  Serial.println("Starting RP2350 hardware init.");
+  bsp_buzzer_init();
+  WireBattery.setSDA(BSP_I2C_SDA_PIN);
+  WireBattery.setSCL(BSP_I2C_SCL_PIN);
+  //WireBattery.setClock(400000);   // or even 50000
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32
+  Serial.println("Starting ESP32 hardware init.");
+  #endif
+
+  WireBattery.begin();
 
   //WiFi.mode(WIFI_OFF);
 
@@ -1019,7 +933,7 @@ void setup()
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
   lv_indev_set_read_cb(indev, my_touchpad_read);
-  #endif
+  #endif // STANDALONE
 
   String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Info_Add(LVGL_Arduino.c_str());
@@ -1058,14 +972,13 @@ void setup()
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
   */
   
-  #endif
+  #endif // ARDUINO_ARCH_RP2040
 
-  //delay(2000);
+  delay(2000);
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
-  //lv_timer_handler();
 
   Info_Add("GUI. Setting up CANOpen.");
 
@@ -1075,47 +988,12 @@ void setup()
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
-  #ifdef ARDUINO_ARCH_ESP32
-
-  // Set pins
-  ESP32Can.setPins(CAN_TX, CAN_RX);
-
-  // You can set custom size for the queues - those are default
-  ESP32Can.setRxQueueSize(2);
-  ESP32Can.setTxQueueSize(5);
-
-  // .setSpeed() and .begin() functions require to use TwaiSpeed enum,
-  // but you can easily convert it from numerical value using .convertSpeed()
-  ESP32Can.setSpeed(ESP32Can.convertSpeed(250));
-
-  // You can also just use .begin()..
-  if(ESP32Can.begin())
-    Info_Add("GUI. CAN bus started!");
-  else
-    Info_Add("GUI. CAN bus failed!");
-  #endif
-
-  #ifdef ARDUINO_ARCH_RP2040
-  initCANopen();
-  #endif
-
-  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
-  Info_Add("GUI. Setting up CANOpen ready.");
-
-  Info_Add("GUI. Init RP2350 ready.");
-
   // Release the CAN activity
   mutex_exit(&can_mutex);  
 }
 
 void loop()
 {
-  uint8_t j;
-
-  loopStartTime = millis();
-
-  static unsigned long startTime = millis();
-
   // We do not know when IT2704 data will arrive
   // Data-order is also unknown
   // So use a static to store latest data
@@ -1124,11 +1002,12 @@ void loop()
   static TMeasurementData LatestRotoPDData;
 
   bool DataOk = false;
+  uint8_t j;
 
   static byte INData[COMMAND_SIZE] = {0};
   static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
 
-  byte dataindexer = 0;
+  byte dataindexer;
 
   WORD_VAL w_data;
   DWORD_VAL dw_data;
@@ -1140,18 +1019,35 @@ void loop()
   int8_t PDOCount = 0;
   static AP33772S_PDO PDO;
 
-  #if defined(ARDUINO_ARCH_ESP32)
-  // Pin and run your setup1/loop1 emulation function on Core 0
-  xTaskCreatePinnedToCore(
-    Core0WorkerTask,   // The worker function above
-    "CAN_Worker",      // Debug name of the task
-    4096,              // Stack size (4KB is usually safe for CAN operations)
-    NULL,              // Task input parameters
-    2,                 // Priority (Set slightly higher than 1 to ensure responsive CAN updates)
-    NULL,              // Task handle
-    0                  // Core ID (0 = The background core)
-  );
+  static unsigned long startTime = millis();
+
+  #ifdef TINYUSB_NEED_POLLING_TASK
+  // Manual call tud_task since it isn't called by Core's background
+  TinyUSBDevice.task();
   #endif
+
+  // First, switch the screen when needed
+  if (pending_screen_index != 0)
+  {
+    byte target = pending_screen_index;
+    pending_screen_index = 0;
+    switch(target)
+    {
+      case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
+      case 2:
+        {
+          TMeasurementData LastData;
+          //LastData = RDS->NewerRotoPDDatas.getLastData();
+          LastData  = RDS->NewerIT2704Datas.getLastData();
+          Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastData);
+          break;
+        }
+      case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
+      case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
+      case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
+      case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
+    }
+  }
 
   if (node.getCAN().checkRxQueue())
   {
@@ -1235,11 +1131,6 @@ void loop()
     }
   }
 
-  #ifdef TINYUSB_NEED_POLLING_TASK
-  // Manual call tud_task since it isn't called by Core's background
-  TinyUSBDevice.task();
-  #endif
-
   if (flagCollectRotoPDData)
   {
     flagCollectRotoPDData = false;
@@ -1273,9 +1164,12 @@ void loop()
   if (flagSoundButton)
   {
     flagSoundButton = false;
+    #ifdef ARDUINO_ARCH_RP2040    
     bsp_buzzer_enable(true);
+    #endif
     SoundButtonTicker.once_ms(100U, StopClickCB);
   }
+
 
   if (millis() - startTime >= 1000)
   {
@@ -1369,28 +1263,6 @@ void loop()
       }
     }
   }  
-
-  if (pending_screen_index != 0)
-  {
-    byte target = pending_screen_index;
-    pending_screen_index = 0;
-    switch(target)
-    {
-      case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
-      case 2:
-        {
-          TMeasurementData LastData;
-          //LastData = RDS->NewerRotoPDDatas.getLastData();
-          LastData  = RDS->NewerIT2704Datas.getLastData();
-          Setup_ScreenPower(BoardInfo.IT2704Channel);ScreenPowerSetData(&LastData);
-          break;
-        }
-      case 3: {Setup_ScreenChart(BoardInfo.IT2704Channel);ScreenChartSetDataQueue(RDS->NewerRotoPDDatas);break;}
-      case 4: {Setup_ScreenPDO(BoardInfo.IT2704Channel,true);break;}
-      case 5: {Setup_ScreenSettings(BoardInfo.IT2704Channel,true);break;}
-      case 6: {Setup_ScreenLogger(BoardInfo.IT2704Channel,true);break;}
-    }
-  }
 
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
@@ -1777,6 +1649,7 @@ void loop()
   check_screensaver_timeout();
 
   lv_timer_periodic_handler();
+  //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);  
 
   #ifdef STANDALONE
   if (StoreSettings)
@@ -1818,40 +1691,6 @@ unsigned long TicksBetween(unsigned long InitTicks, unsigned long EndTicks)
   Result = (EndTicks - InitTicks);
   if ((long)(~Result) < Result) Result = (long)(~Result);
   return (Result);
-}
-
-void ClearRunData(PRunDatas RDS)
-{
-  RDS->CurrentStageNumber = 0;
-  RDS->Capacity = 0;
-  RDS->Energy = 0;
-  RDS->Time = 0;
-
-  for(byte i=tmNONE; i<tmLast; i++)
-  {
-    RDS->ThresholdResult[i].Enabled = false;
-    RDS->ThresholdResult[i].Triggered = false;      
-    RDS->ThresholdResult[i].Mode = tmNONE;
-    RDS->ThresholdResult[i].SetValue = 0;
-    RDS->ThresholdResult[i].GetValue = 0;      
-  }
-
-  RDS->NewerRotoPDDatas.clear();  
-  RDS->NewerIT2704Datas.clear();  
-}
-
-void ClearStageData(PStageData SD)
-{
-  SD->Status = smOff;
-  SD->SetValue = 0;
-  for(byte i=tmNONE; i<tmLast; i++)
-  {
-    SD->ThresholdSettings[i].Enabled = false;
-    SD->ThresholdSettings[i].Triggered = false;      
-    SD->ThresholdSettings[i].Mode = tmNONE;
-    SD->ThresholdSettings[i].SetValue = 0;
-    SD->ThresholdSettings[i].GetValue = 0;      
-  }
 }
 
 /*

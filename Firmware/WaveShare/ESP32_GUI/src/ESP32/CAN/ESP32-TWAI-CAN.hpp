@@ -26,6 +26,8 @@
 //#define ESP_INTR_FLAG_IRAM 
 #include "driver/twai.h"
 
+#include "can.h"
+
 // Uncomment or declare before importing header
 // #define LOG_TWAI log_e
 // #define LOG_TWAI_TX log_e
@@ -50,6 +52,7 @@
 #endif
 
 typedef twai_message_t CanFrame;
+
 
 // clang-format off
 enum TwaiSpeed : uint8_t {
@@ -84,7 +87,30 @@ enum TwaiSpeed : uint8_t {
 
 class TwaiCAN {
   public:
-    TwaiCAN() {}
+
+    enum ERROR {
+            ERROR_OK        = 0,
+            ERROR_FAIL      = 1,
+            ERROR_ALLTXBUSY = 2,
+            ERROR_FAILINIT  = 3,
+            ERROR_FAILTX    = 4,
+            ERROR_NOMSG     = 5
+    };
+
+    TwaiCAN(const uint32_t _SPI_CLOCK = 0) {}
+
+    ERROR abortAllPending(bool withqueues = false) { return TwaiCAN::ERROR_OK; }
+    bool getTxFull(void) { return false; }
+    bool getRxFull(void) { return false; }
+    bool checkInterrupt(void) { return false; }
+
+    ERROR reset(void) { restart(); return TwaiCAN::ERROR_OK; }
+    bool run(bool single = false) { return (inRxQueue() > 0); }
+    bool checkRxQueue(void) { return (inRxQueue() > 0); }
+    ERROR sendMessage(const struct can_frame *frame);
+    ERROR sendMessagePrio(const struct can_frame *frame);
+    ERROR readMessage(struct can_frame *frame);
+    uint32_t getRxQueueDepth(void) { return inRxQueue(); }
 
     // Call before begin!
     void      setSpeed(TwaiSpeed);
@@ -159,8 +185,8 @@ class TwaiCAN {
     int8_t    tx          = 5;
     int8_t    rx          = 4;
     uint16_t  txQueueSize = 5;
-    uint16_t  rxQueueSize = 5;
-    TwaiSpeed speed       = TWAI_SPEED_500KBPS;
+    uint16_t  rxQueueSize = 50;
+    TwaiSpeed speed       = TWAI_SPEED_250KBPS;
 };
 
 extern TwaiCAN ESP32Can;

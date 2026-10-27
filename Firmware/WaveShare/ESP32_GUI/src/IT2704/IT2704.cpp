@@ -65,6 +65,7 @@ void IT2704::initDevice(bool reset)
   if (_connected)
   {
     uint8_t tpoindex;
+    uint8_t localchannel;
 
     if (reset)
     {
@@ -131,6 +132,36 @@ void IT2704::initDevice(bool reset)
 
     Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
     Msg.dlc       = 8;
+
+
+    /*
+
+    // Configure Consumer Heartbeat Time for safety
+
+    // First, set count to 0
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setID(CONSUMER_HEARTBEAT_INDEX);
+    Msg.setSubID(SUBIDX_HIGHEST_SUPPORTED);
+    Msg.setData(0);
+    _node->sendMsg(Msg,true);    
+
+    // Write heartbeat data
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(CONSUMER_HEARTBEAT_INDEX);
+    Msg.setSubID(SUBIDX_1);
+    // Where to listen to ?
+    // At what interval time
+    Msg.setData((MasterNodeID << 16) | (10 * 1000)); // 10 seconds interval for the Master
+    _node->sendMsg(Msg,true);    
+
+    // Last, set count to 1
+    Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+    Msg.setID(CONSUMER_HEARTBEAT_INDEX);
+    Msg.setSubID(SUBIDX_HIGHEST_SUPPORTED);
+    Msg.setData(1);
+    _node->sendMsg(Msg,true);    
+
+    */
 
     // Set output slewrate
     // Coupling: off; On: slow ; off: max (fast)
@@ -200,72 +231,93 @@ void IT2704::initDevice(bool reset)
     _node->sendMsg(Msg);
 
 
-    // Change TPDOs to send energydata !!
+    // Change TPDOs to send channel data !!
     // All messages have priority, die to the importance of the order (I presume)
+    
+    localchannel = _channel; // single channel setup
 
-    uint8_t localchannel = 0;    
-
-    for ( tpoindex = 0; tpoindex < 1; tpoindex++ )
+    //for ( localchannel = 0; localchannel < 8; localchannel++ ) // all channel setup
     {
-      // Disable TPDO: Set Bit 31 of COB-ID at 0x1800 Sub01 to 1    
-      Msg.clearData();
-      Msg.setID(TPO_TX_COMM_ID[tpoindex]);
-      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
-      Msg.setSubID(SUBIDX_PDO_COB_ID);
-      data.Val = (0x80000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 1 
-      Msg.setData(data.Val);
-      _node->sendMsg(Msg,true);
+      // We define three TPDOs per channel
+      // TPDO1 = voltage + current
+      // TPDO2 = power + energy
+      // TPDO3 = capacity + time
 
-      // Process TPDO mapping
+      // Start TPDO index
+      tpoindex = (localchannel * 3);
 
-      // Clear Mapping Count: Write 0 to 0x1A00 Sub00 .
-      Msg.clearData();
-      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
-      Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-      Msg.setSubID(SUBIDX_PDO_MAP_COUNT);
-      Msg.setData(0);
-      _node->sendMsg(Msg,true);
+      for ( uint8_t tpochannelindex = 1; tpochannelindex <= 3; tpochannelindex++ )
+      {
+        // Disable TPDO: Set Bit 31 of COB-ID at 0x1800 + ID Sub01 to 1    
+        Msg.clearData();
+        Msg.setID(TPO_TX_COMM_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_COB_ID);
+        data.Val = (0x80000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 1 
+        Msg.setData(data.Val);
+        _node->sendMsg(Msg,true);
 
-      //Write Mapping Entry 1: Write mapping entry to 0x1A00 Sub01.
-      Msg.clearData();
-      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
-      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
-      Msg.setSubID(SUBIDX_PDO_MAP_1);
-      data.Val = 0;
-      data.w[1] = IT2704_METER + (localchannel++ * 0x100);
-      data.v[1] = IT2704_METER_WHOUR;
-      data.v[0] = SIZE_BIT_FLOAT32;
-      Msg.setData(data.Val);
-      _node->sendMsg(Msg,true);
+        // Clear Mapping Count: Write 0 to 0x1A00 + ID Sub00 .
+        Msg.clearData();
+        Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_MAP_COUNT);
+        Msg.setData(0);
+        _node->sendMsg(Msg,true);
 
-      //Write Mapping Entry 2: Write mapping entry to 0x1A00 Sub02.
-      Msg.clearData();
-      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
-      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
-      Msg.setSubID(SUBIDX_PDO_MAP_2);
-      data.Val = 0;
-      data.w[1] = IT2704_METER + (localchannel++ * 0x100);
-      data.v[1] = IT2704_METER_WHOUR;
-      data.v[0] = SIZE_BIT_FLOAT32;
-      Msg.setData(data.Val);
-      _node->sendMsg(Msg,true);
+        //Write Mapping Entry 1: Write mapping entry to 0x1A00 + ID Sub01.
+        Msg.clearData();
+        Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_MAP_1);
+        data.Val = 0;
+        data.w[1] = IT2704_METER + (localchannel * 0x100);
+        switch(tpochannelindex)
+        {
+          case 1: {data.v[1] = IT2704_METER_VOLTAGE; break;}
+          case 2: {data.v[1] = IT2704_METER_POWER; break;}
+          case 3: {data.v[1] = IT2704_METER_AHOUR; break;}
+        }
+        data.v[0] = SIZE_BIT_FLOAT32;
+        Msg.setData(data.Val);
+        _node->sendMsg(Msg,true);
 
-      // Set Mapping Count: Write 2 to 0x1A00 Sub00 .
-      Msg.clearData();
-      Msg.setID(TPO_TX_MAP_ID[tpoindex]);
-      Msg.setCommand(WRITE_REQ_1BYTE_CMD);
-      Msg.setSubID(SUBIDX_PDO_MAP_COUNT);
-      Msg.setData(2);
-      _node->sendMsg(Msg,true);
+        //Write Mapping Entry 2: Write mapping entry to 0x1A00 + ID Sub02.
+        Msg.clearData();
+        Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_MAP_2);
+        data.Val = 0;
+        data.w[1] = IT2704_METER + (localchannel * 0x100);
+        switch(tpochannelindex)
+        {
+          case 1: {data.v[1] = IT2704_METER_CURRENT; break;}
+          case 2: {data.v[1] = IT2704_METER_WHOUR; break;}
+          case 3: {data.v[1] = IT2704_METER_ON_TIME; break;}
+        }
+        data.v[0] = SIZE_BIT_FLOAT32;
+        Msg.setData(data.Val);
+        _node->sendMsg(Msg,true);
 
-      // Enable TPDO: Clear Bit 31 of COB-ID at 0x1800 Sub01 to 0    
-      Msg.clearData();
-      Msg.setID(TPO_TX_COMM_ID[tpoindex]);
-      Msg.setCommand(WRITE_REQ_4BYTE_CMD);
-      Msg.setSubID(SUBIDX_PDO_COB_ID);
-      data.Val = (0x00000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 0 
-      Msg.setData(data.Val);
-      _node->sendMsg(Msg,true);
+        // Set Mapping Count: Write 2 to 0x1A00 + ID Sub00 .
+        Msg.clearData();
+        Msg.setID(TPO_TX_MAP_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_1BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_MAP_COUNT);
+        Msg.setData(2); // Two 32 bit floats per TPDO
+        _node->sendMsg(Msg,true);
+
+        // Enable TPDO: Clear Bit 31 of COB-ID at 0x1800 + ID Sub01 to 0    
+        Msg.clearData();
+        Msg.setID(TPO_TX_COMM_ID[tpoindex]);
+        Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_COB_ID);
+        data.Val = (0x00000000U + TPO_COB_ID[tpoindex] + _id); // bit 31 = 0 
+        Msg.setData(data.Val);
+        _node->sendMsg(Msg,true);
+
+        tpoindex++;
+      }
     }
   }
 }

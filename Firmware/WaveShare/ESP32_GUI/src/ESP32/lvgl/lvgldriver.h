@@ -5,11 +5,14 @@
 
 #include <Arduino.h>
 
+#define LCD_BL 1 // Backlight control pin for Waveshare ESP32-4inch
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void lv_screen_init(void * gfx, word W, word H);
+void lv_screen_brightness(uint8_t b);
 
 #ifdef __cplusplus
 } /*extern "C"*/

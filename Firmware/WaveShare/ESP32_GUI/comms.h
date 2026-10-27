@@ -15,10 +15,16 @@
 #endif
 
 #ifdef ARDUINO_ARCH_ESP32
-#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
+#ifndef ARDUINO_USB_MODE
+#error This ESP32 board has no Native USB interface
+#elif ARDUINO_USB_MODE == 1
+#error This sketch for ESP32 should only be used when USB is in OTG mode
+#else
 #include "USB.h"
 #include "USBHID.h"
 #include "esp32-hal-tinyusb.h"
+extern USBCDC USBSerial;
+#define Serial USBSerial
 #endif
 #endif
 
@@ -101,7 +107,7 @@ bool initINA238(void);
 bool initROTOPD(void);
 int8_t taskRotoPDInit(void);
 void collectRotoPDData(void);
-void getRotoPDData(word* I,word* V,dword* P,word* T);
+void getRotoPDData(uint16_t* I, uint16_t* V, uint32_t* P, uint16_t* T);
 
 #ifdef ENABLEUSB
 #ifdef ARDUINO_ARCH_ESP32

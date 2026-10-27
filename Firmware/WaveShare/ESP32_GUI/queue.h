@@ -59,7 +59,6 @@ public:
         #if defined(ARDUINO_ARCH_ESP32)
         frames = (T*)heap_caps_aligned_alloc(4, (SIZE * sizeof(T)) , MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
         #endif
-
     }
 
     ~CircularDataQueue() {
@@ -70,7 +69,7 @@ public:
         }
     }
 
-    // CRITICAL FIX: Prevent C++ from shallow-copying the Pico mutex or raw pointers
+    // CRITICAL FIX: Prevent C++ from shallow-copying the mutex or raw pointers
     CircularDataQueue(const CircularDataQueue&) = delete;
     CircularDataQueue& operator=(const CircularDataQueue&) = delete;
     CircularDataQueue(CircularDataQueue&&) = delete;

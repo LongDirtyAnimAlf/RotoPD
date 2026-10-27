@@ -119,9 +119,9 @@ typedef union
 typedef union
 {
     qword Val;
-    byte v[8];// __PACKED;
-    word w[4];// __PACKED;
-    dword dw[2];// __PACKED;
+    uint8_t v[8];// __PACKED;
+    uint16_t w[4];// __PACKED;
+    uint32_t dw[2];// __PACKED;
 } QWORD_VAL, QWORD_BITS;
 
 #define IDDLESTAGENUMBER              0
@@ -231,13 +231,13 @@ typedef struct
 
 typedef struct
 {
-  word  V;   // voltage
-  word  I;   // current
-  dword P;   // power
-  dword C;   // Ah capacity
-  dword E;   // Wh energy
-  dword S;   // timestamp ms
-  word  T;   // temperature
+  uint16_t V;   // voltage
+  uint16_t I;   // current
+  uint32_t P;   // power
+  uint32_t C;   // Ah capacity
+  uint32_t E;   // Wh energy
+  uint32_t S;   // timestamp ms
+  uint16_t T;   // temperature
 } TMeasurementData,*PMeasurementData;
 
 typedef struct

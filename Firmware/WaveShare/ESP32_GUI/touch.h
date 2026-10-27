@@ -5,9 +5,9 @@
 
 #ifdef ARDUINO_ARCH_ESP32
 #include "./src/ESP32/CH32/WS_CH32_IO.h"
-extern USBCDC USBSerial;
+//extern USBCDC USBSerial;
 #else
-#define USBSerial Serial
+//#define USBSerial Serial
 #endif
 
 #define maxTouchPoints 5
@@ -75,26 +75,26 @@ bool touch_init(int16_t w, int16_t h, uint8_t r)
   #else
   if (GT911.begin(Wire1)) {
   #endif
-    USBSerial.print("GT911 initialized successfully at address 0x");
-    USBSerial.println(gt911_i2c_addr, HEX);
+    //USBSerial.print("GT911 initialized successfully at address 0x");
+    //USBSerial.println(gt911_i2c_addr, HEX);
     gt911_available = true;
   } else {
-    USBSerial.print("Failed to initialize GT911 at address 0x");
-    USBSerial.println(gt911_i2c_addr, HEX);
+    //USBSerial.print("Failed to initialize GT911 at address 0x");
+    //USBSerial.println(gt911_i2c_addr, HEX);
     gt911_available = false;
   }
 
   if (gt911_available)
   {
     GT911.setHomeButtonCallback([](void *user_data) {
-      USBSerial.println("Home button pressed!");
+      //USBSerial.println("Home button pressed!");
     },
     NULL);
     GT911.setMaxTouchPoint(1); // max is 5
   }
   else
   {
-    USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
+    //USBSerial.println("GT911 not found; running in LCD-only mode for ESP32-S3-LCD-4.");
   }
 
   return (gt911_available);

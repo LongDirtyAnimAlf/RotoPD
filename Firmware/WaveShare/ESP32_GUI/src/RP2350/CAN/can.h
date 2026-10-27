@@ -1,8 +1,6 @@
 #ifndef CAN_H_
 #define CAN_H_
 
-#ifdef ARDUINO_ARCH_RP2040
-
 #include "Arduino.h"
 //#include <cstddef.h>
 #include <stdint.h>
@@ -46,7 +44,5 @@ struct can_frame {
                __u8    can_dlc; /* frame payload length in byte (0 .. CAN_MAX_DLEN) */
     alignas(8) __u8    data[CAN_MAX_DLEN];
 };
-
-#endif
 
 #endif /* CAN_H_ */
