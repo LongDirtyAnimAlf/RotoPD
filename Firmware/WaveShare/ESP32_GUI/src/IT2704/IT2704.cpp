@@ -257,6 +257,17 @@ void IT2704::initDevice(bool reset)
         Msg.setData(data.Val);
         _node->sendMsg(Msg,true);
 
+        // Read COB-ID of TPDO
+        /*
+        Msg.clearData();
+        Msg.setID(TPO_TX_COMM_ID[tpoindex]);
+        Msg.setCommand(READ_REQ_4BYTE_CMD);
+        Msg.setSubID(SUBIDX_PDO_COB_ID);
+        data.Val = (0x80000000U); // bit 31 = 1 
+        Msg.setData(data.Val);
+        _node->sendMsg(Msg,true);
+        /*
+
         // Write the new COB-ID into TPDO: Keep Bit 31 = 1
         Msg.clearData();
         Msg.setID(TPO_TX_COMM_ID[tpoindex]);

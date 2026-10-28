@@ -2,10 +2,10 @@ object Form1: TForm1
   Left = 346
   Height = 587
   Top = 139
-  Width = 413
+  Width = 437
   Caption = 'Form1'
   ClientHeight = 587
-  ClientWidth = 413
+  ClientWidth = 437
   LCLVersion = '4.99.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -24,7 +24,7 @@ object Form1: TForm1
     Left = 160
     Height = 23
     Top = 8
-    Width = 249
+    Width = 273
     Anchors = [akTop, akLeft, akRight]
     BorderSpacing.Right = 4
     ItemHeight = 15
@@ -36,7 +36,7 @@ object Form1: TForm1
     Left = 162
     Height = 227
     Top = 45
-    Width = 247
+    Width = 271
     Anchors = [akTop, akLeft, akRight]
     BorderSpacing.Right = 4
     Font.CharSet = ANSI_CHARSET
@@ -110,7 +110,7 @@ object Form1: TForm1
     Left = 162
     Height = 272
     Top = 288
-    Width = 247
+    Width = 271
     Anchors = [akTop, akLeft, akRight]
     BorderSpacing.Right = 4
     Font.CharSet = ANSI_CHARSET
@@ -125,7 +125,7 @@ object Form1: TForm1
   end
   object Timer1: TTimer
     Enabled = False
-    Interval = 50
+    Interval = 200
     OnTimer = Timer1Timer
     Left = 666
     Top = 38

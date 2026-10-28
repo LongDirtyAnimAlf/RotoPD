@@ -1362,8 +1362,8 @@ void loop()
     startTime = millis();
 
     #ifdef DEBUG                      
-    static uint32_t loopcounter = 0;
-    Serial.printf("Loop: %d\n",loopcounter++);
+    //static uint32_t loopcounter = 0;
+    //Serial.printf("Loop: %d\n",loopcounter++);
     #endif
 
     if (!load.isConnected())

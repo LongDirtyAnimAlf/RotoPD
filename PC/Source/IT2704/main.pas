@@ -190,6 +190,8 @@ begin
 end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
+var
+  x,y:integer;
 begin
   // Simulate IT2704 !!
   E:=E+0.01;
@@ -197,6 +199,12 @@ begin
   SerialTxData('t'+'281'+'8'+SingleToHex(26.4)+SingleToHex(88.2));
   SerialTxData('t'+'381'+'8'+SingleToHex(26.4)+SingleToHex(88.2));
   SerialTxData('t'+'481'+'8'+SingleToHex(26.4)+SingleToHex(88.2));
+
+  for x:=1 to 22 do
+  begin
+    SerialTxData('t'+Copy(IntToHex(1381+x-1, 4),2,3)+'8'+SingleToHex(E)+SingleToHex(E+1));
+  end;
+
 end;
 
 procedure TForm1.Timer2Timer(Sender: TObject);
