@@ -50,9 +50,6 @@
 
 #define    DATASIZE                   10000u
 
-#define    CANTXBUFFERSIZE            10u
-#define    CANRXBUFFERSIZE            50u
-
 #define INA238_ADDRESS                0x40
 
 #define DEFAULT_IT2704_CHANNEL                0

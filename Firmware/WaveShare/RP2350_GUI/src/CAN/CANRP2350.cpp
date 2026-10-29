@@ -7,9 +7,8 @@
 // Define constructor implementation here
 CBUSRP2350Device::CBUSRP2350Device() : 
   can(),
-  intPin(BSP_XL2515_INT_PIN)
+  _intPin(BSP_XL2515_INT_PIN)
 {
-  pinMode(intPin, INPUT_PULLUP); 
   mutex_init(&can_mutex); 
 }
 
@@ -21,11 +20,11 @@ void CBUSRP2350Device::begin(void)
     {
       can.setBitrate(CAN_250KBPS);
       can.setNormalMode();
-      //can.enableInterrupt(intPin, ISRhandler);
-      can.enableInterrupt(intPin, NULL);
-      //Serial.println("MCP2515 Initialized Successfully.");
+      //can.enableInterrupt(_intPin, ISRhandler);
+      can.enableInterrupt(_intPin, NULL);
+      Serial.println("MCP2515 Initialized Successfully.");
     } else {
-      //Serial.println("MCP2515 Initialize Failure !!!");
+      Serial.println("MCP2515 Initialize Failure !!!");
     }
 }
 
@@ -55,8 +54,8 @@ void CBUSRP2350Device::begin(uint8_t MasterID, uint8_t IT2704ID)
         }
 
         can.setNormalMode();
-        //can.enableInterrupt(intPin, ISRhandler);
-        can.enableInterrupt(intPin, NULL);
+        //can.enableInterrupt(_intPin, ISRhandler);
+        can.enableInterrupt(_intPin, NULL);
         Serial.println("MCP2515 Initialized Successfully.");
     } else {
         Serial.println("MCP2515 Initialize Failure !!!");
@@ -113,9 +112,9 @@ bool CBUSRP2350Device::run(bool single)
   // Pushed receved messages into the Rx buffer
   // Pops Tx messages from Tx buffer to send 
 
-  if (digitalRead(intPin) == LOW)
+  if (can.checkInterrupt())
   {
-    mutex_enter_blocking(&can_mutex);
+    //mutex_enter_blocking(&can_mutex);
 
     // Some interrupt has happended on the MCP2515
     // First handle read, if any
@@ -175,6 +174,8 @@ bool CBUSRP2350Device::run(bool single)
         if (single) break;
 
         canintf = can.getInterrupts();
+
+        //if (single) break;
     }
     
     if (eflg & (MCP2515::EFLG_RX0OVR | MCP2515::EFLG_RX1OVR))
@@ -207,7 +208,7 @@ bool CBUSRP2350Device::run(bool single)
         processTxQueue();
     }
 
-    mutex_exit(&can_mutex);  
+    //mutex_exit(&can_mutex);  
   }
   return (CanRxBuffer.getCount() != 0);
 }
@@ -244,7 +245,7 @@ CBUSbase::ERROR CBUSRP2350Device::sendMessagePrio(const can_frame &frame)
 CBUSbase::ERROR CBUSRP2350Device::readMessage(can_frame *frame)
 {
   //return (CBUSbase::ERROR)can.readMessage(frame);
-  if (!CanRxBuffer.getCount())
+  if (CanRxBuffer.getCount() != 0)
   {
     if (CanRxBuffer.pop(*frame))
     {
@@ -259,9 +260,9 @@ CBUSbase::ERROR CBUSRP2350Device::readMessage(can_frame &frame)
 }
 uint32_t CBUSRP2350Device::getRxQueueDepth(void)
 {
-  return CanTxBuffer.getCount();
+  return CanRxBuffer.getCount();
 }
 
-CBUSRP2350Device CBUSDevice;
+//CBUSRP2350Device CBUSDevice;
 
 //#endif

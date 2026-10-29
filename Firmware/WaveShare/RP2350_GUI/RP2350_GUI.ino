@@ -764,12 +764,10 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
-#ifdef ARDUINO_ARCH_RP204000
+#ifdef ARDUINO_ARCH_RP2040
 // Running on core1
 void setup1()
 {
-  //pinMode(CAN_INT_PIN, INPUT_PULLUP);
-  //delay(1);
   mutex_enter_blocking(&can_mutex);
   node.getCAN().run();
   mutex_exit(&can_mutex);  
@@ -1177,7 +1175,7 @@ void loop()
   static AP33772S_PDO PDO;
   
   if (node.getCAN().checkRxQueue())
-  //if (false)
+  //if (true)
   {
     //mutex_enter_blocking(&can_mutex);
     if (mutex_enter_timeout_ms(&can_mutex, 100))

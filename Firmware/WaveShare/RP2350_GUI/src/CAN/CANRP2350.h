@@ -31,13 +31,13 @@ public:
 
 private:
   MCP2515 can;  
-  const uint8_t intPin;
+  const uint8_t _intPin;
   mutex_t can_mutex;
 
   bool processTxQueue(void);
 };
 
-extern CBUSRP2350Device CBUSDevice;
+//extern CBUSRP2350Device CBUSDevice;
 
 //#endif
 
