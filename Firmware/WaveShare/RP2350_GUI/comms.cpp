@@ -234,31 +234,6 @@ bool initCANopen(void)
   node.setHeartbeatTime(5000);      // 5 s heartbeat
 
   node.begin();
-  
-  #ifdef ARDUINO_ARCH_RP2040
-
-  // =========================================================================
-  // Start config of MCP2515 filters to limit can pressure
-  // =========================================================================
-  MCP2515& mcp2515 = node.getCAN();
-
-  mcp2515.setOperatingMode(MCP2515::CAN_MODE_CONFIG);
-
-  mcp2515.setFilterMask(MCP2515::MASK0, false, 0x7FF);
-  mcp2515.setFilter(MCP2515::RXF0, false, 0x580 + BoardInfo.IT2704NodeID);
-  mcp2515.setFilter(MCP2515::RXF1, false, 0x580 + BoardInfo.MasterNodeID);
-
-  // Set Mask 1 to require an exact 11-bit ID match
-  mcp2515.setFilterMask(MCP2515::MASK1, false, 0x7FF);
-  mcp2515.setFilter(MCP2515::RXF2, false, 0x000);
-  mcp2515.setFilter(MCP2515::RXF3, false, 0x180 + BoardInfo.IT2704NodeID);
-  mcp2515.setFilter(MCP2515::RXF4, false, 0x600 + BoardInfo.IT2704NodeID);
-  mcp2515.setFilter(MCP2515::RXF5, false, 0x600 + BoardInfo.MasterNodeID);
-
-  // Switch back to normal operation mode
-  mcp2515.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-
-  #endif //ARDUINO_ARCH_RP2040
 
   return true;
 }

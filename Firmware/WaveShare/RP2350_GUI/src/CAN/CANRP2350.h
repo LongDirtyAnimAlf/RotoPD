@@ -4,13 +4,14 @@
 //#ifdef ARDUINO_ARCH_RP2040
 
 #include "./CBUS.h"
-
 #include "./../RP2350/CAN/mcp2515.h"
+#include "pico/mutex.h"
 
 class CBUSRP2350Device : public CBUSbase {
 public:
   CBUSRP2350Device(void);
 
+  void begin(void);
   void begin(uint8_t MasterID = -1, uint8_t IT2704I = -1);
   bool checkInterrupt(void);
   ERROR abortAllPending(bool withqueues = false);
@@ -31,7 +32,9 @@ public:
 private:
   MCP2515 can;  
   const uint8_t intPin;
+  mutex_t can_mutex;
 
+  bool processTxQueue(void);
 };
 
 extern CBUSRP2350Device CBUSDevice;

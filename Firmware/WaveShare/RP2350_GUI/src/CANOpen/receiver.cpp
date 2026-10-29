@@ -10,7 +10,7 @@ bool Receiver::run(void) {
   if (CAN->run())
   {
     active = true;
-    if (CAN->readMessage(&canmessageframe) == MCP2515::ERROR_OK)
+    if (CAN->readMessage(&canmessageframe) == CBUSbase::ERROR_OK)
     {
       id = canmessageframe.can_id;
       dlc = canmessageframe.can_dlc;

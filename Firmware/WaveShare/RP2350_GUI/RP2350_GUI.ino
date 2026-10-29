@@ -70,11 +70,7 @@ bool core1_separate_stack = true;
 #ifdef ENABLEUSB
 #ifdef USE_TINYUSB
 Adafruit_USBD_HID HID;
-
 #include "./src/CAN/CANRP2350.h"
-
-#define CAN_INT_PIN   5
-MCP2515 mcp2515;
 #endif
 #endif
 #endif
@@ -1278,6 +1274,10 @@ void loop()
 
   static unsigned long startTime = millis();
 
+  lv_timer_periodic_handler();
+
+  return;
+
   // We do not know when IT2704 data will arrive
   // Data-order is also unknown
   // So use a static to store latest data
@@ -1315,7 +1315,8 @@ void loop()
   );
   #endif
 
-  if (node.getCAN().checkRxQueue())
+  //if (node.getCAN().checkRxQueue())
+  if (false)
   {
     //mutex_enter_blocking(&can_mutex);
     if (mutex_enter_timeout_ms(&can_mutex, 100))

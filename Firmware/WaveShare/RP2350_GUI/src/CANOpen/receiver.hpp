@@ -4,19 +4,14 @@
 #include "message.hpp"
 
 #ifdef ARDUINO_ARCH_RP2040
-#include "./../RP2350/CAN/mcp2515.h"
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-#include "./../ESP32/CAN/ESP32-TWAI-CAN.hpp"
-typedef TwaiCAN MCP2515;
+#include "./../CAN/CANRP2350.h"
 #endif
 
 // Receiver message type
 struct Receiver : public Message {
-  MCP2515 *CAN;
+  CBUSbase *CAN;
   // specify CAN bus for receiver message
-  Receiver(MCP2515 *CAN) : 
+  Receiver(CBUSbase *CAN) : 
     CAN(CAN)
   {};
 

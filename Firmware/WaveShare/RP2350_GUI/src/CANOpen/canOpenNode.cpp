@@ -5,7 +5,7 @@
 CanOpenNode* CanOpenNode::instance = nullptr;
 
 CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_t nodeId) :
-    can(10 * 1000 * 1000),
+    can(),
     intPin(BSP_XL2515_INT_PIN),
     baudRate(baudRate),
     nodeId((nodeId >= 1 && nodeId <= 127) ? nodeId : DEFAULT_NODE_ID),
@@ -209,24 +209,12 @@ void CanOpenNode::setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibi
 // Begin / Run
 // ------------------------------------------------------------------
 void CanOpenNode::begin() {
-    can.begin();
+    can.begin(-1,-1);
 
     #ifdef ARDUINO_ARCH_RP2040
-    if (MCP2515::ERROR_OK == can.reset()) {
-        can.setBitrate(CAN_250KBPS);
-        can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-        //can.enableInterrupt(intPin, ISRhandler);
-        can.enableInterrupt(intPin, NULL);
-        Serial.println("CANopen. MCP2515 Initialized Successfully.");
-        Serial.print("CANopen. Node-ID = 0x");
-        Serial.println(nodeId, HEX);
-    } else {
-        Serial.println("CANopen. MCP2515 Initialize Failure !!!");
-    }
     #endif
 
     #ifdef ARDUINO_ARCH_ESP32
-    
     #endif
 }
 
@@ -429,7 +417,7 @@ bool CanOpenNode::sendMsg(const Message &msg, bool prio) {
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
 
-    MCP2515::ERROR error; 
+    CBUSbase::ERROR error; 
 
     if (prio)
     {
@@ -440,7 +428,7 @@ bool CanOpenNode::sendMsg(const Message &msg, bool prio) {
         error = can.sendMessage(&cansendmessageframe);
     }
 
-    return (error == MCP2515::ERROR_OK);
+    return (error == CBUSbase::ERROR_OK);
 }
 
 // Write data to an object in the Object Dictionary

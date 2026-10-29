@@ -95,7 +95,7 @@ protected:                                          // protected members become 
   unsigned char *_mname;
   CBUScoe *coe_obj = nullptr;
 
-private:
+//private:
   CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;
   CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxBuffer;
   CircularDataQueue<can_frame, CANTXPRIOBUFFERSIZE> CanTxPrioBuffer;

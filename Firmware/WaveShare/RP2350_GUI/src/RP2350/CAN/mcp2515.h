@@ -1,8 +1,7 @@
 #ifndef _MCP2515_H_
 #define _MCP2515_H_
 
-#ifdef ARDUINO_ARCH_RP2040
-
+#include <SPI.h>
 #include "can.h"
 
 // ESP8266: functions called from ISR context must reside in IRAM.
@@ -14,214 +13,6 @@
 #endif
 
 #define BSP_XL2515_INT_PIN 44
-
-template<typename T, size_t SIZE>
-class CircularQueue {
-    static_assert(SIZE <= 65535, "CircularQueue size exceeds uint16_t counter range");
-
-private:
-    T frames[SIZE];
-    T lastItem;
-    uint16_t head = 0;
-    uint16_t tail = 0;
-    uint16_t count = 0;
-
-    // mutable so const methods can lock
-    mutable mutex_t queue_mutex;
-
-public:
-    CircularQueue() : head(0), tail(0), count(0) {
-        mutex_init(&queue_mutex);
-    }
-
-    ~CircularQueue() {
-        clear();
-    }
-
-    // CRITICAL FIX: Prevent C++ from shallow-copying the Pico mutex or raw pointers
-    CircularQueue(const CircularQueue&) = delete;
-    CircularQueue& operator=(const CircularQueue&) = delete;
-    CircularQueue(CircularQueue&&) = delete;
-    CircularQueue& operator=(CircularQueue&&) = delete;
-
-    // ---------- write side ----------
-    bool push(const T& item) {
-        if (!frames) return false;
-
-        mutex_enter_blocking(&queue_mutex);
-
-        if (count >= SIZE) {
-            head = (head + 1) % SIZE;
-        } else {
-            count++;
-        }
-        
-        lastItem = item;
-        frames[tail] = item; // Perfectly safe for POD structs
-        tail = (tail + 1) % SIZE;
-
-        mutex_exit(&queue_mutex);
-        return true;
-    }
-
-    // ---------- read side ----------
-    bool pop(T& item) {
-        mutex_enter_blocking(&queue_mutex);
-
-        if (count == 0) {
-            mutex_exit(&queue_mutex);
-            return false;
-        }
-        item = frames[head];
-        head = (head + 1) % SIZE;
-        count--;
-
-        mutex_exit(&queue_mutex);
-        return true;
-    }
-
-    bool peek(T& item) const {
-        mutex_enter_blocking(&queue_mutex);
-
-        if (count == 0) {
-            mutex_exit(&queue_mutex);
-            return false;
-        }
-        item = frames[head];
-
-        mutex_exit(&queue_mutex);
-        return true;
-    }
-
-    uint16_t getCount() const {
-        mutex_enter_blocking(&queue_mutex);
-        uint16_t c = count;
-        mutex_exit(&queue_mutex);
-        return c;
-    }
-
-    bool isEmpty() const {
-        return getCount() == 0;
-    }
-
-    bool isFull() const {
-        return getCount() >= SIZE;
-    }
-
-    void clear() {
-        mutex_enter_blocking(&queue_mutex);
-        // Call destructors for all live items remaining in the queue
-        while (count > 0) {
-            head = (head + 1) % SIZE;
-            count--;
-        }
-        head = 0;
-        tail = 0;
-        count = 0;
-        mutex_exit(&queue_mutex);
-    }
-
-    // Copies up to 'maxItems' of the oldest available items up to the newest.
-    uint16_t peekLast(T* dest, uint16_t maxItems) const {
-        if (dest == nullptr || maxItems == 0) return 0;
-
-        mutex_enter_blocking(&queue_mutex);
-
-        if (count == 0) {
-            mutex_exit(&queue_mutex);
-            return 0;
-        }
-
-        uint16_t toCopy = (maxItems > count) ? count : maxItems;
-        // FIX: Find the correct oldest index slice boundary relative to the current tail
-        uint32_t startIdx = (static_cast<uint32_t>(tail) + SIZE - toCopy) % SIZE;
-
-        for (uint16_t i = 0; i < toCopy; i++) {
-            dest[i] = frames[(startIdx + i) % SIZE];
-        }
-
-        mutex_exit(&queue_mutex);
-        return toCopy;
-    }
-
-    // Newest item at dest[0], then older ones.
-    uint16_t peekNewest(T* dest, uint16_t maxItems) const {
-        if (dest == nullptr || maxItems == 0) return 0;
-
-        mutex_enter_blocking(&queue_mutex);
-
-        if (count == 0) {
-            mutex_exit(&queue_mutex);
-            return 0;
-        }
-
-        uint16_t toCopy = (maxItems > count) ? count : maxItems;
-
-        for (uint16_t i = 0; i < toCopy; i++) {
-            uint32_t idx = (static_cast<uint32_t>(tail) + SIZE - 1 - i) % SIZE;
-            dest[i] = frames[idx];
-        }
-
-        mutex_exit(&queue_mutex);
-        return toCopy;
-    }
-
-    // Index 0 = newest, Index (count-1) = oldest
-    bool peekFromNewest(uint16_t offsetFromNewest, T& item) const {
-        mutex_enter_blocking(&queue_mutex);
-
-        if (offsetFromNewest >= count) {
-            mutex_exit(&queue_mutex);
-            return false;
-        }
-
-        uint32_t idx = (static_cast<uint32_t>(tail) + SIZE - 1 - offsetFromNewest) % SIZE;
-        item = frames[idx];
-
-        mutex_exit(&queue_mutex);
-        return true;
-    }
-
-    bool removeIf(bool (*pred)(const T&)) {
-        mutex_enter_blocking(&queue_mutex);
-        if (count == 0 || pred == nullptr) {
-            mutex_exit(&queue_mutex);
-            return false;
-        }
-
-        uint16_t read  = head;
-        uint16_t write = head;
-        uint16_t newCount = 0;
-        bool removed = false;
-
-        for (uint16_t i = 0; i < count; i++) {
-            if (!removed && pred(frames[read])) {
-                removed = true;
-            } else {
-                if (write != read) {
-                    frames[write] = frames[read];
-                }
-                write = (write + 1) % SIZE;
-                newCount++;
-            }
-            read = (read + 1) % SIZE;
-        }
-
-        if (removed) {
-            count = newCount;
-            tail  = write;
-        }
-        mutex_exit(&queue_mutex);
-        return removed;
-    }
-
-    T getLastData() const {
-        mutex_enter_blocking(&queue_mutex);
-        T result = (count == 0) ? T{} : lastItem;
-        mutex_exit(&queue_mutex);
-        return result;
-    }
-};
 
 /*
  *  Speed 8M
@@ -425,14 +216,6 @@ enum CAN_CLKOUT {
     CLKOUT_DIV8 = 0x3,
 };
 
-#ifndef MCP2515_TX_QUEUE_SIZE
-#define MCP2515_TX_QUEUE_SIZE 2048
-#endif
-
-#ifndef MCP2515_RX_QUEUE_SIZE
-#define MCP2515_RX_QUEUE_SIZE 2048
-#endif
-
 class MCP2515
 {
     public:
@@ -490,15 +273,6 @@ class MCP2515
             EFLG_TXWAR  = (1<<2),
             EFLG_RXWAR  = (1<<1),
             EFLG_EWARN  = (1<<0)
-        };
-
-        enum CAN_MODE : uint8_t {
-            CAN_MODE_CONFIG,
-            CAN_MODE_NORMAL,
-            CAN_MODE_LOOPBACK,
-            CAN_MODE_LISTEN_ONLY,
-            CAN_MODE_SLEEP,
-            CAN_MODE_ONE_SHOT
         };
 
     private:
@@ -674,7 +448,6 @@ class MCP2515
             REGISTER CTRL;
             REGISTER SIDH;
             REGISTER DATA;
-            CANINTF  CANINTF_TXnIF;
         } TXB[N_TXBUFFERS];
 
         static const struct RXBn_REGS {
@@ -684,15 +457,14 @@ class MCP2515
             CANINTF  CANINTF_RXnIF;
         } RXB[N_RXBUFFERS];
 
-    public:
+        uint8_t SPICS;
         uint32_t SPI_CLOCK;
+        SPIClass * SPIn;
 
     private:
-
+   
         void startSPI() const;
         void endSPI() const;
-
-        void maskInterrupt(bool Mask);
 
         ERROR setMode(const CANCTRL_REQOP_MODE mode);
 
@@ -703,112 +475,52 @@ class MCP2515
         void modifyRegister(const REGISTER reg, const uint8_t mask, const uint8_t data);
 
         void prepareId(uint8_t *buffer, const bool ext, const uint32_t id);
-
-        CircularQueue<struct can_frame, MCP2515_TX_QUEUE_SIZE> _txQueue;
-        CircularQueue<struct can_frame, MCP2515_TX_QUEUE_SIZE> _txQueuePrio;
-        CircularQueue<struct can_frame, MCP2515_RX_QUEUE_SIZE> _rxQueue;
       
-        uint16_t _rxQueueDropCount;
-        uint16_t _rxHardwareOverflowCount;
-
-        int8_t _intPin;
-
-        ERROR sendMessage(const TXBn txbn, const struct can_frame *frame);
-        ERROR sendMessageDirect(const struct can_frame *frame);
-        ERROR sendMessageDirectPrio(const struct can_frame *frame);
-        ERROR readMessage(const RXBn rxbn, struct can_frame *frame);
-        bool processTxQueue(void);
-        uint8_t drainRxBuffers(bool insideInterupt = false);
-
+        int8_t _intPin;        
     public:
-        //
-        // Lifecycle
-        //
+        //MCP2515(const uint8_t _CS, const uint32_t _SPI_CLOCK = DEFAULT_SPI_CLOCK, SPIClass * _SPI = nullptr);
         MCP2515(const uint32_t _SPI_CLOCK = DEFAULT_SPI_CLOCK);
         void begin();
         ERROR reset(void);
-
-        bool checkInterrupt(void);
-        bool run(bool single = false);
-        bool checkRxQueue(void);
+        ERROR setConfigMode();
+        ERROR setListenOnlyMode();
+        ERROR setSleepMode();
+        ERROR setLoopbackMode();
+        ERROR setNormalMode();
+        ERROR setNormalOneShotMode();
+        ERROR setClkOut(const CAN_CLKOUT divisor);
+        ERROR setBitrate(const CAN_SPEED canSpeed);
+        ERROR setBitrate(const CAN_SPEED canSpeed, const CAN_CLOCK canClock);
+        ERROR setFilterMask(const MASK num, const bool ext, const uint32_t ulData);
+        ERROR setFilter(const RXF num, const bool ext, const uint32_t ulData);
+        ERROR sendMessage(const TXBn txbn, const struct can_frame *frame);
+        ERROR sendMessage(const struct can_frame *frame);
+        ERROR sendMessagePrio(const TXBn txbn, const struct can_frame *frame);
+        ERROR sendMessagePrio(const struct can_frame *frame);        
+        ERROR readMessage(const RXBn rxbn, struct can_frame *frame);
+        ERROR readMessage(struct can_frame *frame);
+        bool checkReceive(void);
+        bool checkError(void);
+        uint8_t getErrorFlags(void);
+        uint8_t getControlRegister(void);
+        void clearRXnOVRFlags(void);
+        uint8_t getInterrupts(void);
+        uint8_t getInterruptMask(void);
+        void clearInterrupts(void);
+        void clearTXInterrupts(void);
+        uint8_t getStatus(void) const;
+        void clearRXnOVR(void);
+        void clearMERR();
+        void clearERRIF();
+        uint8_t errorCountRX(void);
+        uint8_t errorCountTX(void);
 
         //
         // Interrupt
         //
         void enableInterrupt(int intPin, void (*callback)(void));
         void disableInterrupt(void);
-
-        //
-        // Mode & configuration
-        //
-        ERROR setOperatingMode(const CAN_MODE mode);
-        ERROR setClkOut(const CAN_CLKOUT divisor);
-        ERROR setBitrate(const CAN_SPEED canSpeed);
-        ERROR setBitrate(const CAN_SPEED canSpeed, const CAN_CLOCK canClock);
-        ERROR setBitTiming(uint8_t cnf1, uint8_t cnf2, uint8_t cnf3);
-
-        //
-        // Filters & masks
-        //
-        ERROR setFilterMask(const MASK num, const bool ext, const uint32_t ulData);
-        ERROR setFilter(const RXF num, const bool ext, const uint32_t ulData);
-
-        //
-        // Message I/O
-        //
-        ERROR sendMessage(const struct can_frame *frame);
-        ERROR sendMessagePrio(const struct can_frame *frame);
-        ERROR readMessage(struct can_frame *frame);
-        bool checkError(void);
-
-        //
-        // Abort pending transmissions
-        //
-        // Abort a single TX buffer by clearing its TXREQ bit.
-        // Safe to call even if the buffer is not pending.
-        ERROR abortMessage(const TXBn txbn);
-
-        // Abort all pending TX buffers via CANCTRL.ABAT.
-        // Waits (with short timeout) for TXREQ bits to clear, then
-        // clears ABAT so new transmits are allowed again.
-        // Does NOT clear the software TX queue.
-        ERROR abortAllPending(bool withqueues = false);
-
-        // Remove the first frame in the software TX queue whose can_id
-        // matches exactly (including EFF/RTR/ERR flags).
-        // Returns true if a frame was removed.
-        // Does not touch hardware TX buffers.
-        bool removeQueuedMessage(uint32_t can_id);
-
-        //
-        // Diagnostics
-        //
-        uint8_t getErrorFlags(void) const;
-        void clearErrorFlags(void);
-        uint8_t getControlRegister(void);
-        uint8_t getInterrupts(void);
-        uint8_t getInterruptMask(void);
-        uint8_t getStatus(void) const;
-        uint8_t errorCountRX(void) const;
-        uint8_t errorCountTX(void) const;
-        uint8_t getTxQueueDepth(void) const { return _txQueue.getCount(); }
-        uint8_t getRxQueueDepth(void) const { return _rxQueue.getCount(); }
-        bool getTxFull(void) const { return _txQueue.isFull(); }
-        bool getRxFull(void) const { return _rxQueue.isFull(); }
-
-        uint16_t getRxQueueDropCount() const;
-        uint16_t getRxHardwareOverflowCount() const;
-
-        //
-        // Error clearing
-        //
-        void clearRXnOVRFlags(void);
-        void clearInterrupts(void);
-        void clearRXnOVR(void);
-        void clearMERR();
-        void clearERRIF();
+        bool checkInterrupt(void);
 };
-
-#endif
 
 #endif

@@ -69,7 +69,7 @@ void IT2704::initDevice(bool reset)
 
     if (reset)
     {
-      _node->getCAN().abortAllPending(true); // Discard all messages in hardware and queue
+      _node->getCAN().abortAllPending(true);
 
       // IT2704 enable CANopen !
       Msg.clearMsg();
@@ -512,7 +512,7 @@ void IT2704::queryConnection(void)
     {
       _checkTimer = millis();
 
-      _node->getCAN().abortAllPending(true); // Discard all messages in hardware and queue
+      _node->getCAN().abortAllPending(true);
 
       // This NMT command will try to set the IT2704 into operational mode
       // Only in this mode, CANopen is enabled and the device is responsive
@@ -538,16 +538,13 @@ void IT2704::queryConnection(void)
 
 bool IT2704::checkTxBuffer()
 {
-  MCP2515& mcp2515 = _node->getCAN();
-  return (mcp2515.getTxFull());
+  return (_node->getCAN().getTxFull());
 }
 
 bool IT2704::checkRxBuffer()
 {
-  MCP2515& mcp2515 = _node->getCAN();
-  return (mcp2515.getRxFull());
+  return (_node->getCAN().getRxFull());
 }
-
 
 bool IT2704::checkConnection(const Message* MsgExt)
 {
