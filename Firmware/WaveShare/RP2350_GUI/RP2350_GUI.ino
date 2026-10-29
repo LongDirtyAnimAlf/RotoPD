@@ -776,7 +776,7 @@ void setup1()
 void loop1() {
   bool mutexOk = false;
   //mutex_enter_blocking(&can_mutex);
-  mutexOk = mutex_enter_timeout_ms(&can_mutex, 1/*ms*/);
+  mutexOk = mutex_enter_timeout_ms(&can_mutex, 1000/*ms*/);
   if (mutexOk)
   {
     node.getCAN().run();
@@ -787,7 +787,7 @@ void loop1() {
     // We might have entered the mutex without any problem
     // So yield here to give other tasks some change
     // If we had a timeout, other tasks have already got their chance
-    yield();
+    //yield();
   }
 }
 #endif
@@ -1174,81 +1174,90 @@ void loop()
   int8_t PDOCount = 0;
   static AP33772S_PDO PDO;
   
-  if (node.getCAN().checkRxQueue())
-  //if (true)
+  //if (node.getCAN().checkRxQueue())
+  if (true)
   {
     //mutex_enter_blocking(&can_mutex);
-    //if (mutex_enter_timeout_ms(&can_mutex, 100))
-    if (true)
+    if (mutex_enter_timeout_ms(&can_mutex, 100))
+    //if (true)
     {
 
       unsigned long maxCANTime = millis();
 
-      while (node.run())
+      bool data_available = false;
+      do
       {
-        // We did receive a message that was not handled by ourselves
-        const Message& rxmsg = node.getMessage();
+        data_available = node.run();
 
-        // ---- process the message ----
-        if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
+        if (data_available)
         {
+          // We did receive a message that was not handled by ourselves
+          const Message& rxmsg = node.getMessage();
 
-          // Check TPDO from load messages, if any
-          if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
+          // ---- process the message ----
+          if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
           {
-            //Serial.println("GUI [IT2704]. Received correct TPDO message.");
-            ScreenPowerSetEnergyData(LatestIT2704Data.E);
-            telemetry_screensaver_update_E(LatestIT2704Data.E);
-          }
 
-          // Check SDO message from load
-          if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
-          {
-            //Serial.println("GUI [IT2704]. Receiving SDO response.");
-
-            if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+            // Check TPDO from load messages, if any
+            if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
             {
-              // Check for meter data that has the meaurement results from our meter data request
-              if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
-              {
-                // Get the correct IT2704 data in the correct datastore
-                load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+              //Serial.println("GUI [IT2704]. Received correct TPDO message.");
+              ScreenPowerSetEnergyData(LatestIT2704Data.E);
+              telemetry_screensaver_update_E(LatestIT2704Data.E);
+            }
 
-                switch(rxmsg.getSubID())
+            // Check SDO message from load
+            if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
+            {
+              //Serial.println("GUI [IT2704]. Receiving SDO response.");
+
+              if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+              {
+                // Check for meter data that has the meaurement results from our meter data request
+                if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
                 {
-                  case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
-                  case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
-                  case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
-                  case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
+                  // Get the correct IT2704 data in the correct datastore
+                  load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+
+                  switch(rxmsg.getSubID())
+                  {
+                    case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
+                    case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
+                    case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
+                    case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
+                  }
                 }
               }
-            }
 
-            if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
-            {
-              #ifdef DEBUG                      
-              //Serial.println("GUI [IT2704]. Receiving response from writing data.");
-              //Serial.print("GUI [IT2704]. Writing data success. ");
-              //Serial.print("Index 0x");
-              //Serial.printf("%04X",rxmsg.getID());
-              //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
-              #endif
+              if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
+              {
+                #ifdef DEBUG                      
+                //Serial.println("GUI [IT2704]. Receiving response from writing data.");
+                //Serial.print("GUI [IT2704]. Writing data success. ");
+                //Serial.print("Index 0x");
+                //Serial.printf("%04X",rxmsg.getID());
+                //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
+                #endif
+              }
             }
           }
-        }
 
-        node.clearMessage();
+          node.clearMessage();
 
-        // Limit the amount of time inside this loop
-        if (millis() - maxCANTime > 100)
-        {
-          #ifdef DEBUG                      
-          Serial.println("GUI. CAN node.run() timeout.");
-          #endif
-          break;
-        }
-      }
-      //mutex_exit(&can_mutex);  
+          // Limit the amount of time inside this loop
+          if (millis() - maxCANTime > 10)
+          {
+            #ifdef DEBUG                      
+            Serial.println("GUI. CAN node.run() timeout.");
+            #endif
+            //break;
+          }
+
+        } // if data_available
+
+      } while (data_available);
+
+      mutex_exit(&can_mutex);  
     }
     else
     {
