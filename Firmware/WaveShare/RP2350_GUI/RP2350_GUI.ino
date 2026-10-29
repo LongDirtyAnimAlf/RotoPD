@@ -779,7 +779,7 @@ void loop1() {
   mutexOk = mutex_enter_timeout_ms(&can_mutex, 1/*ms*/);
   if (mutexOk)
   {
-    node.getCAN().run(true);
+    node.getCAN().run();
     mutex_exit(&can_mutex);  
   }  
   if (mutexOk)
@@ -1178,7 +1178,8 @@ void loop()
   //if (true)
   {
     //mutex_enter_blocking(&can_mutex);
-    if (mutex_enter_timeout_ms(&can_mutex, 100))
+    //if (mutex_enter_timeout_ms(&can_mutex, 100))
+    if (true)
     {
 
       unsigned long maxCANTime = millis();
@@ -1247,7 +1248,7 @@ void loop()
           break;
         }
       }
-      mutex_exit(&can_mutex);  
+      //mutex_exit(&can_mutex);  
     }
     else
     {

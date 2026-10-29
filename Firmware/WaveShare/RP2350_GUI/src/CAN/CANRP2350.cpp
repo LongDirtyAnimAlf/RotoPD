@@ -10,6 +10,7 @@ CBUSRP2350Device::CBUSRP2350Device() :
   _intPin(BSP_XL2515_INT_PIN)
 {
   mutex_init(&can_mutex); 
+  HandleTxMessages = false;
 }
 
 void CBUSRP2350Device::begin(void)
@@ -204,12 +205,19 @@ bool CBUSRP2350Device::run(bool single)
         // First, clear the interrupts
         can.clearTXInterrupts();
 
-        // Process the message queue
-        processTxQueue();
+        HandleTxMessages = true;
     }
 
     //mutex_exit(&can_mutex);  
   }
+
+  if (HandleTxMessages)
+  {
+    HandleTxMessages = false;
+    // Process the message queue
+    processTxQueue();
+  }
+
   return (CanRxBuffer.getCount() != 0);
 }
 CBUSbase::ERROR CBUSRP2350Device::sendMessage(const can_frame *frame)
@@ -217,7 +225,8 @@ CBUSbase::ERROR CBUSRP2350Device::sendMessage(const can_frame *frame)
   bool enqueued = CanTxBuffer.push(*frame);
 
   if (enqueued) {
-      processTxQueue();
+      HandleTxMessages = true;
+      //processTxQueue();
       return ERROR_OK;
   }
 
@@ -232,7 +241,8 @@ CBUSbase::ERROR CBUSRP2350Device::sendMessagePrio(const can_frame *frame)
   bool enqueued = CanTxPrioBuffer.push(*frame);
 
   if (enqueued) {
-      processTxQueue();
+      HandleTxMessages = true;
+      //processTxQueue();
       return ERROR_OK;
   }
 

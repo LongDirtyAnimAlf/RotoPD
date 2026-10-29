@@ -34,6 +34,8 @@ private:
   const uint8_t _intPin;
   mutex_t can_mutex;
 
+  bool HandleTxMessages;
+
   bool processTxQueue(void);
 };
 
