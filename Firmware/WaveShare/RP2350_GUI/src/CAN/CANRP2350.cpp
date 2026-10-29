@@ -2,13 +2,11 @@
 
 //#ifdef ARDUINO_ARCH_RP2040
 
-#include "hardware/spi.h"
 #include <string.h>
-
 
 // Define constructor implementation here
 CBUSRP2350Device::CBUSRP2350Device() : 
-  can((uint32_t)(10 * 1000 * 1000)),
+  can(),
   intPin(BSP_XL2515_INT_PIN)
 {
   pinMode(intPin, INPUT_PULLUP); 
@@ -17,21 +15,23 @@ CBUSRP2350Device::CBUSRP2350Device() :
 
 void CBUSRP2350Device::begin(void)
 {
+    can.begin();
+
     if (MCP2515::ERROR_OK == can.reset())
     {
-        can.setBitrate(CAN_250KBPS);
-        can.setNormalMode();
-        //can.enableInterrupt(intPin, ISRhandler);
-        can.enableInterrupt(intPin, NULL);
-        Serial.println("MCP2515 Initialized Successfully.");
+      can.setBitrate(CAN_250KBPS);
+      can.setNormalMode();
+      //can.enableInterrupt(intPin, ISRhandler);
+      can.enableInterrupt(intPin, NULL);
+      //Serial.println("MCP2515 Initialized Successfully.");
     } else {
-        Serial.println("MCP2515 Initialize Failure !!!");
+      //Serial.println("MCP2515 Initialize Failure !!!");
     }
 }
 
 void CBUSRP2350Device::begin(uint8_t MasterID, uint8_t IT2704ID)
 {
-    //can.begin();
+    can.begin();
 
     if (MCP2515::ERROR_OK == can.reset())
     {

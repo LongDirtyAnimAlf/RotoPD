@@ -12,7 +12,7 @@ public:
   CBUSRP2350Device(void);
 
   void begin(void);
-  void begin(uint8_t MasterID = -1, uint8_t IT2704I = -1);
+  void begin(uint8_t MasterID, uint8_t IT2704I);
   bool checkInterrupt(void);
   ERROR abortAllPending(bool withqueues = false);
 

@@ -67,7 +67,6 @@ MCP2515::ERROR MCP2515::reset(void)
     setRegister(MCP_RXB0CTRL, 0);
     setRegister(MCP_RXB1CTRL, 0);
 
-    //setRegister(MCP_CANINTE, CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF | CANINTF_MERRF);
     setRegister(MCP_CANINTE, (CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF | CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF));
 
     // receives all valid messages using either Standard or Extended Identifiers that
@@ -679,13 +678,20 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
     return ERROR_OK;
 }
 
-MCP2515::ERROR MCP2515::sendMessagePrio(const TXBn txbn, const struct can_frame *frame)
-{
-    return ERROR_FAILTX;
-}
-
 MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
 {
+    if (frame->can_dlc > CAN_MAX_DLEN) {
+        return ERROR_FAILTX;
+    }
+
+    TXBn txBuffers = TXB2;
+
+    const struct TXBn_REGS *txbuf = &TXB[txBuffers];
+    uint8_t ctrlval = readRegister(txbuf->CTRL);
+    if ( (ctrlval & TXB_TXREQ) == 0 ) {
+        return sendMessage(txBuffers, frame);
+    }
+
     return ERROR_ALLTXBUSY;
 }
 
@@ -695,9 +701,9 @@ MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
         return ERROR_FAILTX;
     }
 
-    TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
+    TXBn txBuffers[2] = {TXB1, TXB0};
 
-    for (int i=0; i<N_TXBUFFERS; i++) {
+    for (int i=0; i<2; i++) {
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
         uint8_t ctrlval = readRegister(txbuf->CTRL);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {

@@ -209,7 +209,7 @@ void CanOpenNode::setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibi
 // Begin / Run
 // ------------------------------------------------------------------
 void CanOpenNode::begin() {
-    can.begin(-1,-1);
+    can.begin();
 
     #ifdef ARDUINO_ARCH_RP2040
     #endif

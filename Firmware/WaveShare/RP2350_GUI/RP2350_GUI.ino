@@ -92,9 +92,6 @@ char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
 
-CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxMessageBuffer;
-CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxMessageBuffer;
-
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
@@ -767,34 +764,11 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
-#ifdef ARDUINO_ARCH_ESP32
-void Core0WorkerTask(void *pvParameters) {
-  
-  // --- THIS REPLACES void setup1() ---
-  mutex_enter_blocking(&can_mutex);
-  node.getCAN().run();
-  mutex_exit(&can_mutex);  
-
-  // --- THIS REPLACES void loop1() ---
-  for (;;) {
-    bool mutexOk = false;
-    mutexOk = mutex_enter_timeout_ms(&can_mutex, 1 /*ms*/);
-    if (mutexOk) {
-      node.getCAN().run(true);
-      mutex_exit(&can_mutex);  
-    }  
-    vTaskDelay(pdMS_TO_TICKS(1)); 
-  }
-}
-#endif
-
 #ifdef ARDUINO_ARCH_RP204000
 // Running on core1
 void setup1()
 {
-
   //pinMode(CAN_INT_PIN, INPUT_PULLUP);
-
   //delay(1);
   mutex_enter_blocking(&can_mutex);
   node.getCAN().run();
@@ -804,82 +778,6 @@ void setup1()
 void loop1() {
   bool mutexOk = false;
   //mutex_enter_blocking(&can_mutex);
-
-  if (digitalRead(CAN_INT_PIN) == LOW)
-  {
-    mutex_enter_blocking(&can_mutex);
-
-    // Some interrupt has happended on the MCP2515
-    // First handle read, if any
-    uint8_t canintf = mcp2515.getInterrupts();
-    uint8_t eflg = 0;
-
-    if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
-    {
-        if (canintf & CANINTF_MERRF)
-        {
-            Serial.println("Message error interrupt.");
-        }
-
-        if (canintf & CANINTF_ERRIF)
-        {
-            Serial.println("General Error interrupt.");
-        }
-
-        eflg = mcp2515.readRegister(MCP_EFLG);
-
-        if (eflg & EFLG_RX0OVR)
-        {
-            Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
-            canintf |= (CANINTF_RX0IF); // force a read action
-        }
-
-        if (eflg & EFLG_RX1OVR)
-        {
-            Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
-            canintf |= (CANINTF_RX1IF); // force a read action
-        }
-    }
-
-    while (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
-    {
-        can_frame frame;
-
-        if (canintf & CANINTF_RX0IF)
-        {
-            //Serial.println("RX0 interrupt.");
-            // This readMessage function also clears the CANINTF_RX0IF flag !!
-            if (mcp2515.readMessage(MCP2515::RXB0, &frame) == MCP2515::ERROR_OK)
-            {
-              CanRxMessageBuffer.push(frame);
-            }
-        }
-
-        if (canintf & CANINTF_RX1IF)
-        {
-            //Serial.println("RX1 interrupt.");                
-            // This readMessage function also clears the CANINTF_RX1IF flag !!            
-            //rc = readMessage(RXB1, &frame);
-            //if (rc != ERROR_OK) Serial.println("RX1 interrupt could not read message.");                
-            //if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
-        }
-
-        canintf = mcp2515.getInterrupts();
-    }
-    if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR)){
-      mcp2515.clearRXnOVRFlags();
-    }
-
-
-
-
-    // Second, handle write, if any
-
-
-
-    mutex_exit(&can_mutex);  
-  }
-
   mutexOk = mutex_enter_timeout_ms(&can_mutex, 1/*ms*/);
   if (mutexOk)
   {
@@ -1233,26 +1131,6 @@ void setup()
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
-  #ifdef ARDUINO_ARCH_ESP32
-
-  // Set pins
-  ESP32Can.setPins(CAN_TX, CAN_RX);
-
-  // You can set custom size for the queues - those are default
-  ESP32Can.setRxQueueSize(5);
-  ESP32Can.setTxQueueSize(5);
-
-  // .setSpeed() and .begin() functions require to use TwaiSpeed enum,
-  // but you can easily convert it from numerical value using .convertSpeed()
-  ESP32Can.setSpeed(ESP32Can.convertSpeed(500));
-
-  // You can also just use .begin()..
-  if(ESP32Can.begin())
-    Info_Add("GUI. CAN bus started!");
-  else
-    Info_Add("GUI. CAN bus failed!");
-  #endif
-
   #ifdef ARDUINO_ARCH_RP2040
   initCANopen();
   #endif
@@ -1273,10 +1151,6 @@ void loop()
   loopStartTime = millis();
 
   static unsigned long startTime = millis();
-
-  lv_timer_periodic_handler();
-
-  return;
 
   // We do not know when IT2704 data will arrive
   // Data-order is also unknown
@@ -1301,22 +1175,9 @@ void loop()
 
   int8_t PDOCount = 0;
   static AP33772S_PDO PDO;
-
-  #if defined(ARDUINO_ARCH_ESP32)
-  // Pin and run your setup1/loop1 emulation function on Core 0
-  xTaskCreatePinnedToCore(
-    Core0WorkerTask,   // The worker function above
-    "CAN_Worker",      // Debug name of the task
-    4096,              // Stack size (4KB is usually safe for CAN operations)
-    NULL,              // Task input parameters
-    2,                 // Priority (Set slightly higher than 1 to ensure responsive CAN updates)
-    NULL,              // Task handle
-    0                  // Core ID (0 = The background core)
-  );
-  #endif
-
-  //if (node.getCAN().checkRxQueue())
-  if (false)
+  
+  if (node.getCAN().checkRxQueue())
+  //if (false)
   {
     //mutex_enter_blocking(&can_mutex);
     if (mutex_enter_timeout_ms(&can_mutex, 100))
