@@ -53,11 +53,12 @@ public:
     CircularDataQueue() : head(0), tail(0), count(0) {
         mutex_init(&queue_mutex);
         // Use standard malloc or generic pvPortMalloc/pmalloc depending on framework
-        #ifdef ARDUINO_ARCH_RP2040        
-        frames = (T*)pmalloc(SIZE * sizeof(T));
+        if (SIZE < 100) frames = (T*)malloc(SIZE * sizeof(T));
+        #ifdef ARDUINO_ARCH_RP2040       
+        if (frames == NULL) frames = (T*)pmalloc(SIZE * sizeof(T));
         #endif
         #if defined(ARDUINO_ARCH_ESP32)
-        frames = (T*)heap_caps_aligned_alloc(4, (SIZE * sizeof(T)) , MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+        if (frames == NULL) frames = (T*)heap_caps_aligned_alloc(4, (SIZE * sizeof(T)) , MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
         #endif
     }
 

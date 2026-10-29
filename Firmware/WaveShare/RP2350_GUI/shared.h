@@ -4,10 +4,16 @@
 //#pragma once          // or classic include guards
 
 #include <Arduino.h>
-#include "queue.h"
 
 #include "./src/AP33772SS/AP33772S.h"
 #include "./src/INA238/INA238.h"
+
+#include "./src/CAN/queue.h"
+
+#include "./src/CANOpen/canOpenNode.h"
+#include "./src/CANOpen/sdo.hpp"
+#include "./src/CANOpen/message.hpp"
+
 #include "./src/IT2704/IT2704.h"
 
 #define    DEBUG
@@ -25,7 +31,7 @@
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
 #define CALCULATIONTIME               100 // ms
 
-#define SAVERTIME                     (1000u * 60u * 30u) // 10 minutes in ms
+#define SAVERTIME                     (1000u * 60u * 1u) // 10 minutes in ms
 #define DVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 #define PVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 
@@ -43,6 +49,9 @@
 #define    FW_MINOR                   14
 
 #define    DATASIZE                   10000u
+
+#define    CANTXBUFFERSIZE            10u
+#define    CANRXBUFFERSIZE            50u
 
 #define INA238_ADDRESS                0x40
 

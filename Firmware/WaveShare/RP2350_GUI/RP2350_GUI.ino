@@ -51,11 +51,6 @@ bool core1_separate_stack = true;
 
 #endif
 
-//#include "./src/CAN/mcp2515.h"
-#include "./src/CANOpen/canOpenNode.h"
-#include "./src/CANOpen/sdo.hpp"
-#include "./src/CANOpen/message.hpp"
-
 #include "ui.h"
 
 //#include <WiFi.h>
@@ -75,6 +70,11 @@ bool core1_separate_stack = true;
 #ifdef ENABLEUSB
 #ifdef USE_TINYUSB
 Adafruit_USBD_HID HID;
+
+#include "./src/CAN/CANRP2350.h"
+
+#define CAN_INT_PIN   5
+MCP2515 mcp2515;
 #endif
 #endif
 #endif
@@ -95,6 +95,9 @@ char mySerial[30];
 char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
+
+CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxMessageBuffer;
+CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxMessageBuffer;
 
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
 CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
@@ -789,9 +792,13 @@ void Core0WorkerTask(void *pvParameters) {
 }
 #endif
 
-#ifdef ARDUINO_ARCH_RP2040
+#ifdef ARDUINO_ARCH_RP204000
 // Running on core1
-void setup1() {
+void setup1()
+{
+
+  //pinMode(CAN_INT_PIN, INPUT_PULLUP);
+
   //delay(1);
   mutex_enter_blocking(&can_mutex);
   node.getCAN().run();
@@ -801,6 +808,82 @@ void setup1() {
 void loop1() {
   bool mutexOk = false;
   //mutex_enter_blocking(&can_mutex);
+
+  if (digitalRead(CAN_INT_PIN) == LOW)
+  {
+    mutex_enter_blocking(&can_mutex);
+
+    // Some interrupt has happended on the MCP2515
+    // First handle read, if any
+    uint8_t canintf = mcp2515.getInterrupts();
+    uint8_t eflg = 0;
+
+    if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
+    {
+        if (canintf & CANINTF_MERRF)
+        {
+            Serial.println("Message error interrupt.");
+        }
+
+        if (canintf & CANINTF_ERRIF)
+        {
+            Serial.println("General Error interrupt.");
+        }
+
+        eflg = mcp2515.readRegister(MCP_EFLG);
+
+        if (eflg & EFLG_RX0OVR)
+        {
+            Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+            canintf |= (CANINTF_RX0IF); // force a read action
+        }
+
+        if (eflg & EFLG_RX1OVR)
+        {
+            Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+            canintf |= (CANINTF_RX1IF); // force a read action
+        }
+    }
+
+    while (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
+    {
+        can_frame frame;
+
+        if (canintf & CANINTF_RX0IF)
+        {
+            //Serial.println("RX0 interrupt.");
+            // This readMessage function also clears the CANINTF_RX0IF flag !!
+            if (mcp2515.readMessage(MCP2515::RXB0, &frame) == MCP2515::ERROR_OK)
+            {
+              CanRxMessageBuffer.push(frame);
+            }
+        }
+
+        if (canintf & CANINTF_RX1IF)
+        {
+            //Serial.println("RX1 interrupt.");                
+            // This readMessage function also clears the CANINTF_RX1IF flag !!            
+            //rc = readMessage(RXB1, &frame);
+            //if (rc != ERROR_OK) Serial.println("RX1 interrupt could not read message.");                
+            //if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
+        }
+
+        canintf = mcp2515.getInterrupts();
+    }
+    if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR)){
+      mcp2515.clearRXnOVRFlags();
+    }
+
+
+
+
+    // Second, handle write, if any
+
+
+
+    mutex_exit(&can_mutex);  
+  }
+
   mutexOk = mutex_enter_timeout_ms(&can_mutex, 1/*ms*/);
   if (mutexOk)
   {
