@@ -8,9 +8,9 @@
 #define BSP_XL2515_CS_PIN 5
 
 const struct MCP2515::TXBn_REGS MCP2515::TXB[MCP2515::N_TXBUFFERS] = {
-    {MCP_TXB0CTRL, MCP_TXB0SIDH, MCP_TXB0DATA},
-    {MCP_TXB1CTRL, MCP_TXB1SIDH, MCP_TXB1DATA},
-    {MCP_TXB2CTRL, MCP_TXB2SIDH, MCP_TXB2DATA}
+    {INSTRUCTION_LOAD_TX0, INSTRUCTION_RTS_TX0, MCP_TXB0CTRL, MCP_TXB0SIDH, MCP_TXB0DATA},
+    {INSTRUCTION_LOAD_TX1, INSTRUCTION_RTS_TX1, MCP_TXB1CTRL, MCP_TXB1SIDH, MCP_TXB1DATA},
+    {INSTRUCTION_LOAD_TX2, INSTRUCTION_RTS_TX2, MCP_TXB2CTRL, MCP_TXB2SIDH, MCP_TXB2DATA}
 };
 
 const struct MCP2515::RXBn_REGS MCP2515::RXB[N_RXBUFFERS] = {
@@ -168,6 +168,14 @@ void MCP2515::readRegisters(const REGISTER reg, uint8_t values[], const uint8_t 
     endSPI();
 }
 
+void MCP2515::readRegisters(const INSTRUCTION inst, uint8_t values[], const uint8_t n) const
+{
+    startSPI();
+    spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){inst}, 1);
+    spi_read_blocking(BSP_XL2515_SPI_PORT, 0, values, n);
+    endSPI();
+}
+
 void MCP2515::setRegister(const REGISTER reg, const uint8_t value)
 {
     uint8_t buf[3] = {INSTRUCTION_WRITE, reg, value};
@@ -184,6 +192,16 @@ void MCP2515::setRegisters(const REGISTER reg, const uint8_t values[], const uin
     memcpy(buf + 2, values, n);
     startSPI();
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, n + 2);
+    endSPI();
+}
+
+void MCP2515::setRegisters(const INSTRUCTION inst, const uint8_t values[], const uint8_t n)
+{
+    uint8_t buf[n + 1];
+    buf[0] = (const uint8_t)inst;
+    if (n > 0) memcpy(buf + 1, values, n);
+    startSPI();
+    spi_write_blocking(BSP_XL2515_SPI_PORT, buf, n + 1);
     endSPI();
 }
 
@@ -655,7 +673,7 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
 
     const struct TXBn_REGS *txbuf = &TXB[txbn];
 
-    uint8_t data[13];
+    uint8_t data[13] = {0};
 
     bool ext = (frame->can_id & CAN_EFF_FLAG);
     bool rtr = (frame->can_id & CAN_RTR_FLAG);
@@ -667,6 +685,11 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
 
     memcpy(&data[MCP_DATA], frame->data, frame->can_dlc);
 
+    setRegisters(txbuf->WRITE, data, 5 + frame->can_dlc);
+    setRegisters(txbuf->CONFIRM, NULL, 0);
+
+
+    /*
     setRegisters(txbuf->SIDH, data, 5 + frame->can_dlc);
 
     modifyRegister(txbuf->CTRL, TXB_TXREQ, TXB_TXREQ);
@@ -675,6 +698,9 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
     if ((ctrl & (TXB_ABTF | TXB_MLOA | TXB_TXERR)) != 0) {
         return ERROR_FAILTX;
     }
+
+    */
+
     return ERROR_OK;
 }
 
@@ -720,11 +746,14 @@ MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
 
     uint8_t tbufdata[5+8] = {0};
 
+    readRegisters(rxb->READ, tbufdata, sizeof(tbufdata));
+
+    /*
     startSPI();
     spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){rxb->READ}, 1);
     spi_read_blocking(BSP_XL2515_SPI_PORT, 0, tbufdata, sizeof(tbufdata));
     endSPI();
-
+    */
 
     uint32_t id = (tbufdata[MCP_SIDH]<<3) + (tbufdata[MCP_SIDL]>>5);
 

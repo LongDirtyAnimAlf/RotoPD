@@ -445,9 +445,11 @@ class MCP2515
         static const int N_RXBUFFERS = 2;
 
         static const struct TXBn_REGS {
-            REGISTER CTRL;
-            REGISTER SIDH;
-            REGISTER DATA;
+            INSTRUCTION WRITE;
+            INSTRUCTION CONFIRM;
+            REGISTER    CTRL;
+            REGISTER    SIDH;
+            REGISTER    DATA;
         } TXB[N_TXBUFFERS];
 
         static const struct RXBn_REGS {
@@ -471,8 +473,10 @@ class MCP2515
 
         uint8_t readRegister(const REGISTER reg) const;
         void readRegisters(const REGISTER reg, uint8_t values[], const uint8_t n) const;
+        void readRegisters(const INSTRUCTION inst, uint8_t values[], const uint8_t n) const;
         void setRegister(const REGISTER reg, const uint8_t value);
         void setRegisters(const REGISTER reg, const uint8_t values[], const uint8_t n);
+        void setRegisters(const INSTRUCTION inst, const uint8_t values[], const uint8_t n);
         void modifyRegister(const REGISTER reg, const uint8_t mask, const uint8_t data);
 
         void prepareId(uint8_t *buffer, const bool ext, const uint32_t id);
