@@ -222,6 +222,7 @@ void CanOpenNode::begin() {
 bool CanOpenNode::run() {
 
     bool messageavailable = recv.run();
+    //bool messageavailable = recv.CAN->checkRxQueue();
 
     if (nmtOn) {
 

@@ -7,7 +7,7 @@ bool Receiver::run(void) {
   
   bool active = false;
 
-  if (CAN->run())
+  if (CAN->checkRxQueue())
   {
     active = true;
     if (CAN->readMessage(&canmessageframe) == CBUSbase::ERROR_OK)

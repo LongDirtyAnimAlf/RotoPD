@@ -141,7 +141,7 @@ static volatile bool flagCollectRotoPDData = false;
 static Ticker tickerRequestIT2704Data;
 static volatile bool flagRequestIT2704Data = false;
 
-static Ticker SoundButtonTicker;
+static Ticker tickerSoundButton;
 static bool flagSoundButton = false;
 
 static Ticker tickerProcessData;
@@ -738,7 +738,7 @@ static void cbProcessData()
   flagProcessMeasurementData = true;
 }
 
-static void StopClickCB()
+static void cbStopBuzzer()
 {
   bsp_buzzer_enable(false);
 }
@@ -776,13 +776,13 @@ void setup1()
 void loop1() {
   bool mutexOk = false;
   //mutex_enter_blocking(&can_mutex);
-  mutexOk = mutex_enter_timeout_ms(&can_mutex, 1000/*ms*/);
-  if (mutexOk)
+  //mutexOk = mutex_enter_timeout_ms(&can_mutex, 1000/*ms*/);
+  //if (mutexOk)
   {
     node.getCAN().run();
-    mutex_exit(&can_mutex);
+    //mutex_exit(&can_mutex);
   }  
-  if (mutexOk)
+  //if (mutexOk)
   {
     // We might have entered the mutex without any problem
     // So yield here to give other tasks some change
@@ -802,6 +802,9 @@ void setup()
   // If this throws an error during compilation, you know you need to adjust your padding array size!
   static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 88, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+
+  // If it compiles, your memory footprint is perfectly optimized!
+  static_assert(std::is_trivially_copyable<Message>::value, "Message must be trivially copyable for [multicore] safety!");
 
   //delay(250);
 
@@ -1150,6 +1153,7 @@ void loop()
   loopStartTime = millis();
 
   static unsigned long startTime = millis();
+  static unsigned long buzzerTime = millis();
 
   // We do not know when IT2704 data will arrive
   // Data-order is also unknown
@@ -1179,25 +1183,49 @@ void loop()
   if (true)
   {
     //mutex_enter_blocking(&can_mutex);
-    if (mutex_enter_timeout_ms(&can_mutex, 100))
-    //if (true)
+    //if (mutex_enter_timeout_ms(&can_mutex, 10))
+    if (true)
     {
 
       unsigned long maxCANTime = millis();
+      Message rxmsg;
 
-      bool data_available = false;
+      bool data_available;
       do
       {
+        data_available = false;
+
+        //if (mutex_enter_timeout_ms(&can_mutex, 10))
+        {
+          data_available = node.run();
+          // We did receive a message that was not handled by ourselves ?
+          if (data_available)
+          {
+            rxmsg = node.getMessage();
+            node.clearMessage();
+          }
+          //mutex_exit(&can_mutex);          
+        }
+      
+        /*
+        mutex_enter_blocking(&can_mutex);
         data_available = node.run();
+        // We did receive a message that was not handled by ourselves ?
+        if (data_available)
+        {
+          rxmsg = node.getMessage();
+          node.clearMessage();
+        }
+        mutex_exit(&can_mutex);          
+        */
 
         //telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
 
         if (data_available)
         {
-
-
           // We did receive a message that was not handled by ourselves
-          const Message& rxmsg = node.getMessage();
+          //const Message& rxmsg = node.getMessage();
+          //const Message rxmsg = node.getMessage();
 
           // ---- process the message ----
           if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
@@ -1247,7 +1275,7 @@ void loop()
             }
           }
 
-          node.clearMessage();
+          //node.clearMessage();
 
           // Limit the amount of time inside this loop
           if (millis() - maxCANTime > 10)
@@ -1262,7 +1290,7 @@ void loop()
 
       } while (data_available);
 
-      mutex_exit(&can_mutex);  
+      //mutex_exit(&can_mutex);  
     }
     else
     {
@@ -1311,7 +1339,14 @@ void loop()
   {
     flagSoundButton = false;
     bsp_buzzer_enable(true);
-    SoundButtonTicker.once_ms(100U, StopClickCB);
+    buzzerTime = millis();
+    if (buzzerTime == 0) buzzerTime++;
+    //tickerSoundButton.once_ms(100U, cbStopBuzzer);
+  }
+  if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
+  {
+    buzzerTime = 0;
+    bsp_buzzer_enable(false);
   }
 
   if (millis() - startTime >= 1000)

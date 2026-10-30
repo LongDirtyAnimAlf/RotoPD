@@ -32,6 +32,8 @@ public:
     bool run();
 
     const Message& getMessage() const { return recv; }
+    Message& getMessage() { return recv; }
+    
     void clearMessage() { recv.clearMsg(); }
 
     #ifdef ARDUINO_ARCH_RP2040
