@@ -727,9 +727,9 @@ void setup1()
 }
 
 void loop1() {
-  mutex_enter_blocking(&can_mutex);
+  //mutex_enter_blocking(&can_mutex);
   node.getCAN().taskCAN();
-  mutex_exit(&can_mutex);  
+  //mutex_exit(&can_mutex);  
   //yield();
   //delay(1);
   //delayMicroseconds(10);
@@ -1128,7 +1128,7 @@ void loop()
     data_available = false;
 
     //bool mutexOk = mutex_enter_timeout_ms(&can_mutex, 10 /*ms*/);
-    mutex_enter_blocking(&can_mutex);
+    //mutex_enter_blocking(&can_mutex);
     data_available = node.run();
     // We did receive a message that was not handled by ourselves ?
     if (data_available)
@@ -1138,7 +1138,7 @@ void loop()
       rxmsg = node.getMessage();
       node.clearMessage();
     }
-    mutex_exit(&can_mutex); 
+    //mutex_exit(&can_mutex); 
 
     if (data_available)
     {
@@ -1225,7 +1225,9 @@ void loop()
     flagRequestIT2704Data = false;
     // Ask load IT2704 to send measurement results
     // Result (when available) will be collected later by node.run()
+    //mutex_enter_blocking(&can_mutex);
     load.collectData();
+    //mutex_exit(&can_mutex); 
    }
 
   if (flagSoundButton)
@@ -1243,6 +1245,8 @@ void loop()
 
   if (millis() - startTime >= 1000)
   {
+    static uint32_t loopcounter = 0;
+
     // This runs every second !!
     startTime = millis();
 
@@ -1258,10 +1262,15 @@ void loop()
       #endif
     }
 
-    Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+    Serial.printf("CAN queue depth at loop %d. Rx: %d. Tx: %d. TxPrio: %d\n", loopcounter++, node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
 
     // Test connection with load IT2704
+    //mutex_enter_blocking(&can_mutex);
     load.queryConnection();
+    //mutex_exit(&can_mutex); 
+
+    //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+
 
     PDOCount = taskRotoPDInit();
 

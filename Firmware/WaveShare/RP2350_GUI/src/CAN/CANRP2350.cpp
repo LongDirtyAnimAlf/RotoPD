@@ -233,10 +233,12 @@ CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame *frame)
 
   return ERROR_ALLTXBUSY;
 }
+
 CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame &frame)
 {
   return sendCANMessagePrio(&frame);
 }
+
 CBUSbase::CANERROR CBUSRP2350Device::readCANMessage(can_frame *frame)
 {
   //return (CBUSbase::ERROR)caninterface.readMessage(frame);
@@ -259,31 +261,27 @@ bool CBUSRP2350Device::processTxQueue(void)
 {
     struct can_frame frame;
 
-    bool result = true;
-
-    //Serial.println("CBUSRP2350Device: Running processTxQueue.");        
-
-    while (CanTxPrioBuffer.peek(frame)) {
-        //Serial.println("CBUSRP2350Device: Peeking prio message ok.");
+    if (CanTxPrioBuffer.peek(frame))
+    {
         MCP2515::ERROR result = caninterface.sendMessagePrio(&frame);
-        if (result != MCP2515::ERROR_OK) {
-            return false;
+        if (result == MCP2515::ERROR_OK)
+        {
+          //Serial.println("MCP2515: Send prio message ok.");
+          CanTxPrioBuffer.pop(frame);
         }
-        //Serial.println("MCP2515: Send prio message ok.");
-        CanTxPrioBuffer.pop(frame);
     }
 
-    while (CanTxBuffer.peek(frame)) {
-        //Serial.println("CBUSRP2350Device: Peeking normal message ok.");
+    if (CanTxBuffer.peek(frame))
+    {
         MCP2515::ERROR result = caninterface.sendMessage(&frame);
-        if (result != MCP2515::ERROR_OK) {
-            return false;
+        if (result == MCP2515::ERROR_OK)
+        {
+          //Serial.println("MCP2515: Send normal message ok.");        
+          CanTxBuffer.pop(frame);
         }
-        //Serial.println("MCP2515: Send normal message ok.");        
-        CanTxBuffer.pop(frame);
     }
 
-    return ((!CanTxPrioBuffer.isEmpty()) && (!CanTxBuffer.isEmpty()));
+    return (!((CanTxPrioBuffer.isEmpty()) && (CanTxBuffer.isEmpty())));
 }
 
 //CBUSRP2350Device CBUSDevice;

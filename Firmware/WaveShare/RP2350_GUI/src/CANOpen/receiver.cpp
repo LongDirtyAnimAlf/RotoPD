@@ -1,7 +1,5 @@
 #include "receiver.hpp"
 
-static struct can_frame canmessageframe;
-
 // Handle canbus activity
 bool Receiver::run(void) {
   
@@ -10,6 +8,7 @@ bool Receiver::run(void) {
   if (CAN->checkCANRxQueue())
   {
     active = true;
+    can_frame canmessageframe;
     if (CAN->readCANMessage(&canmessageframe) == CBUSbase::ERROR_OK)
     {
       id = canmessageframe.can_id;

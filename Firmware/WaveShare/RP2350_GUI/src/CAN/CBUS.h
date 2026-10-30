@@ -10,9 +10,9 @@
 #define DEBUG_SERIAL Serial
 #endif
 
-#define    CANTXBUFFERSIZE            10u
-#define    CANRXBUFFERSIZE            50u
-#define    CANTXPRIOBUFFERSIZE        10u
+#define    CANTXBUFFERSIZE            50u
+#define    CANRXBUFFERSIZE            75u
+#define    CANTXPRIOBUFFERSIZE        50u
 
 class CBUSbase {
 public:
