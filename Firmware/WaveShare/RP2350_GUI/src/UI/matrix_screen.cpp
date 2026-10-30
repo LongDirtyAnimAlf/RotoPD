@@ -302,6 +302,8 @@ static void init_telemetry_screen_once(void)
         b->container = lv_obj_create(telemetry_scr);
         if (!b->container) return;
 
+        if ((DT != dtE) && (DT != dtT)) lv_obj_set_hidden(b->container, true);
+
         lv_obj_set_size(b->container, b->width, b->height);
         lv_obj_set_pos(b->container, b->x, b->y);
         lv_obj_set_scrollable(b->container, false);

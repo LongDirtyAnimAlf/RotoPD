@@ -104,6 +104,7 @@ public:
         mutex_enter_blocking(&queue_mutex);
 
         if (count == 0) {
+            item = T{};
             mutex_exit(&queue_mutex);
             return false;
         }
@@ -121,6 +122,7 @@ public:
         mutex_enter_blocking(&queue_mutex);
 
         if (count == 0) {
+            item = T{};
             mutex_exit(&queue_mutex);
             return false;
         }

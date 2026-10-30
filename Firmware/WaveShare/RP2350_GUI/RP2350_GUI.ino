@@ -567,7 +567,7 @@ static void main_event_handler(lv_event_t * e)
             else
             {
               #ifdef DEBUG                      
-              Serial.println("GUI. CAN mutex timeout.");
+              Serial.println("GUI. CAN mutex clearEnergy timeout.");
               #endif
             }
           }
@@ -780,7 +780,7 @@ void loop1() {
   if (mutexOk)
   {
     node.getCAN().run();
-    mutex_exit(&can_mutex);  
+    mutex_exit(&can_mutex);
   }  
   if (mutexOk)
   {
@@ -788,6 +788,7 @@ void loop1() {
     // So yield here to give other tasks some change
     // If we had a timeout, other tasks have already got their chance
     //yield();
+    delayMicroseconds(10);
   }
 }
 #endif
@@ -1189,8 +1190,12 @@ void loop()
       {
         data_available = node.run();
 
+        //telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+
         if (data_available)
         {
+
+
           // We did receive a message that was not handled by ourselves
           const Message& rxmsg = node.getMessage();
 
@@ -1262,7 +1267,7 @@ void loop()
     else
     {
       #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex timeout.");
+      Serial.println("GUI. CAN mutex mainloop timeout.");
       #endif
     }
   }
@@ -1296,7 +1301,7 @@ void loop()
     else
     {
       #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex timeout.");
+      Serial.println("GUI. CAN mutex collectData timeout.");
       #endif
     }
 
@@ -1335,7 +1340,7 @@ void loop()
     else
     {
       #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex timeout.");
+      Serial.println("GUI. CAN mutex queryConnection timeout.");
       #endif
     }
 
@@ -1546,7 +1551,7 @@ void loop()
             else
             {
               #ifdef DEBUG                      
-              Serial.println("GUI. CAN mutex timeout.");
+              Serial.println("GUI. CAN mutex clear Energy timeout.");
               #endif
             }
             ClearRunData(RDS); 
@@ -1691,7 +1696,7 @@ void loop()
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
-      telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+      //telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
       telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
 
       if (load.isConnected())

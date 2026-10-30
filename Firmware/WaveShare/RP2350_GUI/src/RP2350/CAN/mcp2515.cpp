@@ -14,8 +14,8 @@ const struct MCP2515::TXBn_REGS MCP2515::TXB[MCP2515::N_TXBUFFERS] = {
 };
 
 const struct MCP2515::RXBn_REGS MCP2515::RXB[N_RXBUFFERS] = {
-    {MCP_RXB0CTRL, MCP_RXB0SIDH, MCP_RXB0DATA, CANINTF_RX0IF},
-    {MCP_RXB1CTRL, MCP_RXB1SIDH, MCP_RXB1DATA, CANINTF_RX1IF}
+    {INSTRUCTION_READ_RX0, MCP_RXB0CTRL, MCP_RXB0SIDH, MCP_RXB0DATA, CANINTF_RX0IF},
+    {INSTRUCTION_READ_RX1, MCP_RXB1CTRL, MCP_RXB1SIDH, MCP_RXB1DATA, CANINTF_RX1IF}
 };
 
 
@@ -718,6 +718,34 @@ MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
 {
     const struct RXBn_REGS *rxb = &RXB[rxbn];
 
+    uint8_t tbufdata[5+8] = {0};
+
+    startSPI();
+    spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){rxb->READ}, 1);
+    spi_read_blocking(BSP_XL2515_SPI_PORT, 0, tbufdata, sizeof(tbufdata));
+    endSPI();
+
+
+    uint32_t id = (tbufdata[MCP_SIDH]<<3) + (tbufdata[MCP_SIDL]>>5);
+
+    if ( (tbufdata[MCP_SIDL] & TXB_EXIDE_MASK) ==  TXB_EXIDE_MASK ) {
+        id = (id<<2) + (tbufdata[MCP_SIDL] & 0x03);
+        id = (id<<8) + tbufdata[MCP_EID8];
+        id = (id<<8) + tbufdata[MCP_EID0];
+        id |= CAN_EFF_FLAG;
+    }
+
+    uint8_t dlc = (tbufdata[MCP_DLC] & DLC_MASK);
+    if (dlc > CAN_MAX_DLEN) {
+        return ERROR_FAIL;
+    }
+
+    frame->can_id = id;
+    frame->can_dlc = dlc;
+    memcpy(frame->data, &tbufdata[MCP_DATA], 8);
+
+    /*
+
     uint8_t tbufdata[5];
 
     readRegisters(rxb->SIDH, tbufdata, 5);
@@ -747,6 +775,8 @@ MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
     readRegisters(rxb->DATA, frame->data, dlc);
 
     modifyRegister(MCP_CANINTF, rxb->CANINTF_RXnIF, 0);
+
+    */
 
     return ERROR_OK;
 }

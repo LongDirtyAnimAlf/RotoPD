@@ -451,10 +451,11 @@ class MCP2515
         } TXB[N_TXBUFFERS];
 
         static const struct RXBn_REGS {
-            REGISTER CTRL;
-            REGISTER SIDH;
-            REGISTER DATA;
-            CANINTF  CANINTF_RXnIF;
+            INSTRUCTION READ;
+            REGISTER    CTRL;
+            REGISTER    SIDH;
+            REGISTER    DATA;
+            CANINTF     CANINTF_RXnIF;
         } RXB[N_RXBUFFERS];
 
         uint8_t SPICS;
