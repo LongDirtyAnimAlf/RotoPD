@@ -13,28 +13,29 @@ public:
 
   void begin(void);
   void begin(uint8_t MasterID, uint8_t IT2704I);
-  bool checkInterrupt(void);
-  ERROR abortAllPending(bool withqueues = false);
 
-  ERROR reset(void);
-  bool run(bool single = false);
-  ERROR sendMessage(const can_frame *frame);
-  ERROR sendMessage(const can_frame &frame);
-  ERROR sendMessagePrio(const can_frame *frame);
-  ERROR sendMessagePrio(const can_frame &frame);
-  ERROR readMessage(can_frame *frame);
-  ERROR readMessage(can_frame &frame);
-  uint32_t getRxQueueDepth(void);
+  // Virtual overrides
 
-  const MCP2515& getCAN() const { return can; }
-  MCP2515& getCAN() { return can; }  
+  CANERROR abortCANAllPending(bool withqueues = false);
+  bool checkCANInterrupt(void);
+  CANERROR resetCAN(void);
+  bool taskCAN(bool single = false);
+  CANERROR sendCANMessage(const can_frame *frame);
+  CANERROR sendCANMessage(const can_frame &frame);
+  CANERROR sendCANMessagePrio(const can_frame *frame);
+  CANERROR sendCANMessagePrio(const can_frame &frame);
+  CANERROR readCANMessage(can_frame *frame);
+  CANERROR readCANMessage(can_frame &frame);
+
+  const MCP2515& getMCP2515() const { return caninterface; }
+  MCP2515& getMCP2515() { return caninterface; }  
 
 private:
-  MCP2515 can;  
+  MCP2515 caninterface;  
   const uint8_t _intPin;
   mutex_t can_mutex;
 
-  bool HandleTxMessages;
+  volatile bool HandleTxMessages;
 
   bool processTxQueue(void);
 };

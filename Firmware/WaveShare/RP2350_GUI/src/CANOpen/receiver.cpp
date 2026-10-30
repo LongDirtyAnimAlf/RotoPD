@@ -7,10 +7,10 @@ bool Receiver::run(void) {
   
   bool active = false;
 
-  if (CAN->checkRxQueue())
+  if (CAN->checkCANRxQueue())
   {
     active = true;
-    if (CAN->readMessage(&canmessageframe) == CBUSbase::ERROR_OK)
+    if (CAN->readCANMessage(&canmessageframe) == CBUSbase::ERROR_OK)
     {
       id = canmessageframe.can_id;
       dlc = canmessageframe.can_dlc;
@@ -22,7 +22,7 @@ bool Receiver::run(void) {
     else
     {
       active = false;
-      //Serial.println("Strange reception error !");
+      Serial.println("Very strange receiver reception error !!!");
     }
   }
   else active = false; 

@@ -42,6 +42,7 @@
 
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
+#include <pico/mutex.h>
 
 #include "./src/RP2350/bsp/bsp_i2c.h"
 #include "./src/RP2350/bsp/bsp_st7701.h"
@@ -141,7 +142,6 @@ static volatile bool flagCollectRotoPDData = false;
 static Ticker tickerRequestIT2704Data;
 static volatile bool flagRequestIT2704Data = false;
 
-static Ticker tickerSoundButton;
 static bool flagSoundButton = false;
 
 static Ticker tickerProcessData;
@@ -163,38 +163,7 @@ static volatile bool StoreSettings = false;
 static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
 
-//auto_init_mutex(can_mutex);
-
-#if defined(ARDUINO_ARCH_ESP32)
-  // --- ESP32 TRANSLATION LAYER ---
-  typedef SemaphoreHandle_t mutex_t;
-
-  // Translates RP2350 timeout locks to ESP32 FreeRTOS ticks
-  inline bool mutex_enter_timeout_ms(mutex_t* mtx, uint32_t timeout_ms) {
-      return (xSemaphoreTake(*mtx, pdMS_TO_TICKS(timeout_ms)) == pdTRUE);
-  }
-
-// A blocking enter maps to waiting forever (portMAX_DELAY)
-  inline void mutex_enter_blocking(mutex_t* mtx) {
-      xSemaphoreTake(*mtx, portMAX_DELAY);
-  }
-
-  // Translates RP2350 unlocks to ESP32 FreeRTOS semaphore releases
-  inline void mutex_exit(mutex_t* mtx) {
-      xSemaphoreGive(*mtx);
-  }
-
-  // Translates RP2350 mutex creation to ESP32 FreeRTOS creation
-  inline void mutex_init(mutex_t* mtx) {
-      *mtx = xSemaphoreCreateMutex();
-  }
-
-#elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
-  // --- NATIVE RP2350 SDK ---
-  #include "pico/mutex.h"
-#endif
-
-mutex_t can_mutex;
+auto_init_mutex(can_mutex);
 
 void ClearRunData(PRunDatas RDS);
 void ClearStageData(PStageData SD);
@@ -559,17 +528,7 @@ static void main_event_handler(lv_event_t * e)
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
             // Not the best place to do this !!
-            if (mutex_enter_timeout_ms(&can_mutex, 100))
-            {
-              load.clearEnergy();
-              mutex_exit(&can_mutex);  
-            }
-            else
-            {
-              #ifdef DEBUG                      
-              Serial.println("GUI. CAN mutex clearEnergy timeout.");
-              #endif
-            }
+            load.clearEnergy();
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
           Screen1AddEPData(RDS->Energy,0);        
@@ -738,12 +697,6 @@ static void cbProcessData()
   flagProcessMeasurementData = true;
 }
 
-static void cbStopBuzzer()
-{
-  bsp_buzzer_enable(false);
-}
-
-
 static void datastartcb(byte index)
 {
   PBatterySetting SET = &Batteries[index];  
@@ -769,27 +722,17 @@ void dataupdatecb()
 void setup1()
 {
   mutex_enter_blocking(&can_mutex);
-  node.getCAN().run();
+  node.getCAN().taskCAN();
   mutex_exit(&can_mutex);  
 }
 
 void loop1() {
-  bool mutexOk = false;
-  //mutex_enter_blocking(&can_mutex);
-  //mutexOk = mutex_enter_timeout_ms(&can_mutex, 1000/*ms*/);
-  //if (mutexOk)
-  {
-    node.getCAN().run();
-    //mutex_exit(&can_mutex);
-  }  
-  //if (mutexOk)
-  {
-    // We might have entered the mutex without any problem
-    // So yield here to give other tasks some change
-    // If we had a timeout, other tasks have already got their chance
-    //yield();
-    delayMicroseconds(10);
-  }
+  mutex_enter_blocking(&can_mutex);
+  node.getCAN().taskCAN();
+  mutex_exit(&can_mutex);  
+  //yield();
+  //delay(1);
+  //delayMicroseconds(10);
 }
 #endif
 
@@ -808,9 +751,8 @@ void setup()
 
   //delay(250);
 
-  // Start by blocking all CAN activity
-  mutex_init(&can_mutex);
   mutex_enter_blocking(&can_mutex);
+
 
   #ifdef ARDUINO_ARCH_RP2040
 
@@ -1140,10 +1082,9 @@ void setup()
   tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
   Info_Add("GUI. Setting up CANOpen ready.");
 
-  Info_Add("GUI. Init RP2350 ready.");
-
-  // Release the CAN activity
   mutex_exit(&can_mutex);  
+
+  Info_Add("GUI. Init RP2350 ready.");
 }
 
 void loop()
@@ -1178,127 +1119,90 @@ void loop()
 
   int8_t PDOCount = 0;
   static AP33772S_PDO PDO;
-  
-  //if (node.getCAN().checkRxQueue())
-  if (true)
+
+  Message rxmsg;
+  unsigned long maxCANTime = millis();
+  bool data_available;
+  do
   {
-    //mutex_enter_blocking(&can_mutex);
-    //if (mutex_enter_timeout_ms(&can_mutex, 10))
-    if (true)
+    data_available = false;
+
+    //bool mutexOk = mutex_enter_timeout_ms(&can_mutex, 10 /*ms*/);
+    mutex_enter_blocking(&can_mutex);
+    data_available = node.run();
+    // We did receive a message that was not handled by ourselves ?
+    if (data_available)
     {
+      //const Message& rxmsg = node.getMessage();
+      //const Message rxmsg = node.getMessage();
+      rxmsg = node.getMessage();
+      node.clearMessage();
+    }
+    mutex_exit(&can_mutex); 
 
-      unsigned long maxCANTime = millis();
-      Message rxmsg;
-
-      bool data_available;
-      do
+    if (data_available)
+    {
+      // ---- process the message ----
+      if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
       {
-        data_available = false;
 
-        //if (mutex_enter_timeout_ms(&can_mutex, 10))
+        // Check TPDO from load messages, if any
+        if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
         {
-          data_available = node.run();
-          // We did receive a message that was not handled by ourselves ?
-          if (data_available)
-          {
-            rxmsg = node.getMessage();
-            node.clearMessage();
-          }
-          //mutex_exit(&can_mutex);          
+          //Serial.println("GUI [IT2704]. Received correct TPDO message.");
+          ScreenPowerSetEnergyData(LatestIT2704Data.E);
+          telemetry_screensaver_update_E(LatestIT2704Data.E);
         }
-      
-        /*
-        mutex_enter_blocking(&can_mutex);
-        data_available = node.run();
-        // We did receive a message that was not handled by ourselves ?
-        if (data_available)
+
+        // Check SDO message from load
+        if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
         {
-          rxmsg = node.getMessage();
-          node.clearMessage();
-        }
-        mutex_exit(&can_mutex);          
-        */
+          //Serial.println("GUI [IT2704]. Receiving SDO response.");
 
-        //telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
-
-        if (data_available)
-        {
-          // We did receive a message that was not handled by ourselves
-          //const Message& rxmsg = node.getMessage();
-          //const Message rxmsg = node.getMessage();
-
-          // ---- process the message ----
-          if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
+          if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
           {
-
-            // Check TPDO from load messages, if any
-            if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
+            // Check for meter data that has the meaurement results from our meter data request
+            if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
             {
-              //Serial.println("GUI [IT2704]. Received correct TPDO message.");
-              ScreenPowerSetEnergyData(LatestIT2704Data.E);
-              telemetry_screensaver_update_E(LatestIT2704Data.E);
-            }
+              // Get the correct IT2704 data in the correct datastore
+              load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
 
-            // Check SDO message from load
-            if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
-            {
-              //Serial.println("GUI [IT2704]. Receiving SDO response.");
-
-              if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+              switch(rxmsg.getSubID())
               {
-                // Check for meter data that has the meaurement results from our meter data request
-                if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
-                {
-                  // Get the correct IT2704 data in the correct datastore
-                  load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
-
-                  switch(rxmsg.getSubID())
-                  {
-                    case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
-                    case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
-                    case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
-                    case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
-                  }
-                }
-              }
-
-              if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
-              {
-                #ifdef DEBUG                      
-                //Serial.println("GUI [IT2704]. Receiving response from writing data.");
-                //Serial.print("GUI [IT2704]. Writing data success. ");
-                //Serial.print("Index 0x");
-                //Serial.printf("%04X",rxmsg.getID());
-                //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
-                #endif
+                case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
+                case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
+                case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
+                case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
               }
             }
           }
 
-          //node.clearMessage();
-
-          // Limit the amount of time inside this loop
-          if (millis() - maxCANTime > 10)
+          if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
           {
             #ifdef DEBUG                      
-            Serial.println("GUI. CAN node.run() timeout.");
+            //Serial.println("GUI [IT2704]. Receiving response from writing data.");
+            //Serial.print("GUI [IT2704]. Writing data success. ");
+            //Serial.print("Index 0x");
+            //Serial.printf("%04X",rxmsg.getID());
+            //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
             #endif
-            //break;
           }
+        }
+      }
 
-        } // if data_available
+    } // if data_available
 
-      } while (data_available);
+    //node.clearMessage();
 
-      //mutex_exit(&can_mutex);  
-    }
-    else
+    // Limit the amount of time inside this loop
+    if (millis() - maxCANTime > 10)
     {
       #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex mainloop timeout.");
+      Serial.println("GUI. CAN node.run() timeout.");
       #endif
+      //break;
     }
-  }
+  } while (data_available);
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
@@ -1318,22 +1222,11 @@ void loop()
 
   if (flagRequestIT2704Data)
   {
-    if (mutex_enter_timeout_ms(&can_mutex, 100))
-    {
-      flagRequestIT2704Data = false;
-      // Ask load IT2704 to send measurement results
-      // Result (when available) will be collected later by node.run()
-      load.collectData();
-      mutex_exit(&can_mutex);
-    }
-    else
-    {
-      #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex collectData timeout.");
-      #endif
-    }
-
-  }
+    flagRequestIT2704Data = false;
+    // Ask load IT2704 to send measurement results
+    // Result (when available) will be collected later by node.run()
+    load.collectData();
+   }
 
   if (flagSoundButton)
   {
@@ -1341,7 +1234,6 @@ void loop()
     bsp_buzzer_enable(true);
     buzzerTime = millis();
     if (buzzerTime == 0) buzzerTime++;
-    //tickerSoundButton.once_ms(100U, cbStopBuzzer);
   }
   if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
   {
@@ -1366,19 +1258,10 @@ void loop()
       #endif
     }
 
-    // Test connection with load IT2704
-    if (mutex_enter_timeout_ms(&can_mutex, 100 /*ms*/))
-    {
-      load.queryConnection();
-      mutex_exit(&can_mutex);  
-    }
-    else
-    {
-      #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex queryConnection timeout.");
-      #endif
-    }
+    Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
 
+    // Test connection with load IT2704
+    load.queryConnection();
 
     PDOCount = taskRotoPDInit();
 
@@ -1578,17 +1461,7 @@ void loop()
           Screen1AddEData(RDS->Energy / 1000000ULL);
           if (RDS->Energy == 0)
           {
-            if (mutex_enter_timeout_ms(&can_mutex, 100))
-            {
-              load.clearEnergy();
-              mutex_exit(&can_mutex);  
-            }
-            else
-            {
-              #ifdef DEBUG                      
-              Serial.println("GUI. CAN mutex clear Energy timeout.");
-              #endif
-            }
+            load.clearEnergy();
             ClearRunData(RDS); 
             ClearMeasurementData(&LatestRotoPDData);
             ClearMeasurementData(&LatestIT2704Data);

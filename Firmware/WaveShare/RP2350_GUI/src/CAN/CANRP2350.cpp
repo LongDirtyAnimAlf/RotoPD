@@ -6,7 +6,7 @@
 
 // Define constructor implementation here
 CBUSRP2350Device::CBUSRP2350Device() : 
-  can(),
+  caninterface(),
   _intPin(BSP_XL2515_INT_PIN)
 {
   mutex_init(&can_mutex); 
@@ -15,14 +15,14 @@ CBUSRP2350Device::CBUSRP2350Device() :
 
 void CBUSRP2350Device::begin(void)
 {
-    can.begin();
+    caninterface.begin();
 
-    if (MCP2515::ERROR_OK == can.reset())
+    if (MCP2515::ERROR_OK == caninterface.reset())
     {
-      can.setBitrate(CAN_250KBPS);
-      can.setNormalMode();
-      //can.enableInterrupt(_intPin, ISRhandler);
-      can.enableInterrupt(_intPin, NULL);
+      caninterface.setBitrate(CAN_250KBPS);
+      caninterface.setNormalMode();
+      //caninterface.enableInterrupt(_intPin, ISRhandler);
+      caninterface.enableInterrupt(_intPin, NULL);
       Serial.println("MCP2515 Initialized Successfully.");
     } else {
       Serial.println("MCP2515 Initialize Failure !!!");
@@ -31,95 +31,71 @@ void CBUSRP2350Device::begin(void)
 
 void CBUSRP2350Device::begin(uint8_t MasterID, uint8_t IT2704ID)
 {
-    can.begin();
+    caninterface.begin();
 
-    if (MCP2515::ERROR_OK == can.reset())
+    if (MCP2515::ERROR_OK == caninterface.reset())
     {
 
-        can.setBitrate(CAN_250KBPS);
+        caninterface.setBitrate(CAN_250KBPS);
 
         if ((MasterID != -1) && (IT2704ID != -1))
         {
-          can.setConfigMode();
+          caninterface.setConfigMode();
 
-          can.setFilterMask(MCP2515::MASK0, false, 0x7FF);
-          can.setFilter(MCP2515::RXF0, false, 0x580 + IT2704ID);
-          can.setFilter(MCP2515::RXF1, false, 0x580 + MasterID);
+          caninterface.setFilterMask(MCP2515::MASK0, false, 0x7FF);
+          caninterface.setFilter(MCP2515::RXF0, false, 0x580 + IT2704ID);
+          caninterface.setFilter(MCP2515::RXF1, false, 0x580 + MasterID);
 
           // Set Mask 1 to require an exact 11-bit ID match
-          can.setFilterMask(MCP2515::MASK1, false, 0x7FF);
-          can.setFilter(MCP2515::RXF2, false, 0x000);
-          can.setFilter(MCP2515::RXF3, false, 0x180 + IT2704ID);
-          can.setFilter(MCP2515::RXF4, false, 0x600 + IT2704ID);
-          can.setFilter(MCP2515::RXF5, false, 0x600 + MasterID);
+          caninterface.setFilterMask(MCP2515::MASK1, false, 0x7FF);
+          caninterface.setFilter(MCP2515::RXF2, false, 0x000);
+          caninterface.setFilter(MCP2515::RXF3, false, 0x180 + IT2704ID);
+          caninterface.setFilter(MCP2515::RXF4, false, 0x600 + IT2704ID);
+          caninterface.setFilter(MCP2515::RXF5, false, 0x600 + MasterID);
         }
 
-        can.setNormalMode();
-        //can.enableInterrupt(_intPin, ISRhandler);
-        can.enableInterrupt(_intPin, NULL);
+        caninterface.setNormalMode();
+        //caninterface.enableInterrupt(_intPin, ISRhandler);
+        caninterface.enableInterrupt(_intPin, NULL);
         Serial.println("MCP2515 Initialized Successfully.");
     } else {
         Serial.println("MCP2515 Initialize Failure !!!");
     }
 }
 
-bool CBUSRP2350Device::checkInterrupt(void) {
-  return can.checkInterrupt();
+bool CBUSRP2350Device::checkCANInterrupt(void)
+{
+  return caninterface.checkInterrupt();
 }
 
-CBUSbase::ERROR CBUSRP2350Device::abortAllPending(bool withqueues)
+CBUSbase::CANERROR CBUSRP2350Device::abortCANAllPending(bool withqueues)
 {
   if (withqueues)
   {
     this->CanTxBuffer.clear();
     this->CanTxPrioBuffer.clear();
   }
-  return CBUSbase::ERROR_OK;
+  return ERROR_OK;
 }
 
-CBUSbase::ERROR CBUSRP2350Device::reset(void)
+CBUSbase::CANERROR CBUSRP2350Device::resetCAN(void)
 {
-   return (CBUSbase::ERROR)can.reset();
+   return (CBUSbase::CANERROR)caninterface.reset();
 }
 
-bool CBUSRP2350Device::processTxQueue(void)
-{
-    struct can_frame frame;
-
-    while (CanTxPrioBuffer.peek(frame)) {
-        ERROR result = (CBUSbase::ERROR)can.sendMessagePrio(&frame);
-        if (result != ERROR_OK) {
-            return false;
-        }
-        //Serial.println("MCP2515: Send prio message ok.");
-        CanTxPrioBuffer.pop(frame);
-    }
-
-    while (CanTxBuffer.peek(frame)) {
-        ERROR result = (CBUSbase::ERROR)can.sendMessage(&frame);
-        if (result != ERROR_OK) {
-            return false;
-        }
-        //Serial.println("MCP2515: Send normal message ok.");        
-        CanTxBuffer.pop(frame);
-    }
-
-    return ((!CanTxPrioBuffer.isEmpty()) && (!CanTxBuffer.isEmpty()));
-}
-
-bool CBUSRP2350Device::run(bool single)
+bool CBUSRP2350Device::taskCAN(bool single)
 {
   // This perform the real hardware access
   // Pushed receved messages into the Rx buffer
   // Pops Tx messages from Tx buffer to send 
 
-  if (can.checkInterrupt())
+  if (caninterface.checkInterrupt())
   {
     //mutex_enter_blocking(&can_mutex);
 
     // Some interrupt has happended on the MCP2515
     // First handle read, if any
-    uint8_t canintf = can.getInterrupts();
+    uint8_t canintf = caninterface.getInterrupts();
     uint8_t eflg = 0;
 
     if (canintf & (MCP2515::CANINTF_ERRIF | MCP2515::CANINTF_MERRF))
@@ -134,7 +110,7 @@ bool CBUSRP2350Device::run(bool single)
             Serial.println("General Error interrupt.");
         }
 
-        eflg = can.getErrorFlags();
+        eflg = caninterface.getErrorFlags();
 
         if (eflg & MCP2515::EFLG_RX0OVR)
         {
@@ -157,7 +133,7 @@ bool CBUSRP2350Device::run(bool single)
         {
             //Serial.println("RX0 interrupt.");
             // This readMessage function also clears the CANINTF_RX0IF flag !!
-            if (can.readMessage(MCP2515::RXB0, &frame) == MCP2515::ERROR_OK)
+            if (caninterface.readMessage(MCP2515::RXB0, &frame) == MCP2515::ERROR_OK)
             {
               CanRxBuffer.push(frame);
             }
@@ -166,7 +142,7 @@ bool CBUSRP2350Device::run(bool single)
         if (canintf & MCP2515::CANINTF_RX1IF)
         {
             //Serial.println("RX1 interrupt.");                
-            if (can.readMessage(MCP2515::RXB1, &frame) == MCP2515::ERROR_OK)
+            if (caninterface.readMessage(MCP2515::RXB1, &frame) == MCP2515::ERROR_OK)
             {
               CanRxBuffer.push(frame);
             }
@@ -174,22 +150,22 @@ bool CBUSRP2350Device::run(bool single)
 
         if (single) break;
 
-        canintf = can.getInterrupts();
+        canintf = caninterface.getInterrupts();
 
         //if (single) break;
     }
     
     if (eflg & (MCP2515::EFLG_RX0OVR | MCP2515::EFLG_RX1OVR))
     {
-      can.clearRXnOVRFlags();
+      caninterface.clearRXnOVRFlags();
     }
     if (canintf & MCP2515::CANINTF_ERRIF)
     {
-      can.clearERRIF();
+      caninterface.clearERRIF();
     }
     if (canintf & MCP2515::CANINTF_MERRF)
     {
-      can.clearMERR();
+      caninterface.clearMERR();
     }
 
 
@@ -203,9 +179,11 @@ bool CBUSRP2350Device::run(bool single)
         // This flags indicates that we can send a message !!
 
         // First, clear the interrupts
-        can.clearTXInterrupts();
+        caninterface.clearTXInterrupts();
 
         HandleTxMessages = true;
+
+        //processTxQueue();
     }
 
     //mutex_exit(&can_mutex);  
@@ -214,17 +192,23 @@ bool CBUSRP2350Device::run(bool single)
   if (HandleTxMessages)
   {
     HandleTxMessages = false;
-    // Process the message queue
-    processTxQueue();
+    if ((!CanTxPrioBuffer.isEmpty()) || (!CanTxBuffer.isEmpty()))
+    {
+      // Process the message queue
+      processTxQueue();
+    }
   }
 
   return (CanRxBuffer.getCount() != 0);
 }
-CBUSbase::ERROR CBUSRP2350Device::sendMessage(const can_frame *frame)
+
+CBUSbase::CANERROR CBUSRP2350Device::sendCANMessage(const can_frame *frame)
 {
   bool enqueued = CanTxBuffer.push(*frame);
 
   if (enqueued) {
+      //Serial.println("CBUSRP2350Device: Normal message enqueue ok.");        
+
       HandleTxMessages = true;
       //processTxQueue();
       return ERROR_OK;
@@ -232,15 +216,16 @@ CBUSbase::ERROR CBUSRP2350Device::sendMessage(const can_frame *frame)
 
   return ERROR_ALLTXBUSY;
 }
-CBUSbase::ERROR CBUSRP2350Device::sendMessage(const can_frame &frame)
+CBUSbase::CANERROR CBUSRP2350Device::sendCANMessage(const can_frame &frame)
 {
-  return sendMessage(&frame);
+  return sendCANMessage(&frame);
 }
-CBUSbase::ERROR CBUSRP2350Device::sendMessagePrio(const can_frame *frame)
+CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame *frame)
 {
   bool enqueued = CanTxPrioBuffer.push(*frame);
 
   if (enqueued) {
+      //Serial.println("CBUSRP2350Device: Prio message enqueue ok.");        
       HandleTxMessages = true;
       //processTxQueue();
       return ERROR_OK;
@@ -248,29 +233,57 @@ CBUSbase::ERROR CBUSRP2350Device::sendMessagePrio(const can_frame *frame)
 
   return ERROR_ALLTXBUSY;
 }
-CBUSbase::ERROR CBUSRP2350Device::sendMessagePrio(const can_frame &frame)
+CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame &frame)
 {
-  return sendMessagePrio(&frame);
+  return sendCANMessagePrio(&frame);
 }
-CBUSbase::ERROR CBUSRP2350Device::readMessage(can_frame *frame)
+CBUSbase::CANERROR CBUSRP2350Device::readCANMessage(can_frame *frame)
 {
-  //return (CBUSbase::ERROR)can.readMessage(frame);
+  //return (CBUSbase::ERROR)caninterface.readMessage(frame);
   if (CanRxBuffer.getCount() != 0)
   {
     if (CanRxBuffer.pop(*frame))
     {
-      return CBUSbase::ERROR_OK;
+      return ERROR_OK;
     }
   }
-  return CBUSbase::ERROR_NOMSG;
+  return ERROR_NOMSG;
 }
-CBUSbase::ERROR CBUSRP2350Device::readMessage(can_frame &frame)
+
+CBUSbase::CANERROR CBUSRP2350Device::readCANMessage(can_frame &frame)
 {
-  return readMessage(&frame);
+  return readCANMessage(&frame);
 }
-uint32_t CBUSRP2350Device::getRxQueueDepth(void)
+
+bool CBUSRP2350Device::processTxQueue(void)
 {
-  return CanRxBuffer.getCount();
+    struct can_frame frame;
+
+    bool result = true;
+
+    //Serial.println("CBUSRP2350Device: Running processTxQueue.");        
+
+    while (CanTxPrioBuffer.peek(frame)) {
+        //Serial.println("CBUSRP2350Device: Peeking prio message ok.");
+        MCP2515::ERROR result = caninterface.sendMessagePrio(&frame);
+        if (result != MCP2515::ERROR_OK) {
+            return false;
+        }
+        //Serial.println("MCP2515: Send prio message ok.");
+        CanTxPrioBuffer.pop(frame);
+    }
+
+    while (CanTxBuffer.peek(frame)) {
+        //Serial.println("CBUSRP2350Device: Peeking normal message ok.");
+        MCP2515::ERROR result = caninterface.sendMessage(&frame);
+        if (result != MCP2515::ERROR_OK) {
+            return false;
+        }
+        //Serial.println("MCP2515: Send normal message ok.");        
+        CanTxBuffer.pop(frame);
+    }
+
+    return ((!CanTxPrioBuffer.isEmpty()) && (!CanTxBuffer.isEmpty()));
 }
 
 //CBUSRP2350Device CBUSDevice;

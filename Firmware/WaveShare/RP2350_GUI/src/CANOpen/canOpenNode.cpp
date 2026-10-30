@@ -287,10 +287,13 @@ bool CanOpenNode::run() {
             // Report back
             return (recv.id != 0);
         }
+        else
+        {
+            recv.clearMsg();
+        }
     }
 
     return false;
-
 }
 
 // In canOpenNode.cpp
@@ -418,15 +421,15 @@ bool CanOpenNode::sendMsg(const Message &msg, bool prio) {
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
 
-    CBUSbase::ERROR error; 
+    CBUSbase::CANERROR error; 
 
     if (prio)
     {
-        error = can.sendMessagePrio(&cansendmessageframe);
+        error = can.sendCANMessagePrio(&cansendmessageframe);
     }
     else
     {
-        error = can.sendMessage(&cansendmessageframe);
+        error = can.sendCANMessage(&cansendmessageframe);
     }
 
     return (error == CBUSbase::ERROR_OK);

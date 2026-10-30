@@ -68,6 +68,7 @@ MCP2515::ERROR MCP2515::reset(void)
     setRegister(MCP_RXB1CTRL, 0);
 
     setRegister(MCP_CANINTE, (CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF | CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF));
+    //setRegister(MCP_CANINTE, (CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF));
 
     // receives all valid messages using either Standard or Extended Identifiers that
     // meet filter criteria. RXF0 is applied for RXB0, RXF1 is applied for RXB1
@@ -673,6 +674,38 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
 
     const struct TXBn_REGS *txbuf = &TXB[txbn];
 
+    uint8_t data[13];
+
+    bool ext = (frame->can_id & CAN_EFF_FLAG);
+    bool rtr = (frame->can_id & CAN_RTR_FLAG);
+    uint32_t id = (frame->can_id & (ext ? CAN_EFF_MASK : CAN_SFF_MASK));
+
+    prepareId(data, ext, id);
+
+    data[MCP_DLC] = rtr ? (frame->can_dlc | RTR_MASK) : frame->can_dlc;
+
+    memcpy(&data[MCP_DATA], frame->data, frame->can_dlc);
+
+    setRegisters(txbuf->SIDH, data, 5 + frame->can_dlc);
+
+    modifyRegister(txbuf->CTRL, TXB_TXREQ, TXB_TXREQ);
+
+    uint8_t ctrl = readRegister(txbuf->CTRL);
+    if ((ctrl & (TXB_ABTF | TXB_MLOA | TXB_TXERR)) != 0) {
+        return ERROR_FAILTX;
+    }
+    return ERROR_OK;
+}
+
+/*
+MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *frame)
+{
+    if (frame->can_dlc > CAN_MAX_DLEN) {
+        return ERROR_FAILTX;
+    }
+
+    const struct TXBn_REGS *txbuf = &TXB[txbn];
+
     uint8_t data[13] = {0};
 
     bool ext = (frame->can_id & CAN_EFF_FLAG);
@@ -688,21 +721,9 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
     setRegisters(txbuf->WRITE, data, 5 + frame->can_dlc);
     setRegisters(txbuf->CONFIRM, NULL, 0);
 
-
-    /*
-    setRegisters(txbuf->SIDH, data, 5 + frame->can_dlc);
-
-    modifyRegister(txbuf->CTRL, TXB_TXREQ, TXB_TXREQ);
-
-    uint8_t ctrl = readRegister(txbuf->CTRL);
-    if ((ctrl & (TXB_ABTF | TXB_MLOA | TXB_TXERR)) != 0) {
-        return ERROR_FAILTX;
-    }
-
-    */
-
     return ERROR_OK;
 }
+*/
 
 MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
 {
@@ -714,7 +735,10 @@ MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
 
     const struct TXBn_REGS *txbuf = &TXB[txBuffers];
     uint8_t ctrlval = readRegister(txbuf->CTRL);
+    //Serial.println("MCP2515: Testing TXB2 read to send.");
+    //Serial.printf("MCP2515: Testing TXB2 read to send: %d\n", ctrlval);
     if ( (ctrlval & TXB_TXREQ) == 0 ) {
+        //Serial.println("MCP2515: TXB2 read to send.");
         return sendMessage(txBuffers, frame);
     }
 
@@ -732,7 +756,10 @@ MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
     for (int i=0; i<2; i++) {
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
         uint8_t ctrlval = readRegister(txbuf->CTRL);
+        //Serial.println("MCP2515: Testing TXB0 or TXB1 read to send.");
+        //Serial.printf("MCP2515: Testing TXB0 or TXB1 read to send: %d\n", ctrlval);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {
+            //Serial.println("MCP2515: TXB0 or TXB1 ready to send.");            
             return sendMessage(txBuffers[i], frame);
         }
     }

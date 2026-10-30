@@ -37,8 +37,8 @@ public:
     void clearMessage() { recv.clearMsg(); }
 
     #ifdef ARDUINO_ARCH_RP2040
-    const MCP2515& getMCP2515() const { return can.getCAN(); }
-    MCP2515& getMCP2515() { return can.getCAN(); }  
+    const MCP2515& getMCP2515() const { return can.getMCP2515(); }
+    MCP2515& getMCP2515() { return can.getMCP2515(); }  
     #endif
 
     const CBUSRP2350Device& getCAN() const { return can; }

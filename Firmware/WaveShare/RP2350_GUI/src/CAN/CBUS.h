@@ -1,5 +1,5 @@
-#ifndef _CBUS_H_
-#define _CBUS_H_
+#ifndef _CANBUS_H_
+#define _CANBUS_H_
 
 #include <Arduino.h>
 
@@ -16,7 +16,7 @@
 
 class CBUSbase {
 public:
-  enum ERROR {
+  enum CANERROR {
       ERROR_OK        = 0,
       ERROR_FAIL      = 1,
       ERROR_ALLTXBUSY = 2,
@@ -29,23 +29,26 @@ public:
 
   // General methods to be implemented
 
-  virtual ERROR abortAllPending(bool withqueues = false) = 0;
-  virtual bool checkInterrupt(void) = 0;
+  virtual CANERROR abortCANAllPending(bool withqueues = false) = 0;
+  virtual bool checkCANInterrupt(void) = 0;
 
-  virtual ERROR reset(void) = 0;
-  virtual bool run(bool single = false) = 0;
+  virtual CANERROR resetCAN(void) = 0;
+  virtual bool taskCAN(bool single = false) = 0;
   
-  virtual ERROR sendMessage(const can_frame *frame) = 0;
-  virtual ERROR sendMessage(const can_frame &frame) = 0;
-  virtual ERROR sendMessagePrio(const can_frame *frame) = 0;
-  virtual ERROR sendMessagePrio(const can_frame &frame) = 0;
-  virtual ERROR readMessage(can_frame *frame) = 0;
-  virtual ERROR readMessage(can_frame &frame) = 0;
-  virtual uint32_t getRxQueueDepth(void) = 0;
+  virtual CANERROR sendCANMessage(const can_frame *frame) = 0;
+  virtual CANERROR sendCANMessage(const can_frame &frame) = 0;
+  virtual CANERROR sendCANMessagePrio(const can_frame *frame) = 0;
+  virtual CANERROR sendCANMessagePrio(const can_frame &frame) = 0;
+  virtual CANERROR readCANMessage(can_frame *frame) = 0;
+  virtual CANERROR readCANMessage(can_frame &frame) = 0;
+  
+  uint32_t getCANRxQueueDepth(void) {return CanRxBuffer.getCount();}
+  uint32_t getCANTxQueueDepth(void) {return CanTxBuffer.getCount();}
+  uint32_t getCANTxPrioQueueDepth(void) {return CanTxPrioBuffer.getCount();}
 
-  bool checkRxQueue(void) {return (CanRxBuffer.getCount() != 0);}
-  bool getTxFull(void) {return ( CanTxBuffer.isFull() || CanTxPrioBuffer.isFull() );}
-  bool getRxFull(void) {return CanRxBuffer.isFull();}
+  bool checkCANRxQueue(void) {return (CanRxBuffer.getCount() != 0);}
+  bool getCANTxFull(void) {return ( CanTxBuffer.isFull() || CanTxPrioBuffer.isFull() );}
+  bool getCANRxFull(void) {return CanRxBuffer.isFull();}
 protected:                                          // protected members become private in derived classes
 //private:
   CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;
@@ -53,4 +56,4 @@ protected:                                          // protected members become 
   CircularDataQueue<can_frame, CANTXPRIOBUFFERSIZE> CanTxPrioBuffer;
 };
 
-#endif // _CBUS_H_
+#endif // _CANBUS_H_
