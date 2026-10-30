@@ -40,6 +40,16 @@ void MCP2515::begin()
 
     gpio_set_dir(BSP_XL2515_INT_PIN, GPIO_IN);
     gpio_pull_up(BSP_XL2515_INT_PIN);
+
+
+    // We apply this to the outputs: SCK, MOSI, and CS
+    uint spi_outputs[] = {BSP_XL2515_SCLK_PIN, BSP_XL2515_MOSI_PIN, BSP_XL2515_CS_PIN};
+    
+    for (int i = 0; i < 3; i++) {
+        gpio_set_slew_rate(spi_outputs[i], GPIO_SLEW_RATE_FAST);
+        gpio_set_drive_strength(spi_outputs[i], GPIO_DRIVE_STRENGTH_8MA);
+    }    
+
 }
 
 void MCP2515_ISR_ATTR MCP2515::startSPI() const {
@@ -735,12 +745,11 @@ MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
 
     const struct TXBn_REGS *txbuf = &TXB[txBuffers];
     uint8_t ctrlval = readRegister(txbuf->CTRL);
-    //Serial.println("MCP2515: Testing TXB2 read to send.");
-    //Serial.printf("MCP2515: Testing TXB2 read to send: %d\n", ctrlval);
     if ( (ctrlval & TXB_TXREQ) == 0 ) {
-        //Serial.println("MCP2515: TXB2 read to send.");
+        //Serial.println("MCP2515: TXB2 ready to send.");
         return sendMessage(txBuffers, frame);
     }
+    //Serial.printf("MCP2515: Testing failure TXB2 ready to send: %d\n", ctrlval);
 
     return ERROR_ALLTXBUSY;
 }
@@ -756,12 +765,11 @@ MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
     for (int i=0; i<2; i++) {
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
         uint8_t ctrlval = readRegister(txbuf->CTRL);
-        //Serial.println("MCP2515: Testing TXB0 or TXB1 read to send.");
-        //Serial.printf("MCP2515: Testing TXB0 or TXB1 read to send: %d\n", ctrlval);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {
-            //Serial.println("MCP2515: TXB0 or TXB1 ready to send.");            
+            //Serial.printf("MCP2515: TXB%d ready to send.\n", i);
             return sendMessage(txBuffers[i], frame);
         }
+        //Serial.printf("MCP2515: Testing failure TXB%d ready to send: %d\n", i, ctrlval);
     }
 
     return ERROR_ALLTXBUSY;
