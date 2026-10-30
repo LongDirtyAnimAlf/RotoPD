@@ -189,9 +189,9 @@ bool CBUSRP2350Device::taskCAN(bool single)
     //mutex_exit(&can_mutex);  
   }
 
-  if (HandleTxMessages)
+  //if (HandleTxMessages)
   {
-    HandleTxMessages = false;
+    //HandleTxMessages = false;
     if ((!CanTxPrioBuffer.isEmpty()) || (!CanTxBuffer.isEmpty()))
     {
       // Process the message queue
