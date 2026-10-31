@@ -83,7 +83,7 @@ CBUSbase::CANERROR CBUSRP2350Device::resetCAN(void)
    return (CBUSbase::CANERROR)caninterface.reset();
 }
 
-bool CBUSRP2350Device::taskCAN(bool single)
+bool __not_in_flash_func(CBUSRP2350Device::taskCAN)(bool single)
 {
   // This perform the real hardware access
   // Pushed receved messages into the Rx buffer
@@ -197,9 +197,9 @@ bool CBUSRP2350Device::taskCAN(bool single)
     //mutex_exit(&can_mutex);  
   }
 
-  //if (HandleTxMessages)
+  if (HandleTxMessages)
   {
-    //HandleTxMessages = false;
+    HandleTxMessages = false;
     if ((!CanTxPrioBuffer.isEmpty()) || (!CanTxBuffer.isEmpty()))
     {
       // Process the message queue

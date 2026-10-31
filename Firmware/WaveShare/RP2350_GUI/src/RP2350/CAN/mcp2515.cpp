@@ -134,7 +134,7 @@ void MCP2515::disableInterrupt(void)
     }
 }
 
-bool MCP2515::checkInterrupt(void)
+bool __not_in_flash_func(MCP2515::checkInterrupt)(void)
 {
     bool result = false;
 

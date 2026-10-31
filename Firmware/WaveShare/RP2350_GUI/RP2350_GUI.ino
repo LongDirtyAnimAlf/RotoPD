@@ -6,6 +6,7 @@
 
 #include <lvgl.h>
 #include <Ticker.h>
+#include <atomic>
 
 #ifdef ARDUINO_ARCH_ESP32
 
@@ -135,6 +136,8 @@ static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings a
 static PBatterySetting const Battery = Batteries;
 
 static volatile bool flagSoundButton = false;
+
+std::atomic<uint32_t> counterCore1 = 0;
 
 // Flag flash dirty for storing board info
 static volatile bool StoreBoardInfo = false;
@@ -710,6 +713,9 @@ void loop1() {
   static uint32_t loop1counter = 0;
   static uint32_t datacounter = 0;
 
+  counterCore1++;
+  //counterCore1.fetch_add(1);
+
   if ((millis() - startTimeLoop1) >= 100000)
   {
 
@@ -1219,9 +1225,11 @@ void loop()
 
   //uint64_t t = timer_hw->timerawl | ((uint64_t)timer_hw->timerawh << 32);
 
-  if ( TicksBetween(startTime,millis()) >= TICKERTIME )
+  //if ( (millis() - startTime) >= TICKERTIME )
+  //if ( TicksBetween(startTime,millis()) >= TICKERTIME )
   {
-    while ( TicksBetween(startTime,millis()) >= TICKERTIME )
+    while ( (millis() - startTime) >= TICKERTIME )
+    //while ( TicksBetween(startTime,millis()) >= TICKERTIME )
     {
       startTime += TICKERTIME;
       // This loopcounter is incremented every TICKERTIME (50ms)
@@ -1233,6 +1241,11 @@ void loop()
         // Reset counter after 10.000s
         // A bit arbitrary
         loopcounter = 0; 
+      }
+
+      if ((loopcounter % 2000) == 0)
+      {
+        Serial.printf("Loop: %d\n",counterCore1.load());
       }
 
       // Get RotoPD measurement results for later averaging
