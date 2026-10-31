@@ -75,7 +75,7 @@ char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
 //CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
+CanOpenNode node(/*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
@@ -1113,7 +1113,7 @@ if (digitalRead(BUTTON_PIN) == LOW)
     }
   }
 
-  if (node.getCAN().checkRxQueue())
+  if (node.getCAN().checkCANRxQueue())
   {
     //mutex_enter_blocking(&can_mutex);
     if (mutex_enter_timeout_ms(&can_mutex, 100))
@@ -1595,7 +1595,7 @@ if (digitalRead(BUTTON_PIN) == LOW)
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
-      telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+      telemetry_screensaver_update_box5(node.getCAN().getCANRxQueueDepth()*10);
       telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
 
       if (load.isConnected())

@@ -4,10 +4,16 @@
 //#pragma once          // or classic include guards
 
 #include <Arduino.h>
-#include "queue.h"
 
 #include "./src/AP33772SS/AP33772S.h"
 #include "./src/INA238/INA238.h"
+
+#include "./src/CAN/queue.h"
+
+#include "./src/CANOpen/canOpenNode.h"
+#include "./src/CANOpen/sdo.hpp"
+#include "./src/CANOpen/message.hpp"
+
 #include "./src/IT2704/IT2704.h"
 
 #define    DEBUG
@@ -19,8 +25,10 @@
 #define    STANDALONE
 #endif
 
-#define ROTOPDDATAGETTIME             50 // ms
-#define IT2704DATAREQUESTTIME         250 // ms
+#define IT2704DATAREQUESTTIME 500
+#define ROTOPDDATAGETTIME 500
+
+#define TICKERTIME                    50 // ms
 #define DATACOLLECTTIMEFAST           500 // ms
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
 #define CALCULATIONTIME               100 // ms

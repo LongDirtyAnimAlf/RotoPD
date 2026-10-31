@@ -31,12 +31,12 @@ typedef struct {
     lv_obj_t *label_title;
     lv_obj_t *label_val;
     lv_obj_t *label_display;
-    int16_t x, y;
+    int32_t x, y;
     int8_t vx, vy;
     uint16_t width, height;
     uint32_t last_value;
-    uint32_t new_value;
-    bool dirty;
+    volatile uint32_t new_value;
+    volatile bool dirty;
     void (*set_value)(lv_obj_t * target, unsigned long value);
 } bouncing_box_t;
 
@@ -89,61 +89,73 @@ extern const lv_font_t lv_font_montserrat_12;
 extern const lv_font_t lv_font_montserrat_18;
 
 // Helper AABB intersection check
-static inline bool check_box_collision(bouncing_box_t *a, bouncing_box_t *b) {
-    return (a->x < b->x + b->width &&
-            a->x + a->width > b->x &&
+static inline bool check_box_collision(const bouncing_box_t *a, const bouncing_box_t *b)
+{
+    return (a->x < b->x + b->width  &&
+            a->x + a->width > b->x  &&
             a->y < b->y + b->height &&
             a->y + a->height > b->y);
 }
 
 // Box-to-Box Bounce & Separation Logic
-static void resolve_box_collisions(bouncing_box_t boxes[BOX_COUNT]) {
+static void resolve_box_collisions(bouncing_box_t boxes[BOX_COUNT])
+{
     for (int i = 0; i < BOX_COUNT; i++) {
         for (int j = i + 1; j < BOX_COUNT; j++) {
             bouncing_box_t *b1 = &boxes[i];
             bouncing_box_t *b2 = &boxes[j];
 
-            if (check_box_collision(b1, b2)) {
-                // Calculate overlap depth along both axes
-                int16_t overlap_x1 = (b1->x + b1->width) - b2->x;
-                int16_t overlap_x2 = (b2->x + b2->width) - b1->x;
-                int16_t overlap_x = (overlap_x1 < overlap_x2) ? overlap_x1 : overlap_x2;
+            if (!check_box_collision(b1, b2)) continue;
 
-                int16_t overlap_y1 = (b1->y + b1->height) - b2->y;
-                int16_t overlap_y2 = (b2->y + b2->height) - b1->y;
-                int16_t overlap_y = (overlap_y1 < overlap_y2) ? overlap_y1 : overlap_y2;
+            // Overlap in 32-bit arithmetic
+            int32_t overlap_x1 = (b1->x + b1->width) - b2->x;
+            int32_t overlap_x2 = (b2->x + b2->width) - b1->x;
+            int32_t overlap_x  = (overlap_x1 < overlap_x2) ? overlap_x1 : overlap_x2;
 
-                // Resolve collision along the axis of minimum penetration
-                if (overlap_x < overlap_y) {
-                    // Bounce horizontally
-                    int8_t temp_vx = b1->vx;
-                    b1->vx = b2->vx;
-                    b2->vx = temp_vx;
+            int32_t overlap_y1 = (b1->y + b1->height) - b2->y;
+            int32_t overlap_y2 = (b2->y + b2->height) - b1->y;
+            int32_t overlap_y  = (overlap_y1 < overlap_y2) ? overlap_y1 : overlap_y2;
 
-                    // Push boxes apart so they do not get stuck together
-                    if (b1->x < b2->x) {
-                        b1->x -= overlap_x / 2 + 1;
-                        b2->x += overlap_x / 2 + 1;
-                    } else {
-                        b1->x += overlap_x / 2 + 1;
-                        b2->x -= overlap_x / 2 + 1;
-                    }
+            // Minimum penetration axis
+            if (overlap_x < overlap_y) {
+                // Horizontal bounce
+                int8_t tmp = b1->vx;
+                b1->vx = b2->vx;
+                b2->vx = tmp;
+
+                int32_t push = overlap_x / 2 + 1;
+                if (b1->x < b2->x) {
+                    b1->x -= push;
+                    b2->x += push;
                 } else {
-                    // Bounce vertically
-                    int8_t temp_vy = b1->vy;
-                    b1->vy = b2->vy;
-                    b2->vy = temp_vy;
+                    b1->x += push;
+                    b2->x -= push;
+                }
+            } else {
+                // Vertical bounce
+                int8_t tmp = b1->vy;
+                b1->vy = b2->vy;
+                b2->vy = tmp;
 
-                    // Push boxes apart
-                    if (b1->y < b2->y) {
-                        b1->y -= overlap_y / 2 + 1;
-                        b2->y += overlap_y / 2 + 1;
-                    } else {
-                        b1->y += overlap_y / 2 + 1;
-                        b2->y -= overlap_y / 2 + 1;
-                    }
+                int32_t push = overlap_y / 2 + 1;
+                if (b1->y < b2->y) {
+                    b1->y -= push;
+                    b2->y += push;
+                } else {
+                    b1->y += push;
+                    b2->y -= push;
                 }
             }
+
+            // Clamp immediately after every separation
+            auto clamp = [](bouncing_box_t *b) {
+                if (b->x < 0)                     b->x = 0;
+                if (b->x + b->width > SCREEN_WIDTH)  b->x = SCREEN_WIDTH - b->width;
+                if (b->y < 0)                     b->y = 0;
+                if (b->y + b->height > SCREEN_HEIGHT) b->y = SCREEN_HEIGHT - b->height;
+            };
+            clamp(b1);
+            clamp(b2);
         }
     }
 }
@@ -176,24 +188,23 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
         bouncing_box_t *b = &data->boxes[DT];
         if (!b->container) continue;
 
-        if (b->x <= 0) { 
-            b->x = 0; 
-            b->vx = abs(b->vx); 
+        if (b->x <= 0) {
+            b->x  = 0;
+            b->vx = abs(b->vx);
         } else if (b->x + b->width >= SCREEN_WIDTH) {
-            b->x = SCREEN_WIDTH - b->width;
+            b->x  = SCREEN_WIDTH - b->width;
             b->vx = -abs(b->vx);
         }
 
-        if (b->y <= 0) { 
-            b->y = 0; 
-            b->vy = abs(b->vy); 
+        if (b->y <= 0) {
+            b->y  = 0;
+            b->vy = abs(b->vy);
         } else if (b->y + b->height >= SCREEN_HEIGHT) {
-            b->y = SCREEN_HEIGHT - b->height;
+            b->y  = SCREEN_HEIGHT - b->height;
             b->vy = -abs(b->vy);
         }
 
-        // Apply updated position to LVGL widget container
-        lv_obj_set_pos(b->container, b->x, b->y);
+        lv_obj_set_pos(b->container, (lv_coord_t)b->x, (lv_coord_t)b->y);
     }
 
     //if (telemetry_dirty)
@@ -290,6 +301,8 @@ static void init_telemetry_screen_once(void)
 
         b->container = lv_obj_create(telemetry_scr);
         if (!b->container) return;
+
+        //if ((DT != dtE) && (DT != dtT)) lv_obj_set_hidden(b->container, true);
 
         lv_obj_set_size(b->container, b->width, b->height);
         lv_obj_set_pos(b->container, b->x, b->y);

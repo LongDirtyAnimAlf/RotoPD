@@ -4,10 +4,8 @@
 // Initialize static instance pointer for ISR
 CanOpenNode* CanOpenNode::instance = nullptr;
 
-CanOpenNode::CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate, uint8_t nodeId) :
-    can(10 * 1000 * 1000),
-    intPin(BSP_XL2515_INT_PIN),
-    baudRate(baudRate),
+CanOpenNode::CanOpenNode(uint8_t nodeId) :
+    can(),
     nodeId((nodeId >= 1 && nodeId <= 127) ? nodeId : DEFAULT_NODE_ID),
     nmtState(NMT::Mode::BOOT),
     recv(&can),
@@ -212,21 +210,9 @@ void CanOpenNode::begin() {
     can.begin();
 
     #ifdef ARDUINO_ARCH_RP2040
-    if (MCP2515::ERROR_OK == can.reset()) {
-        can.setBitrate(CAN_250KBPS);
-        can.setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-        //can.enableInterrupt(intPin, ISRhandler);
-        can.enableInterrupt(intPin, NULL);
-        Serial.println("CANopen. MCP2515 Initialized Successfully.");
-        Serial.print("CANopen. Node-ID = 0x");
-        Serial.println(nodeId, HEX);
-    } else {
-        Serial.println("CANopen. MCP2515 Initialize Failure !!!");
-    }
     #endif
 
     #ifdef ARDUINO_ARCH_ESP32
-    
     #endif
 }
 
@@ -234,6 +220,7 @@ void CanOpenNode::begin() {
 bool CanOpenNode::run() {
 
     bool messageavailable = recv.run();
+    //bool messageavailable = recv.CAN->checkRxQueue();
 
     if (nmtOn) {
 
@@ -298,10 +285,14 @@ bool CanOpenNode::run() {
             // Report back
             return (recv.id != 0);
         }
+        else
+        {
+            // Just to be sure.
+            recv.clearMsg();
+        }
     }
 
     return false;
-
 }
 
 // In canOpenNode.cpp
@@ -429,18 +420,18 @@ bool CanOpenNode::sendMsg(const Message &msg, bool prio) {
     cansendmessageframe.can_dlc = msg.dlc;
     memcpy(cansendmessageframe.data, msg.data, 8);
 
-    MCP2515::ERROR error; 
+    CBUSbase::CANERROR error; 
 
     if (prio)
     {
-        error = can.sendMessagePrio(&cansendmessageframe);
+        error = can.sendCANMessagePrio(&cansendmessageframe);
     }
     else
     {
-        error = can.sendMessage(&cansendmessageframe);
+        error = can.sendCANMessage(&cansendmessageframe);
     }
 
-    return (error == MCP2515::ERROR_OK);
+    return (error == CBUSbase::ERROR_OK);
 }
 
 // Write data to an object in the Object Dictionary

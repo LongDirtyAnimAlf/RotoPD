@@ -1,16 +1,15 @@
 #include "receiver.hpp"
 
-static struct can_frame canmessageframe;
-
 // Handle canbus activity
 bool Receiver::run(void) {
   
   bool active = false;
 
-  if (CAN->run())
+  if (CAN->checkCANRxQueue())
   {
     active = true;
-    if (CAN->readMessage(&canmessageframe) == MCP2515::ERROR_OK)
+    can_frame canmessageframe;
+    if (CAN->readCANMessage(&canmessageframe) == CBUSbase::ERROR_OK)
     {
       id = canmessageframe.can_id;
       dlc = canmessageframe.can_dlc;
@@ -22,7 +21,7 @@ bool Receiver::run(void) {
     else
     {
       active = false;
-      //Serial.println("Strange reception error !");
+      Serial.println("Very strange receiver reception error !!!");
     }
   }
   else active = false; 

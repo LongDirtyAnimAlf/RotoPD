@@ -49,9 +49,6 @@ public:
     bool checkConnection(const Message* MsgExt);
     bool isConnected(void);
 
-    bool checkTxBuffer();
-    bool checkRxBuffer();
-
 private:
     CanOpenNode * _node;
     uint8_t _channel;

@@ -2,7 +2,6 @@
 
 #ifdef ARDUINO_ARCH_RP2040
 
-#include "hardware/spi.h"
 #include "mcp2515.h"
 
 #define BSP_XL2515_SPI_PORT spi0
@@ -12,21 +11,20 @@
 #define BSP_XL2515_CS_PIN 5
 
 const struct MCP2515::TXBn_REGS MCP2515::TXB[MCP2515::N_TXBUFFERS] = {
-    {MCP_TXB0CTRL, MCP_TXB0SIDH, MCP_TXB0DATA, CANINTF_TX0IF},
-    {MCP_TXB1CTRL, MCP_TXB1SIDH, MCP_TXB1DATA, CANINTF_TX1IF},
-    {MCP_TXB2CTRL, MCP_TXB2SIDH, MCP_TXB2DATA, CANINTF_TX2IF}
+    {INSTRUCTION_LOAD_TX0, INSTRUCTION_RTS_TX0, MCP_TXB0CTRL, MCP_TXB0SIDH, MCP_TXB0DATA},
+    {INSTRUCTION_LOAD_TX1, INSTRUCTION_RTS_TX1, MCP_TXB1CTRL, MCP_TXB1SIDH, MCP_TXB1DATA},
+    {INSTRUCTION_LOAD_TX2, INSTRUCTION_RTS_TX2, MCP_TXB2CTRL, MCP_TXB2SIDH, MCP_TXB2DATA}
 };
 
 const struct MCP2515::RXBn_REGS MCP2515::RXB[N_RXBUFFERS] = {
-    {MCP_RXB0CTRL, MCP_RXB0SIDH, MCP_RXB0DATA, CANINTF_RX0IF},
-    {MCP_RXB1CTRL, MCP_RXB1SIDH, MCP_RXB1DATA, CANINTF_RX1IF}
+    {INSTRUCTION_READ_RX0, MCP_RXB0CTRL, MCP_RXB0SIDH, MCP_RXB0DATA, CANINTF_RX0IF},
+    {INSTRUCTION_READ_RX1, MCP_RXB1CTRL, MCP_RXB1SIDH, MCP_RXB1DATA, CANINTF_RX1IF}
 };
+
 
 MCP2515::MCP2515(const uint32_t _SPI_CLOCK)
 {
     SPI_CLOCK = _SPI_CLOCK;
-    _rxQueueDropCount = 0;
-    _rxHardwareOverflowCount = 0;
     _intPin = -1;
 }
 
@@ -45,6 +43,16 @@ void MCP2515::begin()
 
     gpio_set_dir(BSP_XL2515_INT_PIN, GPIO_IN);
     gpio_pull_up(BSP_XL2515_INT_PIN);
+
+
+    // We apply this to the outputs: SCK, MOSI, and CS
+    uint spi_outputs[] = {BSP_XL2515_SCLK_PIN, BSP_XL2515_MOSI_PIN, BSP_XL2515_CS_PIN};
+    
+    for (int i = 0; i < 3; i++) {
+        gpio_set_slew_rate(spi_outputs[i], GPIO_SLEW_RATE_FAST);
+        gpio_set_drive_strength(spi_outputs[i], GPIO_DRIVE_STRENGTH_8MA);
+    }    
+
 }
 
 void MCP2515_ISR_ATTR MCP2515::startSPI() const {
@@ -73,6 +81,7 @@ MCP2515::ERROR MCP2515::reset(void)
     setRegister(MCP_RXB1CTRL, 0);
 
     setRegister(MCP_CANINTE, (CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF | CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF));
+    //setRegister(MCP_CANINTE, (CANINTF_RX0IF | CANINTF_RX1IF | CANINTF_ERRIF));
 
     // receives all valid messages using either Standard or Extended Identifiers that
     // meet filter criteria. RXF0 is applied for RXB0, RXF1 is applied for RXB1
@@ -103,234 +112,7 @@ MCP2515::ERROR MCP2515::reset(void)
         }
     }
 
-    _txQueue.clear();
-    _txQueuePrio.clear();
-    _rxQueue.clear();
-    _rxQueueDropCount = 0;
-    _rxHardwareOverflowCount = 0;
-
     return ERROR_OK;
-}
-
-bool MCP2515::checkInterrupt(void)
-{
-    return (run());
-    //return false;
-
-    bool result = false;
-
-    if (_intPin < 0)
-    {
-        // Interrupt pin not enabled → fall back to register polling
-        // Read the IF register
-        uint8_t canintf = getInterrupts();
-        result = ((canintf & (CANINTF_RX0IF | CANINTF_RX1IF)));
-        //result = (canintf != 0);
-    }
-    else
-    {
-        result = (digitalRead(_intPin) == LOW);
-    }
-
-    if (result)
-    {
-        //Serial.println("MCP2515 interrupt !!.");
-        return true;
-    }    
-    return false;    
-}
-
-bool MCP2515::run(bool single)
-{
-    uint8_t canintf = 0;
-    uint8_t eflg = 0;
-
-    if (_intPin < 0)
-    {
-        // Interrupt pin not enabled → fall back to register polling
-
-        // Read the IF register
-        canintf = getInterrupts();
-
-        // Check IOCD bits
-        // Only works if individual RX interrups are enabled !!
-        //uint8_t res = getStatus();
-        //messagePending = ((res & STAT_RXIF_MASK) != 0);
-    }
-    else
-    if  (digitalRead(_intPin) == LOW)
-    {
-        // We have an interrupt !!
-        //Serial.println("IntPin low.");
-        canintf = getInterrupts();
-    }
-
-    if (canintf != 0)
-    {
-        struct can_frame frame;
-        ERROR rc = ERROR_NOMSG;
-
-        //Serial.printf("Register canintf: %d.\r\n",canintf);        
-
-        //Serial.println("Got MCP2515 interrupt !");
-
-        // First, handle errors
-
-        if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
-        {
-            if (canintf & CANINTF_MERRF)
-            {
-                Serial.println("Message error interrupt.");
-            }
-
-            if (canintf & CANINTF_ERRIF)
-            {
-                Serial.println("General Error interrupt.");
-            }
-
-            eflg = readRegister(MCP_EFLG);
-
-            if(eflg & EFLG_RX0OVR){
-                Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
-                canintf |= (CANINTF_RX0IF); // force a read action
-            }
-
-            if(eflg & EFLG_RX1OVR){
-                Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
-                canintf |= (CANINTF_RX1IF); // force a read action
-            }
-
-            /*
-            if(eflg & EFLG_TXBO){
-                Serial.println("TXBO: bus off interrupt.");
-            }
-
-            if(eflg & EFLG_TXEP){
-                Serial.println("TXEP: transmit error-passive interrupt.");
-            }
-                
-            if(eflg & EFLG_RXEP){
-                Serial.println("RXEP: receive error-passive interrupt.");
-            }
-
-            if(eflg & EFLG_TXWAR){
-                Serial.println("TXWAR: transmit error warning interrupt.");
-            }
-
-            if(eflg & EFLG_RXWAR){
-                Serial.println("RXWAR: receive error warning interrupt.");
-            }
-
-            if(eflg & EFLG_EWARN){
-                Serial.println("EWARN: error warning interrupt.");
-            }
-
-            if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR))
-            {
-                _rxHardwareOverflowCount++;
-                Serial.println("Clearing overflow flags");
-                clearRXnOVRFlags();
-                //modifyRegister(MCP_EFLG, eflg & (EFLG_RX0OVR | EFLG_RX1OVR), 0);
-            }
-
-            if (eflg & (EFLG_RXEP | EFLG_TXEP | EFLG_TXBO | EFLG_RXWAR | EFLG_TXWAR))
-            {
-                //uint8_t tec  = errorCountTX();
-                //uint8_t rec  = errorCountRX();
-
-                // TXEP / RXEP (error-passive, TEC/REC ≥ 128)
-                // TXWAR / RXWAR / EWARN (warning, TEC/REC ≥ 96)
-                // EFLG_TXBO (bus-off, TEC ≥ 256)
-                if (eflg & EFLG_TXBO)
-                {
-                    // Very severe error
-                    // Might need a system reset !
-                    Serial.println("Severe recovering needed interrupt.");
-                }
-                else
-                { 
-                    Serial.println("Normal recovering needed interrupt.");
-                }
-                abortAllPending();
-                if (eflg & EFLG_TXBO) setOperatingMode(MCP2515::CAN_MODE_CONFIG);
-                //modifyRegister(MCP_EFLG, EFLG_RXWAR | EFLG_EWARN, 0);
-                clearErrorFlags();
-                clearRXnOVRFlags();
-                clearInterrupts();
-                if (eflg & EFLG_TXBO) setOperatingMode(MCP2515::CAN_MODE_NORMAL);
-            }        
-            */
-        }
-
-        while (canintf & (CANINTF_RX0IF | CANINTF_RX1IF))
-        {
-            //Serial.println("RX interrupt.");
-
-            if (canintf & CANINTF_RX0IF)
-            {
-                //Serial.println("RX0 interrupt.");
-                // This readMessage function also clears the CANINTF_RX0IF flag !!
-                rc = readMessage(RXB0, &frame);
-                if (rc != ERROR_OK) Serial.println("RX0 interrupt could not read message.");                                
-                if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
-            }
-
-            if (canintf & CANINTF_RX1IF)
-            {
-                //Serial.println("RX1 interrupt.");                
-                // This readMessage function also clears the CANINTF_RX1IF flag !!            
-                rc = readMessage(RXB1, &frame);
-                if (rc != ERROR_OK) Serial.println("RX1 interrupt could not read message.");                
-                if ((rc == ERROR_OK) && (!_rxQueue.isFull())) _rxQueue.push(frame);
-            }
-
-            if (single) break;
-
-            canintf = getInterrupts();
-        }
-
-        if (eflg & (EFLG_RX0OVR | EFLG_RX1OVR)){
-            clearRXnOVRFlags();
-        }
-
-        /*
-        if (canintf & (CANINTF_ERRIF | CANINTF_MERRF))
-        {
-            modifyRegister(MCP_CANINTF, (CANINTF_ERRIF | CANINTF_MERRF), 0);
-        }
-        */
-       
-        if (canintf & CANINTF_ERRIF)
-        {
-            clearERRIF();
-        }
-        if (canintf & CANINTF_MERRF)
-        {
-            clearMERR();
-        }
-
-        if (canintf & (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF))
-        {
-            //if (canintf & CANINTF_TX0IF) Serial.println("TX0 interrupt.");
-            //if (canintf & CANINTF_TX1IF) Serial.println("TX1 interrupt.");
-            //if (canintf & CANINTF_TX2IF) Serial.println("TX2 interrupt.");
-
-            // This flag indicates that we can send a message !!
-            modifyRegister(MCP_CANINTF, (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF), 0);
-
-            processTxQueue();
-        }
-
-
-        
-    }
-
-    return (_rxQueue.getCount() > 0);
-}
-
-bool MCP2515::checkRxQueue(void)
-{
-    return (_rxQueue.getCount() > 0);
 }
 
 void MCP2515::enableInterrupt(int intPin, void (*callback)(void))
@@ -355,6 +137,31 @@ void MCP2515::disableInterrupt(void)
     }
 }
 
+bool __not_in_flash_func(MCP2515::checkInterrupt)(void)
+{
+    bool result = false;
+
+    if (_intPin < 0)
+    {
+        // Interrupt pin not enabled → fall back to register polling
+        // Read the IF register
+        uint8_t canintf = getInterrupts();
+        result = ((canintf & (CANINTF_RX0IF | CANINTF_RX1IF)));
+        //result = (canintf != 0);
+    }
+    else
+    {
+        result = (digitalRead(_intPin) == LOW);
+    }
+
+    if (result)
+    {
+        //Serial.println("MCP2515 interrupt !!.");
+        return true;
+    }    
+    return false;    
+}
+
 uint8_t MCP2515::readRegister(const REGISTER reg) const
 {
     uint8_t data = 0;
@@ -371,6 +178,14 @@ void MCP2515::readRegisters(const REGISTER reg, uint8_t values[], const uint8_t 
     uint8_t buf[2] = {INSTRUCTION_READ, reg};
     startSPI();
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, 2);
+    spi_read_blocking(BSP_XL2515_SPI_PORT, 0, values, n);
+    endSPI();
+}
+
+void MCP2515::readRegisters(const INSTRUCTION inst, uint8_t values[], const uint8_t n) const
+{
+    startSPI();
+    spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){inst}, 1);
     spi_read_blocking(BSP_XL2515_SPI_PORT, 0, values, n);
     endSPI();
 }
@@ -394,6 +209,16 @@ void MCP2515::setRegisters(const REGISTER reg, const uint8_t values[], const uin
     endSPI();
 }
 
+void MCP2515::setRegisters(const INSTRUCTION inst, const uint8_t values[], const uint8_t n)
+{
+    uint8_t buf[n + 1];
+    buf[0] = (const uint8_t)inst;
+    if (n > 0) memcpy(buf + 1, values, n);
+    startSPI();
+    spi_write_blocking(BSP_XL2515_SPI_PORT, buf, n + 1);
+    endSPI();
+}
+
 void MCP2515::modifyRegister(const REGISTER reg, const uint8_t mask, const uint8_t data)
 {
     uint8_t buf[4] = {INSTRUCTION_BITMOD, reg, mask, data};
@@ -412,19 +237,34 @@ uint8_t MCP2515::getStatus(void) const
     return data;
 }
 
-MCP2515::ERROR MCP2515::setOperatingMode(const CAN_MODE mode)
+MCP2515::ERROR MCP2515::setConfigMode()
 {
-    CANCTRL_REQOP_MODE hwMode;
-    switch (mode) {
-        case CAN_MODE_CONFIG:     hwMode = CANCTRL_REQOP_CONFIG; break;
-        case CAN_MODE_NORMAL:     hwMode = CANCTRL_REQOP_NORMAL; break;
-        case CAN_MODE_LOOPBACK:   hwMode = CANCTRL_REQOP_LOOPBACK; break;
-        case CAN_MODE_LISTEN_ONLY: hwMode = CANCTRL_REQOP_LISTENONLY; break;
-        case CAN_MODE_SLEEP:      hwMode = CANCTRL_REQOP_SLEEP; break;
-        case CAN_MODE_ONE_SHOT:   hwMode = CANCTRL_REQOP_OSM; break;
-        default:                  return ERROR_FAIL;
-    }
-    return setMode(hwMode);
+    return setMode(CANCTRL_REQOP_CONFIG);
+}
+
+MCP2515::ERROR MCP2515::setListenOnlyMode()
+{
+    return setMode(CANCTRL_REQOP_LISTENONLY);
+}
+
+MCP2515::ERROR MCP2515::setSleepMode()
+{
+    return setMode(CANCTRL_REQOP_SLEEP);
+}
+
+MCP2515::ERROR MCP2515::setLoopbackMode()
+{
+    return setMode(CANCTRL_REQOP_LOOPBACK);
+}
+
+MCP2515::ERROR MCP2515::setNormalMode()
+{
+    return setMode(CANCTRL_REQOP_NORMAL);
+}
+
+MCP2515::ERROR MCP2515::setNormalOneShotMode()
+{
+    return setMode(CANCTRL_REQOP_OSM);
 }
 
 MCP2515::ERROR MCP2515::setMode(const CANCTRL_REQOP_MODE mode)
@@ -437,10 +277,7 @@ MCP2515::ERROR MCP2515::setMode(const CANCTRL_REQOP_MODE mode)
         uint8_t newmode = readRegister(MCP_CANSTAT);
         newmode &= CANSTAT_OPMOD;
 
-        // OSM bit (0x08) is not reflected in CANSTAT's OPMOD field (0xE0).
-        // When ONE_SHOT is requested, the chip reports NORMAL (0x00) mode.
-        // Mask non-opmode bits so the compare works for all modes.
-        modeMatch = newmode == (mode & CANSTAT_OPMOD);
+        modeMatch = newmode == mode;
 
         if (modeMatch) {
             break;
@@ -456,112 +293,298 @@ MCP2515::ERROR MCP2515::setBitrate(const CAN_SPEED canSpeed)
     return setBitrate(canSpeed, MCP_16MHZ);
 }
 
-// ---------------------------------------------------------------------------
-// Bit timing lookup tables - ACAN2515 algorithm, corrected values
-// CNF1 = ((SJW-1)<<6)|(BRP-1)
-// CNF2 = 0x80|(SAM<<6)|((PS1-1)<<3)|(PropSeg-1)  [BTLMODE always set]
-// CNF3 = (PS2-1)
-// Unsupported entries: {0x00, 0x00, 0x00}  (CNF3=0 means PS2=1 which violates
-//   the MCP2515 datasheet minimum PS2>=2, so this sentinel is unambiguous)
-// ---------------------------------------------------------------------------
-
-struct BitTimingEntry { uint8_t speed, cfg1, cfg2, cfg3; };
-
-static const BitTimingEntry BIT_TIMING_8MHz[16] = {
-    {CAN_5KBPS,    0xDF, 0xFF, 0x07},  // BRP=32 TQ=25 sample=68.0%
-    {CAN_10KBPS,   0xCF, 0xFF, 0x07},  // BRP=16 TQ=25 sample=68.0%
-    {CAN_20KBPS,   0xC7, 0xFF, 0x07},  // BRP=8  TQ=25 sample=68.0%
-    {CAN_31K25BPS, 0xC7, 0xE4, 0x04},  // BRP=8  TQ=16 sample=68.75%
-    {CAN_33KBPS,   0xC4, 0xF7, 0x07},  // BRP=5  TQ=24 ~33333bps sample=66.7%
-    {CAN_40KBPS,   0xC3, 0xFF, 0x07},  // BRP=4  TQ=25 sample=68.0%
-    {CAN_50KBPS,   0xC3, 0xED, 0x06},  // BRP=4  TQ=20 sample=65.0%
-    {CAN_80KBPS,   0xC1, 0xFF, 0x07},  // BRP=2  TQ=25 sample=68.0%
-    {CAN_83K3BPS,  0xC1, 0xF7, 0x07},  // BRP=2  TQ=24 ~83333bps sample=66.7%
-    {CAN_95KBPS,   0xC1, 0xEE, 0x06},  // BRP=2  TQ=21 ~95238bps sample=66.7%
-    {CAN_100KBPS,  0xC1, 0xED, 0x06},  // BRP=2  TQ=20 sample=65.0%
-    {CAN_125KBPS,  0xC1, 0xE4, 0x04},  // BRP=2  TQ=16 sample=68.75% [CBUS]
-    {CAN_200KBPS,  0xC0, 0xAD, 0x06},  // BRP=1  TQ=20 sample=65.0%
-    {CAN_250KBPS,  0xC0, 0xA4, 0x04},  // BRP=1  TQ=16 sample=68.75%
-    {CAN_500KBPS,  0x40, 0x89, 0x02},  // BRP=1  TQ=8  sample=62.5%
-    {CAN_1000KBPS, 0x00, 0x00, 0x00},  // unsupported (PS2<2 at any valid BRP)
-};
-
-static const BitTimingEntry BIT_TIMING_16MHz[16] = {
-    {CAN_5KBPS,    0xFF, 0xFF, 0x07},  // BRP=64 TQ=25 sample=68.0%
-    {CAN_10KBPS,   0xDF, 0xFF, 0x07},  // BRP=32 TQ=25 sample=68.0%
-    {CAN_20KBPS,   0xCF, 0xFF, 0x07},  // BRP=16 TQ=25 sample=68.0%
-    {CAN_31K25BPS, 0xCF, 0xE4, 0x04},  // BRP=16 TQ=16 sample=68.75%
-    {CAN_33KBPS,   0xC9, 0xF7, 0x07},  // BRP=10 TQ=24 ~33333bps sample=66.7%
-    {CAN_40KBPS,   0xC7, 0xFF, 0x07},  // BRP=8  TQ=25 sample=68.0%
-    {CAN_50KBPS,   0xC7, 0xED, 0x06},  // BRP=8  TQ=20 sample=65.0%
-    {CAN_80KBPS,   0xC3, 0xFF, 0x07},  // BRP=4  TQ=25 sample=68.0%
-    {CAN_83K3BPS,  0xC3, 0xF7, 0x07},  // BRP=4  TQ=24 ~83333bps sample=66.7%
-    {CAN_95KBPS,   0xC3, 0xEE, 0x06},  // BRP=4  TQ=21 ~95238bps sample=66.7%
-    {CAN_100KBPS,  0xC3, 0xED, 0x06},  // BRP=4  TQ=20 sample=65.0%
-    {CAN_125KBPS,  0xC3, 0xE4, 0x04},  // BRP=4  TQ=16 sample=68.75% [CBUS]
-    {CAN_200KBPS,  0xC1, 0xAD, 0x06},  // BRP=2  TQ=20 sample=65.0%
-    {CAN_250KBPS,  0xC1, 0xA4, 0x04},  // BRP=2  TQ=16 sample=68.75%
-    {CAN_500KBPS,  0xC0, 0xA4, 0x04},  // BRP=1  TQ=16 sample=68.75%
-    {CAN_1000KBPS, 0x40, 0x89, 0x02},  // BRP=1  TQ=8  sample=62.5%
-};
-
-static const BitTimingEntry BIT_TIMING_20MHz[16] = {
-    {CAN_5KBPS,    0x00, 0x00, 0x00},  // unsupported (needs BRP=80 > max 64)
-    {CAN_10KBPS,   0xE7, 0xFF, 0x07},  // BRP=40 TQ=25 sample=68.0%
-    {CAN_20KBPS,   0xCF, 0xFF, 0x07},  // BRP=20 TQ=25 sample=68.0%
-    {CAN_31K25BPS, 0xCF, 0xE4, 0x04},  // BRP=20 TQ=16 sample=68.75%
-    {CAN_33KBPS,   0xCB, 0xFF, 0x07},  // BRP=12 TQ=25 ~33333bps sample=68.0%
-    {CAN_40KBPS,   0xC9, 0xFF, 0x07},  // BRP=10 TQ=25 sample=68.0%
-    {CAN_50KBPS,   0xC7, 0xFF, 0x07},  // BRP=8  TQ=25 sample=68.0%
-    {CAN_80KBPS,   0xC4, 0xFF, 0x07},  // BRP=5  TQ=25 sample=68.0%
-    {CAN_83K3BPS,  0xC4, 0xF7, 0x07},  // BRP=5  TQ=24 ~83333bps sample=66.7%
-    {CAN_95KBPS,   0xC4, 0xEE, 0x06},  // BRP=5  TQ=21 ~95238bps sample=66.7%
-    {CAN_100KBPS,  0xC3, 0xFF, 0x07},  // BRP=4  TQ=25 sample=68.0%
-    {CAN_125KBPS,  0xC4, 0xE4, 0x04},  // BRP=5  TQ=16 sample=68.75% [CBUS]
-    {CAN_200KBPS,  0xC1, 0xBF, 0x07},  // BRP=2  TQ=25 sample=68.0%
-    {CAN_250KBPS,  0xC1, 0xAD, 0x06},  // BRP=2  TQ=20 sample=65.0%
-    {CAN_500KBPS,  0xC0, 0xAD, 0x06},  // BRP=1  TQ=20 sample=65.0%
-    {CAN_1000KBPS, 0x40, 0x92, 0x02},  // BRP=1  TQ=10 sample=70.0%
-};
-
 MCP2515::ERROR MCP2515::setBitrate(const CAN_SPEED canSpeed, CAN_CLOCK canClock)
 {
-    ERROR error = setMode(CANCTRL_REQOP_CONFIG);
+    ERROR error = setConfigMode();
     if (error != ERROR_OK) {
         return error;
     }
 
-    const BitTimingEntry *table;
-    switch (canClock) {
-        case MCP_8MHZ:  table = BIT_TIMING_8MHz;  break;
-        case MCP_16MHZ: table = BIT_TIMING_16MHz; break;
-        case MCP_20MHZ: table = BIT_TIMING_20MHz; break;
-        default: return ERROR_FAIL;
+    uint8_t set, cfg1, cfg2, cfg3;
+    set = 1;
+    switch (canClock)
+    {
+        case (MCP_8MHZ):
+        switch (canSpeed)
+        {
+            case (CAN_5KBPS):                                               //   5KBPS
+            cfg1 = MCP_8MHz_5kBPS_CFG1;
+            cfg2 = MCP_8MHz_5kBPS_CFG2;
+            cfg3 = MCP_8MHz_5kBPS_CFG3;
+            break;
+
+            case (CAN_10KBPS):                                              //  10KBPS
+            cfg1 = MCP_8MHz_10kBPS_CFG1;
+            cfg2 = MCP_8MHz_10kBPS_CFG2;
+            cfg3 = MCP_8MHz_10kBPS_CFG3;
+            break;
+
+            case (CAN_20KBPS):                                              //  20KBPS
+            cfg1 = MCP_8MHz_20kBPS_CFG1;
+            cfg2 = MCP_8MHz_20kBPS_CFG2;
+            cfg3 = MCP_8MHz_20kBPS_CFG3;
+            break;
+
+            case (CAN_31K25BPS):                                            //  31.25KBPS
+            cfg1 = MCP_8MHz_31k25BPS_CFG1;
+            cfg2 = MCP_8MHz_31k25BPS_CFG2;
+            cfg3 = MCP_8MHz_31k25BPS_CFG3;
+            break;
+
+            case (CAN_33KBPS):                                              //  33.333KBPS
+            cfg1 = MCP_8MHz_33k3BPS_CFG1;
+            cfg2 = MCP_8MHz_33k3BPS_CFG2;
+            cfg3 = MCP_8MHz_33k3BPS_CFG3;
+            break;
+
+            case (CAN_40KBPS):                                              //  40Kbps
+            cfg1 = MCP_8MHz_40kBPS_CFG1;
+            cfg2 = MCP_8MHz_40kBPS_CFG2;
+            cfg3 = MCP_8MHz_40kBPS_CFG3;
+            break;
+
+            case (CAN_50KBPS):                                              //  50Kbps
+            cfg1 = MCP_8MHz_50kBPS_CFG1;
+            cfg2 = MCP_8MHz_50kBPS_CFG2;
+            cfg3 = MCP_8MHz_50kBPS_CFG3;
+            break;
+
+            case (CAN_80KBPS):                                              //  80Kbps
+            cfg1 = MCP_8MHz_80kBPS_CFG1;
+            cfg2 = MCP_8MHz_80kBPS_CFG2;
+            cfg3 = MCP_8MHz_80kBPS_CFG3;
+            break;
+
+            case (CAN_100KBPS):                                             // 100Kbps
+            cfg1 = MCP_8MHz_100kBPS_CFG1;
+            cfg2 = MCP_8MHz_100kBPS_CFG2;
+            cfg3 = MCP_8MHz_100kBPS_CFG3;
+            break;
+
+            case (CAN_125KBPS):                                             // 125Kbps
+            cfg1 = MCP_8MHz_125kBPS_CFG1;
+            cfg2 = MCP_8MHz_125kBPS_CFG2;
+            cfg3 = MCP_8MHz_125kBPS_CFG3;
+            break;
+
+            case (CAN_200KBPS):                                             // 200Kbps
+            cfg1 = MCP_8MHz_200kBPS_CFG1;
+            cfg2 = MCP_8MHz_200kBPS_CFG2;
+            cfg3 = MCP_8MHz_200kBPS_CFG3;
+            break;
+
+            case (CAN_250KBPS):                                             // 250Kbps
+            cfg1 = MCP_8MHz_250kBPS_CFG1;
+            cfg2 = MCP_8MHz_250kBPS_CFG2;
+            cfg3 = MCP_8MHz_250kBPS_CFG3;
+            break;
+
+            case (CAN_500KBPS):                                             // 500Kbps
+            cfg1 = MCP_8MHz_500kBPS_CFG1;
+            cfg2 = MCP_8MHz_500kBPS_CFG2;
+            cfg3 = MCP_8MHz_500kBPS_CFG3;
+            break;
+
+            case (CAN_1000KBPS):                                            //   1Mbps
+            cfg1 = MCP_8MHz_1000kBPS_CFG1;
+            cfg2 = MCP_8MHz_1000kBPS_CFG2;
+            cfg3 = MCP_8MHz_1000kBPS_CFG3;
+            break;
+
+            default:
+            set = 0;
+            break;
+        }
+        break;
+
+        case (MCP_16MHZ):
+        switch (canSpeed)
+        {
+            case (CAN_5KBPS):                                               //   5Kbps
+            cfg1 = MCP_16MHz_5kBPS_CFG1;
+            cfg2 = MCP_16MHz_5kBPS_CFG2;
+            cfg3 = MCP_16MHz_5kBPS_CFG3;
+            break;
+
+            case (CAN_10KBPS):                                              //  10Kbps
+            cfg1 = MCP_16MHz_10kBPS_CFG1;
+            cfg2 = MCP_16MHz_10kBPS_CFG2;
+            cfg3 = MCP_16MHz_10kBPS_CFG3;
+            break;
+
+            case (CAN_20KBPS):                                              //  20Kbps
+            cfg1 = MCP_16MHz_20kBPS_CFG1;
+            cfg2 = MCP_16MHz_20kBPS_CFG2;
+            cfg3 = MCP_16MHz_20kBPS_CFG3;
+            break;
+
+            case (CAN_33KBPS):                                              //  33.333Kbps
+            cfg1 = MCP_16MHz_33k3BPS_CFG1;
+            cfg2 = MCP_16MHz_33k3BPS_CFG2;
+            cfg3 = MCP_16MHz_33k3BPS_CFG3;
+            break;
+
+            case (CAN_40KBPS):                                              //  40Kbps
+            cfg1 = MCP_16MHz_40kBPS_CFG1;
+            cfg2 = MCP_16MHz_40kBPS_CFG2;
+            cfg3 = MCP_16MHz_40kBPS_CFG3;
+            break;
+
+            case (CAN_50KBPS):                                              //  50Kbps
+            cfg1 = MCP_16MHz_50kBPS_CFG1;
+            cfg2 = MCP_16MHz_50kBPS_CFG2;
+            cfg3 = MCP_16MHz_50kBPS_CFG3;
+            break;
+
+            case (CAN_80KBPS):                                              //  80Kbps
+            cfg1 = MCP_16MHz_80kBPS_CFG1;
+            cfg2 = MCP_16MHz_80kBPS_CFG2;
+            cfg3 = MCP_16MHz_80kBPS_CFG3;
+            break;
+
+            case (CAN_83K3BPS):                                             //  83.333Kbps
+            cfg1 = MCP_16MHz_83k3BPS_CFG1;
+            cfg2 = MCP_16MHz_83k3BPS_CFG2;
+            cfg3 = MCP_16MHz_83k3BPS_CFG3;
+            break;
+
+            case (CAN_95KBPS):                                              //  95Kbps
+            cfg1 = MCP_16MHz_95kBPS_CFG1;
+            cfg2 = MCP_16MHz_95kBPS_CFG2;
+            cfg3 = MCP_16MHz_95kBPS_CFG3;
+            break;
+
+            case (CAN_100KBPS):                                             // 100Kbps
+            cfg1 = MCP_16MHz_100kBPS_CFG1;
+            cfg2 = MCP_16MHz_100kBPS_CFG2;
+            cfg3 = MCP_16MHz_100kBPS_CFG3;
+            break;
+
+            case (CAN_125KBPS):                                             // 125Kbps
+            cfg1 = MCP_16MHz_125kBPS_CFG1;
+            cfg2 = MCP_16MHz_125kBPS_CFG2;
+            cfg3 = MCP_16MHz_125kBPS_CFG3;
+            break;
+
+            case (CAN_200KBPS):                                             // 200Kbps
+            cfg1 = MCP_16MHz_200kBPS_CFG1;
+            cfg2 = MCP_16MHz_200kBPS_CFG2;
+            cfg3 = MCP_16MHz_200kBPS_CFG3;
+            break;
+
+            case (CAN_250KBPS):                                             // 250Kbps
+            cfg1 = MCP_16MHz_250kBPS_CFG1;
+            cfg2 = MCP_16MHz_250kBPS_CFG2;
+            cfg3 = MCP_16MHz_250kBPS_CFG3;
+            break;
+
+            case (CAN_500KBPS):                                             // 500Kbps
+            cfg1 = MCP_16MHz_500kBPS_CFG1;
+            cfg2 = MCP_16MHz_500kBPS_CFG2;
+            cfg3 = MCP_16MHz_500kBPS_CFG3;
+            break;
+
+            case (CAN_1000KBPS):                                            //   1Mbps
+            cfg1 = MCP_16MHz_1000kBPS_CFG1;
+            cfg2 = MCP_16MHz_1000kBPS_CFG2;
+            cfg3 = MCP_16MHz_1000kBPS_CFG3;
+            break;
+
+            default:
+            set = 0;
+            break;
+        }
+        break;
+
+        case (MCP_20MHZ):
+        switch (canSpeed)
+        {
+            case (CAN_33KBPS):                                              //  33.333Kbps
+            cfg1 = MCP_20MHz_33k3BPS_CFG1;
+            cfg2 = MCP_20MHz_33k3BPS_CFG2;
+            cfg3 = MCP_20MHz_33k3BPS_CFG3;
+	    break;
+
+            case (CAN_40KBPS):                                              //  40Kbps
+            cfg1 = MCP_20MHz_40kBPS_CFG1;
+            cfg2 = MCP_20MHz_40kBPS_CFG2;
+            cfg3 = MCP_20MHz_40kBPS_CFG3;
+            break;
+
+            case (CAN_50KBPS):                                              //  50Kbps
+            cfg1 = MCP_20MHz_50kBPS_CFG1;
+            cfg2 = MCP_20MHz_50kBPS_CFG2;
+            cfg3 = MCP_20MHz_50kBPS_CFG3;
+            break;
+
+            case (CAN_80KBPS):                                              //  80Kbps
+            cfg1 = MCP_20MHz_80kBPS_CFG1;
+            cfg2 = MCP_20MHz_80kBPS_CFG2;
+            cfg3 = MCP_20MHz_80kBPS_CFG3;
+            break;
+
+            case (CAN_83K3BPS):                                             //  83.333Kbps
+            cfg1 = MCP_20MHz_83k3BPS_CFG1;
+            cfg2 = MCP_20MHz_83k3BPS_CFG2;
+            cfg3 = MCP_20MHz_83k3BPS_CFG3;
+	    break;
+
+            case (CAN_100KBPS):                                             // 100Kbps
+            cfg1 = MCP_20MHz_100kBPS_CFG1;
+            cfg2 = MCP_20MHz_100kBPS_CFG2;
+            cfg3 = MCP_20MHz_100kBPS_CFG3;
+            break;
+
+            case (CAN_125KBPS):                                             // 125Kbps
+            cfg1 = MCP_20MHz_125kBPS_CFG1;
+            cfg2 = MCP_20MHz_125kBPS_CFG2;
+            cfg3 = MCP_20MHz_125kBPS_CFG3;
+            break;
+
+            case (CAN_200KBPS):                                             // 200Kbps
+            cfg1 = MCP_20MHz_200kBPS_CFG1;
+            cfg2 = MCP_20MHz_200kBPS_CFG2;
+            cfg3 = MCP_20MHz_200kBPS_CFG3;
+            break;
+
+            case (CAN_250KBPS):                                             // 250Kbps
+            cfg1 = MCP_20MHz_250kBPS_CFG1;
+            cfg2 = MCP_20MHz_250kBPS_CFG2;
+            cfg3 = MCP_20MHz_250kBPS_CFG3;
+            break;
+
+            case (CAN_500KBPS):                                             // 500Kbps
+            cfg1 = MCP_20MHz_500kBPS_CFG1;
+            cfg2 = MCP_20MHz_500kBPS_CFG2;
+            cfg3 = MCP_20MHz_500kBPS_CFG3;
+            break;
+
+            case (CAN_1000KBPS):                                            //   1Mbps
+            cfg1 = MCP_20MHz_1000kBPS_CFG1;
+            cfg2 = MCP_20MHz_1000kBPS_CFG2;
+            cfg3 = MCP_20MHz_1000kBPS_CFG3;
+            break;
+
+            default:
+            set = 0;
+            break;
+        }
+        break;
+
+        default:
+        set = 0;
+        break;
     }
 
-    const BitTimingEntry &e = table[canSpeed];
-    if (e.speed != canSpeed || (e.cfg1 == 0 && e.cfg2 == 0 && e.cfg3 == 0)) {
+    if (set) {
+        setRegister(MCP_CNF1, cfg1);
+        setRegister(MCP_CNF2, cfg2);
+        setRegister(MCP_CNF3, cfg3);
+        return ERROR_OK;
+    }
+    else {
         return ERROR_FAIL;
     }
-
-    setRegister(MCP_CNF1, e.cfg1);
-    setRegister(MCP_CNF2, e.cfg2);
-    setRegister(MCP_CNF3, e.cfg3);
-    return ERROR_OK;
-}
-
-MCP2515::ERROR MCP2515::setBitTiming(uint8_t cnf1, uint8_t cnf2, uint8_t cnf3)
-{
-    ERROR error = setMode(CANCTRL_REQOP_CONFIG);
-    if (error != ERROR_OK) {
-        return error;
-    }
-
-    setRegister(MCP_CNF1, cnf1);
-    setRegister(MCP_CNF2, cnf2);
-    setRegister(MCP_CNF3, cnf3);
-
-    return ERROR_OK;
 }
 
 MCP2515::ERROR MCP2515::setClkOut(const CAN_CLKOUT divisor)
@@ -608,7 +631,7 @@ void MCP2515::prepareId(uint8_t *buffer, const bool ext, const uint32_t id)
 
 MCP2515::ERROR MCP2515::setFilterMask(const MASK mask, const bool ext, const uint32_t ulData)
 {
-    ERROR res = setMode(CANCTRL_REQOP_CONFIG);
+    ERROR res = setConfigMode();
     if (res != ERROR_OK) {
         return res;
     }
@@ -631,7 +654,7 @@ MCP2515::ERROR MCP2515::setFilterMask(const MASK mask, const bool ext, const uin
 
 MCP2515::ERROR MCP2515::setFilter(const RXF num, const bool ext, const uint32_t ulData)
 {
-    ERROR res = setMode(CANCTRL_REQOP_CONFIG);
+    ERROR res = setConfigMode();
     if (res != ERROR_OK) {
         return res;
     }
@@ -670,9 +693,6 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
     bool rtr = (frame->can_id & CAN_RTR_FLAG);
     uint32_t id = (frame->can_id & (ext ? CAN_EFF_MASK : CAN_SFF_MASK));
 
-    // Clear the corresponding IF
-    modifyRegister(MCP_CANINTF, txbuf->CANINTF_TXnIF, 0);
-
     prepareId(data, ext, id);
 
     data[MCP_DLC] = rtr ? (frame->can_dlc | RTR_MASK) : frame->can_dlc;
@@ -681,7 +701,6 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
 
     setRegisters(txbuf->SIDH, data, 5 + frame->can_dlc);
 
-    // Request the message to be send
     modifyRegister(txbuf->CTRL, TXB_TXREQ, TXB_TXREQ);
 
     uint8_t ctrl = readRegister(txbuf->CTRL);
@@ -691,157 +710,108 @@ MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *fra
     return ERROR_OK;
 }
 
-MCP2515::ERROR MCP2515::sendMessageDirect(const struct can_frame *frame)
+/*
+MCP2515::ERROR MCP2515::sendMessage(const TXBn txbn, const struct can_frame *frame)
 {
     if (frame->can_dlc > CAN_MAX_DLEN) {
         return ERROR_FAILTX;
     }
 
-    //TXBn txBuffers[N_TXBUFFERS] = {TXB0, TXB1, TXB2};
-    // Priority ; TXB2 first ... TXB0 last 
+    const struct TXBn_REGS *txbuf = &TXB[txbn];
+
+    uint8_t data[13] = {0};
+
+    bool ext = (frame->can_id & CAN_EFF_FLAG);
+    bool rtr = (frame->can_id & CAN_RTR_FLAG);
+    uint32_t id = (frame->can_id & (ext ? CAN_EFF_MASK : CAN_SFF_MASK));
+
+    prepareId(data, ext, id);
+
+    data[MCP_DLC] = rtr ? (frame->can_dlc | RTR_MASK) : frame->can_dlc;
+
+    memcpy(&data[MCP_DATA], frame->data, frame->can_dlc);
+
+    setRegisters(txbuf->WRITE, data, 5 + frame->can_dlc);
+    setRegisters(txbuf->CONFIRM, NULL, 0);
+
+    return ERROR_OK;
+}
+*/
+
+MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
+{
+    if (frame->can_dlc > CAN_MAX_DLEN) {
+        return ERROR_FAILTX;
+    }
+
+    TXBn txBuffers = TXB2;
+
+    const struct TXBn_REGS *txbuf = &TXB[txBuffers];
+    uint8_t ctrlval = readRegister(txbuf->CTRL);
+    if ( (ctrlval & TXB_TXREQ) == 0 ) {
+        //Serial.println("MCP2515: TXB2 ready to send.");
+        return sendMessage(txBuffers, frame);
+    }
+    //Serial.printf("MCP2515: Testing failure TXB2 ready to send: %d\n", ctrlval);
+
+    return ERROR_ALLTXBUSY;
+}
+
+MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
+{
+    if (frame->can_dlc > CAN_MAX_DLEN) {
+        return ERROR_FAILTX;
+    }
+
     TXBn txBuffers[2] = {TXB1, TXB0};
 
     for (int i=0; i<2; i++) {
         const struct TXBn_REGS *txbuf = &TXB[txBuffers[i]];
         uint8_t ctrlval = readRegister(txbuf->CTRL);
         if ( (ctrlval & TXB_TXREQ) == 0 ) {
+            //Serial.printf("MCP2515: TXB%d ready to send.\n", i);
             return sendMessage(txBuffers[i], frame);
         }
+        //Serial.printf("MCP2515: Testing failure TXB%d ready to send: %d\n", i, ctrlval);
     }
 
     return ERROR_ALLTXBUSY;
-}
-
-MCP2515::ERROR MCP2515::sendMessageDirectPrio(const struct can_frame *frame)
-{
-    if (frame->can_dlc > CAN_MAX_DLEN) {
-        return ERROR_FAILTX;
-    }
-
-    const struct TXBn_REGS *txbuf = &TXB[TXB2];
-    uint8_t ctrlval = readRegister(txbuf->CTRL);
-    if ( (ctrlval & TXB_TXREQ) == 0 ) {
-        return sendMessage(TXB2, frame);
-    }
-
-    return ERROR_ALLTXBUSY;
-}
-
-
-MCP2515::ERROR MCP2515::sendMessage(const struct can_frame *frame)
-{
-    bool enqueued = _txQueue.push(*frame);
-
-    if (enqueued) {
-        processTxQueue();
-        return ERROR_OK;
-    }
-
-    return ERROR_ALLTXBUSY;
-}
-
-MCP2515::ERROR MCP2515::sendMessagePrio(const struct can_frame *frame)
-{
-    bool enqueued = _txQueuePrio.push(*frame);
-
-    if (enqueued) {
-        processTxQueue();
-        return ERROR_OK;
-    }
-
-    return ERROR_ALLTXBUSY;
-}
-
-
-bool MCP2515::processTxQueue(void)
-{
-    struct can_frame frame;
-
-    while (_txQueuePrio.peek(frame)) {
-        ERROR result = sendMessageDirectPrio(&frame);
-        if (result != ERROR_OK) {
-            return false;
-        }
-        //Serial.println("MCP2515: Send prio message ok.");
-        _txQueuePrio.pop(frame);
-    }
-
-
-    while (_txQueue.peek(frame)) {
-        ERROR result = sendMessageDirect(&frame);
-        if (result != ERROR_OK) {
-            return false;
-        }
-        //Serial.println("MCP2515: Send normal message ok.");        
-        _txQueue.pop(frame);
-    }
-
-    return ((!_txQueuePrio.isEmpty()) && (!_txQueue.isEmpty()));
-}
-
-MCP2515::ERROR MCP2515::abortMessage(const TXBn txbn)
-{
-    if (txbn > TXB2) {
-        return ERROR_FAIL;
-    }
-
-    const struct TXBn_REGS *txbuf = &TXB[txbn];
-    // Clear TXREQ to request abort of this buffer
-    modifyRegister(txbuf->CTRL, TXB_TXREQ, 0);
-    return ERROR_OK;
-}
-
-MCP2515::ERROR MCP2515::abortAllPending(bool withqueues)
-{
-    // Request abort of all pending transmit buffers
-    modifyRegister(MCP_CANCTRL, CANCTRL_ABAT, CANCTRL_ABAT);
-
-    // Wait until all TXREQ bits are clear (short timeout)
-    unsigned long endTime = millis() + 10;
-    bool allClear = false;
-
-    while (millis() < endTime) {
-        uint8_t ctrl0 = readRegister(MCP_TXB0CTRL);
-        uint8_t ctrl1 = readRegister(MCP_TXB1CTRL);
-        uint8_t ctrl2 = readRegister(MCP_TXB2CTRL);
-
-        if (((ctrl0 | ctrl1 | ctrl2) & TXB_TXREQ) == 0) {
-            allClear = true;
-            break;
-        }
-    }
-
-    // MUST clear ABAT before new transmits are accepted
-    modifyRegister(MCP_CANCTRL, CANCTRL_ABAT, 0);
-
-    if (allClear && withqueues)
-    {
-        _txQueue.clear();
-        _txQueuePrio.clear();
-    }
-
-    return allClear ? ERROR_OK : ERROR_FAIL;
-}
-
-// Static matcher used by removeQueuedMessage (function-pointer friendly)
-static uint32_t s_removeCanId;
-static bool matchCanId(const struct can_frame& f)
-{
-    return f.can_id == s_removeCanId;
-}
-
-bool MCP2515::removeQueuedMessage(uint32_t can_id)
-{
-    s_removeCanId = can_id;
-
-    bool removed = _txQueue.removeIf(matchCanId);
-
-    return removed;
 }
 
 MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
 {
     const struct RXBn_REGS *rxb = &RXB[rxbn];
+
+    uint8_t tbufdata[5+8] = {0};
+
+    readRegisters(rxb->READ, tbufdata, sizeof(tbufdata));
+
+    /*
+    startSPI();
+    spi_write_blocking(BSP_XL2515_SPI_PORT, (const uint8_t[]){rxb->READ}, 1);
+    spi_read_blocking(BSP_XL2515_SPI_PORT, 0, tbufdata, sizeof(tbufdata));
+    endSPI();
+    */
+
+    uint32_t id = (tbufdata[MCP_SIDH]<<3) + (tbufdata[MCP_SIDL]>>5);
+
+    if ( (tbufdata[MCP_SIDL] & TXB_EXIDE_MASK) ==  TXB_EXIDE_MASK ) {
+        id = (id<<2) + (tbufdata[MCP_SIDL] & 0x03);
+        id = (id<<8) + tbufdata[MCP_EID8];
+        id = (id<<8) + tbufdata[MCP_EID0];
+        id |= CAN_EFF_FLAG;
+    }
+
+    uint8_t dlc = (tbufdata[MCP_DLC] & DLC_MASK);
+    if (dlc > CAN_MAX_DLEN) {
+        return ERROR_FAIL;
+    }
+
+    frame->can_id = id;
+    frame->can_dlc = dlc;
+    memcpy(frame->data, &tbufdata[MCP_DATA], 8);
+
+    /*
 
     uint8_t tbufdata[5];
 
@@ -873,118 +843,51 @@ MCP2515::ERROR MCP2515::readMessage(const RXBn rxbn, struct can_frame *frame)
 
     modifyRegister(MCP_CANINTF, rxb->CANINTF_RXnIF, 0);
 
+    */
+
     return ERROR_OK;
 }
 
 MCP2515::ERROR MCP2515::readMessage(struct can_frame *frame)
 {
-    bool dequeued = _rxQueue.pop(*frame);
+    ERROR rc;
+    uint8_t stat = getStatus();
 
-    if (dequeued) {
-        return ERROR_OK;
+    if ( stat & STAT_RX0IF ) {
+        rc = readMessage(RXB0, frame);
+    } else if ( stat & STAT_RX1IF ) {
+        rc = readMessage(RXB1, frame);
+    } else {
+        rc = ERROR_NOMSG;
     }
-    return ERROR_NOMSG;
+
+    return rc;
+}
+
+bool MCP2515::checkReceive(void)
+{
+    uint8_t res = getStatus();
+    if ( res & STAT_RXIF_MASK ) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool MCP2515::checkError(void)
 {
-    // Interrupts are not enabled → fall back to hardware polling        
-    if (_intPin < 0)
-    {
-        uint8_t canintf = getErrorFlags();
+    uint8_t eflg = getErrorFlags();
 
-        /*
-        if ( canintf & EFLG_ERRORMASK ) {
-            return true;
-        } else {
-            return false;
-        }
-        */            
-        //return (canintf & (CANINTF_ERRIF | CANINTF_MERRF));
-        return (canintf & CANINTF_ERRIF);
+    if ( eflg & EFLG_ERRORMASK ) {
+        return true;
+    } else {
+        return false;
     }
-
-    return false;
 }
 
-uint8_t MCP2515::drainRxBuffers(bool insideInterupt)
+uint8_t MCP2515::getErrorFlags(void)
 {
-    uint8_t drained = 0;
-    struct can_frame frame;
-
-    while (true) {
-        bool queueFull = _rxQueue.isFull();
-
-        if (queueFull) break;
-
-        uint8_t stat = getStatus();
-        ERROR rc = ERROR_NOMSG;
-
-        if (stat & STAT_RX0IF) {
-            rc = readMessage(RXB0, &frame);
-        } else if (stat & STAT_RX1IF) {
-            rc = readMessage(RXB1, &frame);
-        }
-
-        if (rc != ERROR_OK) break;
-
-        if (_rxQueue.push(frame)) {
-            drained++;
-        } else {
-            _rxQueueDropCount++;
-            break;
-        }
-    }
-
-    return drained;
-}
-
-uint8_t MCP2515::getErrorFlags(void) const
-{
-    uint8_t u8ErrorFlag = readRegister(MCP_EFLG);
-
-    /*
-    if(u8ErrorFlag & EFLG_RX1OVR){
-        Serial.println("MCP2515 error RX1OVR: receive buffer 1 overflow");
-    }
-
-    if(u8ErrorFlag & EFLG_RX0OVR){
-        Serial.println("MCP2515 error RX0OVR: receive buffer 0 overflow");
-    }
-
-    if(u8ErrorFlag & EFLG_TXBO){
-        Serial.println("MCP2515 error TXBO: bus off");
-    }
-
-    if(u8ErrorFlag & EFLG_TXEP){
-        Serial.println("MCP2515 error TXEP: transmit error-passive");
-    }
-        
-    if(u8ErrorFlag & EFLG_RXEP){
-        Serial.println("MCP2515 error RXEP: receive error-passive");
-    }
-
-    if(u8ErrorFlag & EFLG_TXWAR){
-        Serial.println("MCP2515 error TXWAR: transmit error warning");
-    }
-
-    if(u8ErrorFlag & EFLG_RXWAR){
-        Serial.println("MCP2515 error RXWAR: receive error warning ");
-        Serial.printf("TX count: %d. RX count: %d\r\n",errorCountTX(),errorCountRX());
-    }
-
-    if(u8ErrorFlag & EFLG_EWARN){
-        Serial.println("MCP2515 error EWARN: error warning ");
-        Serial.printf("TX count: %d. RX count: %d\r\n",errorCountTX(),errorCountRX());
-    }
-    */
-
-    return u8ErrorFlag;
-}
-
-void MCP2515::clearErrorFlags(void)
-{
-    return setRegister(MCP_EFLG, 0);
+    return readRegister(MCP_EFLG);
 }
 
 uint8_t MCP2515::getControlRegister(void) 
@@ -994,31 +897,7 @@ uint8_t MCP2515::getControlRegister(void)
 
 void MCP2515::clearRXnOVRFlags(void)
 {
-    modifyRegister(MCP_EFLG, EFLG_RX0OVR | EFLG_RX1OVR, 0);
-}
-
-void MCP2515::clearInterrupts(void)
-{
-    setRegister(MCP_CANINTF, 0);
-}
-
-void MCP2515::clearRXnOVR(void)
-{
-    uint8_t eflg = getErrorFlags();
-    if (eflg != 0) {
-        clearRXnOVRFlags();
-        clearInterrupts();
-    }
-}
-
-void MCP2515::clearMERR()
-{
-    modifyRegister(MCP_CANINTF, CANINTF_MERRF, 0);
-}
-
-void MCP2515::clearERRIF()
-{
-    modifyRegister(MCP_CANINTF, CANINTF_ERRIF, 0);
+	modifyRegister(MCP_EFLG, EFLG_RX0OVR | EFLG_RX1OVR, 0);
 }
 
 uint8_t MCP2515::getInterrupts(void)
@@ -1026,31 +905,54 @@ uint8_t MCP2515::getInterrupts(void)
     return readRegister(MCP_CANINTF);
 }
 
+void MCP2515::clearInterrupts(void)
+{
+    setRegister(MCP_CANINTF, 0);
+}
+
 uint8_t MCP2515::getInterruptMask(void)
 {
     return readRegister(MCP_CANINTE);
 }
 
-uint8_t MCP2515::errorCountRX(void) const
+void MCP2515::clearTXInterrupts(void)
+{
+    modifyRegister(MCP_CANINTF, (CANINTF_TX0IF | CANINTF_TX1IF | CANINTF_TX2IF), 0);
+}
+
+void MCP2515::clearRXnOVR(void)
+{
+	uint8_t eflg = getErrorFlags();
+	if (eflg != 0) {
+		clearRXnOVRFlags();
+		clearInterrupts();
+		//modifyRegister(MCP_CANINTF, CANINTF_ERRIF, 0);
+	}
+	
+}
+
+void MCP2515::clearMERR()
+{
+	//modifyRegister(MCP_EFLG, EFLG_RX0OVR | EFLG_RX1OVR, 0);
+	//clearInterrupts();
+	modifyRegister(MCP_CANINTF, CANINTF_MERRF, 0);
+}
+
+void MCP2515::clearERRIF()
+{
+    //modifyRegister(MCP_EFLG, EFLG_RX0OVR | EFLG_RX1OVR, 0);
+    //clearInterrupts();
+    modifyRegister(MCP_CANINTF, CANINTF_ERRIF, 0);
+}
+
+uint8_t MCP2515::errorCountRX(void)                             
 {
     return readRegister(MCP_REC);
 }
 
-uint8_t MCP2515::errorCountTX(void) const
+uint8_t MCP2515::errorCountTX(void)                             
 {
     return readRegister(MCP_TEC);
-}
-
-uint16_t MCP2515::getRxQueueDropCount() const
-{
-    return _rxQueueDropCount;
-    //_rxQueueDropCount = 0;
-}
-
-uint16_t MCP2515::getRxHardwareOverflowCount() const
-{
-    return _rxHardwareOverflowCount;
-    //_rxHardwareOverflowCount = 0;    
 }
 
 #endif

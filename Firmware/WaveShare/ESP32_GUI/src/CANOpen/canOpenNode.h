@@ -2,12 +2,11 @@
 #define CAN_OPEN_NODE_H
 
 #ifdef ARDUINO_ARCH_RP2040
-#include "./../RP2350/CAN/mcp2515.h"
+#include "./../CAN/CANRP2350.h"
 #endif
 
 #ifdef ARDUINO_ARCH_ESP32
-#include "./../ESP32/CAN/ESP32-TWAI-CAN.hpp"
-typedef TwaiCAN MCP2515;
+#include "./../CAN/CANESP32.h"
 #define BSP_XL2515_INT_PIN -1
 #endif
 
@@ -23,25 +22,28 @@ typedef TwaiCAN MCP2515;
 class CanOpenNode {
 public:
     /**
-     * @param csPin    MCP2515 chip-select pin
-     * @param intPin   MCP2515 interrupt pin
-     * @param baudRate (kept for future use / compatibility)
      * @param nodeId   CANopen Node-ID (1 .. 127). Defaults to DEFAULT_NODE_ID.
      */
-    CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate,
-                uint8_t nodeId = DEFAULT_NODE_ID);
+    CanOpenNode(uint8_t nodeId = DEFAULT_NODE_ID);
 
-    // Initialize the MCP2515 CAN controller and set up the node
+    // Initialize the CAN controller and set up the node
     void begin();
 
     // Run core communication loop
     bool run();
 
     const Message& getMessage() const { return recv; }
+    Message& getMessage() { return recv; }
+    
     void clearMessage() { recv.clearMsg(); }
 
-    const MCP2515& getCAN() const { return can; }
-    MCP2515& getCAN() { return can; }  
+    #ifdef ARDUINO_ARCH_RP2040
+    const MCP2515& getMCP2515() const { return can.getMCP2515(); }
+    MCP2515& getMCP2515() { return can.getMCP2515(); }  
+    #endif
+
+    const CBUSDevice& getCAN() const { return can; }
+    CBUSDevice& getCAN() { return can; }  
 
     void clear(PDO::Type type, uint8_t num, uint8_t position);
     void clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);
@@ -98,9 +100,7 @@ public:
     void disableMapping(bool disable) { mappingOn = !disable; }
 
 private:
-    MCP2515 can;
-    const uint8_t intPin;
-    const uint8_t baudRate;
+    CBUSDevice can;
     uint8_t nodeId;                     // runtime Node-ID (1-127)
 
     // Calculated COB-IDs (CiA 301 pre-defined connection set)

@@ -5,6 +5,10 @@
 //#include <new> // Required for placement new
 
 #if defined(ARDUINO_ARCH_ESP32)
+  #include "freertos/FreeRTOS.h"
+  #include "freertos/semphr.h"
+  #include "esp_heap_caps.h"
+
   // --- ESP32 TRANSLATION LAYER ---
   typedef SemaphoreHandle_t mutex_t;
 
@@ -45,57 +49,91 @@ private:
     uint16_t head = 0;
     uint16_t tail = 0;
     uint16_t count = 0;
+    bool is_spiram = false; // Tracks allocation strategy for proper deallocation
 
     // mutable so const methods can lock
     mutable mutex_t queue_mutex;
 
 public:
-    CircularDataQueue() : head(0), tail(0), count(0) {
+    CircularDataQueue() : head(0), tail(0), count(0), is_spiram(false) {
         mutex_init(&queue_mutex);
-        // Use standard malloc or generic pvPortMalloc/pmalloc depending on framework
-        #ifdef ARDUINO_ARCH_RP2040        
-        frames = (T*)pmalloc(SIZE * sizeof(T));
+        
+        if (SIZE < 100) {
+            frames = (T*)malloc(SIZE * sizeof(T));
+        }
+        #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+        if (frames == NULL) {
+            frames = (T*)pmalloc(SIZE * sizeof(T));
+        }
         #endif
         #if defined(ARDUINO_ARCH_ESP32)
-        frames = (T*)heap_caps_aligned_alloc(4, (SIZE * sizeof(T)) , MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+        if (frames == NULL) {
+            frames = (T*)heap_caps_aligned_alloc(4, (SIZE * sizeof(T)), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+            if (frames != NULL) is_spiram = true;
+        }
         #endif
+        if (frames == NULL) {
+            frames = (T*)malloc(SIZE * sizeof(T)); // Final fallback to standard heap
+        }
     }
 
     ~CircularDataQueue() {
         if (frames) {
-            // Explicitly destroy any remaining live objects before freeing memory
             clear();
+            #if defined(ARDUINO_ARCH_ESP32)
+            if (is_spiram) {
+                heap_caps_free(frames);
+            } else {
+                free(frames);
+            }
+            #else
             free(frames);
+            #endif
         }
     }
 
-    // CRITICAL FIX: Prevent C++ from shallow-copying the mutex or raw pointers
+    // Prevent copying or moving instances
     CircularDataQueue(const CircularDataQueue&) = delete;
     CircularDataQueue& operator=(const CircularDataQueue&) = delete;
     CircularDataQueue(CircularDataQueue&&) = delete;
     CircularDataQueue& operator=(CircularDataQueue&&) = delete;
 
     // ---------- write side ----------
-    bool push(const T& item) {
+    
+    // Base method that supports both overwrite and reject modes
+    bool pushTimeout(const T& item, uint32_t timeout_ms, bool overwriteIfFull = false) {
+        if (!mutex_enter_timeout_ms(&queue_mutex, timeout_ms)) {
+            return false; // Timed out waiting for mutex
+        }
+
         if (!frames) return false;
 
-        mutex_enter_blocking(&queue_mutex);
-
         if (count >= SIZE) {
-            // Explicitly call destructor of the item being overwritten
-            //frames[head].~T();
-            head = (head + 1) % SIZE;
+            if (!overwriteIfFull) {
+                mutex_exit(&queue_mutex);
+                return false; // Reject when full
+            }
+            head = (head + 1) % SIZE; // Overwrite oldest item
         } else {
             count++;
         }
-        
+
         lastItem = item;
-        //::new (static_cast<void*>(&frames[tail])) T(item); // Use placement new to construct the object in memory safely
-        frames[tail] = item; // Perfectly safe for POD structs
+        frames[tail] = item;
         tail = (tail + 1) % SIZE;
 
         mutex_exit(&queue_mutex);
         return true;
+    }
+
+    // Blocking Push: Waits indefinitely, ALWAYS succeeds by overwriting if full
+    bool push(const T& item) {
+        return pushTimeout(item, UINT32_MAX, true);
+    }
+
+    // Non-blocking Push: Fails instantly if locked or full (no overwrite)
+    bool tryPush(const T& item) {
+        return pushTimeout(item, 0, false);
     }
 
     // ---------- read side ----------
@@ -103,6 +141,7 @@ public:
         mutex_enter_blocking(&queue_mutex);
 
         if (count == 0) {
+            item = T{};
             mutex_exit(&queue_mutex);
             return false;
         }
@@ -120,6 +159,7 @@ public:
         mutex_enter_blocking(&queue_mutex);
 
         if (count == 0) {
+            item = T{};
             mutex_exit(&queue_mutex);
             return false;
         }
@@ -147,14 +187,17 @@ public:
     void clear() {
         mutex_enter_blocking(&queue_mutex);
         // Call destructors for all live items remaining in the queue
+        /*
         while (count > 0) {
             //frames[head].~T();
             head = (head + 1) % SIZE;
             count--;
         }
+        */
         head = 0;
         tail = 0;
         count = 0;
+        lastItem = T{};
         mutex_exit(&queue_mutex);
     }
 

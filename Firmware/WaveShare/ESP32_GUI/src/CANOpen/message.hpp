@@ -1,6 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include <cstring> // Required for memset
 #include "object.hpp"
 
 // Generic message type
@@ -23,7 +24,8 @@ class Message {
     id(id), 
     dlc(dlc) 
   {
-    memset(data, 0, sizeof(data));
+    //memset(data, 0, sizeof(data));
+    std::memset(data, 0, sizeof(data));
   };
 
   void clearMsg();
@@ -37,7 +39,9 @@ class Message {
   uint8_t getSubID() const;
   uint32_t getData() const;
 
-  virtual ~Message() {}; 
+  //virtual ~Message() {};
+  // Standard, non-virtual destructor lets the compiler treat this class as plain data
+  ~Message() = default;    
 };
 
 #endif
