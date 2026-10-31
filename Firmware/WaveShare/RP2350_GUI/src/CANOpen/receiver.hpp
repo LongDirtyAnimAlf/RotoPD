@@ -7,6 +7,10 @@
 #include "./../CAN/CANRP2350.h"
 #endif
 
+#ifdef ARDUINO_ARCH_ESP32
+#include "./../CAN/CANESP32.h"
+#endif
+
 // Receiver message type
 struct Receiver : public Message {
   CBUSbase *CAN;

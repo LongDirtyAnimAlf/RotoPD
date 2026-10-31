@@ -30,32 +30,32 @@ Object dictionary[] = {
     // sub 03h = Inhibit time (units of 100 µs, default 0 = disabled)
     // sub 05h = Event timer (ms, default 500ms)
     // ------------------------------------------------------------------
-    {TX_PDO1_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
+    {TX_PDO01_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
     // Bit 31: Valid/Invalid (0=Valid, 1=Invalid)
     // Bit 30: RTR Enable (0=RTR allowed, 1=RTR forbidden)
     // Bit 29: Frame Type (0=11-bit, 1=29-bit) 
     // Bits 0-10: Actual CAN Identifier = NodeID.
     // COB-ID (e.g., 40000181h: rtr invalid/disabled by default until operational at NodeID = 1)   
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_COB_ID,            {(uint8_t)((CO_CAN_ID_TPDO_1 + DEFAULT_NODE_ID) & 0xFF), (uint8_t)((CO_CAN_ID_TPDO_1 + DEFAULT_NODE_ID) >> 8), 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ},
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},  // Transmission Type
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},  // Inhibit Time (in 100 µs steps)
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_RESERVED,          {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Compatibility entry (Reserved / 0x00)
-    {TX_PDO1_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO1_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO1_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},   // Event Timer (500 milliseconds)
+    {TX_PDO01_COMM_INDEX, SUBIDX_PDO_COB_ID,            {(uint8_t)((CO_CAN_ID_TPDO_1 + DEFAULT_NODE_ID) & 0xFF), (uint8_t)((CO_CAN_ID_TPDO_1 + DEFAULT_NODE_ID) >> 8), 0x00, 0x40}, DataType::UINT32, ObjectPermissions::READ},
+    {TX_PDO01_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},  // Transmission Type
+    {TX_PDO01_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},  // Inhibit Time (in 100 µs steps)
+    {TX_PDO01_COMM_INDEX, SUBIDX_PDO_RESERVED,          {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Compatibility entry (Reserved / 0x00)
+    {TX_PDO01_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO1_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO1_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},   // Event Timer (500 milliseconds)
 
-    {TX_PDO2_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
-    {TX_PDO2_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO2_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO2_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO2_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
+    {TX_PDO02_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
+    {TX_PDO02_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {TX_PDO02_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
+    {TX_PDO02_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO2_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO2_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
-    {TX_PDO3_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
-    {TX_PDO3_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO3_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {TX_PDO3_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO3_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO3_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
+    {TX_PDO03_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
+    {TX_PDO03_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {TX_PDO03_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
+    {TX_PDO03_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO3_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO3_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
-    {TX_PDO4_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
-    {TX_PDO4_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    {TX_PDO4_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
-    {TX_PDO4_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO4_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO4_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
+    {TX_PDO04_COMM_INDEX, SUBIDX_HIGHEST_SUPPORTED,     {0x05, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ},   // Highest sub-index supported
+    {TX_PDO04_COMM_INDEX, SUBIDX_PDO_TRANSMISSION_TYPE, {PDO_TXTYPE_ASYNC_DEVICE_PROFILE, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {TX_PDO04_COMM_INDEX, SUBIDX_PDO_INHIBIT_TIME,      {0x00, 0x00, 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE},
+    {TX_PDO04_COMM_INDEX, SUBIDX_PDO_EVENT_TIMER,       {(uint8_t)(PDO4_TX_CYCLE_TIME & 0xFF), (uint8_t)(PDO4_TX_CYCLE_TIME >> 8), 0x00, 0x00}, DataType::UINT16, ObjectPermissions::READ_WRITE}, // 500 ms
 
     // ------------------------------------------------------------------
     // RPDO Communication Parameters (CiA 301)
@@ -119,20 +119,20 @@ Object dictionary[] = {
     // ------------------------------------------------------------------
     // Device specific TPDO mapping parameters
     // ------------------------------------------------------------------
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    // TPDO1 Mapping -> ACTUAL_VOLTAGE (0x6080:00) + ACTUAL_CURRENT (0x6081:00)
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_VOLTAGE & 0xFF), (uint8_t)(ACTUAL_VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO1_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_CURRENT & 0xFF), (uint8_t)(ACTUAL_CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO01_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x02, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // TPDO01 Mapping -> ACTUAL_VOLTAGE (0x6080:00) + ACTUAL_CURRENT (0x6081:00)
+    {TX_PDO01_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_VOLTAGE & 0xFF), (uint8_t)(ACTUAL_VOLTAGE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO01_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_CURRENT & 0xFF), (uint8_t)(ACTUAL_CURRENT >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x03, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
-    // TPDO2 Mapping -> ACTUAL_POWER (0x6082:00) + STATUSWORD (0x6041:00) + LOAD_OUTPUT_ENABLE (0x6044:00)
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_POWER & 0xFF), (uint8_t)(ACTUAL_POWER >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_UINT16, SUBIDX_DEFAULT, (uint8_t)(STATUSWORD & 0xFF), (uint8_t)(STATUSWORD >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
-    {TX_PDO2_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_UINT8, SUBIDX_DEFAULT, (uint8_t)(LOAD_OUTPUT_ENABLE & 0xFF), (uint8_t)(LOAD_OUTPUT_ENABLE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO02_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x03, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    // TPDO02 Mapping -> ACTUAL_POWER (0x6082:00) + STATUSWORD (0x6041:00) + LOAD_OUTPUT_ENABLE (0x6044:00)
+    {TX_PDO02_MAPPING_INDEX, SUBIDX_PDO_MAP_1,     {SIZE_BIT_INT32, SUBIDX_DEFAULT, (uint8_t)(ACTUAL_POWER & 0xFF), (uint8_t)(ACTUAL_POWER >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO02_MAPPING_INDEX, SUBIDX_PDO_MAP_2,     {SIZE_BIT_UINT16, SUBIDX_DEFAULT, (uint8_t)(STATUSWORD & 0xFF), (uint8_t)(STATUSWORD >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
+    {TX_PDO02_MAPPING_INDEX, SUBIDX_PDO_MAP_3,     {SIZE_BIT_UINT8, SUBIDX_DEFAULT, (uint8_t)(LOAD_OUTPUT_ENABLE & 0xFF), (uint8_t)(LOAD_OUTPUT_ENABLE >> 8)}, DataType::UINT32, ObjectPermissions::READ_WRITE},
 
-    {TX_PDO3_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {TX_PDO03_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
 
-    {TX_PDO4_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
+    {TX_PDO04_MAPPING_INDEX, SUBIDX_PDO_MAP_COUNT, {0x00, 0x00, 0x00, 0x00}, DataType::UINT8,  ObjectPermissions::READ_WRITE},
 
     // ------------------------------------------------------------------
     // Device specific RPDO mapping parameters

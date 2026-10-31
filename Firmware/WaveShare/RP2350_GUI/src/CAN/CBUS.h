@@ -46,9 +46,9 @@ public:
   uint32_t getCANTxQueueDepth(void) {return CanTxBuffer.getCount();}
   uint32_t getCANTxPrioQueueDepth(void) {return CanTxPrioBuffer.getCount();}
 
-  bool checkCANRxQueue(void) {return (CanRxBuffer.getCount() != 0);}
+  bool checkCANRxQueue(void) {return ( !CanRxBuffer.isEmpty() );}
   bool getCANTxFull(void) {return ( CanTxBuffer.isFull() || CanTxPrioBuffer.isFull() );}
-  bool getCANRxFull(void) {return CanRxBuffer.isFull();}
+  bool getCANRxFull(void) {return ( CanRxBuffer.isFull() );}
 protected:                                          // protected members become private in derived classes
 //private:
   CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;

@@ -711,7 +711,7 @@ void loop1() {
 
   static unsigned long startTimeLoop1 = millis();
   static uint32_t loop1counter = 0;
-  static uint32_t datacounter = 0;
+  static int32_t datacounter = 0;
 
   counterCore1++;
   //counterCore1.fetch_add(1);
@@ -723,15 +723,18 @@ void loop1() {
     startTimeLoop1 = millis();
 
     //Serial.printf("Loop1: %d\n",loop1counter++);
-    Serial.printf("Loop1 datacounter: %d\n",datacounter);
+    Serial.printf("Loop1 net datacounter: %d\n",datacounter);
+    datacounter = node.getCAN().getCANRxQueueDepth();    
+    Serial.printf("Loop1 abs datacounter: %d\n",datacounter);
 
     datacounter = 0;
   }
 
   //mutex_enter_blocking(&can_mutex);
-  uint32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
+  int32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
   node.getCAN().taskCAN();
-  datacounter += (node.getCAN().getCANRxQueueDepth() - rxdatacount);
+  rxdatacount = node.getCAN().getCANRxQueueDepth() - rxdatacount;
+  datacounter += rxdatacount;
   //mutex_exit(&can_mutex);  
   //yield();
   //delay(1);

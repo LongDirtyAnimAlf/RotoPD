@@ -7,7 +7,3 @@
 #include "./src/ESP32/CH32/WS_CH32_IO.h"
 #endif
 #endif
-
-#ifdef ARDUINO_ARCH_RP2040
-#include "./src/RP2350/CAN/mcp2515.h"
-#endif

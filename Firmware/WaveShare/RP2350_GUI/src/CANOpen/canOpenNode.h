@@ -5,6 +5,10 @@
 #include "./../CAN/CANRP2350.h"
 #endif
 
+#ifdef ARDUINO_ARCH_ESP32
+#include "./../CAN/CANESP32.h"
+#endif
+
 #include "../../config.h"
 #include "message.hpp"
 #include "receiver.hpp"
@@ -17,13 +21,9 @@
 class CanOpenNode {
 public:
     /**
-     * @param csPin    MCP2515 chip-select pin
-     * @param intPin   MCP2515 interrupt pin
-     * @param baudRate (kept for future use / compatibility)
      * @param nodeId   CANopen Node-ID (1 .. 127). Defaults to DEFAULT_NODE_ID.
      */
-    CanOpenNode(uint8_t csPin, uint8_t intPin, uint8_t baudRate,
-                uint8_t nodeId = DEFAULT_NODE_ID);
+    CanOpenNode(uint8_t nodeId = DEFAULT_NODE_ID);
 
     // Initialize the CAN controller and set up the node
     void begin();
@@ -41,8 +41,8 @@ public:
     MCP2515& getMCP2515() { return can.getMCP2515(); }  
     #endif
 
-    const CBUSRP2350Device& getCAN() const { return can; }
-    CBUSRP2350Device& getCAN() { return can; }  
+    const CBUSDevice& getCAN() const { return can; }
+    CBUSDevice& getCAN() { return can; }  
 
     void clear(PDO::Type type, uint8_t num, uint8_t position);
     void clear(PDO::Type type, uint8_t num, uint16_t index, uint8_t subIndex);
@@ -99,11 +99,7 @@ public:
     void disableMapping(bool disable) { mappingOn = !disable; }
 
 private:
-    #ifdef ARDUINO_ARCH_RP2040
-    CBUSRP2350Device can;
-    #endif
-    const uint8_t intPin;
-    const uint8_t baudRate;
+    CBUSDevice can;
     uint8_t nodeId;                     // runtime Node-ID (1-127)
 
     // Calculated COB-IDs (CiA 301 pre-defined connection set)
