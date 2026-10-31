@@ -3,6 +3,7 @@
 
 //#ifdef ARDUINO_ARCH_RP2040
 
+#include <atomic>
 #include "./CBUS.h"
 #include "./../RP2350/CAN/mcp2515.h"
 #include "pico/mutex.h"
@@ -35,7 +36,8 @@ private:
   const uint8_t _intPin;
   mutex_t can_mutex;
 
-  volatile bool HandleTxMessages;
+  //volatile bool HandleTxMessages;
+  std::atomic<bool> HandleTxMessages;
 
   bool processTxQueue(void);
 };

@@ -219,7 +219,7 @@ void CanOpenNode::begin() {
 }
 
 // Run function to handle the core communication loop with NMT handling
-bool CanOpenNode::run() {
+bool __not_in_flash_func(CanOpenNode::run)() {
 
     bool messageavailable = recv.run();
     //bool messageavailable = recv.CAN->checkRxQueue();
@@ -289,6 +289,7 @@ bool CanOpenNode::run() {
         }
         else
         {
+            // Just to be sure.
             recv.clearMsg();
         }
     }
