@@ -102,11 +102,11 @@ public:
     
     // Base method that supports both overwrite and reject modes
     bool pushTimeout(const T& item, uint32_t timeout_ms, bool overwriteIfFull = false) {
-        if (!frames) return false;
-
         if (!mutex_enter_timeout_ms(&queue_mutex, timeout_ms)) {
             return false; // Timed out waiting for mutex
         }
+
+        if (!frames) return false;
 
         if (count >= SIZE) {
             if (!overwriteIfFull) {
@@ -187,14 +187,17 @@ public:
     void clear() {
         mutex_enter_blocking(&queue_mutex);
         // Call destructors for all live items remaining in the queue
+        /*
         while (count > 0) {
             //frames[head].~T();
             head = (head + 1) % SIZE;
             count--;
         }
+        */
         head = 0;
         tail = 0;
         count = 0;
+        lastItem = T{};
         mutex_exit(&queue_mutex);
     }
 

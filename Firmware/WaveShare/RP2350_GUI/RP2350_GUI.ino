@@ -39,6 +39,7 @@
 #include "hardware/structs/qmi.h"
 #include "hardware/sync.h"
 #include "hardware/clocks.h"
+#include "hardware/timer.h"
 
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
@@ -133,23 +134,13 @@ PBatteryBoard const CurrentBoard = BatteryBoards;
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static PBatterySetting const Battery = Batteries;
 
-static Ticker tickerDataUpdate;
-static volatile bool CalcBatteryData = false;
-
-static Ticker tickerCollectRotoPDData;
-static volatile bool flagCollectRotoPDData = false;
-
-static Ticker tickerRequestIT2704Data;
-static volatile bool flagRequestIT2704Data = false;
-
-static bool flagSoundButton = false;
-
-static Ticker tickerProcessData;
-static volatile bool flagProcessMeasurementData = false;
+static volatile bool flagSoundButton = false;
 
 // Flag flash dirty for storing board info
 static volatile bool StoreBoardInfo = false;
 static volatile byte pending_screen_index = 0;
+
+static volatile bool flagProcessMeasurementData = false;
 
 //GT911_Lite tp; // touchscreen through TwoWire
 
@@ -682,21 +673,6 @@ static void main_event_handler(lv_event_t * e)
 }
 
 #ifdef STANDALONE
-static void cbCollectRotoPDData()
-{
-  flagCollectRotoPDData = true;
-}
-
-static void cbRequestIT2704Data()
-{
-  flagRequestIT2704Data = true;
-}
-
-static void cbProcessData()
-{
-  flagProcessMeasurementData = true;
-}
-
 static void datastartcb(byte index)
 {
   PBatterySetting SET = &Batteries[index];  
@@ -711,10 +687,12 @@ static void datastartcb(byte index)
 
 #endif
 
-void dataupdatecb()
+unsigned long __not_in_flash_func(TicksBetween)(unsigned long InitTicks, unsigned long EndTicks)
 {
-  // Inform the loop to collect the battery data
-  CalcBatteryData = true;
+  unsigned long Result;
+  Result = (EndTicks - InitTicks);
+  if ((long)(~Result) < Result) Result = (long)(~Result);
+  return (Result);
 }
 
 #ifdef ARDUINO_ARCH_RP2040
@@ -727,8 +705,27 @@ void setup1()
 }
 
 void loop1() {
+
+  static unsigned long startTimeLoop1 = millis();
+  static uint32_t loop1counter = 0;
+  static uint32_t datacounter = 0;
+
+  if ((millis() - startTimeLoop1) >= 100000)
+  {
+
+    // This runs every second !!
+    startTimeLoop1 = millis();
+
+    //Serial.printf("Loop1: %d\n",loop1counter++);
+    Serial.printf("Loop1 datacounter: %d\n",datacounter);
+
+    datacounter = 0;
+  }
+
   //mutex_enter_blocking(&can_mutex);
+  uint32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
   node.getCAN().taskCAN();
+  datacounter += (node.getCAN().getCANRxQueueDepth() - rxdatacount);
   //mutex_exit(&can_mutex);  
   //yield();
   //delay(1);
@@ -1008,10 +1005,6 @@ void setup()
 
   #ifdef STANDALONE
 
-  tickerCollectRotoPDData.attach_ms(ROTOPDDATAGETTIME, cbCollectRotoPDData);
-  tickerProcessData.attach_ms(DATACOLLECTTIMEFAST, cbProcessData);
-  tickerDataUpdate.attach_ms(CALCULATIONTIME, dataupdatecb);  
-
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
   touch_init(HOR_RES, VER_RES, 0);
@@ -1079,7 +1072,6 @@ void setup()
   initCANopen();
   #endif
 
-  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
   Info_Add("GUI. Setting up CANOpen ready.");
 
   mutex_exit(&can_mutex);  
@@ -1095,7 +1087,10 @@ void loop()
 
   static unsigned long startTime = millis();
   static unsigned long buzzerTime = millis();
+  static uint32_t loopcounter = 0;
 
+  static bool CalcBatteryData = false;
+  
   // We do not know when IT2704 data will arrive
   // Data-order is also unknown
   // So use a static to store latest data
@@ -1209,27 +1204,6 @@ void loop()
   TinyUSBDevice.task();
   #endif
 
-  if (flagCollectRotoPDData)
-  {
-    flagCollectRotoPDData = false;
-    // Get RotoPD measurement results for later averaging
-    // Runs every 100ms
-    collectRotoPDData();
-
-    // If we do not have TPDOs with energy, this might be a quick energy data solution
-    //load.collectDataEnergyOnly();
-  }
-
-  if (flagRequestIT2704Data)
-  {
-    flagRequestIT2704Data = false;
-    // Ask load IT2704 to send measurement results
-    // Result (when available) will be collected later by node.run()
-    //mutex_enter_blocking(&can_mutex);
-    load.collectData();
-    //mutex_exit(&can_mutex); 
-   }
-
   if (flagSoundButton)
   {
     flagSoundButton = false;
@@ -1243,96 +1217,136 @@ void loop()
     bsp_buzzer_enable(false);
   }
 
-  if (millis() - startTime >= 1000)
+  //uint64_t t = timer_hw->timerawl | ((uint64_t)timer_hw->timerawh << 32);
+
+  if ( TicksBetween(startTime,millis()) >= TICKERTIME )
   {
-    static uint32_t loopcounter = 0;
-
-    // This runs every second !!
-    startTime = millis();
-
-    #ifdef DEBUG                      
-    //static uint32_t loopcounter = 0;
-    //Serial.printf("Loop: %d\n",loopcounter++);
-    #endif
-
-    if (!load.isConnected())
+    while ( TicksBetween(startTime,millis()) >= TICKERTIME )
     {
-      #ifdef DEBUG
-      Serial.println("GUI. IT2704 disconnected !");
-      #endif
-    }
+      startTime += TICKERTIME;
+      // This loopcounter is incremented every TICKERTIME (50ms)
+      loopcounter++;
 
-    Serial.printf("CAN queue depth at loop %d. Rx: %d. Tx: %d. TxPrio: %d\n", loopcounter++, node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
-
-    // Test connection with load IT2704
-    //mutex_enter_blocking(&can_mutex);
-    load.queryConnection();
-    //mutex_exit(&can_mutex); 
-
-    //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
-
-
-    PDOCount = taskRotoPDInit();
-
-    if (PDOCount != -1)
-    {
-      // Got PDO data from plugin of PD source
-      Info_Add("GUI. Plugin of PD source !!");
-
-      if (PDOCount == 0) Info_Add("GUI. No new PDO's !!");
-
-      // We have a newly connected RotoPD or new PDO's
-      if (PDOCount>0)
+      if (loopcounter == 200000)
+      //if (loopcounter == 72000)    
       {
-        Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
-       
-        ScreenPDOClearPDOList();
+        // Reset counter after 10.000s
+        // A bit arbitrary
+        loopcounter = 0; 
+      }
 
-        memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
+      // Get RotoPD measurement results for later averaging
+      // Every 50ms
+      collectRotoPDData();
 
-        hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
-        hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
+      // Every 250ms
+      if ((loopcounter % 5) == 0)
+      {
+      // Ask load IT2704 to send measurement results
+      // Result (when available) will be collected later by node.run()
+        load.collectData();
+      }
 
-        dataindexer = DATASTART;
+      // Every 100ms
+      if ((loopcounter % 2) == 0)
+      {
+        CalcBatteryData = true;
+      }
 
-        hid_report_in[dataindexer++] = PDOCount;
+      // Every 500ms
+      if ((loopcounter % 10) == 0)
+      {
+        flagProcessMeasurementData = true;
+      }
 
-        for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
-        {
-          memset(&PDO, 0, sizeof(PDO));
-
-          if (pd.readPDO(j, PDO))
-          {
-            if (PDO.valid)
-            {
-              if (PDO.isEPR)
-                Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
-              else
-                Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
-              #ifdef STANDALONE
-              ScreenPDOSetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
-              #endif
-              hid_report_in[dataindexer++] = PDO.index;
-              w_data.Val = PDO.raw;
-              hid_report_in[dataindexer++] = w_data.bytes.LB;
-              hid_report_in[dataindexer++] = w_data.bytes.HB;
-            }  
-          }
-        }
-        // Send PDO data to USB host
-        hid_report_in[LENGTHPOSITION]=dataindexer;   
-
-        #ifdef ENABLEUSB
-        #ifdef ARDUINO_ESP32S3_DEV
-        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
-        #else
-        HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
-        #endif      
+      // Every second
+      if ((loopcounter % 20) == 0)
+      {
+        #ifdef DEBUG                      
+        //static uint32_t loopcounter = 0;
+        //Serial.printf("Loop: %d\n",loopcounter / 20);
         #endif
 
-      }
-    }
-  }  
+        if (!load.isConnected())
+        {
+          #ifdef DEBUG
+          //Serial.println("GUI. IT2704 disconnected !");
+          #endif
+        }
+
+        //Serial.printf("CAN queue depth at loop %d. Rx: %d. Tx: %d. TxPrio: %d\n", loopcounter++, node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+
+        // Test connection with load IT2704
+        //mutex_enter_blocking(&can_mutex);
+        load.queryConnection();
+        //mutex_exit(&can_mutex); 
+
+        //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+
+
+        PDOCount = taskRotoPDInit();
+
+        if (PDOCount != -1)
+        {
+          // Got PDO data from plugin of PD source
+          Info_Add("GUI. Plugin of PD source !!");
+
+          if (PDOCount == 0) Info_Add("GUI. No new PDO's !!");
+
+          // We have a newly connected RotoPD or new PDO's
+          if (PDOCount>0)
+          {
+            Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
+          
+            ScreenPDOClearPDOList();
+
+            memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
+            hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
+            hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
+
+            dataindexer = DATASTART;
+
+            hid_report_in[dataindexer++] = PDOCount;
+
+            for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
+            {
+              memset(&PDO, 0, sizeof(PDO));
+
+              if (pd.readPDO(j, PDO))
+              {
+                if (PDO.valid)
+                {
+                  if (PDO.isEPR)
+                    Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
+                  else
+                    Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
+                  #ifdef STANDALONE
+                  ScreenPDOSetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+                  #endif
+                  hid_report_in[dataindexer++] = PDO.index;
+                  w_data.Val = PDO.raw;
+                  hid_report_in[dataindexer++] = w_data.bytes.LB;
+                  hid_report_in[dataindexer++] = w_data.bytes.HB;
+                }  
+              }
+            }
+            // Send PDO data to USB host
+            hid_report_in[LENGTHPOSITION]=dataindexer;   
+
+            #ifdef ENABLEUSB
+            #ifdef ARDUINO_ESP32S3_DEV
+            HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+            #else
+            HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+            #endif      
+            #endif
+
+          }
+        }
+      } // every second
+    } // while Ticksbetween 
+  } // if Ticksbetween 
 
   if (pending_screen_index != 0)
   {
@@ -1613,7 +1627,7 @@ void loop()
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
-      //telemetry_screensaver_update_box5(node.getCAN().getRxQueueDepth()*10);
+      telemetry_screensaver_update_box5(node.getCAN().getCANRxQueueDepth()*10);
       telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
 
       if (load.isConnected())
@@ -1764,14 +1778,6 @@ void loop()
     lv_screen_brightness(100);
   }   
   #endif
-}
-
-unsigned long TicksBetween(unsigned long InitTicks, unsigned long EndTicks)
-{
-  unsigned long Result;
-  Result = (EndTicks - InitTicks);
-  if ((long)(~Result) < Result) Result = (long)(~Result);
-  return (Result);
 }
 
 void ClearRunData(PRunDatas RDS)

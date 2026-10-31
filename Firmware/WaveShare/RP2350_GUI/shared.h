@@ -25,8 +25,7 @@
 #define    STANDALONE
 #endif
 
-#define ROTOPDDATAGETTIME             50 // ms
-#define IT2704DATAREQUESTTIME         250 // ms
+#define TICKERTIME                    50 // ms
 #define DATACOLLECTTIMEFAST           500 // ms
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
 #define CALCULATIONTIME               100 // ms

@@ -125,6 +125,8 @@ bool CBUSRP2350Device::taskCAN(bool single)
         }
     }
 
+
+    unsigned long taskCANTimer = millis();  
     while (canintf & (MCP2515::CANINTF_RX0IF | MCP2515::CANINTF_RX1IF))
     {
         can_frame frame;
@@ -149,6 +151,12 @@ bool CBUSRP2350Device::taskCAN(bool single)
         }
 
         if (single) break;
+
+        if ((millis() - taskCANTimer) > 10)
+        {
+          Serial.println("Looping to long (>10ms). Breaking !!!!!!!!!!!!!!!!");
+          break;
+        }
 
         canintf = caninterface.getInterrupts();
 
@@ -199,7 +207,7 @@ bool CBUSRP2350Device::taskCAN(bool single)
     }
   }
 
-  return (CanRxBuffer.getCount() != 0);
+  return (!CanRxBuffer.isEmpty());
 }
 
 CBUSbase::CANERROR CBUSRP2350Device::sendCANMessage(const can_frame *frame)
@@ -261,6 +269,8 @@ bool CBUSRP2350Device::processTxQueue(void)
 {
     struct can_frame frame;
 
+    MCP2515::ERROR result;
+
     if (CanTxBuffer.getCount() > 20)
     {
       Serial.println("MCP2515: Normal message buffer filling up.");
@@ -272,7 +282,7 @@ bool CBUSRP2350Device::processTxQueue(void)
 
     if (CanTxPrioBuffer.peek(frame))
     {
-        MCP2515::ERROR result = caninterface.sendMessagePrio(&frame);
+        result = caninterface.sendMessagePrio(&frame);
         if (result == MCP2515::ERROR_OK)
         {
           //Serial.println("MCP2515: Send prio message ok.");
@@ -286,7 +296,7 @@ bool CBUSRP2350Device::processTxQueue(void)
 
     if (CanTxBuffer.peek(frame))
     {
-      MCP2515::ERROR result = caninterface.sendMessage(&frame);
+      result = caninterface.sendMessage(&frame);
       if (result == MCP2515::ERROR_OK)
       {
         //Serial.println("MCP2515: Send normal message ok.");        
@@ -297,7 +307,7 @@ bool CBUSRP2350Device::processTxQueue(void)
         // We might use prio as roll-over !!
         if (CanTxPrioBuffer.isEmpty())
         {
-          MCP2515::ERROR result = caninterface.sendMessagePrio(&frame);
+          result = caninterface.sendMessagePrio(&frame);
           if (result == MCP2515::ERROR_OK)
           {
             //Serial.println("MCP2515: Send prio message ok.");
@@ -314,7 +324,8 @@ bool CBUSRP2350Device::processTxQueue(void)
         }
       }
     }
-    return (!((CanTxPrioBuffer.isEmpty()) && (CanTxBuffer.isEmpty())));
+    //return (!((CanTxPrioBuffer.isEmpty()) && (CanTxBuffer.isEmpty())));
+    return (result == MCP2515::ERROR_OK);
 }
 
 //CBUSRP2350Device CBUSDevice;
