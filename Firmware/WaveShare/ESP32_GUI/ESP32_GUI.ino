@@ -3,11 +3,38 @@
 #include <lvgl.h>
 #include <Ticker.h>
 
+#ifdef ARDUINO_ARCH_RP2040
+
+#include <atomic>
+
+#include "hardware/vreg.h"
+#include "hardware/powman.h"
+#include "hardware/structs/qmi.h"
+#include "hardware/sync.h"
+#include "hardware/clocks.h"
+#include "hardware/timer.h"
+
+#include <pico/stdlib.h>
+#include <pico/multicore.h>
+#include <pico/mutex.h>
+
+#include "./src/RP2350/bsp/bsp_i2c.h"
+#include "./src/RP2350/bsp/bsp_st7701.h"
+#include "./src/RP2350/bsp/bsp_buzzer.h"
+
+bool core1_separate_stack = true;
+
+#endif
+
+
 #include "shared.h"
 #include "comms.h"
 
 #include "ui.h"
 #include "extras.h"
+
+#define HOR_RES 480
+#define VER_RES 480
 
 #ifdef ARDUINO_ARCH_ESP32
 
@@ -15,17 +42,8 @@
 
 #include "customhid.h"
 
-// Default placeholder due to re-use of existing software
-#define ActiveBatteryIndex 0
-
-#define HOR_RES 480
-#define VER_RES 480
-
 #define PACKET_UART_RXD 20
 #define PACKET_UART_TXD 19
-
-#define CAN_TX GPIO_NUM_6 // Transmit GPIO number for CAN
-#define CAN_RX GPIO_NUM_0 // Receive GPIO number for CAN
 
 //#define BUTTON_PIN 38
 
@@ -62,16 +80,32 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
 
 #endif
 
+// Default placeholder due to re-use of existing software
+#define ActiveBatteryIndex 0
+
+#ifdef ARDUINO_ARCH_ESP32
 #if !ARDUINO_USB_CDC_ON_BOOT
 USBCDC USBSerial;
 #endif
+#endif
+
+// USB HID object
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef ENABLEUSB
+#ifdef USE_TINYUSB
+Adafruit_USBD_HID HID;
+#endif
+#endif
+#endif
+
+unsigned long loopStartTime = 0;
 
 // Must be a global variable !!!
 char mySerial[30];
 char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
-//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
+
 CanOpenNode node(/*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
@@ -81,23 +115,15 @@ PBatteryBoard const CurrentBoard = BatteryBoards;
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
 static PBatterySetting const Battery = Batteries;
 
-static Ticker tickerDataUpdate;
-static volatile bool CalcBatteryData = false;
+static volatile bool flagSoundButton = false;
 
-static Ticker tickerCollectRotoPDData;
-static volatile bool flagCollectRotoPDData = false;
-
-static Ticker tickerRequestIT2704Data;
-static volatile bool flagRequestIT2704Data = false;
-
-static bool flagSoundButton = false;
-
-static Ticker tickerProcessData;
 static volatile bool flagProcessMeasurementData = false;
 
 // Flag flash dirty for storing board info
 static volatile bool StoreBoardInfo = false;
 static volatile byte pending_screen_index = 0;
+
+std::atomic<uint32_t> counterCore1 = 0;
 
 //GT911_Lite tp; // touchscreen through TwoWire
 
@@ -113,11 +139,82 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 
 mutex_t can_mutex;
 
+// ---------------------------------------------------------------
+// Automatic PSRAM (QMI M1) timing calculator for RP2350
+// Tuned for common APS6404 / similar 133–166 MHz PSRAM chips
+// ---------------------------------------------------------------
+#ifdef ARDUINO_ARCH_RP2040
+void set_psram_timing_auto()
+{
+    // Maximum safe SCK frequency for most common PSRAM chips (Hz)
+    const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
+
+    // Typical PSRAM timing requirements (from datasheets)
+    const uint32_t MAX_SELECT_NS   = 8000;   // max CS low time ≈ 8 µs
+    const uint32_t MIN_DESELECT_NS = 50;     // min CS high time ≈ 50 ns
+
+    uint32_t sys_hz = clock_get_hz(clk_sys);
+
+    // 1. Clock divider so that SCK ≤ MAX_PSRAM_SCK_HZ
+    uint32_t clkdiv = (sys_hz + MAX_PSRAM_SCK_HZ - 1) / MAX_PSRAM_SCK_HZ;
+    if (clkdiv < 1) clkdiv = 1;
+    if (clkdiv > 255) clkdiv = 255;          // hardware limit
+
+    // 2. RXDELAY – needs to increase at higher SCK frequencies
+    //    Rule of thumb used by many successful ports:
+    uint32_t rxdelay = 1;
+    if (sys_hz / clkdiv > 100000000) rxdelay = 2;
+    if (sys_hz / clkdiv > 130000000) rxdelay = 3;
+    if (rxdelay > 7) rxdelay = 7;
+
+    // 3. MAX_SELECT (in units of 64 system clocks)
+    //    Keep CS assertion under ~8 µs
+    uint32_t cycles_per_us = sys_hz / 1000000;
+    uint32_t max_select = (MAX_SELECT_NS * cycles_per_us) / (64 * 1000);
+    if (max_select > 63) max_select = 63;    // 6-bit field
+    if (max_select < 1)  max_select = 1;
+
+    // 4. MIN_DESELECT (extra system clocks after CS deassert)
+    uint32_t min_deselect = (MIN_DESELECT_NS * cycles_per_us + 999) / 1000;
+    // subtract the inherent half-SCK already provided by the hardware
+    if (min_deselect > (clkdiv + 1) / 2)
+        min_deselect -= (clkdiv + 1) / 2;
+    else
+        min_deselect = 0;
+    if (min_deselect > 31) min_deselect = 31; // 5-bit field
+
+    // 5. Other fixed / recommended values
+    const uint32_t cooldown    = 1;   // short cooldown
+    const uint32_t pagebreak   = 2;   // 1024-byte page break (value 2)
+    const uint32_t select_hold = 1;   // 1 extra hold cycle (good default)
+    const uint32_t select_setup = 0;
+
+    // Build the register value
+    uint32_t timing =
+        (cooldown      << 30) |
+        (pagebreak     << 28) |
+        (select_setup  << 25) |
+        (select_hold   << 23) |
+        (max_select    << 17) |
+        (min_deselect  << 12) |
+        (rxdelay       <<  8) |
+        (clkdiv        <<  0);
+
+    // Write it safely
+    uint32_t irq = save_and_disable_interrupts();
+    qmi_hw->m[1].timing = timing;
+    restore_interrupts(irq);
+
+    // Optional debug print
+    // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
+    //               timing, clkdiv, rxdelay, max_select, min_deselect);
+}
+#endif
+
 // Callback that returns elapsed ms since boot
 static uint32_t my_tick_get_cb(void) {
   return millis();
 }
-
 
 #ifdef STANDALONE
 
@@ -128,7 +225,17 @@ static void IRAM_ATTR storeSettings(byte BI)
 }
 #endif // ARDUINO_ARCH_ESP32
 
-#endif // STANDALONE
+#ifdef ARDUINO_ARCH_RP2040
+static void __not_in_flash_func(storeSettings)(byte BI)
+{
+    PBatterySetting SET = &Batteries[BI];
+    storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
+    storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
+}
+#endif
+
+#endif
+
 
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 //static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
@@ -321,17 +428,7 @@ static void main_event_handler(lv_event_t * e)
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
             // Not the best place to do this !!
-            if (mutex_enter_timeout_ms(&can_mutex, 100))
-            {
-              load.clearEnergy();
-              mutex_exit(&can_mutex);  
-            }
-            else
-            {
-              #ifdef DEBUG                      
-              Serial.println("GUI. CAN mutex timeout.");
-              #endif
-            }
+            load.clearEnergy();
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
           Screen1AddEPData(RDS->Energy,0);        
@@ -519,22 +616,6 @@ void ClearStageData(PStageData SD)
 }
 
 #ifdef STANDALONE
-
-static void cbCollectRotoPDData()
-{
-  flagCollectRotoPDData = true;
-}
-
-static void cbRequestIT2704Data()
-{
-  flagRequestIT2704Data = true;
-}
-
-static void cbProcessData()
-{
-  flagProcessMeasurementData = true;
-}
-
 static void datastartcb(byte index)
 {
   PBatterySetting SET = &Batteries[index];  
@@ -549,24 +630,106 @@ static void datastartcb(byte index)
 
 #endif // STANDALONE
 
-void dataupdatecb()
+#ifdef ARDUINO_ARCH_RP2040
+// Running on core1
+void setup1()
 {
-  // Inform the loop to collect the battery data
-  CalcBatteryData = true;
+  mutex_enter_blocking(&can_mutex);
+  node.getCAN().taskCAN();
+  mutex_exit(&can_mutex);  
 }
+
+void loop1() {
+
+  static unsigned long startTimeLoop1 = millis();
+  static uint32_t loop1counter = 0;
+  static int32_t datacounter = 0;
+
+  counterCore1++;
+  //counterCore1.fetch_add(1);
+
+  if ((millis() - startTimeLoop1) >= 100000)
+  {
+
+    // This runs every second !!
+    startTimeLoop1 = millis();
+
+    //Serial.printf("Loop1: %d\n",loop1counter++);
+    Serial.printf("Loop1 net datacounter: %d\n",datacounter);
+    datacounter = node.getCAN().getCANRxQueueDepth();    
+    Serial.printf("Loop1 abs datacounter: %d\n",datacounter);
+
+    datacounter = 0;
+  }
+
+  //mutex_enter_blocking(&can_mutex);
+  int32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
+  node.getCAN().taskCAN();
+  rxdatacount = node.getCAN().getCANRxQueueDepth() - rxdatacount;
+  datacounter += rxdatacount;
+  //mutex_exit(&can_mutex);  
+  //yield();
+  //delay(1);
+  //delayMicroseconds(10);
+}
+#endif
 
 void setup()
 {
   byte index;
   word tempintcalc;
   char myHex[10] = "";
-
+  
   // Start by blocking all CAN activity
   mutex_init(&can_mutex);
   mutex_enter_blocking(&can_mutex);
 
-  // Get default boardserial
-  for ( index=0; index<12 ;index++ ) BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
+  // If this throws an error during compilation, you know you need to adjust your padding array size!
+  #ifdef ARDUINO_ARCH_RP2040
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 88, 
+              "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+  #endif
+
+  #ifdef ARDUINO_ARCH_ESP32
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 80, 
+              "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+  #endif
+
+  // If it compiles, your memory footprint is perfectly optimized!
+  static_assert(std::is_trivially_copyable<Message>::value, "Message must be trivially copyable for [multicore] safety!");
+
+  #ifdef ARDUINO_ARCH_RP2040
+
+  // 1. STEP THE VOLTAGE UP INCREMENTALLY
+  // Stepping avoids sudden current spikes that trip brownout resets.
+  //vreg_set_voltage(VREG_VOLTAGE_1_20);
+  //delay(20);
+  //vreg_set_voltage(VREG_VOLTAGE_1_25);
+  //delay(20);
+  //vreg_set_voltage(VREG_VOLTAGE_1_30); // Max recommended safe internal voltage
+  //delay(20); // Allow LDO rail stabilization
+
+  //set_sys_clock_khz(400000, false);  
+  //delay(10);
+
+  // Change system clock to exactly match the PSRAM clock (133MHz) by an integer factor
+  // This results in best LCD performance without glitches and noise
+  set_sys_clock_khz(266000, true);  
+  delay(10);
+
+  // Tune the PSRAM settings to match the system clock
+  // This results in best LCD performance without glitches and noise
+  set_psram_timing_auto();
+  delay(10);
+  #endif
+
+  for (index=0; index<12;index++)
+  {
+    BoardInfo.BoardSerial[index] = DefaultBoardSerial[index];
+  }
+
+  storeInit();
+  storeGetBoardInfo(&BoardInfo);
 
   index = 0;
   mySerial[0] = '\0';  
@@ -583,6 +746,37 @@ void setup()
   myFirmware[0] = '\0';  
   sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
   myFirmware[18] = '\0';   
+
+  #ifdef ENABLEUSB
+  
+  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
+  // Manual begin() is required on core without built-in support e.g. mbed rp2040
+  if (!TinyUSBDevice.isInitialized()) {
+    TinyUSBDevice.begin(0);
+  }
+  USBDevice.setID(0x04D8,0x003E);
+  USBDevice.setVersion(0x0200);        // USB 2.0
+  USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
+  USBDevice.setManufacturerDescriptor("Consulab for pleasure");
+  USBDevice.setProductDescriptor("USB-C PD controller");
+
+  USBDevice.setSerialDescriptor(mySerial);  
+  HID.setReportCallback(NULL, set_report_callback);
+  HID.enableOutEndpoint(true);
+  HID.setPollInterval(1);
+  HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
+  USBDevice.addStringDescriptor(myFirmware);  
+
+  HID.begin();
+
+  // Enable serial (again) for programming and debugging
+  #ifdef DEBUG  
+  Serial.begin(115200);
+  #endif
+
+  #endif
+
+  #endif // ENABLEUSB
 
   #ifdef ARDUINO_ARCH_ESP32
   #ifdef ENABLEUSB
@@ -603,6 +797,21 @@ void setup()
   #endif // ENABLEUSB
   #endif // ARDUINO_ARCH_ESP32
 
+  #ifdef DEBUG  
+  int cnt = 1000;     // Will wait for up to ~1 second for Serial to connect.
+  while (!Serial && cnt--) {delay(1);}
+  // Serial.setDebugOutput(true);
+  #endif
+
+  #ifdef ARDUINO_ARCH_RP2040
+  Serial.println("Starting RP2350 init.");
+
+  WireBattery.setSDA(BSP_I2C_SDA_PIN);
+  WireBattery.setSCL(BSP_I2C_SCL_PIN);
+  //WireBattery.setClock(400000);   // or even 50000
+  #endif
+
+  Info_Add("GUI. Init our LVGL display wonder.");    
   #ifdef ARDUINO_ARCH_ESP32
   // Init buf /  expander / i2c
   // This also runs initDisplayPower !!
@@ -621,6 +830,13 @@ void setup()
   lv_screen_init(gfx, HOR_RES, VER_RES);
   #endif // ARDUINO_ARCH_ESP32
 
+  #ifdef ARDUINO_ARCH_RP2040
+  lv_init();
+  lv_screen_init(HOR_RES, VER_RES);
+  lv_screen_brightness(0);
+  
+  lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
+  #endif
 
   // Create and show flash-screen
   CreateSaveScreen(NULL);
@@ -646,7 +862,10 @@ void setup()
   SetIT2704Channel(BoardInfo.IT2704Channel);
 
   #ifdef ARDUINO_ARCH_ESP32
-  Serial.println("Starting ESP32 hardware init.");
+  Info_Add("GUI. Starting RP2350 hardware init.");
+  #endif
+  #ifdef ARDUINO_ARCH_ESP32
+  Info_Add("GUI. Starting ESP32 hardware init.");
   #endif
 
   WireBattery.begin();
@@ -731,13 +950,7 @@ void setup()
 
   Info_Add("GUI. Init timers.");      
 
-  tickerRequestIT2704Data.attach_ms(IT2704DATAREQUESTTIME, cbRequestIT2704Data);
-  tickerCollectRotoPDData.attach_ms(ROTOPDDATAGETTIME, cbCollectRotoPDData);
-
   #ifdef STANDALONE
-
-  tickerProcessData.attach_ms(DATACOLLECTTIMEFAST, cbProcessData);
-  tickerDataUpdate.attach_ms(CALCULATIONTIME, dataupdatecb);  
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
@@ -751,7 +964,43 @@ void setup()
   String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Info_Add(LVGL_Arduino.c_str());
 
-  delay(2000);
+  #ifdef ARDUINO_ARCH_RP2040
+  
+  Info_Add_Fmt("CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
+
+  Info_Add("GUI. RP2350 SRAM memory info.");
+  // Internal SRAM heap
+  Info_Add_Fmt("SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
+  Info_Add_Fmt("SRAM buffer: %u KB.", (lv_port_get_buffer_heap_usage() / 1024));
+  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB.", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1024) );
+
+  lv_mem_monitor_t mon;
+  lv_mem_monitor(&mon);
+  Info_Add_Fmt("LVGL heap usage. Used: %u KB. Free: %u KB. Biggest free: %u KB.",
+       (mon.total_size - mon.free_size) / 1024,
+       mon.free_size / 1024,
+       mon.free_biggest_size / 1024);
+  Info_Add_Fmt("LVGL heap fragmentation: %u%%.", mon.frag_pct);
+  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1024) );
+
+  Info_Add("GUI. RP2350 PSRAM memory info.");
+  // PSRAM heap
+  Info_Add_Fmt("PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
+  Info_Add_Fmt("PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
+  Info_Add_Fmt("PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
+
+  /*
+  for (int i = 0; i < 16; i++) {
+      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_12MA); // or 12MA
+      gpio_set_slew_rate(BSP_LCD_DATA0_PIN + i, GPIO_SLEW_RATE_SLOW);
+  }
+  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
+  gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
+  */
+  
+  #endif
+
+  //delay(2000);
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
@@ -767,10 +1016,22 @@ void setup()
 
   // Release the CAN activity
   mutex_exit(&can_mutex);  
+
+  Info_Add("GUI. Init RP2350 ready.");
 }
 
 void loop()
 {
+  uint8_t j;
+
+  loopStartTime = millis();
+
+  static unsigned long startTime = millis();
+  static unsigned long buzzerTime = millis();
+  static uint32_t loopcounter = 0;
+
+  static bool CalcBatteryData = false;
+  
   // We do not know when IT2704 data will arrive
   // Data-order is also unknown
   // So use a static to store latest data
@@ -779,12 +1040,11 @@ void loop()
   static TMeasurementData LatestRotoPDData;
 
   bool DataOk = false;
-  uint8_t j;
 
   static byte INData[COMMAND_SIZE] = {0};
   static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
 
-  byte dataindexer;
+  byte dataindexer = 0;
 
   WORD_VAL w_data;
   DWORD_VAL dw_data;
@@ -795,25 +1055,6 @@ void loop()
 
   int8_t PDOCount = 0;
   static AP33772S_PDO PDO;
-
-  static unsigned long startTime = millis();
-
-#ifdef BUTTON_PINNNNNNNNNNNN
-if (digitalRead(BUTTON_PIN) == LOW)
-{
-  startTime = millis();
-  while (digitalRead(BUTTON_PIN) == LOW)
-  {
-    if (millis() - startTime >= 2000)
-    {
-      ESP.restart();
-      //esp_restart();
-    }
-    vTaskDelay(pdMS_TO_TICKS(100));      
-  }
-}  
-#endif
-
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
@@ -843,215 +1084,239 @@ if (digitalRead(BUTTON_PIN) == LOW)
     }
   }
 
-  if (node.getCAN().checkCANRxQueue())
+  Message rxmsg;
+  unsigned long maxCANTime = millis();
+  bool data_available;
+  do
   {
+    data_available = false;
+
+    //bool mutexOk = mutex_enter_timeout_ms(&can_mutex, 10 /*ms*/);
     //mutex_enter_blocking(&can_mutex);
-    if (mutex_enter_timeout_ms(&can_mutex, 100))
+    data_available = node.run();
+    // We did receive a message that was not handled by ourselves ?
+    if (data_available)
     {
+      //const Message& rxmsg = node.getMessage();
+      //const Message rxmsg = node.getMessage();
+      rxmsg = node.getMessage();
+      node.clearMessage();
+    }
+    //mutex_exit(&can_mutex); 
 
-      unsigned long maxCANTime = millis();
-
-      while (node.run())
+    if (data_available)
+    {
+      // ---- process the message ----
+      if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
       {
-        // We did receive a message that was not handled by ourselves
-        const Message& rxmsg = node.getMessage();
 
-        // ---- process the message ----
-        if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
+        // Check TPDO from load messages, if any
+        if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
         {
+          //Serial.println("GUI [IT2704]. Received correct TPDO message.");
+          ScreenPowerSetEnergyData(LatestIT2704Data.E);
+          telemetry_screensaver_update_E(LatestIT2704Data.E);
+        }
 
-          // Check TPDO from load messages, if any
-          if (load.getTPDOEnergyData(&rxmsg, &LatestIT2704Data.E))
+        // Check SDO message from load
+        if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
+        {
+          //Serial.println("GUI [IT2704]. Receiving SDO response.");
+
+          if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
           {
-            //Serial.println("GUI [IT2704]. Received correct TPDO message.");
-            ScreenPowerSetEnergyData(LatestIT2704Data.E);
-            telemetry_screensaver_update_E(LatestIT2704Data.E);
-          }
-
-          // Check SDO message from load
-          if (rxmsg.id == (CO_CAN_ID_SDO_SRV + load.getID()))
-          {
-            //Serial.println("GUI [IT2704]. Receiving SDO response.");
-
-            if (rxmsg.getCommand() == READ_REQ_4BYTE_CMD)
+            // Check for meter data that has the meaurement results from our meter data request
+            if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
             {
-              // Check for meter data that has the meaurement results from our meter data request
-              if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
-              {
-                // Get the correct IT2704 data in the correct datastore
-                load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+              // Get the correct IT2704 data in the correct datastore
+              load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
 
-                switch(rxmsg.getSubID())
-                {
-                  case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
-                  case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
-                  case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
-                  case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
-                }
+              switch(rxmsg.getSubID())
+              {
+                case IT2704_METER_VOLTAGE : {ScreenPowerSetVoltageData(LatestIT2704Data.V); telemetry_screensaver_update_V(LatestIT2704Data.V); break;}
+                case IT2704_METER_CURRENT : {ScreenPowerSetCurrentData(LatestIT2704Data.I); telemetry_screensaver_update_I(LatestIT2704Data.I); break;}
+                case IT2704_METER_POWER   : {ScreenPowerSetPowerData(LatestIT2704Data.P);   telemetry_screensaver_update_P(LatestIT2704Data.P); break;}
+                case IT2704_METER_WHOUR   : {ScreenPowerSetEnergyData(LatestIT2704Data.E);  telemetry_screensaver_update_E(LatestIT2704Data.E); break;}            
               }
             }
+          }
 
-            if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
-            {
-              #ifdef DEBUG                      
-              //Serial.println("GUI [IT2704]. Receiving response from writing data.");
-              //Serial.print("GUI [IT2704]. Writing data success. ");
-              //Serial.print("Index 0x");
-              //Serial.printf("%04X",rxmsg.getID());
-              //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
-              #endif
-            }
+          if (rxmsg.getCommand() == WRITE_RESP_SUCCESS_CMD)
+          {
+            #ifdef DEBUG                      
+            //Serial.println("GUI [IT2704]. Receiving response from writing data.");
+            //Serial.print("GUI [IT2704]. Writing data success. ");
+            //Serial.print("Index 0x");
+            //Serial.printf("%04X",rxmsg.getID());
+            //Serial.printf(". SubIndex %d.\r\n",rxmsg.getSubID());
+            #endif
           }
         }
-
-        node.clearMessage();
-
-        // Limit the amount of time inside this loop
-        if (millis() - maxCANTime > 100)
-        {
-          #ifdef DEBUG                      
-          Serial.println("GUI. CAN node.run() timeout.");
-          #endif
-          break;
-        }
       }
-      mutex_exit(&can_mutex);  
-    }
-    else
+
+    } // if data_available
+
+    //node.clearMessage();
+
+    // Limit the amount of time inside this loop
+    if (millis() - maxCANTime > 10)
     {
       #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex timeout.");
+      Serial.println("GUI. CAN node.run() timeout.");
       #endif
+      //break;
     }
-  }
-
-  if (flagCollectRotoPDData)
-  {
-    flagCollectRotoPDData = false;
-    // Get RotoPD measurement results for later averaging
-    // Runs every 100ms
-    collectRotoPDData();
-
-    // If we do not have TPDOs with energy, this might be a quick energy data solution
-    //load.collectDataEnergyOnly();
-  }
-
-  if (flagRequestIT2704Data)
-  {
-    if (mutex_enter_timeout_ms(&can_mutex, 100))
-    {
-      flagRequestIT2704Data = false;
-      // Ask load IT2704 to send measurement results
-      // Result (when available) will be collected later by node.run()
-      load.collectData();
-      mutex_exit(&can_mutex);
-    }
-    else
-    {
-      #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex timeout.");
-      #endif
-    }
-
-  }
+  } while (data_available);
 
   if (flagSoundButton)
   {
     flagSoundButton = false;
+    #ifdef ARDUINO_ARCH_RP2040
+    bsp_buzzer_enable(true);
+    #endif
+    buzzerTime = millis();
+    if (buzzerTime == 0) buzzerTime++;
+  }
+  if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
+  {
+    buzzerTime = 0;
+    #ifdef ARDUINO_ARCH_RP2040
+    bsp_buzzer_enable(false);
+    #endif
   }
 
-  if (millis() - startTime >= 1000)
+  while ( (millis() - startTime) >= TICKERTIME )
   {
-    // This runs every second !!
-    startTime = millis();
+    startTime += TICKERTIME;
+    // This loopcounter is incremented every TICKERTIME (50ms)
+    loopcounter++;
 
-    #ifdef DEBUG                      
-    static uint32_t loopcounter = 0;
-    Serial.printf("Loop: %d\n",loopcounter++);
+    if (loopcounter == 200000)
+    //if (loopcounter == 72000)    
+    {
+      // Reset counter after 10.000s
+      // A bit arbitrary
+      loopcounter = 0; 
+    }
+
+    #ifdef ARDUINO_ARCH_RP2040
+    if ((loopcounter % 2000) == 0)
+    {
+      Serial.printf("Loop: %d\n",counterCore1.load());
+    }
     #endif
+    
+    // Get RotoPD measurement results for later averaging
+    // Every 50ms
+    collectRotoPDData();
 
-    if (!load.isConnected())
+    // Every 250ms
+    if ((loopcounter % 5) == 0)
     {
-      #ifdef DEBUG
-      Serial.println("GUI. IT2704 disconnected !");
-      #endif
+    // Ask load IT2704 to send measurement results
+    // Result (when available) will be collected later by node.run()
+      load.collectData();
     }
 
-    // Test connection with load IT2704
-    if (mutex_enter_timeout_ms(&can_mutex, 100 /*ms*/))
+    // Every 100ms
+    if ((loopcounter % 2) == 0)
     {
-      load.queryConnection();
-      mutex_exit(&can_mutex);  
+      CalcBatteryData = true;
     }
-    else
+
+    // Every 500ms
+    if ((loopcounter % 10) == 0)
+    {
+      flagProcessMeasurementData = true;
+    }
+
+    // Every second
+    if ((loopcounter % 20) == 0)
     {
       #ifdef DEBUG                      
-      Serial.println("GUI. CAN mutex timeout.");
+      //static uint32_t loopcounter = 0;
+      //Serial.printf("Loop: %d\n",loopcounter / 20);
       #endif
-    }
 
-
-    PDOCount = taskRotoPDInit();
-
-    if (PDOCount != -1)
-    {
-      // Got PDO data from plugin of PD source
-      Info_Add("GUI. Plugin of PD source !!");
-
-      if (PDOCount == 0) Info_Add("GUI. No new PDO's !!");
-
-      // We have a newly connected RotoPD or new PDO's
-      if (PDOCount>0)
+      if (!load.isConnected())
       {
-        Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
-       
-        ScreenPDOClearPDOList();
-
-        memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
-
-        hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
-        hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
-
-        dataindexer = DATASTART;
-
-        hid_report_in[dataindexer++] = PDOCount;
-
-        for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
-        {
-          memset(&PDO, 0, sizeof(PDO));
-
-          if (pd.readPDO(j, PDO))
-          {
-            if (PDO.valid)
-            {
-              if (PDO.isEPR)
-                Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
-              else
-                Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
-              #ifdef STANDALONE
-              ScreenPDOSetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
-              #endif
-              hid_report_in[dataindexer++] = PDO.index;
-              w_data.Val = PDO.raw;
-              hid_report_in[dataindexer++] = w_data.bytes.LB;
-              hid_report_in[dataindexer++] = w_data.bytes.HB;
-            }  
-          }
-        }
-        // Send PDO data to USB host
-        hid_report_in[LENGTHPOSITION]=dataindexer;   
-
-        #ifdef ENABLEUSB
-        #ifdef ARDUINO_ESP32S3_DEV
-        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
-        #else
-        HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
-        #endif      
+        #ifdef DEBUG
+        //Serial.println("GUI. IT2704 disconnected !");
         #endif
-
       }
-    }
-  }  
+
+      //Serial.printf("CAN queue depth at loop %d. Rx: %d. Tx: %d. TxPrio: %d\n", loopcounter++, node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+
+      // Test connection with load IT2704
+      //mutex_enter_blocking(&can_mutex);
+      load.queryConnection();
+      //mutex_exit(&can_mutex); 
+
+      //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+
+
+      PDOCount = taskRotoPDInit();
+
+      if (PDOCount != -1)
+      {
+        // Got PDO data from plugin of PD source
+        Info_Add("GUI. Plugin of PD source !!");
+
+        if (PDOCount == 0) Info_Add("GUI. No new PDO's !!");
+
+        // We have a newly connected RotoPD or new PDO's
+        if (PDOCount>0)
+        {
+          Info_Add_Fmt("GUI. Process new PDO's !! PDO count: %d",PDOCount);
+        
+          ScreenPDOClearPDOList();
+
+          memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
+
+          hid_report_in[COMMANDPOSITION] = CMD_get_PDOList;
+          hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
+
+          dataindexer = DATASTART;
+
+          hid_report_in[dataindexer++] = PDOCount;
+
+          for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
+          {
+            memset(&PDO, 0, sizeof(PDO));
+
+            if (pd.readPDO(j, PDO))
+            {
+              if (PDO.valid)
+              {
+                if (PDO.isEPR)
+                  Info_Add_Fmt("GUI. EPR PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
+                else
+                  Info_Add_Fmt("GUI. PDO received ! PDO voltage: %dmV.", PDO.maxVoltage_mV);
+                #ifdef STANDALONE
+                ScreenPDOSetPDO(PDO.index,PDO.valid,PDO.isEPR,PDO.type,PDO.minVoltage_mV,PDO.maxVoltage_mV,PDO.maxCurrent_mA);
+                #endif
+                hid_report_in[dataindexer++] = PDO.index;
+                w_data.Val = PDO.raw;
+                hid_report_in[dataindexer++] = w_data.bytes.LB;
+                hid_report_in[dataindexer++] = w_data.bytes.HB;
+              }  
+            }
+          }
+          // Send PDO data to USB host
+          hid_report_in[LENGTHPOSITION]=dataindexer;   
+
+          #ifdef ENABLEUSB
+          #ifdef ARDUINO_ESP32S3_DEV
+          HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
+          #else
+          HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+          #endif      
+          #endif
+
+        }
+      }
+    } // every second
+  } // while Ticksbetween 
 
   THIDData* PLocalHD;
   THIDData LocalHDCopy;
@@ -1089,7 +1354,7 @@ if (digitalRead(BUTTON_PIN) == LOW)
         // Send report back to host
         #ifdef ENABLEUSB
         #ifdef ARDUINO_ESP32S3_DEV
-        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
         #else
         HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
         #endif
@@ -1167,17 +1432,7 @@ if (digitalRead(BUTTON_PIN) == LOW)
           Screen1AddEData(RDS->Energy / 1000000ULL);
           if (RDS->Energy == 0)
           {
-            if (mutex_enter_timeout_ms(&can_mutex, 100))
-            {
-              load.clearEnergy();
-              mutex_exit(&can_mutex);  
-            }
-            else
-            {
-              #ifdef DEBUG                      
-              Serial.println("GUI. CAN mutex timeout.");
-              #endif
-            }
+            load.clearEnergy();
             ClearRunData(RDS); 
             ClearMeasurementData(&LatestRotoPDData);
             ClearMeasurementData(&LatestIT2704Data);
@@ -1378,7 +1633,7 @@ if (digitalRead(BUTTON_PIN) == LOW)
       // Akes it easy to use a single controller for testing through a PC
       #ifdef ENABLEUSB
       #ifdef ARDUINO_ESP32S3_DEV
-      HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+      HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
       #else
       HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #endif      
