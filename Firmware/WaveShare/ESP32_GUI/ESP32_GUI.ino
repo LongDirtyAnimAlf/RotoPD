@@ -1,7 +1,5 @@
 #include <Arduino.h>
 
-#define ARDUINO_ARCH_ESP32
-
 #include <lvgl.h>
 #include <Ticker.h>
 
@@ -64,10 +62,6 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
 
 #endif
 
-#include "./src/CANOpen/canOpenNode.h"
-#include "./src/CANOpen/sdo.hpp"
-#include "./src/CANOpen/message.hpp"
-
 #if !ARDUINO_USB_CDC_ON_BOOT
 USBCDC USBSerial;
 #endif
@@ -96,7 +90,6 @@ static volatile bool flagCollectRotoPDData = false;
 static Ticker tickerRequestIT2704Data;
 static volatile bool flagRequestIT2704Data = false;
 
-static Ticker SoundButtonTicker;
 static bool flagSoundButton = false;
 
 static Ticker tickerProcessData;
@@ -732,47 +725,7 @@ void setup()
   else
     Info_Add("GUI. RotoPD not connected or not found.");
 
-
-  // CAN !!!!
-
-  #ifdef ARDUINO_ARCH_ESP32
-
-  twai_filter_config_t myFilter;
-  myFilter.single_filter = true;
-  // Calculate a mask that allows your Node ID or Master Node ID bit patterns
-  // We want the hardware to completely ignore the top bits (base functions) 
-  // and only validate the lower Node ID bits.
-  uint32_t common_mask = 0x000; // Allow upper function bits to pass through hardware
-  // Only require bits to match where IT2704NodeID and MasterNodeID share identical bit values
-  // Unmatched bits between the two node IDs must be masked out (ignored by hardware)
-  uint32_t node_match_mask = ~(BoardInfo.IT2704NodeID ^ BoardInfo.MasterNodeID) & 0x7F; 
-  uint32_t combined_mask = common_mask | node_match_mask;
-  // Set Code and Mask (Shifted 21 bits left for Standard 11-bit IDs)
-  myFilter.acceptance_code = ((BoardInfo.IT2704NodeID & combined_mask) << 21);
-  myFilter.acceptance_mask = ~(combined_mask << 21);
-
-  bool success = ESP32Can.begin(
-    ESP32Can.convertSpeed(250), // twaiSpeed
-    CAN_TX,                     // txPin
-    CAN_RX,                     // rxPin
-    10,                         // txQueue size
-    50,                         // rxQueue size
-    &myFilter,                  // fConfig (Your custom hardware filter)
-    nullptr,                    // gConfig (Let library handle automatically)
-    nullptr                     // tConfig (Let library handle automatically)
-  );
-
-  if (success) {
-    Info_Add("GUI. ESP32 CAN bus started!");
-  } else {
-    Info_Add("GUI. ESP32 CAN bus failed!");
-  }
-
-  #endif // ARDUINO_ARCH_ESP32
-
-  #ifdef ARDUINO_ARCH_RP2040
   initCANopen();
-  #endif
 
   Info_Add("GUI. Setting up CANOpen ready.");
 
@@ -1005,12 +958,7 @@ if (digitalRead(BUTTON_PIN) == LOW)
   if (flagSoundButton)
   {
     flagSoundButton = false;
-    #ifdef ARDUINO_ARCH_RP2040    
-    bsp_buzzer_enable(true);
-    #endif
-    SoundButtonTicker.once_ms(100U, StopClickCB);
   }
-
 
   if (millis() - startTime >= 1000)
   {
