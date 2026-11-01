@@ -217,8 +217,12 @@ void CanOpenNode::begin() {
 }
 
 // Run function to handle the core communication loop with NMT handling
+#ifdef ARDUINO_ARCH_RP2040
 bool __not_in_flash_func(CanOpenNode::run)() {
-
+#endif
+#ifdef ARDUINO_ARCH_ESP32
+bool CanOpenNode::run() {
+#endif
     bool messageavailable = recv.run();
     //bool messageavailable = recv.CAN->checkRxQueue();
 

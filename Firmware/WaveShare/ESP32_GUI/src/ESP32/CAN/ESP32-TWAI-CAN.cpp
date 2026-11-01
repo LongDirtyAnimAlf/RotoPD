@@ -1,5 +1,7 @@
 #include "ESP32-TWAI-CAN.hpp"
 
+#ifdef ARDUINO_ARCH_ESP32
+
 void TwaiCAN::setSpeed(TwaiSpeed twaiSpeed) {
     if(twaiSpeed < TWAI_SPEED_SIZE) speed = twaiSpeed;
 }
@@ -304,3 +306,5 @@ bool TwaiCAN::end() {
 }
 
 TwaiCAN ESP32Can;
+
+#endif

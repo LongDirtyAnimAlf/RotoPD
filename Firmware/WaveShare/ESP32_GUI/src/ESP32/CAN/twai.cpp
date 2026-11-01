@@ -13,6 +13,8 @@
 
 #include "./twai.h"  // Include header file for CAN driver functions
 
+#ifdef ARDUINO_ARCH_ESP32
+
 /**
  * @brief Initializes the CAN (TWAI) interface.
  *
@@ -172,3 +174,5 @@ twai_message_t can_read_Byte()
     }
     return message;
 }
+
+#endif

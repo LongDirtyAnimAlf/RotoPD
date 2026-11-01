@@ -266,7 +266,7 @@ void IT2704::initDevice(bool reset)
         data.Val = (0x80000000U); // bit 31 = 1 
         Msg.setData(data.Val);
         _node->sendMsg(Msg,true);
-        /*
+        */
 
         // Write the new COB-ID into TPDO: Keep Bit 31 = 1
         Msg.clearData();

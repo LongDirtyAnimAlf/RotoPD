@@ -7,7 +7,6 @@
 
 #ifdef ARDUINO_ARCH_ESP32
 #include "./../CAN/CANESP32.h"
-#define BSP_XL2515_INT_PIN -1
 #endif
 
 #include "../../config.h"

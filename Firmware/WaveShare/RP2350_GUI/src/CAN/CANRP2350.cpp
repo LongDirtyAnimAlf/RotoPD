@@ -1,11 +1,11 @@
 #include "CANRP2350.h"
 
-//#ifdef ARDUINO_ARCH_RP2040
+#ifdef ARDUINO_ARCH_RP2040
 
 #include <string.h>
 
 // Define constructor implementation here
-CBUSRP2350Device::CBUSRP2350Device() : 
+CBUSDevice::CBUSDevice() :
   caninterface(),
   _intPin(BSP_XL2515_INT_PIN)
 {
@@ -13,7 +13,7 @@ CBUSRP2350Device::CBUSRP2350Device() :
   HandleTxMessages = false;
 }
 
-void CBUSRP2350Device::begin(void)
+void CBUSDevice::begin(void)
 {
     caninterface.begin();
 
@@ -29,7 +29,7 @@ void CBUSRP2350Device::begin(void)
     }
 }
 
-void CBUSRP2350Device::begin(uint8_t MasterID, uint8_t IT2704ID)
+void CBUSDevice::begin(uint8_t MasterID, uint8_t IT2704ID)
 {
     caninterface.begin();
 
@@ -63,12 +63,12 @@ void CBUSRP2350Device::begin(uint8_t MasterID, uint8_t IT2704ID)
     }
 }
 
-bool CBUSRP2350Device::checkCANInterrupt(void)
+bool CBUSDevice::checkCANInterrupt(void)
 {
   return caninterface.checkInterrupt();
 }
 
-CBUSbase::CANERROR CBUSRP2350Device::abortCANAllPending(bool withqueues)
+CBUSbase::CANERROR CBUSDevice::abortCANAllPending(bool withqueues)
 {
   if (withqueues)
   {
@@ -78,12 +78,12 @@ CBUSbase::CANERROR CBUSRP2350Device::abortCANAllPending(bool withqueues)
   return ERROR_OK;
 }
 
-CBUSbase::CANERROR CBUSRP2350Device::resetCAN(void)
+CBUSbase::CANERROR CBUSDevice::resetCAN(void)
 {
    return (CBUSbase::CANERROR)caninterface.reset();
 }
 
-bool __not_in_flash_func(CBUSRP2350Device::taskCAN)(bool single)
+bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
 {
   // This perform the real hardware access
   // Pushed receved messages into the Rx buffer
@@ -210,12 +210,12 @@ bool __not_in_flash_func(CBUSRP2350Device::taskCAN)(bool single)
   return (!CanRxBuffer.isEmpty());
 }
 
-CBUSbase::CANERROR CBUSRP2350Device::sendCANMessage(const can_frame *frame)
+CBUSbase::CANERROR CBUSDevice::sendCANMessage(const can_frame *frame)
 {
   bool enqueued = CanTxBuffer.push(*frame);
 
   if (enqueued) {
-      //Serial.println("CBUSRP2350Device: Normal message enqueue ok.");        
+      //Serial.println("CBUSDevice: Normal message enqueue ok.");
 
       HandleTxMessages = true;
       //processTxQueue();
@@ -224,16 +224,13 @@ CBUSbase::CANERROR CBUSRP2350Device::sendCANMessage(const can_frame *frame)
 
   return ERROR_ALLTXBUSY;
 }
-CBUSbase::CANERROR CBUSRP2350Device::sendCANMessage(const can_frame &frame)
-{
-  return sendCANMessage(&frame);
-}
-CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame *frame)
+
+CBUSbase::CANERROR CBUSDevice::sendCANMessagePrio(const can_frame *frame)
 {
   bool enqueued = CanTxPrioBuffer.push(*frame);
 
   if (enqueued) {
-      //Serial.println("CBUSRP2350Device: Prio message enqueue ok.");        
+      //Serial.println("CBUSDevice: Prio message enqueue ok.");
       HandleTxMessages = true;
       //processTxQueue();
       return ERROR_OK;
@@ -242,12 +239,7 @@ CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame *frame)
   return ERROR_ALLTXBUSY;
 }
 
-CBUSbase::CANERROR CBUSRP2350Device::sendCANMessagePrio(const can_frame &frame)
-{
-  return sendCANMessagePrio(&frame);
-}
-
-CBUSbase::CANERROR CBUSRP2350Device::readCANMessage(can_frame *frame)
+CBUSbase::CANERROR CBUSDevice::readCANMessage(can_frame *frame)
 {
   //return (CBUSbase::ERROR)caninterface.readMessage(frame);
   if (CanRxBuffer.getCount() != 0)
@@ -260,12 +252,7 @@ CBUSbase::CANERROR CBUSRP2350Device::readCANMessage(can_frame *frame)
   return ERROR_NOMSG;
 }
 
-CBUSbase::CANERROR CBUSRP2350Device::readCANMessage(can_frame &frame)
-{
-  return readCANMessage(&frame);
-}
-
-bool CBUSRP2350Device::processTxQueue(void)
+bool CBUSDevice::processTxQueue(void)
 {
     struct can_frame frame;
 
@@ -328,6 +315,4 @@ bool CBUSRP2350Device::processTxQueue(void)
     return (result == MCP2515::ERROR_OK);
 }
 
-//CBUSRP2350Device CBUSDevice;
-
-//#endif
+#endif

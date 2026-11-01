@@ -1,6 +1,8 @@
 #ifndef _MCP2515_H_
 #define _MCP2515_H_
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <SPI.h>
 #include "can.h"
 
@@ -526,5 +528,7 @@ class MCP2515
         void disableInterrupt(void);
         bool checkInterrupt(void);
 };
+
+#endif
 
 #endif

@@ -1,4 +1,7 @@
 #include <Arduino.h>
+
+#define ARDUINO_ARCH_ESP32
+
 #include <lvgl.h>
 #include <Ticker.h>
 
@@ -117,78 +120,6 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 
 mutex_t can_mutex;
 
-// ---------------------------------------------------------------
-// Automatic PSRAM (QMI M1) timing calculator for RP2350
-// Tuned for common APS6404 / similar 133–166 MHz PSRAM chips
-// ---------------------------------------------------------------
-#ifdef ARDUINO_ARCH_RP2040
-void set_psram_timing_auto()
-{
-    // Maximum safe SCK frequency for most common PSRAM chips (Hz)
-    const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
-
-    // Typical PSRAM timing requirements (from datasheets)
-    const uint32_t MAX_SELECT_NS   = 8000;   // max CS low time ≈ 8 µs
-    const uint32_t MIN_DESELECT_NS = 50;     // min CS high time ≈ 50 ns
-
-    uint32_t sys_hz = clock_get_hz(clk_sys);
-
-    // 1. Clock divider so that SCK ≤ MAX_PSRAM_SCK_HZ
-    uint32_t clkdiv = (sys_hz + MAX_PSRAM_SCK_HZ - 1) / MAX_PSRAM_SCK_HZ;
-    if (clkdiv < 1) clkdiv = 1;
-    if (clkdiv > 255) clkdiv = 255;          // hardware limit
-
-    // 2. RXDELAY – needs to increase at higher SCK frequencies
-    //    Rule of thumb used by many successful ports:
-    uint32_t rxdelay = 1;
-    if (sys_hz / clkdiv > 100000000) rxdelay = 2;
-    if (sys_hz / clkdiv > 130000000) rxdelay = 3;
-    if (rxdelay > 7) rxdelay = 7;
-
-    // 3. MAX_SELECT (in units of 64 system clocks)
-    //    Keep CS assertion under ~8 µs
-    uint32_t cycles_per_us = sys_hz / 1000000;
-    uint32_t max_select = (MAX_SELECT_NS * cycles_per_us) / (64 * 1000);
-    if (max_select > 63) max_select = 63;    // 6-bit field
-    if (max_select < 1)  max_select = 1;
-
-    // 4. MIN_DESELECT (extra system clocks after CS deassert)
-    uint32_t min_deselect = (MIN_DESELECT_NS * cycles_per_us + 999) / 1000;
-    // subtract the inherent half-SCK already provided by the hardware
-    if (min_deselect > (clkdiv + 1) / 2)
-        min_deselect -= (clkdiv + 1) / 2;
-    else
-        min_deselect = 0;
-    if (min_deselect > 31) min_deselect = 31; // 5-bit field
-
-    // 5. Other fixed / recommended values
-    const uint32_t cooldown    = 1;   // short cooldown
-    const uint32_t pagebreak   = 2;   // 1024-byte page break (value 2)
-    const uint32_t select_hold = 1;   // 1 extra hold cycle (good default)
-    const uint32_t select_setup = 0;
-
-    // Build the register value
-    uint32_t timing =
-        (cooldown      << 30) |
-        (pagebreak     << 28) |
-        (select_setup  << 25) |
-        (select_hold   << 23) |
-        (max_select    << 17) |
-        (min_deselect  << 12) |
-        (rxdelay       <<  8) |
-        (clkdiv        <<  0);
-
-    // Write it safely
-    uint32_t irq = save_and_disable_interrupts();
-    qmi_hw->m[1].timing = timing;
-    restore_interrupts(irq);
-
-    // Optional debug print
-    // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
-    //               timing, clkdiv, rxdelay, max_select, min_deselect);
-}
-#endif
-
 // Callback that returns elapsed ms since boot
 static uint32_t my_tick_get_cb(void) {
   return millis();
@@ -197,14 +128,6 @@ static uint32_t my_tick_get_cb(void) {
 
 #ifdef STANDALONE
 
-#ifdef ARDUINO_ARCH_RP2040
-static void __not_in_flash_func(storeSettings)(byte BI)
-{
-    PBatterySetting SET = &Batteries[BI];
-    storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
-    storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
-}
-#endif // ARDUINO_ARCH_RP2040
 #ifdef ARDUINO_ARCH_ESP32
 static void IRAM_ATTR storeSettings(byte BI)
 {
@@ -619,14 +542,6 @@ static void cbProcessData()
   flagProcessMeasurementData = true;
 }
 
-static void StopClickCB()
-{
-  #ifdef ARDUINO_ARCH_RP2040
-  bsp_buzzer_enable(false);
-  #endif
-}
-
-
 static void datastartcb(byte index)
 {
   PBatterySetting SET = &Batteries[index];  
@@ -647,67 +562,11 @@ void dataupdatecb()
   CalcBatteryData = true;
 }
 
-#ifdef ARDUINO_ARCH_RP2040
-
-// Running on core1
-void setup1() {
-  //delay(1);
-  mutex_enter_blocking(&can_mutex);
-  node.getCAN().run();
-  mutex_exit(&can_mutex);  
-}
-
-void loop1() {
-  bool mutexOk = false;
-  //mutex_enter_blocking(&can_mutex);
-  mutexOk = mutex_enter_timeout_ms(&can_mutex, 1/*ms*/);
-  if (mutexOk)
-  {
-    node.getCAN().run(true);
-    mutex_exit(&can_mutex);  
-  }  
-  if (mutexOk)
-  {
-    // We might have entered the mutex without any problem
-    // So yield here to give other tasks some change
-    // If we had a timeout, other tasks have already got their chance
-    yield();
-  }
-}
-
-#endif // ARDUINO_ARCH_RP2040
-
 void setup()
 {
   byte index;
   word tempintcalc;
   char myHex[10] = "";
-
-  #ifdef ARDUINO_ARCH_RP2040
-
-  // 1. STEP THE VOLTAGE UP INCREMENTALLY
-  // Stepping avoids sudden current spikes that trip brownout resets.
-  //vreg_set_voltage(VREG_VOLTAGE_1_20);
-  //delay(20);
-  //vreg_set_voltage(VREG_VOLTAGE_1_25);
-  //delay(20);
-  //vreg_set_voltage(VREG_VOLTAGE_1_30); // Max recommended safe internal voltage
-  //delay(20); // Allow LDO rail stabilization
-
-  //set_sys_clock_khz(400000, false);  
-  //delay(10);
-
-  // Change system clock to exactly match the PSRAM clock (133MHz) by an integer factor
-  // This results in best LCD performance without glitches and noise
-  set_sys_clock_khz(266000, true);  
-  delay(10);
-
-  // Tune the PSRAM settings to match the system clock
-  // This results in best LCD performance without glitches and noise
-  set_psram_timing_auto();
-  delay(10);
-
-  #endif // ARDUINO_ARCH_RP2040
 
   // Start by blocking all CAN activity
   mutex_init(&can_mutex);
@@ -751,36 +610,6 @@ void setup()
   #endif // ENABLEUSB
   #endif // ARDUINO_ARCH_ESP32
 
-  #ifdef ARDUINO_ARCH_RP2040
-  #ifdef ENABLEUSB
-  #ifdef USE_TINYUSB
-  // Manual begin() is required on core without built-in support e.g. mbed rp2040
-  if (!TinyUSBDevice.isInitialized()) {
-    TinyUSBDevice.begin(0);
-  }
-  USBDevice.setID(0x04D8,0x003E);
-  USBDevice.setVersion(0x0200);        // USB 2.0
-  USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
-  USBDevice.setManufacturerDescriptor("Consulab for pleasure");
-  USBDevice.setProductDescriptor("USB-C PD controller");
-
-  USBDevice.setSerialDescriptor(mySerial);  
-  HID.setReportCallback(NULL, set_report_callback);
-  HID.enableOutEndpoint(true);
-  HID.setPollInterval(1);
-  HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
-  USBDevice.addStringDescriptor(myFirmware);  
-
-  HID.begin();
-  #endif // USE_TINYUSB
-  #endif // ENABLEUSB
-  // Enable serial (again) for programming and debugging
-  Serial.begin(115200);
-  #endif // ARDUINO_ARCH_RP2040
-
-
-
-
   #ifdef ARDUINO_ARCH_ESP32
   // Init buf /  expander / i2c
   // This also runs initDisplayPower !!
@@ -799,12 +628,6 @@ void setup()
   lv_screen_init(gfx, HOR_RES, VER_RES);
   #endif // ARDUINO_ARCH_ESP32
 
-
-  #ifdef ARDUINO_ARCH_RP2040
-  lv_screen_init(HOR_RES, VER_RES);
-  lv_screen_brightness(0);
-  lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
-  #endif // ARDUINO_ARCH_RP2040
 
   // Create and show flash-screen
   CreateSaveScreen(NULL);
@@ -828,15 +651,6 @@ void setup()
   SetMasterAdress(BoardInfo.MasterNodeID);
   SetIT2704Adress(BoardInfo.IT2704NodeID);
   SetIT2704Channel(BoardInfo.IT2704Channel);
-
-
-  #ifdef ARDUINO_ARCH_RP2040
-  Serial.println("Starting RP2350 hardware init.");
-  bsp_buzzer_init();
-  WireBattery.setSDA(BSP_I2C_SDA_PIN);
-  WireBattery.setSCL(BSP_I2C_SCL_PIN);
-  //WireBattery.setClock(400000);   // or even 50000
-  #endif
 
   #ifdef ARDUINO_ARCH_ESP32
   Serial.println("Starting ESP32 hardware init.");
@@ -984,42 +798,6 @@ void setup()
   String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Info_Add(LVGL_Arduino.c_str());
 
-  #ifdef ARDUINO_ARCH_RP2040
-  
-  Info_Add_Fmt("CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
-
-  Info_Add("GUI. RP2350 SRAM memory info.");
-  // Internal SRAM heap
-  Info_Add_Fmt("SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
-  Info_Add_Fmt("SRAM buffer: %u KB.", (lv_port_get_buffer_heap_usage() / 1024));
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB.", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1024) );
-
-  lv_mem_monitor_t mon;
-  lv_mem_monitor(&mon);
-  Info_Add_Fmt("LVGL heap usage. Used: %u KB. Free: %u KB. Biggest free: %u KB.",
-       (mon.total_size - mon.free_size) / 1024,
-       mon.free_size / 1024,
-       mon.free_biggest_size / 1024);
-  Info_Add_Fmt("LVGL heap fragmentation: %u%%.", mon.frag_pct);
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1024) );
-
-  Info_Add("GUI. RP2350 PSRAM memory info.");
-  // PSRAM heap
-  Info_Add_Fmt("PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
-  Info_Add_Fmt("PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
-  Info_Add_Fmt("PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
-
-  /*
-  for (int i = 0; i < 16; i++) {
-      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_12MA); // or 12MA
-      gpio_set_slew_rate(BSP_LCD_DATA0_PIN + i, GPIO_SLEW_RATE_SLOW);
-  }
-  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
-  gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
-  */
-  
-  #endif // ARDUINO_ARCH_RP2040
-
   delay(2000);
 
   init_screensaver_controller(SAVERTIME);
@@ -1082,7 +860,6 @@ if (digitalRead(BUTTON_PIN) == LOW)
   }
 }  
 #endif
-
 
 
   #ifdef TINYUSB_NEED_POLLING_TASK

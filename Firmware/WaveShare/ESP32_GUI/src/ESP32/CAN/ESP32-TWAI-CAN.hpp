@@ -17,6 +17,8 @@
  *
  */
 
+#ifdef ARDUINO_ARCH_ESP32
+
 #ifdef ARDUINO
 # include <Arduino.h>
 #else
@@ -156,5 +158,7 @@ class TwaiCAN {
 };
 
 extern TwaiCAN ESP32Can;
+
+#endif
 
 #endif // ESP32_TWAI_CAN_HPP

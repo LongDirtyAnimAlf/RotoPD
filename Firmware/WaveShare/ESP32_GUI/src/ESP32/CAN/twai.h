@@ -13,6 +13,8 @@
 #ifndef __CAN_H
 #define __CAN_H
 
+#ifdef ARDUINO_ARCH_ESP32
+
 #pragma once
 
 // Include necessary driver headers
@@ -62,5 +64,7 @@ void can_write_Byte(twai_message_t message);
  * @return A CAN message containing the received data.
  */
 twai_message_t can_read_Byte();
+
+#endif
 
 #endif  // __CAN_H

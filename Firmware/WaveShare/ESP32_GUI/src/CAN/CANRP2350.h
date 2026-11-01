@@ -8,9 +8,9 @@
 #include "./../RP2350/CAN/mcp2515.h"
 #include "pico/mutex.h"
 
-class CBUSRP2350Device : public CBUSbase {
+class CBUSDevice : public CBUSbase {
 public:
-  CBUSRP2350Device(void);
+  CBUSDevice(void);
 
   void begin(void);
   void begin(uint8_t MasterID, uint8_t IT2704I);
@@ -22,11 +22,11 @@ public:
   CANERROR resetCAN(void);
   bool taskCAN(bool single = false);
   CANERROR sendCANMessage(const can_frame *frame);
-  CANERROR sendCANMessage(const can_frame &frame);
+  CANERROR sendCANMessage(const can_frame &frame) {return sendCANMessage(&frame);}
   CANERROR sendCANMessagePrio(const can_frame *frame);
-  CANERROR sendCANMessagePrio(const can_frame &frame);
+  CANERROR sendCANMessagePrio(const can_frame &frame) {return sendCANMessagePrio(&frame);}
   CANERROR readCANMessage(can_frame *frame);
-  CANERROR readCANMessage(can_frame &frame);
+  CANERROR readCANMessage(can_frame &frame) {return readCANMessage(&frame);}
 
   const MCP2515& getMCP2515() const { return caninterface; }
   MCP2515& getMCP2515() { return caninterface; }  
@@ -42,7 +42,7 @@ private:
   bool processTxQueue(void);
 };
 
-//extern CBUSRP2350Device CBUSDevice;
+//extern CBUSDevice CBUSDevice;
 
 #endif
 

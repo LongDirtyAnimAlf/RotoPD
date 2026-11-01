@@ -1,39 +1,11 @@
 #include <Arduino.h>
 
-//#include <mutex>
-//#include <chrono>
-//#include <functional>
-
 #include <lvgl.h>
 #include <Ticker.h>
-#include <atomic>
-
-#ifdef ARDUINO_ARCH_ESP32
-
-#include <Arduino_GFX_Library.h>
-#include "USB.h"
-#include "USBHID.h"
-#include "esp32-hal-tinyusb.h"
-#include "customhid.h"
-
-#define HOR_RES 480
-#define VER_RES 480
-
-#define PACKET_UART_RXD 20
-#define PACKET_UART_TXD 19
-
-#define CAN_TX GPIO_NUM_6 // Transmit GPIO number for CAN
-#define CAN_RX GPIO_NUM_0 // Receive GPIO number for CAN
-
-//#define BUTTON_PIN 38
-
-#define GFX_DEV_DEVICE ESP32_S3_RGB
-#define RGB_PANEL
-//#define GFX_BL 45
-
-#endif
 
 #ifdef ARDUINO_ARCH_RP2040
+
+#include <atomic>
 
 #include "hardware/vreg.h"
 #include "hardware/powman.h"
@@ -78,15 +50,6 @@ Adafruit_USBD_HID HID;
 #endif
 #endif
 
-#ifdef ARDUINO_ARCH_ESP32
-#if defined(ARDUINO_USB_MODE) && (ARDUINO_USB_MODE == 0)  // USB-OTG / TinyUSB
-#ifdef ENABLEUSB
-USBHID HID;
-#endif
-USBCDC USBSerial;
-#endif
-#endif
-
 unsigned long loopStartTime = 0;
 
 // Must be a global variable !!!
@@ -95,39 +58,8 @@ char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
 
-//CanOpenNode node(BSP_XL2515_CS_PIN, BSP_XL2515_INT_PIN, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
-CanOpenNode node(-1, -1, CAN_250KBPS, /*NodeID=*/ DEFAULT_LOCAL_NODEID);
+CanOpenNode node(/*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
-
-#ifdef ARDUINO_ARCH_ESP32
-
-Arduino_DataBus *bus = new Arduino_SWSPI(
-    GFX_NOT_DEFINED /* DC */, 42 /* CS */,
-    2 /* SCK */, 1 /* MOSI */, GFX_NOT_DEFINED /* MISO */);
-
-Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
-    40 /* DE */, 39 /* VSYNC */, 38 /* HSYNC */, 41 /* PCLK */,
-    46 /* R0 */, 3 /* R1 */, 8 /* R2 */, 18 /* R3 */, 17 /* R4 */,
-    14 /* G0 */, 13 /* G1 */, 12 /* G2 */, 11 /* G3 */, 10 /* G4 */, 9 /* G5 */,
-    5 /* B0 */, 45 /* B1 */, 48 /* B2 */, 47 /* B3 */, 21 /* B4 */,
-    1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
-    1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
-    #ifndef ALTERNATIVE
-    ,0 /* pclk_active_neg */, 20000000 /* prefer_speed */, false /* useBigEndian  */,
-    0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
-    #else
-    );
-    #endif
-
-Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
-    #ifndef ALTERNATIVE
-    HOR_RES /* width */, VER_RES /* height */, rgbpanel, 0 /* rotation */, false /* auto_flush */,
-    bus, GFX_NOT_DEFINED /* RST */, st7701_indicator_init_operations, sizeof(st7701_indicator_init_operations));
-    #else
-    HOR_RES /* width */, VER_RES /* height */, rgbpanel, 2 /* rotation */, true /* auto_flush */,
-    bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
-    #endif
-#endif
 
 TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 PBatteryBoard const CurrentBoard = BatteryBoards;
@@ -296,60 +228,6 @@ static void __not_in_flash_func(storeSettings)(byte BI)
     PBatterySetting SET = &Batteries[BI];
     storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
     storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
-}
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-static void IRAM_ATTR storeSettings(byte BI)
-{
-  // At the moment 13-March-2025, this only works with ESP IDF 3.1.1 !!!
-  // So, be carefull
-  // See: https://github.com/moononournation/Arduino_GFX/issues/638
-
-  // ESP IDF version > 3.2.0 have these enabled
-  // CONFIG_GDMA_ISR_IRAM_SAFE=y
-  // CONFIG_LCD_RGB_ISR_IRAM_SAFE=y
-  // CONFIG_LCD_RGB_RESTART_IN_VSYNC=y
-
-  //(CONFIG_LCD_RGB_ISR_IRAM_SAFE && !(CONFIG_SPIRAM_RODATA && CONFIG_SPIRAM_FETCH_INSTRUCTIONS))
-
-  // See: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html#why-do-i-get-drift-overall-drift-of-the-display-when-esp32-s3-is-driving-an-rgb-lcd-screen
-
-  static DRAM_ATTR uint8_t v = 0;
-  static DRAM_ATTR uint16_t w = 0;
-  static DRAM_ATTR char stage[] = "#stage##";
-  static DRAM_ATTR esp_err_t ret = 0;
-  static DRAM_ATTR size_t length = sizeof(TStageData);
-
-    // disable flash cache
-    //spi_flash_guard_get()->start();
-    //esp_rom_delay_us(200000);
-
-    //lvgl_port_lock(-1);
-
-    PBatterySetting SET = &Batteries[BI];
-
-    v = BI;
-    stage[7] = '0'+ (uint8_t)(v%10);
-    v /= 10;
-    stage[6] = '0'+ (uint8_t)(v%10);
-
-    stage[0] = 'd';    
-    ret = indicator_nvs_write(stage, (void *)&StageDataTransporter[FIXEDDISCHARGESTAGENUMBER], length);
-    //ret = indicator_nvs_write(stage, (void *)&SET->Stages[FIXEDDISCHARGESTAGENUMBER], sizeof(TStageData));
-
-    stage[0] = 'c';
-    ret = indicator_nvs_write(stage, (void *)&StageDataTransporter[FIXEDCHARGESTAGENUMBER], length);
-    //ret = indicator_nvs_write(stage, (void *)&SET->Stages[FIXEDCHARGESTAGENUMBER], sizeof(TStageData));
-
-    #ifdef DEBUG  
-    //if( ret != ESP_OK ) USBSerial.println("NVM error !"); else USBSerial.println("NVM ok.");
-    #endif
-
-    // enable flash cache
-    //spi_flash_guard_get()->end();
-
-    //lvgl_port_unlock();    
 }
 #endif
 
@@ -810,35 +688,7 @@ void setup()
   myFirmware[18] = '\0';   
 
   #ifdef ENABLEUSB
-
-  #ifdef ARDUINO_ARCH_ESP32
-
-  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
   
-  USB.firmwareVersion(0x0100);
-  USB.manufacturerName("Consulab for pleasure");
-  USB.productName("USB PD controller with HID");
-  USB.VID(0x04D8);
-  USB.PID(0x003F);  
-  USB.usbVersion(0x0200);
-
-  tinyusb_add_string_descriptor(myFirmware);
-
-  Device.begin();
-
-  USBSerial.begin();
-
-  USB.begin();
-
-  #endif
-  #endif
-
-  #ifndef DEBUG
-  // This will remove the unwanted default string descriptor
-  // And kill the unwanted (unneeded) serial port.
-  //USBSerial.end();
-  #endif
-
   #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
   if (!TinyUSBDevice.isInitialized()) {
@@ -849,20 +699,7 @@ void setup()
   USBDevice.setDeviceVersion(0x0100);  // Device version 1.00  
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
   USBDevice.setProductDescriptor("USB-C PD controller");
-  #endif
 
-  #ifdef ARDUINO_ARCH_ESP32
-  #if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE == 0  // USB-OTG / TinyUSB
-  USB.VID(0x04D8);
-  USB.PID(0x003F);  
-  USB.usbVersion(0x0200);
-  USB.firmwareVersion(0x0100);
-  USB.manufacturerName("Consulab for pleasure");
-  USB.productName("USB PD controller with HID");
-  #endif
-  #endif
-
-  #if defined(ARDUINO_ARCH_RP2040) && defined(USE_TINYUSB)
   USBDevice.setSerialDescriptor(mySerial);  
   HID.setReportCallback(NULL, set_report_callback);
   HID.enableOutEndpoint(true);
@@ -901,10 +738,6 @@ void setup()
 
   Info_Add("GUI. Init our LVGL display wonder.");    
   lv_init();
-
-  #ifdef ARDUINO_ARCH_ESP32
-  lv_screen_init(gfx, HOR_RES, VER_RES);
-  #endif
 
   #ifdef ARDUINO_ARCH_RP2040
   lv_screen_init(HOR_RES, VER_RES);
@@ -1352,7 +1185,7 @@ void loop()
 
             #ifdef ENABLEUSB
             #ifdef ARDUINO_ESP32S3_DEV
-            HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+            HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
             #else
             HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
             #endif      
@@ -1422,7 +1255,7 @@ void loop()
         // Send report back to host
         #ifdef ENABLEUSB
         #ifdef ARDUINO_ESP32S3_DEV
-        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
         #else
         HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
         #endif
@@ -1701,7 +1534,7 @@ void loop()
       // Akes it easy to use a single controller for testing through a PC
       #ifdef ENABLEUSB
       #ifdef ARDUINO_ESP32S3_DEV
-      HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+      HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
       #else
       HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #endif      

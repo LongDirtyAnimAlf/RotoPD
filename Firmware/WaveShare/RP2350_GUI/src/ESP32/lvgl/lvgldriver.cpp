@@ -200,6 +200,31 @@ void lv_screen_init(void * gfx, word W, word H)
 void lv_screen_brightness(uint8_t b)
 {
   //analogWrite(LCD_BL, b);
+
+  /*
+  Tested values:
+  0 = maximum/default brightness
+  130 = dimmed brightness
+  230 = very dim
+  255 = backlight OFF
+
+  Brightness	PWM Duty
+  100% (max)	30
+  80%	        72
+  50%	        135
+  20%	        198
+  0% (min visible)	240
+  Screen off	247
+
+
+  */
+
+  //Wire.beginTransmission(0x24); // CH32V003 address
+  //Wire.write(0x05); // REG_PWM
+  //Wire.write(255); // hardware backlight OFF
+  //Wire.endTransmission(); 
+  
+  //setPwm(Wire,130);
 }
 
 #endif

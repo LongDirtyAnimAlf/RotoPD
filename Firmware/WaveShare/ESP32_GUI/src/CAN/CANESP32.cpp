@@ -1,6 +1,6 @@
 #include "CANESP32.h"
 
-//#if defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32)
 
 #include <string.h>
 
@@ -42,14 +42,14 @@ void CBUSDevice::begin(uint8_t MasterID, uint8_t IT2704ID)
   myFilter.acceptance_code = ((IT2704ID & combined_mask) << 21);
   myFilter.acceptance_mask = ~(combined_mask << 21);
   bool success = caninterface.begin(
-    TwaiSpeed::TWAI_SPEED_250KBPS, // twaiSpeed
-    CAN_TX,                     // txPin
-    CAN_RX,                     // rxPin
-    10,                         // txQueue size
-    50,                         // rxQueue size
-    &myFilter,                  // fConfig (Your custom hardware filter)
-    nullptr,                    // gConfig (Let library handle automatically)
-    nullptr                     // tConfig (Let library handle automatically)
+    TwaiSpeed::TWAI_SPEED_250KBPS,  // twaiSpeed
+    TX_GPIO_NUM,                    // txPin
+    RX_GPIO_NUM,                    // rxPin
+    10,                             // txQueue size
+    50,                             // rxQueue size
+    &myFilter,                      // fConfig (Your custom hardware filter)
+    nullptr,                        // gConfig (Let library handle automatically)
+    nullptr                         // tConfig (Let library handle automatically)
   );
 }
 
@@ -142,16 +142,12 @@ CBUSbase::CANERROR CBUSDevice::sendCANMessage(const can_frame *frame)
       //Serial.println("CBUSDevice: Normal message enqueue ok.");        
 
       HandleTxMessages = true;
-      //processTxQueue();
       return ERROR_OK;
   }
 
   return ERROR_ALLTXBUSY;
 }
-CBUSbase::CANERROR CBUSDevice::sendCANMessage(const can_frame &frame)
-{
-  return sendCANMessage(&frame);
-}
+
 CBUSbase::CANERROR CBUSDevice::sendCANMessagePrio(const can_frame *frame)
 {
   bool enqueued = CanTxPrioBuffer.push(*frame);
@@ -159,16 +155,10 @@ CBUSbase::CANERROR CBUSDevice::sendCANMessagePrio(const can_frame *frame)
   if (enqueued) {
       //Serial.println("CBUSDevice: Prio message enqueue ok.");        
       HandleTxMessages = true;
-      //processTxQueue();
       return ERROR_OK;
   }
 
   return ERROR_ALLTXBUSY;
-}
-
-CBUSbase::CANERROR CBUSDevice::sendCANMessagePrio(const can_frame &frame)
-{
-  return sendCANMessagePrio(&frame);
 }
 
 CBUSbase::CANERROR CBUSDevice::readCANMessage(can_frame *frame)
@@ -183,18 +173,6 @@ CBUSbase::CANERROR CBUSDevice::readCANMessage(can_frame *frame)
   }
   return ERROR_NOMSG;
 }
-
-CBUSbase::CANERROR CBUSDevice::readCANMessage(can_frame &frame)
-{
-  return readCANMessage(&frame);
-}
-
-bool CBUSDevice::processTxQueue(void)
-{
-    struct can_frame frame;
-    return false; // Added return statement to match function signature
-}
-
 
 bool CBUSDevice::readTWAIMessage(struct can_frame *frame)
 {
@@ -254,7 +232,4 @@ bool CBUSDevice::sendTWAIMessage(const struct can_frame *frame)
     }
 }
 
-
-//CBUSDevice CBUSDevice;
-
-//#endif
+#endif

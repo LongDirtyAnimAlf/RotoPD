@@ -1,4 +1,7 @@
 #include "Arduino.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "mcp2515.h"
 
 #define BSP_XL2515_SPI_PORT spi0
@@ -951,3 +954,5 @@ uint8_t MCP2515::errorCountTX(void)
 {
     return readRegister(MCP_TEC);
 }
+
+#endif
