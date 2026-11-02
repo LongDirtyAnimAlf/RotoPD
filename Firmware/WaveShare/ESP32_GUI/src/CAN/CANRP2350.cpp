@@ -205,6 +205,12 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
       // Process the message queue
       processTxQueue();
     }
+    /*
+    else
+    {
+      HandleTxMessages = false;
+    }
+    */
   }
 
   return (!CanRxBuffer.isEmpty());

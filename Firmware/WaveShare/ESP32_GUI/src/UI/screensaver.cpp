@@ -27,25 +27,29 @@ void reset_screensaver_idle_timer(void) {
     }
 }
 
-void check_screensaver_timeout(void) {
+bool check_screensaver_timeout(void) {
     // 1. Ask LVGL if any input devices (touchscreen, encoders, buttons) are active
     lv_indev_t * indev = lv_indev_get_next(NULL);
     while (indev != NULL) {
         if (lv_indev_get_state(indev) == LV_INDEV_STATE_PRESSED) {
             reset_screensaver_idle_timer();
-            return; 
+            return false; 
         }
         indev = lv_indev_get_next(indev);
     }
 
     // 2. If already running, no need to check timeout constraints
-    if (screensaver_is_active) return;
-
-    // 3. Evaluate elapsed time since last activity
-    if (lv_tick_elaps(last_activity_time) > idle_timeout_duration) {
-        screensaver_is_active = true;
+    if (!screensaver_is_active)
+    {
+        // 3. Evaluate elapsed time since last activity
+        if (lv_tick_elaps(last_activity_time) > idle_timeout_duration)
+        {
+            screensaver_is_active = true;
         
-        // Load (or resume) the persistent matrix screen
-        navigate_to_matrix_screen(); 
+            // Load (or resume) the persistent matrix screen
+            navigate_to_matrix_screen(); 
+        }
     }
+
+    return screensaver_is_active;
 }

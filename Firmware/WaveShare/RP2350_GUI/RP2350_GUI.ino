@@ -1,5 +1,8 @@
 #include <Arduino.h>
-
+#ifdef __FREERTOS
+//#include <FreeRTOS.h>
+//#include <task.h>
+#endif
 #include <lvgl.h>
 #include <Ticker.h>
 
@@ -861,8 +864,9 @@ void setup()
   SetIT2704Adress(BoardInfo.IT2704NodeID);
   SetIT2704Channel(BoardInfo.IT2704Channel);
 
-  #ifdef ARDUINO_ARCH_ESP32
+  #ifdef ARDUINO_ARCH_RP2040
   Info_Add("GUI. Starting RP2350 hardware init.");
+  bsp_buzzer_init();
   #endif
   #ifdef ARDUINO_ARCH_ESP32
   Info_Add("GUI. Starting ESP32 hardware init.");
@@ -1061,6 +1065,16 @@ void loop()
   TinyUSBDevice.task();
   #endif
 
+  if (flagSoundButton)
+  {
+    flagSoundButton = false;
+    #ifdef ARDUINO_ARCH_RP2040
+    bsp_buzzer_enable(true);
+    #endif
+    buzzerTime = millis();
+    if (buzzerTime == 0) buzzerTime++;
+  }
+
   // First, switch the screen when needed
   if (pending_screen_index != 0)
   {
@@ -1168,15 +1182,6 @@ void loop()
     }
   } while (data_available);
 
-  if (flagSoundButton)
-  {
-    flagSoundButton = false;
-    #ifdef ARDUINO_ARCH_RP2040
-    bsp_buzzer_enable(true);
-    #endif
-    buzzerTime = millis();
-    if (buzzerTime == 0) buzzerTime++;
-  }
   if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
   {
     buzzerTime = 0;
@@ -1691,8 +1696,9 @@ void loop()
   }
 
   check_screensaver_timeout();
-
+  
   lv_timer_periodic_handler();
+  
   //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);  
 
   #ifdef STANDALONE

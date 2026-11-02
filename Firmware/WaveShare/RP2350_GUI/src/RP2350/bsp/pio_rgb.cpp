@@ -25,6 +25,37 @@ static int rgb_dma_chan;
 static pio_rgb_info_t *g_pio_rgb_info;
 static uint16_t *buffer;
 
+static inline void fast_copy_u16(uint16_t *dst, const uint16_t *src, size_t count)
+{
+    // Treat the buffers as 32-bit words
+    uint32_t *d = (uint32_t *)dst;
+    const uint32_t *s = (const uint32_t *)src;
+
+    size_t words = count / 2;          // two pixels per 32-bit word
+
+    // Unroll by 4 words = 8 pixels
+    while (words >= 4) {
+        d[0] = s[0];
+        d[1] = s[1];
+        d[2] = s[2];
+        d[3] = s[3];
+        d += 4;
+        s += 4;
+        words -= 4;
+    }
+
+    // Remaining 32-bit words
+    while (words--) {
+        *d++ = *s++;
+    }
+
+    // Odd pixel left over? (should not happen if count is even)
+    if (count & 1) {
+        dst[count - 1] = src[count - 1];
+    }
+}
+
+
 void __no_inline_not_in_flash_func(dma_complete_handler)(void)
 {
     static bool bufferswap = true;
@@ -86,8 +117,9 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
             dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
 
             // 2. Copy next chunk from PSRAM → SRAM bounce buffer.
-            memcpy(fill_buffer, next_chunk,
-                    g_pio_rgb_info->transfer_size * sizeof(uint16_t));
+            fast_copy_u16(fill_buffer, next_chunk, g_pio_rgb_info->transfer_size);
+            //memcpy(fill_buffer, next_chunk,
+            //        g_pio_rgb_info->transfer_size * sizeof(uint16_t));
         }
         else
         {
@@ -170,7 +202,16 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
 
     uint16_t *freeframebuffer = pio_rgb_get_free_framebuffer();
 
-    memcpy(&freeframebuffer[(y1) * g_pio_rgb_info->width + x1], color_p, color_width * color_height * sizeof(uint16_t));    
+    uint16_t *dst = &freeframebuffer[y1 * g_pio_rgb_info->width + x1];
+    for (size_t i = 0; i < color_height; i++)
+    {
+        fast_copy_u16(dst, color_p, color_width);
+        dst     += g_pio_rgb_info->width;   // next line in framebuffer
+        color_p += color_width;             // next line in source
+    }
+
+
+    //memcpy(&freeframebuffer[(y1) * g_pio_rgb_info->width + x1], color_p, color_width * color_height * sizeof(uint16_t));    
 
     /*
     for (size_t i = 0; i < color_height; i++)

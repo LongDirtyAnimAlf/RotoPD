@@ -25,6 +25,8 @@ typedef enum {
   BOX_COUNT
 } DataType_t;
 
+//#define MAX_BOX_COUNT BOX_COUNT
+#define MAX_BOX_COUNT 4
 
 typedef struct {
     lv_obj_t *container;
@@ -100,8 +102,8 @@ static inline bool check_box_collision(const bouncing_box_t *a, const bouncing_b
 // Box-to-Box Bounce & Separation Logic
 static void resolve_box_collisions(bouncing_box_t boxes[BOX_COUNT])
 {
-    for (int i = 0; i < BOX_COUNT; i++) {
-        for (int j = i + 1; j < BOX_COUNT; j++) {
+    for (int i = 0; i < MAX_BOX_COUNT; i++) {
+        for (int j = i + 1; j < MAX_BOX_COUNT; j++) {
             bouncing_box_t *b1 = &boxes[i];
             bouncing_box_t *b2 = &boxes[j];
 
@@ -170,7 +172,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
     if (!data || !data->scr) return;
 
     // 1. Move all boxes according to their current velocity
-    for ( i = 0; i < BOX_COUNT; i++ ) {
+    for ( i = 0; i < MAX_BOX_COUNT; i++ ) {
         DT = (DataType_t)i;
         bouncing_box_t *b = &data->boxes[DT];
         if (!b->container) continue;
@@ -183,7 +185,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
     resolve_box_collisions(data->boxes);
 
     // 3. Screen edge collision checks & boundary clamping
-    for ( i = 0; i < BOX_COUNT; i++ ) {
+    for ( i = 0; i < MAX_BOX_COUNT; i++ ) {
         DT = (DataType_t)i;
         bouncing_box_t *b = &data->boxes[DT];
         if (!b->container) continue;
@@ -222,7 +224,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
         };
         */
 
-        for ( i = 0; i < BOX_COUNT; i++ ) {
+        for ( i = 0; i < MAX_BOX_COUNT; i++ ) {
             DT = (DataType_t)i;
             bouncing_box_t *b = &data->boxes[DT];
 
@@ -244,6 +246,9 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
             }
         }
     }
+
+    //lv_timer_periodic_handler();
+    //lv_timer_handler();
 }
 
 static void init_telemetry_screen_once(void)
@@ -278,7 +283,7 @@ static void init_telemetry_screen_once(void)
     };
 
     DataType_t DT;
-    for (int i = 0; i < BOX_COUNT; i++) {
+    for (int i = 0; i < MAX_BOX_COUNT; i++) {
 
         DT = (DataType_t)i;
         bouncing_box_t *b = &s_telemetry_data.boxes[DT];
@@ -342,6 +347,7 @@ static void init_telemetry_screen_once(void)
 
     }
 
+    // 40ms = 25x per second update = smooth
     s_telemetry_data.engine_timer = lv_timer_create(telemetry_engine_timer_cb, 40, &s_telemetry_data);
     if (s_telemetry_data.engine_timer) {
         lv_timer_pause(s_telemetry_data.engine_timer); // Paused until screen is navigated to
@@ -360,7 +366,7 @@ void navigate_to_matrix_screen(void)
     if (!s_telemetry_data.scr) return;
 
     // Reset last_value on load to force full display refresh
-    for (int i = 0; i < BOX_COUNT; i++) {
+    for (int i = 0; i < MAX_BOX_COUNT; i++) {
         DataType_t DT = (DataType_t)i;
         s_telemetry_data.boxes[DT].last_value = -1;
     }

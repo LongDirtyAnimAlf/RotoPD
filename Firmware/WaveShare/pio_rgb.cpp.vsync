@@ -1,0 +1,393 @@
+#include "Arduino.h"
+#include "pio_rgb.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
+#include "pio_rgb.pio.h"
+
+#include "hardware/pio.h"
+#include "hardware/clocks.h"
+#include "hardware/dma.h"
+#include "hardware/structs/busctrl.h"
+#include "hardware/irq.h"
+
+#define RGB_SYNC_PIO pio1
+#define RGB_COLOR_DATA_PIO pio2
+#define RGB_PIO_BASE_PIN 16
+
+static uint vsync_sm;
+static uint hsync_sm;
+
+static uint rgb_de_sm;
+static uint rgb_sm;
+
+static int rgb_dma_chan;          // Display: SRAM bounce → PIO TX FIFO
+static int copy_dma_chan;         // Copy:    PSRAM → SRAM bounce buffer
+
+static pio_rgb_info_t *g_pio_rgb_info;
+static uint16_t *buffer;
+
+// ---------------------------------------------------------------------------
+// VSYNC-safe framebuffer switching
+// The vsync PIO program must contain:  irq set 1 side 1
+// ---------------------------------------------------------------------------
+static volatile bool vsync_flag = false;          // set by PIO IRQ 1
+static volatile bool pending_fb_switch = false;   // request from application
+
+/*
+static inline void fast_copy_u16(uint16_t *dst, const uint16_t *src, size_t count)
+{
+    // count is always a multiple of 8 in practice
+    while (count >= 8) {
+        dst[0] = src[0]; dst[1] = src[1];
+        dst[2] = src[2]; dst[3] = src[3];
+        dst[4] = src[4]; dst[5] = src[5];
+        dst[6] = src[6]; dst[7] = src[7];
+        dst += 8; src += 8; count -= 8;
+    }
+    while (count--) *dst++ = *src++;
+}
+*/
+
+static inline void fast_copy_u16(uint16_t *dst, const uint16_t *src, size_t count)
+{
+    // Treat the buffers as 32-bit words
+    uint32_t *d = (uint32_t *)dst;
+    const uint32_t *s = (const uint32_t *)src;
+
+    size_t words = count / 2;          // two pixels per 32-bit word
+
+    // Unroll by 4 words = 8 pixels
+    while (words >= 4) {
+        d[0] = s[0];
+        d[1] = s[1];
+        d[2] = s[2];
+        d[3] = s[3];
+        d += 4;
+        s += 4;
+        words -= 4;
+    }
+
+    // Remaining 32-bit words
+    while (words--) {
+        *d++ = *s++;
+    }
+
+    // Odd pixel left over? (should not happen if count is even)
+    if (count & 1) {
+        dst[count - 1] = src[count - 1];
+    }
+}
+
+
+// Called from the PIO IRQ when vsync raises irq 1
+// (fires once per frame, at the end of vertical back-porch / start of active region)
+static void __no_inline_not_in_flash_func(vsync_irq_handler)(void)
+{
+    // Clear the PIO interrupt flag we are using (flag 1)
+    pio_interrupt_clear(RGB_SYNC_PIO, 1);
+
+    vsync_flag = true;
+
+    // Safe moment to switch the displayed buffer – we are still in vertical blanking
+    if (pending_fb_switch && g_pio_rgb_info && g_pio_rgb_info->mode.double_buffer)
+    {
+        pending_fb_switch = false;
+        g_pio_rgb_info->change_framebuffer_flag = false;
+
+        g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
+
+        if (g_pio_rgb_info->dma_flush_done_cb)
+        {
+            g_pio_rgb_info->dma_flush_done_cb();
+        }
+    }
+}
+
+void __no_inline_not_in_flash_func(dma_complete_handler)(void)
+{
+    static bool bufferswap = true;
+
+    if (g_pio_rgb_info->mode.enabled_transfer)
+    {
+        // Advance to the next chunk
+        g_pio_rgb_info->transfer_index =
+            (g_pio_rgb_info->transfer_index + 1) % g_pio_rgb_info->transfer_index_max;
+
+        // Pointer to the chunk we need from the (possibly PSRAM) framebuffer
+        uint16_t *next_chunk = &g_pio_rgb_info->_framebuffer[
+            g_pio_rgb_info->transfer_index * g_pio_rgb_info->transfer_size];
+
+        if (g_pio_rgb_info->mode.enabled_psram) 
+        {
+            // Ping-pong between the two small SRAM bounce buffers
+            // ready_buffer  = already filled → start DMA from it
+            // fill_buffer   = we will fill it now for the *next* transfer
+            uint16_t *ready_buffer;
+            uint16_t *fill_buffer;
+
+            if (bufferswap)
+            {
+                ready_buffer = g_pio_rgb_info->transfer_buffer1;
+                fill_buffer  = g_pio_rgb_info->transfer_buffer2;
+            }
+            else
+            {
+                ready_buffer = g_pio_rgb_info->transfer_buffer2;
+                fill_buffer  = g_pio_rgb_info->transfer_buffer1;
+            }
+            bufferswap = !bufferswap;            
+
+            // 1. Start DMA from the buffer that already contains valid data
+            //    (SRAM → never stalls the DMA engine)
+            dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
+
+            // 2. Copy next chunk from PSRAM → SRAM bounce buffer.
+
+            fast_copy_u16(fill_buffer, next_chunk, g_pio_rgb_info->transfer_size);
+            //memcpy(fill_buffer, next_chunk,
+            //        g_pio_rgb_info->transfer_size * sizeof(uint16_t));
+        }
+        else
+        {
+            dma_channel_set_read_addr(rgb_dma_chan, next_chunk, true);
+        }
+
+        // NOTE: Buffer switching is NO LONGER done here.
+        // It is performed exclusively in the VSYNC IRQ handler so that
+        // the switch always occurs during vertical blanking.
+    }
+    else
+    {
+        // No chunked transfer – whole frame at once
+        dma_channel_set_read_addr(rgb_dma_chan, g_pio_rgb_info->_framebuffer, true);
+
+        // NOTE: Buffer switching is NO LONGER done here.
+        // It is performed exclusively in the VSYNC IRQ handler.
+    }
+}
+
+/**
+ * @brief Request a framebuffer switch.
+ * The actual pointer swap happens in the VSYNC IRQ handler
+ * (safe, during vertical blanking).
+ */
+void pio_rgb_change_framebuffer(void)
+{
+    pending_fb_switch = true;
+    g_pio_rgb_info->change_framebuffer_flag = true;   // kept for compatibility
+}
+
+/**
+ * @brief Get the free (non-displayed) frame buffer
+ */
+uint16_t * pio_rgb_get_free_framebuffer(void)
+{
+    if (g_pio_rgb_info->mode.double_buffer)
+    {
+        return (g_pio_rgb_info->_framebuffer == g_pio_rgb_info->framebuffer1)
+                   ? g_pio_rgb_info->framebuffer2
+                   : g_pio_rgb_info->framebuffer1;
+    }
+    return g_pio_rgb_info->_framebuffer;
+}
+
+/**
+ * @brief Optional helper – block until the next VSYNC
+ */
+void pio_rgb_wait_vsync(void)
+{
+    vsync_flag = false;
+    while (!vsync_flag)
+    {
+        tight_loop_contents();
+    }
+}
+
+/**
+ * @brief Update the contents of the free frame buffer
+ */
+
+void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t *color_p)
+{
+    size_t color_width  = (x2 - x1 + 1);
+    size_t color_height = (y2 - y1 + 1);
+
+    uint16_t *freeframebuffer = pio_rgb_get_free_framebuffer();
+    uint16_t *dst = &freeframebuffer[y1 * g_pio_rgb_info->width + x1];
+
+    for (size_t i = 0; i < color_height; i++)
+    {
+        fast_copy_u16(dst, color_p, color_width);
+        dst     += g_pio_rgb_info->width;   // next line in framebuffer
+        color_p += color_width;             // next line in source
+    }
+}
+
+/*
+void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t *color_p)
+{
+    size_t color_width = (x2 - x1 + 1);
+    size_t color_height = (y2 - y1 + 1);
+
+    uint16_t *freeframebuffer = pio_rgb_get_free_framebuffer();
+
+    memcpy(&freeframebuffer[(y1) * g_pio_rgb_info->width + x1], color_p,
+           color_width * color_height * sizeof(uint16_t));    
+}
+*/
+
+static inline void hsync_program_init(PIO pio, uint sm, uint offset, uint pin, float div)
+{
+    pio_sm_config c = hsync_program_get_default_config(offset);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_gpio_init(pio, pin);
+    pio_gpio_init(pio, pin + 1);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 2, true);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void vsync_program_init(PIO pio, uint sm, uint offset, uint pin, float div)
+{
+    pio_sm_config c = vsync_program_get_default_config(offset);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void rgb_de_program_init(PIO pio, uint sm, uint offset, uint pin, float div)
+{
+    pio_sm_config c = rgb_de_program_get_default_config(offset);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void rgb_program_init(PIO pio, uint sm, uint offset, uint pin, float div)
+{
+    pio_sm_config c = rgb_program_get_default_config(offset);
+
+    // Join FIFOs to create an 8-entry deep TX FIFO buffer for maximum DMA resilience
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    sm_config_set_out_pins(&c, pin, 16);
+    sm_config_set_clkdiv(&c, div);
+
+    for (int i = 0; i < 16; i++)
+    {
+        pio_gpio_init(pio, pin + i);
+        gpio_pull_up(pin + i);
+    }
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 16, true);
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+void pio_rgb_dma_init(pio_rgb_info_t *info)
+{
+    rgb_dma_chan = dma_claim_unused_channel(true);
+
+    dma_channel_config c0 = dma_channel_get_default_config(rgb_dma_chan);
+    channel_config_set_transfer_data_size(&c0, DMA_SIZE_16);
+    channel_config_set_read_increment(&c0, true);
+    channel_config_set_write_increment(&c0, false);
+    channel_config_set_dreq(&c0, pio_get_dreq(RGB_COLOR_DATA_PIO, rgb_sm, true));
+
+    // Channel-level high priority
+    channel_config_set_high_priority(&c0, true);
+
+    // Bus-fabric high priority for DMA
+    busctrl_hw->priority = BUSCTRL_BUS_PRIORITY_DMA_R_BITS |
+                           BUSCTRL_BUS_PRIORITY_DMA_W_BITS;
+
+    uint transfer_count = (info->mode.enabled_transfer) ? info->transfer_size
+                                                        : (info->width * info->height);
+
+    dma_channel_configure(
+        rgb_dma_chan,
+        &c0,
+        &RGB_COLOR_DATA_PIO->txf[rgb_sm],
+        NULL,
+        transfer_count,
+        false);
+
+    bsp_dma_channel_irq_add(1, rgb_dma_chan, dma_complete_handler);
+}
+
+void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
+{
+    static pio_rgb_info_t pio_rgb_info;
+    memcpy(&pio_rgb_info, info, sizeof(pio_rgb_info_t));
+    g_pio_rgb_info = &pio_rgb_info;
+    g_pio_rgb_info->change_framebuffer_flag = false;
+    g_pio_rgb_info->_framebuffer = g_pio_rgb_info->framebuffer1;
+    g_pio_rgb_info->transfer_index = 0;
+
+    if (g_pio_rgb_info->transfer_size != 0)
+    {
+        g_pio_rgb_info->transfer_index_max =
+            g_pio_rgb_info->width * g_pio_rgb_info->height / g_pio_rgb_info->transfer_size;
+    }
+    else
+    {
+        g_pio_rgb_info->transfer_index_max = 0;
+    }
+
+    float sys_clk = clock_get_hz(clk_sys);
+    float pio_freq = sys_clk / ((float)(info->pclk_freq * 2));
+
+    pio_set_gpio_base(RGB_SYNC_PIO, RGB_PIO_BASE_PIN);
+    pio_set_gpio_base(RGB_COLOR_DATA_PIO, RGB_PIO_BASE_PIN);
+
+    hsync_sm  = pio_claim_unused_sm(RGB_SYNC_PIO, true);
+    vsync_sm  = pio_claim_unused_sm(RGB_SYNC_PIO, true);
+    rgb_de_sm = pio_claim_unused_sm(RGB_COLOR_DATA_PIO, true);
+    rgb_sm    = pio_claim_unused_sm(RGB_COLOR_DATA_PIO, true);
+
+    uint hsync_offset  = pio_add_program(RGB_SYNC_PIO, &hsync_program);
+    uint vsync_offset  = pio_add_program(RGB_SYNC_PIO, &vsync_program);
+    uint rgb_de_offset = pio_add_program(RGB_COLOR_DATA_PIO, &rgb_de_program);
+    uint rgb_offset    = pio_add_program(RGB_COLOR_DATA_PIO, &rgb_program);
+
+    hsync_program_init (RGB_SYNC_PIO, hsync_sm,  hsync_offset,  pin->hsync_pin, pio_freq);
+    vsync_program_init (RGB_SYNC_PIO, vsync_sm,  vsync_offset,  pin->vsync_pin, 1.0f);
+    rgb_de_program_init(RGB_COLOR_DATA_PIO, rgb_de_sm, rgb_de_offset, pin->de_pin, 1.0f);
+    rgb_program_init   (RGB_COLOR_DATA_PIO, rgb_sm,    rgb_offset,    pin->data0_pin, 1.0f);
+
+    // -----------------------------------------------------------------------
+    // Enable VSYNC IRQ (PIO interrupt flag 1)
+    // The vsync PIO program must contain:  irq set 1 side 1
+    // -----------------------------------------------------------------------
+    irq_set_exclusive_handler(PIO1_IRQ_0, vsync_irq_handler);
+    irq_set_enabled(PIO1_IRQ_0, true);
+    pio_set_irq0_source_enabled(RGB_SYNC_PIO, pis_interrupt1, true);
+
+    pio_rgb_dma_init(info);
+
+    pio_sm_put_blocking(RGB_SYNC_PIO, hsync_sm, info->width - 1);
+    pio_sm_put_blocking(RGB_SYNC_PIO, vsync_sm, info->height - 1);
+    pio_sm_put_blocking(RGB_COLOR_DATA_PIO, rgb_de_sm, info->height - 1);
+    pio_sm_put_blocking(RGB_COLOR_DATA_PIO, rgb_sm, info->width - 1);
+
+    pio_enable_sm_mask_in_sync(RGB_COLOR_DATA_PIO, (1u << rgb_de_sm) | (1u << rgb_sm));
+    pio_enable_sm_mask_in_sync(RGB_SYNC_PIO,       (1u << hsync_sm)  | (1u << vsync_sm));
+
+    // Kick the first DMA transfer
+    dma_complete_handler();
+}
+
+#endif
