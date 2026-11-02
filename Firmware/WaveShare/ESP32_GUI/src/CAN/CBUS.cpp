@@ -3,7 +3,4 @@
 
 CBUSbase::CBUSbase()
 {
-  CanRxBuffer.clear();
-  CanTxBuffer.clear();
-  CanTxPrioBuffer.clear();
 }

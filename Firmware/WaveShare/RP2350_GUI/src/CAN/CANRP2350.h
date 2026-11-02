@@ -3,9 +3,14 @@
 
 #ifdef ARDUINO_ARCH_RP2040
 
+#define    CANTXBUFFERSIZE            50u
+#define    CANRXBUFFERSIZE            75u
+#define    CANTXPRIOBUFFERSIZE        50u
+
 #include <atomic>
 #include "./CBUS.h"
 #include "./../RP2350/CAN/mcp2515.h"
+#include "./queue.h"
 #include "pico/mutex.h"
 
 class CBUSDevice : public CBUSbase {
@@ -28,6 +33,13 @@ public:
   CANERROR readCANMessage(can_frame *frame);
   CANERROR readCANMessage(can_frame &frame) {return readCANMessage(&frame);}
 
+  uint32_t getCANRxQueueDepth(void) {return CanRxBuffer.getCount();}
+  uint32_t getCANTxQueueDepth(void) {return CanTxBuffer.getCount();}
+  uint32_t getCANTxPrioQueueDepth(void) {return CanTxPrioBuffer.getCount();}
+  bool checkCANRxQueue(void) {return ( !CanRxBuffer.isEmpty() );}
+  bool getCANTxFull(void) {return ( CanTxBuffer.isFull() || CanTxPrioBuffer.isFull() );}
+  bool getCANRxFull(void) {return ( CanRxBuffer.isFull() );}
+
   const MCP2515& getMCP2515() const { return caninterface; }
   MCP2515& getMCP2515() { return caninterface; }  
 
@@ -38,6 +50,10 @@ private:
 
   //volatile bool HandleTxMessages;
   std::atomic<bool> HandleTxMessages;
+
+  CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;
+  CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxBuffer;
+  CircularDataQueue<can_frame, CANTXPRIOBUFFERSIZE> CanTxPrioBuffer;
 
   bool processTxQueue(void);
 };

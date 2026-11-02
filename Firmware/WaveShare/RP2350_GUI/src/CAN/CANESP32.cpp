@@ -8,7 +8,6 @@
 CBUSDevice::CBUSDevice(void) : 
   caninterface()
 {
-  mutex_init(&can_mutex); 
   HandleTxMessages = false;
 }
 
@@ -60,11 +59,6 @@ bool CBUSDevice::checkCANInterrupt(void)
 
 CBUSbase::CANERROR CBUSDevice::abortCANAllPending(bool withqueues)
 {
-  if (withqueues)
-  {
-    this->CanTxBuffer.clear();
-    this->CanTxPrioBuffer.clear();
-  }
   return ERROR_OK;
 }
 
@@ -76,102 +70,59 @@ CBUSbase::CANERROR CBUSDevice::resetCAN(void)
 
 bool CBUSDevice::taskCAN(bool single)
 {
-  can_frame frame;
-
-  // This perform the real hardware access
-  // Pushed receved messages into the Rx buffer
-  // Pops Tx messages from Tx buffer to send 
-
-  while (caninterface.inRxQueue() != 0)
-  {
-    if (readTWAIMessage(&frame))
-    {
-      CanRxBuffer.push(frame);
-    }
-    else
-    {
-      Serial.println("TWAI: Read message failure.");
-      break;
-    }
-  }
-
-  if (HandleTxMessages)
-  {
-    HandleTxMessages = false;
-    if ((!CanTxPrioBuffer.isEmpty()) || (!CanTxBuffer.isEmpty()))
-    {
-      // Process the prio message queue
-      while (CanTxPrioBuffer.peek(frame))
-      {
-          if (sendTWAIMessage(&frame))
-          {
-            //Serial.println("TWAI: Send prio message ok.");
-            CanTxPrioBuffer.pop(frame);
-          }
-          else
-          {
-            Serial.println("TWAI: Send prio message failure.");
-            break;
-          }
-      }
-
-      while (CanTxBuffer.peek(frame))
-      {
-          if (sendTWAIMessage(&frame))
-          {
-            //Serial.println("TWAI: Send normal message ok.");
-            CanTxBuffer.pop(frame);
-          }
-          else
-          {
-            Serial.println("TWAI: Send normal message failure.");
-            break;
-          }
-      }
-    }
-  }
-
-  return (!CanRxBuffer.isEmpty());
+  return (checkCANRxQueue());
 }
 
 CBUSbase::CANERROR CBUSDevice::sendCANMessage(const can_frame *frame)
 {
-  bool enqueued = CanTxBuffer.push(*frame);
-
-  if (enqueued) {
-      //Serial.println("CBUSDevice: Normal message enqueue ok.");        
-
-      HandleTxMessages = true;
+  if (sendTWAIMessage(frame)) {
       return ERROR_OK;
   }
-
   return ERROR_ALLTXBUSY;
 }
 
 CBUSbase::CANERROR CBUSDevice::sendCANMessagePrio(const can_frame *frame)
 {
-  bool enqueued = CanTxPrioBuffer.push(*frame);
-
-  if (enqueued) {
-      //Serial.println("CBUSDevice: Prio message enqueue ok.");        
-      HandleTxMessages = true;
-      return ERROR_OK;
-  }
-
-  return ERROR_ALLTXBUSY;
+  return sendCANMessage(frame);
 }
 
 CBUSbase::CANERROR CBUSDevice::readCANMessage(can_frame *frame)
 {
-  //return (CBUSbase::ERROR)caninterface.readMessage(frame);
-  if (CanRxBuffer.getCount() != 0)
+  if (checkCANRxQueue())
   {
-    if (CanRxBuffer.pop(*frame))
+    if (readTWAIMessage(frame))
     {
       return ERROR_OK;
     }
   }
   return ERROR_NOMSG;
+}
+
+uint32_t CBUSDevice::getCANRxQueueDepth(void)
+{
+  return caninterface.inRxQueue();
+}
+uint32_t CBUSDevice::getCANTxQueueDepth(void)
+{
+  return caninterface.inTxQueue();
+}
+uint32_t CBUSDevice::getCANTxPrioQueueDepth(void)
+{
+  return getCANTxQueueDepth();
+}
+bool CBUSDevice::checkCANRxQueue(void)
+{
+  return ( getCANRxQueueDepth() != 0 );
+}
+bool CBUSDevice::getCANTxFull(void)
+{
+  if (getCANTxQueueDepth() >= caninterface.getTxQueueSize()) return true;
+  return ( false );
+}
+bool CBUSDevice::getCANRxFull(void)
+{
+  if (getCANRxQueueDepth() >= caninterface.getRxQueueSize()) return true;
+  return ( false );
 }
 
 bool CBUSDevice::readTWAIMessage(struct can_frame *frame)

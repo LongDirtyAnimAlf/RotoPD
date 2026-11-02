@@ -222,9 +222,6 @@ bool __not_in_flash_func(CanOpenNode::run)() {
 #endif
 #ifdef ARDUINO_ARCH_ESP32
 bool CanOpenNode::run() {
-    // Important: we need to run the CAN task to check messages
-    // On RP2350B this is done in the main ino on core1
-    can.taskCAN();
 #endif
     bool messageavailable = recv.run();
 

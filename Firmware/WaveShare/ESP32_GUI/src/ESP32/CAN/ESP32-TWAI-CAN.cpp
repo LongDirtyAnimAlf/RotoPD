@@ -59,15 +59,6 @@ TwaiSpeed TwaiCAN::convertSpeed(uint16_t canSpeed) {
     }
     return actualSpeed;
 }
-// clang-format on
-
-void TwaiCAN::setTxQueueSize(uint16_t txQueue) {
-    if(txQueue != 0xFFFF) txQueueSize = txQueue;
-}
-
-void TwaiCAN::setRxQueueSize(uint16_t rxQueue) {
-    if(rxQueue != 0xFFFF) rxQueueSize = rxQueue;
-}
 
 bool TwaiCAN::getStatusInfo() {
     return ESP_OK == twai_get_status_info(&status);

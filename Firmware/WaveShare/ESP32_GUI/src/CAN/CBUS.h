@@ -3,16 +3,11 @@
 
 #include <Arduino.h>
 
-#include "./queue.h"
 #include "./can.h"
 
 #ifndef DEBUG_SERIAL
 #define DEBUG_SERIAL Serial
 #endif
-
-#define    CANTXBUFFERSIZE            50u
-#define    CANRXBUFFERSIZE            75u
-#define    CANTXPRIOBUFFERSIZE        50u
 
 class CBUSbase {
 public:
@@ -42,18 +37,12 @@ public:
   virtual CANERROR readCANMessage(can_frame *frame) = 0;
   virtual CANERROR readCANMessage(can_frame &frame) = 0;
   
-  uint32_t getCANRxQueueDepth(void) {return CanRxBuffer.getCount();}
-  uint32_t getCANTxQueueDepth(void) {return CanTxBuffer.getCount();}
-  uint32_t getCANTxPrioQueueDepth(void) {return CanTxPrioBuffer.getCount();}
-
-  bool checkCANRxQueue(void) {return ( !CanRxBuffer.isEmpty() );}
-  bool getCANTxFull(void) {return ( CanTxBuffer.isFull() || CanTxPrioBuffer.isFull() );}
-  bool getCANRxFull(void) {return ( CanRxBuffer.isFull() );}
-protected:                                          // protected members become private in derived classes
-//private:
-  CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;
-  CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxBuffer;
-  CircularDataQueue<can_frame, CANTXPRIOBUFFERSIZE> CanTxPrioBuffer;
+  virtual uint32_t getCANRxQueueDepth(void) = 0;
+  virtual uint32_t getCANTxQueueDepth(void) = 0;
+  virtual uint32_t getCANTxPrioQueueDepth(void) = 0;
+  virtual bool checkCANRxQueue(void) = 0;
+  virtual bool getCANTxFull(void) = 0;
+  virtual bool getCANRxFull(void) = 0;
 };
 
 #endif // _CANBUS_H_

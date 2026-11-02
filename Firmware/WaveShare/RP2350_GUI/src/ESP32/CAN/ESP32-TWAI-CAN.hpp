@@ -89,8 +89,11 @@ class TwaiCAN {
     TwaiSpeed convertSpeed(uint16_t canSpeed = 0);
 
     // Size of queues for TWAI-CAN driver - remember about memory constrains!
-    void setTxQueueSize(uint16_t);
-    void setRxQueueSize(uint16_t);
+    void setTxQueueSize(uint16_t txQueue) { if(txQueue != 0xFFFF) txQueueSize = txQueue; }
+    void setRxQueueSize(uint16_t rxQueue) { if(rxQueue != 0xFFFF) rxQueueSize = rxQueue; }
+
+    uint16_t getTxQueueSize() { return txQueueSize; }
+    uint16_t getRxQueueSize() { return rxQueueSize; }
 
     // Returns number of messages still in queue
     uint32_t inTxQueue();

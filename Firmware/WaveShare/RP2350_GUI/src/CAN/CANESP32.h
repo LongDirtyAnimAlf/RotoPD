@@ -27,9 +27,17 @@ public:
   CANERROR sendCANMessagePrio(const can_frame &frame) {return sendCANMessagePrio(&frame);}
   CANERROR readCANMessage(can_frame *frame);
   CANERROR readCANMessage(can_frame &frame) {return readCANMessage(&frame);}
+
+
+  uint32_t getCANRxQueueDepth(void) override;
+  uint32_t getCANTxQueueDepth(void) override;
+  uint32_t getCANTxPrioQueueDepth(void) override;
+  bool checkCANRxQueue(void) override;
+  bool getCANTxFull(void) override;
+  bool getCANRxFull(void) override;
+
 private:
   TwaiCAN caninterface;  
-  mutex_t can_mutex;
   //volatile bool HandleTxMessages;
   std::atomic<bool> HandleTxMessages;
 
