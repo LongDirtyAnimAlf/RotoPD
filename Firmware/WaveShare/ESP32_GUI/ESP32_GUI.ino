@@ -66,7 +66,7 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
     1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
     #ifndef ALTERNATIVE
-    ,0 /* pclk_active_neg */, 20000000 /* prefer_speed */, false /* useBigEndian  */,
+    ,0 /* pclk_active_neg */, 16000000 /* prefer_speed */, false /* useBigEndian  */,
     0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
     #else
     );
@@ -211,33 +211,23 @@ void set_psram_timing_auto()
     // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
     //               timing, clkdiv, rxdelay, max_select, min_deselect);
 }
-#endif
-
-// Callback that returns elapsed ms since boot
-static uint32_t my_tick_get_cb(void) {
-  return millis();
-}
+#endif // ARDUINO_ARCH_RP2040
 
 #ifdef STANDALONE
 
 #ifdef ARDUINO_ARCH_ESP32
 static void IRAM_ATTR storeSettings(byte BI)
-{
-  // placeholder
-}
 #endif // ARDUINO_ARCH_ESP32
-
 #ifdef ARDUINO_ARCH_RP2040
 static void __not_in_flash_func(storeSettings)(byte BI)
+#endif
 {
     PBatterySetting SET = &Batteries[BI];
     storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
     storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
 }
-#endif
 
-#endif
-
+#endif // STANDALONE
 
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 //static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
@@ -840,7 +830,9 @@ void setup()
   lv_screen_init(HOR_RES, VER_RES);
   lv_screen_brightness(0);
   
-  lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
+  lv_tick_set_cb([](){ 
+    return ((uint32_t)millis());        
+  });
   #endif
 
   // Create and show flash-screen

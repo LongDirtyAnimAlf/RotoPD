@@ -66,7 +66,7 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
     1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
     #ifndef ALTERNATIVE
-    ,0 /* pclk_active_neg */, 20000000 /* prefer_speed */, false /* useBigEndian  */,
+    ,0 /* pclk_active_neg */, 16000000 /* prefer_speed */, false /* useBigEndian  */,
     0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
     #else
     );
@@ -92,10 +92,11 @@ USBCDC USBSerial;
 #endif
 #endif
 
-// USB HID object
 #ifdef ARDUINO_ARCH_RP2040
+mutex_t can_mutex;
 #ifdef ENABLEUSB
 #ifdef USE_TINYUSB
+// USB HID object
 Adafruit_USBD_HID HID;
 #endif
 #endif
@@ -139,8 +140,6 @@ static volatile bool StoreSettings = false;
 // Simulates commands coming from USB HID
 static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
-
-mutex_t can_mutex;
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -212,33 +211,23 @@ void set_psram_timing_auto()
     // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
     //               timing, clkdiv, rxdelay, max_select, min_deselect);
 }
-#endif
-
-// Callback that returns elapsed ms since boot
-static uint32_t my_tick_get_cb(void) {
-  return millis();
-}
+#endif // ARDUINO_ARCH_RP2040
 
 #ifdef STANDALONE
 
 #ifdef ARDUINO_ARCH_ESP32
 static void IRAM_ATTR storeSettings(byte BI)
-{
-  // placeholder
-}
 #endif // ARDUINO_ARCH_ESP32
-
 #ifdef ARDUINO_ARCH_RP2040
 static void __not_in_flash_func(storeSettings)(byte BI)
+#endif
 {
     PBatterySetting SET = &Batteries[BI];
     storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
     storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
 }
-#endif
 
-#endif
-
+#endif // STANDALONE
 
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 //static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
@@ -684,10 +673,6 @@ void setup()
   word tempintcalc;
   char myHex[10] = "";
   
-  // Start by blocking all CAN activity
-  mutex_init(&can_mutex);
-  mutex_enter_blocking(&can_mutex);
-
   // If this throws an error during compilation, you know you need to adjust your padding array size!
   #ifdef ARDUINO_ARCH_RP2040
   static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
@@ -697,7 +682,7 @@ void setup()
   #endif
 
   #ifdef ARDUINO_ARCH_ESP32
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 80, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
   #endif
 
@@ -705,6 +690,10 @@ void setup()
   static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
   
   #ifdef ARDUINO_ARCH_RP2040
+
+  // Start by blocking all CAN activity
+  mutex_init(&can_mutex);
+  mutex_enter_blocking(&can_mutex);
 
   // 1. STEP THE VOLTAGE UP INCREMENTALLY
   // Stepping avoids sudden current spikes that trip brownout resets.
@@ -841,7 +830,9 @@ void setup()
   lv_screen_init(HOR_RES, VER_RES);
   lv_screen_brightness(0);
   
-  lv_tick_set_cb(my_tick_get_cb);  // Tell LVGL how to get the current time
+  lv_tick_set_cb([](){ 
+    return ((uint32_t)millis());        
+  });
   #endif
 
   // Create and show flash-screen
@@ -1004,7 +995,10 @@ void setup()
   gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
   */
-  
+
+  // Release the CAN activity
+  mutex_exit(&can_mutex);  
+
   #endif
 
   //delay(2000);
@@ -1020,9 +1014,6 @@ void setup()
   Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
-
-  // Release the CAN activity
-  mutex_exit(&can_mutex);  
 
   Info_Add("GUI. Init RP2350 ready.");
 }

@@ -301,30 +301,46 @@ typedef struct TRunDatas {
     CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
 } TRunDatas, *PRunDatas;
 
-// Automatically verify size at compile time for safety
+// Exact size of one queue (evaluated by the C++ compiler)
+static constexpr size_t kOneQueueSize =
+    sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>);
+
+// Safety checks
+static_assert(sizeof(TMeasurementData) == 24, "TMeasurementData size unexpected");
+static_assert(kOneQueueSize > 0, "Queue size must be positive");
 static_assert(sizeof(TRunDatas) > 0, "TRunDatas must have a valid non-zero size");
 
-#else
+#else  // pure C
 
-// C Layout using exact sizeof calculation matching C++ representation
+// Fallback calculation that stays as close as possible to the real layout.
+// ESP: (pointer + lastItem + 3×uint16_t + bool + portMUX_TYPE + small padding)
+// RP2350: (pointer + lastItem + 3×uint16_t + critical_section_t + small padding)
+#ifndef kOneQueueSize
+#define kOneQueueSize  ( sizeof(void*)                + \
+                         sizeof(TMeasurementData)     + \
+                         3 * sizeof(uint16_t)         + \
+#ifdef ARDUINO_ARCH_ESP32
+                         sizeof(bool)                 + \
+                         sizeof(portMUX_TYPE)         + \
+#endif
+#ifdef ARDUINO_ARCH_RP2040
+                         sizeof(critical_section_t)   + \
+#endif
+                         4 /* padding / alignment margin */ )
+#endif // kOneQueueSize
+
+#endif //  __cplusplus
+
 typedef struct TRunDatas {
-    // Cumulative data
+    // Cumulative data (must match C++ exactly)
     qword Capacity;             // in nAh
     qword Energy;               // in nWh
     qword Time;                 // in ms
     byte  CurrentStageNumber;
     TThresholdDataItem ThresholdResult[tmLast];
 
-    // C opaque placeholder calculated automatically
-    alignas(uintptr_t) uint8_t _cpp_queue_opaque_storage[
-#if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
-        sizeof(void*) * 4 + sizeof(uint16_t) * 6 // Precise dynamic offset matching
-#elif defined(ARDUINO_ARCH_ESP32)
-        sizeof(void*) * 4 + sizeof(uint16_t) * 6 + 16
-#else
-        128 // Fallback default
-#endif
-    ];
+    // Opaque storage for *both* C++ queues
+    alignas(uintptr_t) uint8_t _cpp_queue_opaque_storage[ 2 * kOneQueueSize ];
 } TRunDatas, *PRunDatas;
 
 #endif
