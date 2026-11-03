@@ -12,7 +12,7 @@ extern "C" {
 
 void Setup_ScreenChart(byte index);
 void ScreenChartAddData(word V, word I);
-void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE>& q);
+void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE, false>& q);
 byte ScreenChartGetActive(void);
 
 #ifdef __cplusplus

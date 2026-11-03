@@ -672,6 +672,7 @@ void loop1() {
   datacounter += rxdatacount;
   //mutex_exit(&can_mutex);  
   //yield();
+  sleep_us(100);
   //delay(1);
   //delayMicroseconds(10);
 }
@@ -689,18 +690,20 @@ void setup()
 
   // If this throws an error during compilation, you know you need to adjust your padding array size!
   #ifdef ARDUINO_ARCH_RP2040
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 88, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+  static_assert(std::is_trivially_copyable<can_frame>::value,
+              "can_frame must be trivially copyable for [multicore] safety!");
   #endif
 
   #ifdef ARDUINO_ARCH_ESP32
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 80, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 80, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
   #endif
 
   // If it compiles, your memory footprint is perfectly optimized!
-  static_assert(std::is_trivially_copyable<Message>::value, "Message must be trivially copyable for [multicore] safety!");
-
+  static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
+  
   #ifdef ARDUINO_ARCH_RP2040
 
   // 1. STEP THE VOLTAGE UP INCREMENTALLY

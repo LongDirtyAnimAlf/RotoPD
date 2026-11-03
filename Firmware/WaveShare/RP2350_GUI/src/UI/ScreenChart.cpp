@@ -181,7 +181,7 @@ byte ScreenChartGetActive(void)
   return 0;
 }
 
-void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE>& q)
+void ScreenChartSetDataQueue(const CircularDataQueue<TMeasurementData, DATASIZE, false>& q)
 {
   dword tempvcalc,tempicalc = 0;
   // Create array
