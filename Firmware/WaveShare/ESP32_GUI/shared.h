@@ -5,10 +5,16 @@
 
 #include <Arduino.h>
 
+#ifdef ARDUINO_ARCH_ESP32
+#include "./src/ESP32/queue.h"
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
+#include "./src/RP2350/queue.h"
+#endif
+
 #include "./src/AP33772SS/AP33772S.h"
 #include "./src/INA238/INA238.h"
-
-#include "./src/CAN/queue.h"
 
 #include "./src/CANOpen/canOpenNode.h"
 #include "./src/CANOpen/sdo.hpp"
@@ -47,7 +53,7 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   10000u
+#define    DATASIZE                   16384u
 
 #define INA238_ADDRESS                0x40
 
@@ -277,6 +283,55 @@ static void ClearMeasurementData(PMeasurementData MAD)
   MAD->S = 0;
 }
 
+#pragma pack(push, 4) // Ensure consistent 4-byte or 8-byte member alignment
+
+#ifdef __cplusplus
+
+// C++ Layout
+typedef struct TRunDatas {
+    // Cumulative data
+    qword Capacity;             // in nAh
+    qword Energy;               // in nWh
+    qword Time;                 // in ms
+    byte  CurrentStageNumber;
+    TThresholdDataItem ThresholdResult[tmLast];
+
+    // C++ Queues
+    CircularDataQueue<TMeasurementData, DATASIZE, false> NewerRotoPDDatas;
+    CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
+} TRunDatas, *PRunDatas;
+
+// Automatically verify size at compile time for safety
+static_assert(sizeof(TRunDatas) > 0, "TRunDatas must have a valid non-zero size");
+
+#else
+
+// C Layout using exact sizeof calculation matching C++ representation
+typedef struct TRunDatas {
+    // Cumulative data
+    qword Capacity;             // in nAh
+    qword Energy;               // in nWh
+    qword Time;                 // in ms
+    byte  CurrentStageNumber;
+    TThresholdDataItem ThresholdResult[tmLast];
+
+    // C opaque placeholder calculated automatically
+    alignas(uintptr_t) uint8_t _cpp_queue_opaque_storage[
+#if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+        sizeof(void*) * 4 + sizeof(uint16_t) * 6 // Precise dynamic offset matching
+#elif defined(ARDUINO_ARCH_ESP32)
+        sizeof(void*) * 4 + sizeof(uint16_t) * 6 + 16
+#else
+        128 // Fallback default
+#endif
+    ];
+} TRunDatas, *PRunDatas;
+
+#endif
+
+#pragma pack(pop)
+
+/*
 typedef struct
 {
   // Cumulative datas
@@ -287,14 +342,20 @@ typedef struct
   TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
   //Queue memory region at the bottom
   #ifdef __cplusplus          // only compile the class when using a C++ compiler
-  CircularDataQueue<TMeasurementData, DATASIZE> NewerRotoPDDatas;
-  CircularDataQueue<TMeasurementData, DATASIZE> NewerIT2704Datas;
+  CircularDataQueue<TMeasurementData, DATASIZE, false> NewerRotoPDDatas;
+  CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
   #else
-  // The Pure C compiler reserves exactly 88 bytes here.
+  // The Pure C compiler reserves exactly 80/88 bytes here.
   // This keeps subsequent memory fields from overlapping or mismatching offsets.
-  uint8_t _cpp_queue_padding[88];   
+  #ifdef ARDUINO_ARCH_RP2040
+  uint8_t _cpp_queue_padding[88];
+  #endif
+  #ifdef ARDUINO_ARCH_ESP32
+  uint8_t _cpp_queue_padding[80];
+  #endif
   #endif
 } TRunDatas,*PRunDatas;
+*/
 
 typedef struct
 {

@@ -1,10 +1,66 @@
 #include "storage.h"
-//#include <EEPROM.h>
+
+#ifdef ARDUINO_ARCH_ESP32
+
+#include <Preferences.h>
+
+constexpr char *namespace_storage             = "ESP32STORE";
+constexpr char *key_boardinfo                 = "BOARDINFO";
+constexpr char *key_batterycharge_settings    = "BATTERYCHARGEINFO";
+constexpr char *key_batteryischarge_settings  = "BATTERYDISCHARGEINFO";
+
+//#include "./src/ESP32/storage/indicator_storage_nvs.h"
+
+Preferences preferences;
+
+void storeInit(void)
+{
+  //indicator_nvs_init();
+  //preferences.begin(namespace_storage, true);  
+}
+
+void storePutBoardInfo(TBoardInfo * Info)
+{
+  preferences.begin(namespace_storage, false);
+  // Pass the key name, pointer to the data struct, and its total size in bytes
+  preferences.putBytes(key_boardinfo, Info, sizeof(TBoardInfo));
+  preferences.end();
+}
+
+bool storeGetBoardInfo(TBoardInfo * Info)
+{
+  bool result;
+
+  // Open namespace in READ-ONLY mode to check for existing data
+  preferences.begin(namespace_storage, true);
+  
+  // Check if our data key exists.
+  if (preferences.isKey(key_boardinfo))
+  {
+    // Read the structure as raw bytes
+    preferences.getBytes(key_boardinfo, Info, sizeof(TBoardInfo));
+    result = true;    
+  }
+  else
+  {
+    result = false;
+  }
+  preferences.end();
+
+  return result;
+}
+
+void storePutBatteryDischargeSetting(uint8_t Index, TStageData *SD) {}
+void storePutBatteryChargeSetting(uint8_t Index, TStageData *SD) {}
+bool storeGetBatteryDischargeSetting(uint8_t Index, TStageData *SD) { return true; }
+bool storeGetBatteryChargeSetting(uint8_t Index, TStageData *SD) { return true; }
+
+#endif
 
 #ifdef ARDUINO_ARCH_RP2040
 
-
 #include <LittleFS.h>
+//#include <EEPROM.h>
 
 constexpr uint32_t MAGIC = 0xDEADBEEF;
 
@@ -219,14 +275,4 @@ bool __not_in_flash_func(storeGetBatteryChargeSetting)(uint8_t Index, TStageData
   return true;
 }
 
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
-void storeInit(void) {}
-void storePutBoardInfo(TBoardInfo * Info) {}
-bool storeGetBoardInfo(TBoardInfo * Info) { return true; }
-void storePutBatteryDischargeSetting(uint8_t Index, TStageData *SD) {}
-void storePutBatteryChargeSetting(uint8_t Index, TStageData *SD) {}
-bool storeGetBatteryDischargeSetting(uint8_t Index, TStageData *SD) { return true; }
-bool storeGetBatteryChargeSetting(uint8_t Index, TStageData *SD) { return true; }
 #endif

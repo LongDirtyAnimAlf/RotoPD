@@ -3,15 +3,14 @@
 
 #ifdef ARDUINO_ARCH_RP2040
 
-#define    CANTXBUFFERSIZE            50u
-#define    CANRXBUFFERSIZE            75u
-#define    CANTXPRIOBUFFERSIZE        50u
+#define    CANTXBUFFERSIZE            32u
+#define    CANRXBUFFERSIZE            64u
+#define    CANTXPRIOBUFFERSIZE        32u
 
 #include <atomic>
 #include "./CBUS.h"
 #include "./../RP2350/CAN/mcp2515.h"
-#include "./queue.h"
-#include "pico/mutex.h"
+#include "./../RP2350/queue.h"
 
 class CBUSDevice : public CBUSbase {
 public:
@@ -46,7 +45,6 @@ public:
 private:
   MCP2515 caninterface;  
   const uint8_t _intPin;
-  mutex_t can_mutex;
 
   //volatile bool HandleTxMessages;
   std::atomic<bool> HandleTxMessages;

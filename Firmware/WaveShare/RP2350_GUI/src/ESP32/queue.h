@@ -61,7 +61,7 @@ private:
 public:
     CircularDataQueue() {
         if constexpr (ThreadSafe) {
-            vPortCPUInitializeMutex(&lock);
+            //vPortCPUInitializeMutex(&lock);
         }
 
         size_t totalBytes = CIRCULARBUFFERSIZE * sizeof(T);

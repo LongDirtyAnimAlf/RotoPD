@@ -92,10 +92,11 @@ USBCDC USBSerial;
 #endif
 #endif
 
-// USB HID object
 #ifdef ARDUINO_ARCH_RP2040
+mutex_t can_mutex;
 #ifdef ENABLEUSB
 #ifdef USE_TINYUSB
+// USB HID object
 Adafruit_USBD_HID HID;
 #endif
 #endif
@@ -139,8 +140,6 @@ static volatile bool StoreSettings = false;
 // Simulates commands coming from USB HID
 static byte SendCommand[COMMAND_SIZE] = {0};
 #endif
-
-mutex_t can_mutex;
 
 // ---------------------------------------------------------------
 // Automatic PSRAM (QMI M1) timing calculator for RP2350
@@ -672,6 +671,7 @@ void loop1() {
   datacounter += rxdatacount;
   //mutex_exit(&can_mutex);  
   //yield();
+  sleep_us(100);
   //delay(1);
   //delayMicroseconds(10);
 }
@@ -683,25 +683,27 @@ void setup()
   word tempintcalc;
   char myHex[10] = "";
   
-  // Start by blocking all CAN activity
-  mutex_init(&can_mutex);
-  mutex_enter_blocking(&can_mutex);
-
   // If this throws an error during compilation, you know you need to adjust your padding array size!
   #ifdef ARDUINO_ARCH_RP2040
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 88, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+  static_assert(std::is_trivially_copyable<can_frame>::value,
+              "can_frame must be trivially copyable for [multicore] safety!");
   #endif
 
   #ifdef ARDUINO_ARCH_ESP32
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE>) * 2 == 80, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
   #endif
 
   // If it compiles, your memory footprint is perfectly optimized!
-  static_assert(std::is_trivially_copyable<Message>::value, "Message must be trivially copyable for [multicore] safety!");
-
+  static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
+  
   #ifdef ARDUINO_ARCH_RP2040
+
+  // Start by blocking all CAN activity
+  mutex_init(&can_mutex);
+  mutex_enter_blocking(&can_mutex);
 
   // 1. STEP THE VOLTAGE UP INCREMENTALLY
   // Stepping avoids sudden current spikes that trip brownout resets.
@@ -1001,7 +1003,10 @@ void setup()
   gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
   */
-  
+
+  // Release the CAN activity
+  mutex_exit(&can_mutex);  
+
   #endif
 
   //delay(2000);
@@ -1017,9 +1022,6 @@ void setup()
   Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
-
-  // Release the CAN activity
-  mutex_exit(&can_mutex);  
 
   Info_Add("GUI. Init RP2350 ready.");
 }

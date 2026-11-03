@@ -9,7 +9,6 @@ CBUSDevice::CBUSDevice() :
   caninterface(),
   _intPin(BSP_XL2515_INT_PIN)
 {
-  mutex_init(&can_mutex); 
   HandleTxMessages = false;
 }
 
@@ -91,8 +90,6 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
 
   if (caninterface.checkInterrupt())
   {
-    //mutex_enter_blocking(&can_mutex);
-
     // Some interrupt has happended on the MCP2515
     // First handle read, if any
     uint8_t canintf = caninterface.getInterrupts();
@@ -193,8 +190,6 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
 
         //processTxQueue();
     }
-
-    //mutex_exit(&can_mutex);  
   }
 
   if (HandleTxMessages)
