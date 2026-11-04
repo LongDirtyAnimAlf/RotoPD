@@ -220,6 +220,8 @@ type
 
     NumberOfMachines    : integer;
 
+    procedure GraphBaseClick(Sender: TObject);
+
     procedure AfterShow(Sender: TObject; var Done: Boolean);
     procedure Startup;
 
@@ -601,25 +603,20 @@ begin
   for i:=1 to NumberOfMachines do
   begin
     Machineset[i].Data:=TList<TMachineData>.Create();
-    MachineBox[i]:=TFrameSimple.Create(tsOverview2);
+    MachineBox[i]:=TFrameSimple.Create(tsOverview1);
     MachineBox[i].Number:=i;
     //MachineBox[i].Name:='NewFrame'+InttoStr(i);
-    MachineBox[i].Parent:=tsOverview2;
+    MachineBox[i].Parent:=tsOverview1;
     //MachineBox[i].DoubleBuffered:=True;
     //MachineBox[i].Align:=alClient;
     MachineBox[i].Enable:=false;
-    //MachineBox[i].GraphBase.OnDblClick := GraphBaseDblClick;
-    (*
-    MachineBox[i].GraphBase.OnClick := GraphBaseDblClick;
-    //MachineBox[i].Panel1.OnClick := GraphBaseDblClick;
-    MachineBox[i].TemperatureBase.OnClick := GraphBaseDblClick;
-    MachineBox[i].EnergyBase.OnClick := GraphBaseDblClick;
-    MachineBox[i].Water1Base.OnClick := GraphBaseDblClick;
-    MachineBox[i].Water2Base.OnClick := GraphBaseDblClick;
-    *)
+    MachineBox[i].GraphBase.OnClick := GraphBaseClick;
+    //MachineBox[i].Panel1.OnClick := GraphBaseClick;
+    MachineBox[i].TemperatureBase.OnClick := GraphBaseClick;
+    MachineBox[i].EnergyBase.OnClick := GraphBaseClick;
+    MachineBox[i].Water1Base.OnClick := GraphBaseClick;
+    MachineBox[i].Water2Base.OnClick := GraphBaseClick;
   end;
-
-
 
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
@@ -1986,6 +1983,28 @@ begin
     if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
   end;
   Application.ProcessMessages;
+end;
+
+procedure TPowerbankMainForm.GraphBaseClick(Sender: TObject);
+var
+  x:integer;
+  MachineAsked:integer;
+begin
+  MachineAsked:=0;
+  try
+    if (Sender is TComponent) then MachineAsked:=(Sender as TComponent).Tag;
+    for x:=0 to (PageControl1.PageCount-1) do
+    begin
+      if StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),-1)=MachineAsked then
+      begin
+        PageControl1.TabIndex:=x;
+        PageControl1Change(PageControl1);
+        break;
+      end;
+    end;
+  except
+    on E: EInvalidOperation do begin end;
+  end;
 end;
 
 {$ifdef MSWindows}

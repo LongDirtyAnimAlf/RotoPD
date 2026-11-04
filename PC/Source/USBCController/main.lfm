@@ -23,6 +23,12 @@ object PowerbankMainForm: TPowerbankMainForm
     OnChange = PageControl1Change
     object tsOverview1: TTabSheet
       Caption = 'Overview 1'
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsHomogenousChildResize
+      ChildSizing.ShrinkVertical = crsHomogenousChildResize
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 4
     end
     object tsOverview2: TTabSheet
       Caption = 'Overview 2'
