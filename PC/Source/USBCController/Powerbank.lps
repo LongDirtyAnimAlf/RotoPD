@@ -22,8 +22,9 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <TopLine Value="1482"/>
-        <CursorPos X="31" Y="1497"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="542"/>
+        <CursorPos X="40" Y="564"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -2955,8 +2956,8 @@
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\classes\classesh.inc"/>
         <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="2164"/>
-        <CursorPos X="3" Y="1887"/>
+        <TopLine Value="281"/>
+        <CursorPos X="3" Y="295"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\inc\objpash.inc"/>
@@ -3509,11 +3510,10 @@
       </Unit>
       <Unit>
         <Filename Value="..\Common\bits.pas"/>
-        <Loaded Value="True"/>
         <UsageCount Value="74"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="86"/>
-        <CursorPos X="13" Y="103"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="70"/>
+        <CursorPos X="12" Y="80"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\mORMot2\mormot.lib.static.pas"/>
@@ -3749,11 +3749,10 @@
       <Unit>
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <UnitName Value="usb"/>
-        <Loaded Value="True"/>
         <UsageCount Value="43"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="775"/>
-        <CursorPos X="3" Y="782"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="658"/>
+        <CursorPos Y="272"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\jedi\jvcl\jvcl\run\JvHidControllerClass.pas"/>
@@ -3776,9 +3775,8 @@
       </Unit>
       <Unit>
         <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
-        <Loaded Value="True"/>
         <UsageCount Value="20"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1509"/>
         <CursorPos Y="1519"/>
       </Unit>
@@ -3864,16 +3862,16 @@
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="37"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="2"/>
         <CursorPos X="17" Y="19"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="37"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="443"/>
-        <CursorPos Y="33"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="348"/>
+        <CursorPos X="42" Y="363"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\Hid.pas"/>
@@ -3976,108 +3974,154 @@
       </Unit>
       <Unit>
         <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\powermeter.cpp"/>
-        <Loaded Value="True"/>
         <UsageCount Value="10"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="293"/>
         <CursorPos X="7" Y="308"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\fgl.pp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="108"/>
+        <CursorPos X="4" Y="987"/>
+      </Unit>
+      <Unit>
+        <Filename Value="processframe.pas"/>
+        <ComponentName Value="Frame1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="41"/>
+        <CursorPos X="40" Y="52"/>
       </Unit>
     </Units>
     <Debugger>
       <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
     </Debugger>
-    <JumpHistory HistoryIndex="22">
+    <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="185" TopLine="168"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1067" Column="11" TopLine="1051"/>
+        <Caret Line="543" Column="22" TopLine="528"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1492" Column="27" TopLine="1479"/>
+        <Caret Line="1054" Column="23" TopLine="1041"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1627" Column="10" TopLine="1614"/>
+        <Caret Line="4" Column="3"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="188" Column="22" TopLine="175"/>
+        <Caret Line="40" Column="5" TopLine="23"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1627" Column="10" TopLine="1614"/>
+        <Caret Line="22" Column="7" TopLine="6"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="133" Column="14" TopLine="120"/>
+        <Caret Line="42" Column="5" TopLine="27"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="176" Column="26" TopLine="156"/>
+        <Caret Line="41" Column="5" TopLine="19"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="177" Column="17" TopLine="156"/>
+        <Caret Line="42" Column="5" TopLine="16"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
+        <Caret Line="546" Column="22" TopLine="531"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="215" Column="7" TopLine="192"/>
+        <Caret Line="1057" Column="23" TopLine="1044"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="262" Column="18" TopLine="240"/>
+        <Caret Line="1822" Column="28" TopLine="1810"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="294" Column="21" TopLine="288"/>
+        <Caret Line="299" TopLine="294"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1652" TopLine="1641"/>
+        <Caret Line="1925" TopLine="1857"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1654" TopLine="1641"/>
+        <Caret Line="20" Column="22" TopLine="4"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1656" TopLine="1641"/>
+        <Caret Line="268" TopLine="254"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1657" TopLine="1641"/>
+        <Caret Line="562" TopLine="544"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1652" TopLine="1641"/>
+        <Caret Line="565" Column="4" TopLine="545"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1497" Column="31" TopLine="1482"/>
+        <Caret Line="214" Column="35" TopLine="200"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\bits.pas"/>
-        <Caret Line="103" Column="13" TopLine="86"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="557" TopLine="538"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\powermeter.cpp"/>
-        <Caret Line="62" TopLine="49"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="26" TopLine="15"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\powermeter.cpp"/>
-        <Caret Line="63" Column="7" TopLine="49"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="612" Column="5" TopLine="586"/>
       </Position>
       <Position>
-        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\powermeter.cpp"/>
-        <Caret Line="61" Column="7" TopLine="53"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="581" Column="11" TopLine="569"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="558" Column="25" TopLine="548"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="559" Column="21" TopLine="547"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1142" TopLine="1131"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1140" Column="13" TopLine="1128"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="712" Column="19" TopLine="687"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="210" Column="32" TopLine="204"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="719" TopLine="700"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="720" TopLine="702"/>
       </Position>
     </JumpHistory>
     <RunParams>
@@ -4085,20 +4129,4 @@
       <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
-  <Debugging>
-    <BreakPoints>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <Source Value="..\Common\usblibs\USB.pas"/>
-        <Line Value="272"/>
-      </Item>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <Source Value="..\Common\usblibs\USB.pas"/>
-        <Line Value="281"/>
-      </Item>
-    </BreakPoints>
-  </Debugging>
 </CONFIG>

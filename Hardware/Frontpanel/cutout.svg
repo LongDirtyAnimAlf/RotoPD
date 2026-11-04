@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="50mm"
+     height="20mm"
+     viewBox="0 0 50 20">
+  <!--
+    Cut-out (updated dimensions)
+    Central rectangle: 30.7 mm × 13.9 mm
+    Hole centers: 38.2 mm apart
+    Hole diameter: 3.3 mm (from original drawing)
+    Features centered in viewBox
+  -->
+  
+  <!-- Central rectangular cut-out -->
+  <rect x="9.65" y="3.05" width="30.7" height="13.9"
+        fill="none" stroke="#000000" stroke-width="0.1"/>
+  
+  <!-- Left hole Ø 3.3 mm -->
+  <circle cx="5.9" cy="10" r="1.65"
+          fill="none" stroke="#000000" stroke-width="0.1"/>
+  
+  <!-- Right hole Ø 3.3 mm -->
+  <circle cx="44.1" cy="10" r="1.65"
+          fill="none" stroke="#000000" stroke-width="0.1"/>
+</svg>

@@ -209,10 +209,6 @@ end;
 
 function TUSBController.GetShowReadThreading:boolean;
 begin
-  if Assigned(OnData) then
-  begin
-    result:=true;
-  end;
   result:=Assigned(OnData);
 end;
 
@@ -266,20 +262,12 @@ begin
      LocalDataTimer:=nil;
     end;
   end;
-
-  if Assigned(Self.OnData) then
-  begin
-    Self.OnData := nil;
-  end;
-
 end;
 
 function TUSBController.GetDataEvent: TJvHidDataEvent;
 begin
   if Assigned(HidCtrl) then
-  begin
-    result:=HidCtrl.OnData;
-  end
+    result:=HidCtrl.OnData
   else
     result:=nil;
 end;

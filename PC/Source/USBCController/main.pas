@@ -1,6 +1,11 @@
 unit main;
 
-{$mode objfpc}{$H+}
+{$ifdef FPC}
+{$mode Delphi}
+//{$mode objfpc}
+{$endif}
+
+{$H+}
 
 interface
 
@@ -12,8 +17,12 @@ uses
   Grids, Buttons, ComCtrls, Menus, Types,
   TATransformations, TAGraph,
   TASeries,TACustomSeries, TATools,
+  LMessages, LCLType,
   SynEdit,
+  Generics.Collections,
+  //fgl,
   //SynEditMiscClasses,
+  processframe, processframe_simple,
   fptimernew,
   dsLeds,
   dlLEDCtrl,
@@ -23,6 +32,18 @@ uses
   usbrotopd;
 
 type
+  TMachineData = record
+    Time:single;
+    Temperature1 : single;
+    Temperature2 : single;
+    Water1 : single;
+    Water2 : single;
+    Energy : single;
+  end;
+  TDataList = TList<TMachineData>;
+  //TDataList = specialize TList<TMachineData>;
+  //TDataList = specialize TFPGList<TMachineData>;
+
   TTestType = record
     Name:string;
     Current:word;
@@ -31,6 +52,13 @@ type
 
   TUSBPDController = class(TUSBPD)
   end;
+
+  {$ifdef MSWindows}
+  TPageControl = class(ComCtrls.TPageControl)
+  private
+    procedure CNDrawItem(var Message: TLMDrawItems); message LM_DRAWITEM;
+  end;
+  {$endif}
 
   { TPowerbankMainForm }
 
@@ -61,14 +89,19 @@ type
     MyTransform2: TChartAxisTransformations;
     MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform;
     MemoUnhandled: TMemo;
+    PageControl1: TPageControl;
     Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
     Panel4: TPanel;
+    MachineGroupBox: TPanel;
     SourceEPRPDODrawGrid: TDrawGrid;
     SourcePDODrawGrid: TDrawGrid;
     SinkPDODrawGrid: TDrawGrid;
     SinkEPRPDODrawGrid: TDrawGrid;
+    Machine1Sheet: TTabSheet;
+    tsOverview1: TTabSheet;
+    tsOverview2: TTabSheet;
     TestInfoMemo: TMemo;
     ProgressBar1: TProgressBar;
     SamplesBox: TComboBox;
@@ -90,6 +123,7 @@ type
       aRect: TRect; aState: TGridDrawState);
     procedure dgFlagsGetCheckboxState(Sender: TObject; ACol, ARow: Integer;
       var Value: TCheckboxState);
+    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure gridPDOResize(Sender: TObject);
     procedure grpVADataResize(Sender: TObject);
@@ -99,6 +133,7 @@ type
       State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure ListView1KeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure PageControl1Change(Sender: TObject);
     procedure PDODrawGridButtonClick(Sender: TObject; aCol, aRow: Integer
       );
     procedure PDODrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -112,6 +147,37 @@ type
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
   private
+    MachineBox: array of TFrameSimple;
+
+    Machineset : array of
+    record
+      Startup        : boolean;
+      Running        : boolean;
+      Start_time     : TDateTime;
+      Running_time   : TDateTime;
+      Energy         : single;
+      Water1         : single;
+      Water2         : single;
+      Temperature1   : single;
+      Temperature2   : single;
+      MaxTemp        : single;
+      AutoFileName   : boolean;
+      AutoStart      : boolean;
+      AutoStartReady : boolean;
+      Project        : string;
+      Product        : string;
+      Runname        : string;
+      Runnumber      : string;
+      Info           : string;
+      Filename       : string;
+      Water1Cal      : double;
+      Water2Cal      : double;
+      EnergyCal      : double;
+      //TemperatureCal : double;
+      TemperatureCalNew: double;
+      Data           : TDataList;
+    end;
+
     FOldOnIdle          : TIdleEvent;
 
     LocalFS             : TFormatSettings;
@@ -142,6 +208,7 @@ type
     DUT                 : TUSBPDDevice;
 
     ActiveBoard         : word;
+    VisibleMachine      : word;
 
     RotoPDController    : TUSBPDController;
 
@@ -150,6 +217,8 @@ type
     BatteryDataFile     : string;
 
     DD                  : TDataDevice;
+
+    NumberOfMachines    : integer;
 
     procedure AfterShow(Sender: TObject; var Done: Boolean);
     procedure Startup;
@@ -205,7 +274,6 @@ uses
   StrUtils,
   DateUtils,
   Clipbrd,
-  LCLType,
   SPLASH,
   Bits,
   Tools;
@@ -232,7 +300,10 @@ var
   i       : integer;
   s       : string;
   CList,CListDetails:TStringList;
+  ts:TTabSheet;
 begin
+  PageControl1.OwnerDraw:=True;
+
   LocalFS:=DefaultFormatSettings;
 
   LocalFS.ShortDateFormat:='dd-mm-yyyy';
@@ -488,10 +559,72 @@ begin
     Ini.Free;
   end;
 
+  NumberOfMachines := 8;
+
+  SetLength(MachineBox,NumberOfMachines+1);
+  SetLength(Machineset,NumberOfMachines+1);
+
+  for i:=1 to NumberOfMachines do with Machineset[i] do
+  begin
+    Water1Cal := 1;
+    Water2Cal := 1;
+    EnergyCal := 1;
+    TemperatureCalNew := 0;
+  end;
+
+  for i:=1 to NumberOfMachines do
+  begin
+    if i>1 then
+    begin
+      ts:=TTabSheet.Create(Self);
+      ts.Parent:=PageControl1;
+      ts.Name:='Machine'+InttoStr(i)+'Sheet';
+      ts.Caption:='Machine '+InttoStr(i);
+      ts.PageControl:=PageControl1;
+    end
+    else
+    begin
+      ts:=Machine1Sheet;
+    end;
+    ts.Tag:=0;
+
+    (*
+    with TFrame1.Create(ts) do
+    begin
+      Parent:=ts;
+      Align:=alClient;
+      Name:='Frame1_'+InttoStr(x);
+    end;
+    *)
+  end;
+
+  for i:=1 to NumberOfMachines do
+  begin
+    Machineset[i].Data:=TList<TMachineData>.Create();
+    MachineBox[i]:=TFrameSimple.Create(tsOverview2);
+    MachineBox[i].Number:=i;
+    //MachineBox[i].Name:='NewFrame'+InttoStr(i);
+    MachineBox[i].Parent:=tsOverview2;
+    //MachineBox[i].DoubleBuffered:=True;
+    //MachineBox[i].Align:=alClient;
+    MachineBox[i].Enable:=false;
+    //MachineBox[i].GraphBase.OnDblClick := GraphBaseDblClick;
+    (*
+    MachineBox[i].GraphBase.OnClick := GraphBaseDblClick;
+    //MachineBox[i].Panel1.OnClick := GraphBaseDblClick;
+    MachineBox[i].TemperatureBase.OnClick := GraphBaseDblClick;
+    MachineBox[i].EnergyBase.OnClick := GraphBaseDblClick;
+    MachineBox[i].Water1Base.OnClick := GraphBaseDblClick;
+    MachineBox[i].Water2Base.OnClick := GraphBaseDblClick;
+    *)
+  end;
+
+
+
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
-  DD.OnDeviceChange:=@UpdateDevice;
-  DD.OnDataReceived:=@UpdateData;
+  DD.OnDeviceChange:=UpdateDevice;
+  DD.OnDataReceived:=UpdateData;
 end;
 
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
@@ -557,6 +690,34 @@ begin
 
     if s <> '' then
       Clipboard.AsText := s;
+  end;
+end;
+
+procedure TPowerbankMainForm.PageControl1Change(Sender: TObject);
+var
+  z:integer;
+  ChartTime,StartTime:TDateTime;
+  PG:TPageControl;
+begin
+  PG:=TPageControl(Sender);
+
+  if PG.OwnerDraw then PG.Invalidate;
+
+  (*
+  if Pos('Machine',PG.ActivePage.Caption)>0
+     then VisibleMachine:=StrToIntDef(RightStr(PG.ActivePage.Caption,2),0)
+     else VisibleMachine:=0;
+  *)
+  if (PG.TabIndex>1)then
+   VisibleMachine:=(PG.TabIndex-1)
+  else
+    VisibleMachine:=0;
+
+  if VisibleMachine>0 then
+  begin
+    MachineGroupBox.Parent:=PG.ActivePage;
+    //SetControls(Sender,Machineset[VisibleMachine].Running OR Machineset[VisibleMachine].Startup);
+    //MachineChart.UndoZoom;
   end;
 end;
 
@@ -999,10 +1160,24 @@ begin
 
 end;
 
+procedure TPowerbankMainForm.FormDestroy(Sender: TObject);
+var
+  x:integer;
+begin
+  System.Finalize(MachineBox);
+
+  for x:=1 to NumberOfMachines do
+  begin
+    Machineset[x].Data.Destroy;
+  end;
+
+  System.Finalize(Machineset);
+end;
+
 procedure TPowerbankMainForm.FormShow(Sender: TObject);
 begin
   FOldOnIdle := Application.OnIdle; // Save current OnIdle.
-  Application.OnIdle:=@AfterShow;
+  Application.OnIdle:=AfterShow;
 end;
 
 procedure TPowerbankMainForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -1557,6 +1732,7 @@ var
   wd                   : TWordData;
   dwd                  : TDWordData;
   qwd                  : TQWordData;
+  bd                   : TByteData;
   aSourcePDO           : ^TSOURCEPDO;
 begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
@@ -1691,7 +1867,8 @@ begin
             UnconstrainedPower       := 0;
             UsbSuspendSupported      := 0;
             DualRolePower            := 0;
-            FixedSupply              := %00; // 0x00
+            bd.Raw := 0;
+            FixedSupply              := bd.Raw; // 0x00
           end;
         end
         else
@@ -1702,7 +1879,9 @@ begin
             MaximumCurrentIn10mA      := (PDO.maxCurrent_mA DIV 10);
             MinimumVoltageIn50mV      := (PDO.minVoltage_mV DIV 50);
             MaximumVoltageIn50mV      := (PDO.maxVoltage_mV DIV 50);
-            VariableSupportNonBattery := %10;  // 0x10
+            bd.Raw := 0;
+            bd.Bits[1] := 1;
+            VariableSupportNonBattery := bd.Raw; //%10;  // 0x10
           end;
         end
         else
@@ -1714,8 +1893,13 @@ begin
             MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);
             MaximumVoltageIn100mV        := (PDO.maxVoltage_mV DIV 100);
             //PeakCurrent                  := (PDO.maxCurrent_mA DIV 10);
-            AugmentedPowerDataObjectType := %01;  // 0x01=EPRAVS Adjustable Voltage Supply
-            AugmentedPowerDataObject     := %11;  // 0x11
+            bd.Raw := 0;
+            bd.Bits[0] := 1;
+            AugmentedPowerDataObjectType := bd.Raw; //%01;  // 0x01=EPRAVS Adjustable Voltage Supply
+            bd.Raw := 0;
+            bd.Bits[0] := 1;
+            bd.Bits[1] := 1;
+            AugmentedPowerDataObject     := bd.Raw; //%11;  // 0x11
           end;
         end;
       end;
@@ -1803,6 +1987,64 @@ begin
   end;
   Application.ProcessMessages;
 end;
+
+{$ifdef MSWindows}
+procedure TPageControl.CNDrawItem(var Message: TLMDrawItems);
+var
+  FontHandle       : HFONT;
+  TargetColor      : COLORREF;
+  FontObject       : TLogFont;
+  BrushHandle      : HBRUSH;
+begin
+  with Message.DrawItemStruct^ do
+  begin
+    GetObject(Font.Handle, SizeOf(FontObject), @FontObject);
+
+    if itemID = DWORD(-1) then
+    begin
+      // ??
+      TargetColor:=clBlack;
+    end;
+
+    if (Page[itemID].Tag=1) then
+    begin
+      if itemID = TabIndex then
+      //if (Page[itemID].IsControlVisible) then
+      begin
+        TargetColor:=clLime;
+      end
+      else
+      begin
+        TargetColor:=clRed;
+      end;
+    end
+    else
+    begin
+      if (itemID>1) then
+        TargetColor := TColor($202020)
+      else
+        TargetColor := clBlue;
+    end;
+
+
+    BrushHandle := CreateSolidBrush(TargetColor);
+    FillRect(_hDC, rcItem, BrushHandle);
+
+    FontObject.lfWeight := FW_BOLD;
+    FontHandle := CreateFontIndirect(FontObject);
+    try
+      SelectObject(_hDC, FontHandle);
+      SetTextColor(_hDC, ColorToRGB(clWhite));
+      SetBkMode(_hDC, TRANSPARENT);
+      DrawTextEx(_hDC, PChar(Page[itemID].Caption), -1, rcItem, DT_CENTER or
+        DT_VCENTER or DT_SINGLELINE, nil);
+    finally
+      DeleteObject(FontHandle);
+    end;
+  end;
+  Message.Result := 1;
+end;
+{$endif}
 
 end.
 

@@ -1,0 +1,418 @@
+object Frame1: TFrame1
+  Left = 0
+  Height = 563
+  Top = 0
+  Width = 1003
+  ClientHeight = 563
+  ClientWidth = 1003
+  Color = clBtnFace
+  ParentBackground = False
+  ParentColor = False
+  TabOrder = 0
+  DesignLeft = 396
+  DesignTop = 158
+  object MachineChart: TChart
+    AnchorSideLeft.Control = Panel1
+    AnchorSideLeft.Side = asrBottom
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 244
+    Height = 559
+    Top = 0
+    Width = 751
+    AxisList = <    
+      item
+        Intervals.Count = 10
+        Intervals.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.Max = 100
+        Range.UseMax = True
+        Range.UseMin = True
+        Title.Distance = 10
+        Title.LabelFont.Orientation = 900
+        Title.LabelFont.Style = [fsBold]
+        Title.Visible = True
+        Title.Caption = 'Water [l]  /  Temperature [C]'
+        Title.LabelBrush.Style = bsClear
+        Transformations = MyTransform1
+      end    
+      item
+        Alignment = calBottom
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.UseMin = True
+        Title.LabelBrush.Style = bsClear
+      end    
+      item
+        Intervals.Count = 10
+        Intervals.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
+        Alignment = calRight
+        Group = 1
+        Marks.LabelBrush.Style = bsClear
+        Minors = <>
+        Range.Max = 10
+        Range.UseMax = True
+        Range.UseMin = True
+        Title.Distance = 10
+        Title.LabelFont.Orientation = -900
+        Title.LabelFont.Style = [fsBold]
+        Title.Visible = True
+        Title.Caption = 'Energy [kWh]'
+        Title.LabelBrush.Style = bsClear
+        Transformations = MyTransform2
+      end>
+    Legend.Alignment = laTopCenter
+    Legend.ColumnCount = 4
+    Legend.Visible = True
+    Title.Text.Strings = (
+      'TAChart'
+    )
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    BorderSpacing.Left = 4
+    BorderSpacing.Right = 8
+    BorderSpacing.Bottom = 4
+    object EnergySeries: TLineSeries
+      Title = 'Energy'
+      AxisIndexX = 1
+      AxisIndexY = 2
+      LinePen.Width = 5
+    end
+    object WaterSeries1: TLineSeries
+      Title = 'Water1'
+      AxisIndexX = 1
+      AxisIndexY = 0
+      LinePen.Color = clAqua
+      LinePen.Width = 5
+    end
+    object WaterSeries2: TLineSeries
+      Title = 'Water2'
+      AxisIndexX = 1
+      AxisIndexY = 0
+      LinePen.Color = clBlue
+      LinePen.Width = 5
+    end
+    object TemperatureSeries: TLineSeries
+      Title = 'Temperature'
+      AxisIndexX = 1
+      AxisIndexY = 0
+      LinePen.Color = clRed
+      LinePen.Width = 5
+    end
+  end
+  object Panel1: TPanel
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 8
+    Height = 555
+    Top = 4
+    Width = 232
+    Anchors = [akTop, akLeft, akBottom]
+    BorderSpacing.Left = 8
+    BorderSpacing.Top = 4
+    BorderSpacing.Bottom = 4
+    BevelOuter = bvNone
+    ClientHeight = 555
+    ClientWidth = 232
+    ParentBackground = False
+    TabOrder = 1
+    object FileLabel: TLabel
+      AnchorSideLeft.Control = Panel1
+      AnchorSideTop.Control = Panel1
+      Left = 2
+      Height = 17
+      Top = 8
+      Width = 22
+      BorderSpacing.Left = 2
+      BorderSpacing.Top = 8
+      Caption = 'File'
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object FilenameEdit: TEdit
+      AnchorSideLeft.Control = FileLabel
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = FileLabel
+      AnchorSideTop.Side = asrCenter
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      Left = 34
+      Height = 23
+      Top = 5
+      Width = 196
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 10
+      BorderSpacing.Right = 2
+      ReadOnly = True
+      TabOrder = 4
+    end
+    object ProjectLabel: TLabel
+      AnchorSideLeft.Control = Panel1
+      AnchorSideTop.Control = FileLabel
+      AnchorSideTop.Side = asrBottom
+      Left = 2
+      Height = 17
+      Top = 37
+      Width = 43
+      BorderSpacing.Left = 2
+      BorderSpacing.Top = 12
+      Caption = 'Project'
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object ProductLabel: TLabel
+      AnchorSideLeft.Control = Panel1
+      AnchorSideTop.Control = ProjectLabel
+      AnchorSideTop.Side = asrBottom
+      Left = 2
+      Height = 17
+      Top = 66
+      Width = 48
+      BorderSpacing.Left = 2
+      BorderSpacing.Top = 12
+      Caption = 'Product'
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object RunLabel: TLabel
+      AnchorSideLeft.Control = Panel1
+      AnchorSideTop.Control = ProductLabel
+      AnchorSideTop.Side = asrBottom
+      Left = 2
+      Height = 17
+      Top = 95
+      Width = 24
+      BorderSpacing.Left = 2
+      BorderSpacing.Top = 12
+      Caption = 'Run'
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object InfoLabel: TLabel
+      AnchorSideLeft.Control = Panel1
+      AnchorSideTop.Control = RunLabel
+      AnchorSideTop.Side = asrBottom
+      Left = 2
+      Height = 17
+      Top = 124
+      Width = 25
+      BorderSpacing.Left = 2
+      BorderSpacing.Top = 12
+      Caption = 'Info'
+      Font.Height = -13
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object Project_edit: TEdit
+      AnchorSideLeft.Control = ProjectLabel
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = ProjectLabel
+      AnchorSideTop.Side = asrCenter
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      Left = 57
+      Height = 23
+      Top = 34
+      Width = 173
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 12
+      BorderSpacing.Right = 2
+      ReadOnly = True
+      TabOrder = 5
+    end
+    object Product_edit: TEdit
+      AnchorSideLeft.Control = ProductLabel
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = ProductLabel
+      AnchorSideTop.Side = asrCenter
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      Left = 62
+      Height = 23
+      Top = 63
+      Width = 168
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 12
+      BorderSpacing.Right = 2
+      ReadOnly = True
+      TabOrder = 6
+    end
+    object Run_edit: TEdit
+      AnchorSideLeft.Control = RunLabel
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = RunLabel
+      AnchorSideTop.Side = asrCenter
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      Left = 38
+      Height = 23
+      Top = 92
+      Width = 192
+      Anchors = [akTop, akLeft, akRight]
+      BorderSpacing.Left = 12
+      BorderSpacing.Right = 2
+      ReadOnly = True
+      TabOrder = 7
+    end
+    object MachineInfoMemo: TMemo
+      AnchorSideLeft.Control = InfoLabel
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = InfoLabel
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = TemperatureEditPeak1
+      Left = 35
+      Height = 147
+      Top = 124
+      Width = 195
+      Anchors = [akTop, akLeft, akRight, akBottom]
+      BorderSpacing.Left = 8
+      BorderSpacing.Right = 2
+      BorderSpacing.Bottom = 4
+      ReadOnly = True
+      TabOrder = 8
+    end
+    object TemperatureEditPeak1: TEdit
+      AnchorSideLeft.Control = Panel1
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = EnergyEdit
+      Left = 2
+      Height = 54
+      Top = 275
+      Width = 228
+      Anchors = [akLeft, akRight, akBottom]
+      BorderSpacing.Around = 2
+      Color = clRed
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -40
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 9
+      Text = '0.00 °C'
+    end
+    object EnergyEdit: TEdit
+      AnchorSideLeft.Control = Panel1
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = WaterEdit1
+      Left = 2
+      Height = 54
+      Top = 331
+      Width = 228
+      Anchors = [akLeft, akRight, akBottom]
+      BorderSpacing.Around = 2
+      Color = clBlack
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -40
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 3
+      Text = '0.000 kWh'
+    end
+    object WaterEdit1: TEdit
+      AnchorSideLeft.Control = Panel1
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = WaterEdit2
+      Left = 2
+      Height = 54
+      Top = 387
+      Width = 228
+      Anchors = [akLeft, akRight, akBottom]
+      BorderSpacing.Around = 2
+      Color = clAqua
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -40
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 2
+      Text = '0.00 litres'
+    end
+    object WaterEdit2: TEdit
+      AnchorSideLeft.Control = Panel1
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = TimeEdit
+      Left = 2
+      Height = 54
+      Top = 443
+      Width = 228
+      Anchors = [akLeft, akRight, akBottom]
+      BorderSpacing.Around = 2
+      Color = clBlue
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -40
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 1
+      Text = '0.00 litres'
+    end
+    object TimeEdit: TEdit
+      AnchorSideLeft.Control = Panel1
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      AnchorSideBottom.Control = Panel1
+      AnchorSideBottom.Side = asrBottom
+      Left = 2
+      Height = 54
+      Top = 499
+      Width = 228
+      Anchors = [akLeft, akRight, akBottom]
+      BorderSpacing.Around = 2
+      Color = clWhite
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clBlack
+      Font.Height = -40
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 0
+      Text = '00:00:00'
+    end
+  end
+  object MyTransform1: TChartAxisTransformations
+    Left = 80
+    Top = 72
+    object MT1: TAutoScaleAxisTransform
+    end
+  end
+  object MyTransform2: TChartAxisTransformations
+    Left = 136
+    Top = 72
+    object MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform
+    end
+  end
+end

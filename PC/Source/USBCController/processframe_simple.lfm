@@ -1,0 +1,258 @@
+object FrameSimple: TFrameSimple
+  Left = 0
+  Height = 416
+  Top = 0
+  Width = 456
+  ClientHeight = 416
+  ClientWidth = 456
+  Color = clDefault
+  ParentBackground = False
+  ParentColor = False
+  TabOrder = 0
+  DesignLeft = 840
+  DesignTop = 281
+  object Panel1: TPanel
+    Left = 0
+    Height = 68
+    Top = 348
+    Width = 456
+    Align = alBottom
+    Anchors = []
+    BevelInner = bvLowered
+    BevelWidth = 4
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsHomogenousChildResize
+    ChildSizing.ShrinkVertical = crsHomogenousChildResize
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 2
+    ClientHeight = 68
+    ClientWidth = 456
+    ParentBackground = False
+    TabOrder = 0
+    object TemperatureBase: TEdit
+      AnchorSideRight.Control = Panel1
+      AnchorSideRight.Side = asrBottom
+      Left = 10
+      Height = 23
+      Top = 10
+      Width = 217
+      AutoSelect = False
+      BorderSpacing.Around = 2
+      Color = clRed
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabStop = False
+      TabOrder = 3
+      Text = '0.00 °C'
+    end
+    object EnergyBase: TEdit
+      AnchorSideRight.Side = asrBottom
+      Left = 229
+      Height = 23
+      Top = 10
+      Width = 217
+      AutoSelect = False
+      BorderSpacing.Around = 2
+      Color = clBlack
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabStop = False
+      TabOrder = 2
+      Text = '0.000 kWh'
+    end
+    object Water1Base: TEdit
+      AnchorSideRight.Side = asrBottom
+      Left = 10
+      Height = 23
+      Top = 35
+      Width = 217
+      AutoSelect = False
+      BorderSpacing.Around = 2
+      Color = clAqua
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabStop = False
+      TabOrder = 1
+      Text = '0.00 litres'
+    end
+    object Water2Base: TEdit
+      AnchorSideRight.Side = asrBottom
+      Left = 229
+      Height = 23
+      Top = 35
+      Width = 217
+      AutoSelect = False
+      BorderSpacing.Around = 2
+      Color = clBlue
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clWhite
+      Font.Height = -13
+      Font.Name = 'Arial Narrow'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      Font.Style = [fsBold]
+      ParentFont = False
+      ReadOnly = True
+      TabStop = False
+      TabOrder = 0
+      Text = '0.00 litres'
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Height = 348
+    Top = 0
+    Width = 456
+    Align = alClient
+    BevelInner = bvLowered
+    BevelWidth = 4
+    Caption = 'Panel2'
+    ClientHeight = 348
+    ClientWidth = 456
+    TabOrder = 1
+    object GraphBase: TChart
+      Left = 8
+      Height = 328
+      Top = 8
+      Width = 440
+      AllowPanning = False
+      AllowZoom = False
+      AxisList = <      
+        item
+          Intervals.Count = 10
+          Intervals.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
+          Marks.LabelBrush.Style = bsClear
+          Minors = <>
+          Range.Max = 100
+          Range.UseMax = True
+          Range.UseMin = True
+          Title.Distance = 10
+          Title.LabelFont.Orientation = 900
+          Title.LabelFont.Style = [fsBold]
+          Title.Caption = 'Water [l]  /  Temperature [C]'
+          Title.LabelBrush.Style = bsClear
+          Transformations = MyTransform1
+        end      
+        item
+          Alignment = calBottom
+          Marks.Visible = False
+          Marks.Format = '%2:s'
+          Marks.LabelBrush.Style = bsClear
+          Marks.Source = DateTimeIntervalChartSource2
+          Marks.Style = smsLabel
+          Minors = <>
+          Title.LabelBrush.Style = bsClear
+        end      
+        item
+          Intervals.Count = 10
+          Intervals.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
+          Alignment = calRight
+          Group = 1
+          Marks.LabelBrush.Style = bsClear
+          Minors = <>
+          Range.Max = 10
+          Range.UseMax = True
+          Range.UseMin = True
+          Title.Distance = 10
+          Title.LabelFont.Orientation = -900
+          Title.LabelFont.Style = [fsBold]
+          Title.Caption = 'Energy [kWh]'
+          Title.LabelBrush.Style = bsClear
+          Transformations = MyTransform2
+        end>
+      Legend.Alignment = laTopCenter
+      Legend.ColumnCount = 4
+      Title.Margins.Left = 0
+      Title.Margins.Top = 0
+      Title.Margins.Right = 0
+      Title.Margins.Bottom = 0
+      Title.Brush.Color = clGray
+      Title.Font.CharSet = ANSI_CHARSET
+      Title.Font.Height = -16
+      Title.Font.Name = 'Arial'
+      Title.Font.Pitch = fpVariable
+      Title.Font.Quality = fqDraft
+      Title.Font.Style = [fsBold]
+      Title.Frame.Visible = True
+      Title.Margin = 2
+      Title.Text.Strings = (
+        'Machine data'
+      )
+      Title.Visible = True
+      OnBeforeDrawBackground = GraphBaseBeforeDrawBackground
+      OnBeforeDrawBackWall = GraphBaseBeforeDrawBackWall
+      Align = alClient
+      BorderSpacing.Bottom = 4
+      object EnergySeries: TLineSeries
+        Title = 'Energy'
+        AxisIndexX = 1
+        AxisIndexY = 2
+        LinePen.Width = 5
+      end
+      object WaterSeries1: TLineSeries
+        Title = 'Water1'
+        AxisIndexX = 1
+        AxisIndexY = 0
+        LinePen.Color = clAqua
+        LinePen.Width = 5
+      end
+      object WaterSeries2: TLineSeries
+        Title = 'Water2'
+        AxisIndexX = 1
+        AxisIndexY = 0
+        LinePen.Color = clBlue
+        LinePen.Width = 5
+      end
+      object TemperatureSeries: TLineSeries
+        Title = 'Temperature'
+        AxisIndexX = 1
+        AxisIndexY = 0
+        LinePen.Color = clRed
+        LinePen.Width = 5
+      end
+    end
+  end
+  object MyTransform2: TChartAxisTransformations
+    Left = 224
+    Top = 128
+    object MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform
+    end
+  end
+  object MyTransform1: TChartAxisTransformations
+    Left = 224
+    Top = 80
+    object MT1: TAutoScaleAxisTransform
+    end
+  end
+  object DateTimeIntervalChartSource2: TDateTimeIntervalChartSource
+    Params.Count = 10
+    Params.MaxLength = 150
+    Params.MinLength = 20
+    Params.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
+    DateTimeFormat = 'hh:nn:ss'
+    Left = 224
+    Top = 176
+  end
+end
