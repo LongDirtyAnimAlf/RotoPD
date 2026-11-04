@@ -7,8 +7,8 @@ object Form1: TForm1
   ClientHeight = 587
   ClientWidth = 437
   LCLVersion = '4.99.0.0'
+  OnClose = FormClose
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   object btnConnect: TButton
     Left = 8
     Height = 68

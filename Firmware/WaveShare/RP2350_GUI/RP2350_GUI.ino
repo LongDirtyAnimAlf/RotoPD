@@ -1775,9 +1775,22 @@ void loop()
     // Must disable interrupts, as interrupt handlers may be in flash, and we
     // are about to temporarily disable flash access!
     //uint32_t flags = save_and_disable_interrupts();    
-    storeSettings(ActiveBatteryIndex);
+    //storeSettings(ActiveBatteryIndex);
     //restore_interrupts(flags);
+
+    CreateSaveScreen("Saving board settings");
+    lv_timer_handler();
+    delay(500);
+    lv_screen_brightness(0);
+    delay(200);
+    storeSettings(ActiveBatteryIndex);
+    delay(200);
+    lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
+    //lv_obj_delete();
+    lv_timer_handler();
+    lv_screen_brightness(100);
   }   
+  
   if (StoreBoardInfo)
   {
     StoreBoardInfo = false;

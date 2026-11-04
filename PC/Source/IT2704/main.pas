@@ -32,8 +32,8 @@ type
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate({%H-}Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
     procedure TimerHeartbeatTimer(Sender: TObject);
@@ -173,20 +173,6 @@ begin
 
   // Get comport list after form has been created
   Application.QueueAsyncCall(@InitMain,0);
-end;
-
-procedure TForm1.FormDestroy(Sender: TObject);
-begin
-  // Command to stop the IT2704 going
-  // ID   = 00000000
-  // DLC  = 2
-  // Data = 0201  ; 02 = Stop Remote Node. 01 = Device instrument address
-  // This stops a regular sending of data from IT2704 to PC over CAN.
-  SerialTxData('t'+'000'+'2'+'0205');
-  SerialTxData('O');
-
-  // Command to stop the Gravity CAN interface
-  SerialTxData('C');
 end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
@@ -358,6 +344,24 @@ end;
 procedure TForm1.Button4Click(Sender: TObject);
 begin
   SerialTxData('t'+'601'+'8'+'2F08300100000000');
+end;
+
+procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Timer1.Enabled:=false;
+  Timer2.Enabled:=false;
+  TimerHeartbeat.Enabled:=false;
+
+  // Command to stop the IT2704 going
+  // ID   = 00000000
+  // DLC  = 2
+  // Data = 0201  ; 02 = Stop Remote Node. 01 = Device instrument address
+  // This stops a regular sending of data from IT2704 to PC over CAN.
+  SerialTxData('t'+'000'+'2'+'0205');
+  SerialTxData('O');
+
+  // Command to stop the Gravity CAN interface
+  SerialTxData('C');
 end;
 
 procedure TForm1.btnAskVoltageDataClick(Sender: TObject);

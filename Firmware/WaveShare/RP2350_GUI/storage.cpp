@@ -7,7 +7,7 @@
 constexpr char *namespace_storage             = "ESP32STORE";
 constexpr char *key_boardinfo                 = "BOARDINFO";
 constexpr char *key_batterycharge_settings    = "BATTERYCHARGEINFO";
-constexpr char *key_batteryischarge_settings  = "BATTERYDISCHARGEINFO";
+constexpr char *key_batterydischarge_settings  = "BATTERYDISCHARGEINFO";
 
 //#include "./src/ESP32/storage/indicator_storage_nvs.h"
 
@@ -18,16 +18,14 @@ void storeInit(void)
   //indicator_nvs_init();
   //preferences.begin(namespace_storage, true);  
 }
-
-void storePutBoardInfo(TBoardInfo * Info)
+void IRAM_ATTR storePutBoardInfo(TBoardInfo * Info)
 {
   preferences.begin(namespace_storage, false);
   // Pass the key name, pointer to the data struct, and its total size in bytes
   preferences.putBytes(key_boardinfo, Info, sizeof(TBoardInfo));
   preferences.end();
 }
-
-bool storeGetBoardInfo(TBoardInfo * Info)
+bool IRAM_ATTR storeGetBoardInfo(TBoardInfo * Info)
 {
   bool result;
 
@@ -49,11 +47,64 @@ bool storeGetBoardInfo(TBoardInfo * Info)
 
   return result;
 }
+void IRAM_ATTR storePutBatteryDischargeSetting(uint8_t Index, TStageData *SD)
+{
+  preferences.begin(namespace_storage, false);
+  // Pass the key name, pointer to the data struct, and its total size in bytes
+  preferences.putBytes(key_batterydischarge_settings, SD, sizeof(TStageData));
+  preferences.end();
+}
+void IRAM_ATTR storePutBatteryChargeSetting(uint8_t Index, TStageData *SD)
+{
+  preferences.begin(namespace_storage, false);
+  // Pass the key name, pointer to the data struct, and its total size in bytes
+  preferences.putBytes(key_batterycharge_settings, SD, sizeof(TStageData));
+  preferences.end();
+}
+bool IRAM_ATTR storeGetBatteryDischargeSetting(uint8_t Index, TStageData *SD)
+{
+  bool result;
 
-void storePutBatteryDischargeSetting(uint8_t Index, TStageData *SD) {}
-void storePutBatteryChargeSetting(uint8_t Index, TStageData *SD) {}
-bool storeGetBatteryDischargeSetting(uint8_t Index, TStageData *SD) { return true; }
-bool storeGetBatteryChargeSetting(uint8_t Index, TStageData *SD) { return true; }
+  // Open namespace in READ-ONLY mode to check for existing data
+  preferences.begin(namespace_storage, true);
+  
+  // Check if our data key exists.
+  if (preferences.isKey(key_batterydischarge_settings))
+  {
+    // Read the structure as raw bytes
+    preferences.getBytes(key_batterydischarge_settings, SD, sizeof(TStageData));
+    result = true;    
+  }
+  else
+  {
+    result = false;
+  }
+  preferences.end();
+
+  return result;
+}
+bool IRAM_ATTR storeGetBatteryChargeSetting(uint8_t Index, TStageData *SD)
+{
+  bool result;
+
+  // Open namespace in READ-ONLY mode to check for existing data
+  preferences.begin(namespace_storage, true);
+  
+  // Check if our data key exists.
+  if (preferences.isKey(key_batterycharge_settings))
+  {
+    // Read the structure as raw bytes
+    preferences.getBytes(key_batterycharge_settings, SD, sizeof(TStageData));
+    result = true;    
+  }
+  else
+  {
+    result = false;
+  }
+  preferences.end();
+
+  return result;
+}
 
 #endif
 

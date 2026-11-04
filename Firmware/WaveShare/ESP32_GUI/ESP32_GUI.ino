@@ -146,7 +146,77 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 // Tuned for common APS6404 / similar 133–166 MHz PSRAM chips
 // ---------------------------------------------------------------
 #ifdef ARDUINO_ARCH_RP2040
-void set_psram_timing_auto()
+#include "hardware/clocks.h"
+#include "hardware/sync.h"
+#include "hardware/structs/qmi.h"
+
+void set_psram_timing_auto(void)
+{
+  // Maximum target SCK frequency for PSRAM (Hz)
+  const uint32_t MAX_PSRAM_SCK_HZ = 133000000;
+
+  // PSRAM Datasheet Parameters
+  const uint32_t MAX_SELECT_NS   = 8000; // Max CS assertion (~8 µs)
+  const uint32_t MIN_DESELECT_NS = 50;   // Min CS deassertion (~50 ns)
+
+  uint32_t sys_hz = clock_get_hz(clk_sys);
+
+  // 1. Clock divider (sys_hz / MAX_PSRAM_SCK_HZ rounded up)
+  uint32_t clkdiv = (sys_hz + MAX_PSRAM_SCK_HZ - 1) / MAX_PSRAM_SCK_HZ;
+  if (clkdiv < 1)   clkdiv = 1;
+  if (clkdiv > 255) clkdiv = 255;
+
+  // Actual SCK frequency achieved
+  uint32_t sck_hz = sys_hz / clkdiv;
+
+  // 2. RXDELAY tuning for high-speed sampling
+  uint32_t rxdelay = 1;
+  if (sck_hz > 100000000) rxdelay = 2;
+  if (sck_hz > 130000000) rxdelay = 3;
+  if (rxdelay > 7) rxdelay = 7;
+
+  // 3. MAX_SELECT (units of 64 sys_clk cycles)
+  // cycles = sys_hz * MAX_SELECT_NS / 1,000,000,000
+  // max_select = cycles / 64
+  uint64_t max_sel_cycles = ((uint64_t)sys_hz * MAX_SELECT_NS) / 1000000000ULL;
+  uint32_t max_select = (uint32_t)(max_sel_cycles / 64);
+  if (max_select > 63) max_select = 63; // 6-bit field
+  if (max_select < 1)  max_select = 1;
+
+  // 4. MIN_DESELECT (sys_clk cycles after CS deassert)
+  uint64_t desel_cycles = ((uint64_t)sys_hz * MIN_DESELECT_NS + 999999999ULL) / 1000000000ULL;
+  uint32_t hardware_delay = (clkdiv + 1) / 2;
+  
+  uint32_t min_deselect = 0;
+  if (desel_cycles > hardware_delay) {
+      min_deselect = (uint32_t)(desel_cycles - hardware_delay);
+  }
+  if (min_deselect > 31) min_deselect = 31; // 5-bit field
+
+  // 5. Setup / Hold / Cooldown parameters
+  const uint32_t cooldown     = 1;
+  const uint32_t pagebreak    = 2; // 1024-byte boundary
+  const uint32_t select_hold  = 1;
+  const uint32_t select_setup = 0;
+
+  // Assemble QMI TIMING register
+  uint32_t timing =
+      (cooldown     << 30) |
+      (pagebreak    << 28) |
+      (select_setup << 25) |
+      (select_hold  << 23) |
+      (max_select   << 17) |
+      (min_deselect << 12) |
+      (rxdelay      <<  8) |
+      (clkdiv       <<  0);
+
+  // Apply to primary PSRAM interface (m[0])
+  uint32_t irq = save_and_disable_interrupts();
+  qmi_hw->m[1].timing = timing;
+  restore_interrupts(irq);
+}
+
+void set_psram_timing_autooo()
 {
     // Maximum safe SCK frequency for most common PSRAM chips (Hz)
     const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
@@ -1705,9 +1775,22 @@ void loop()
     // Must disable interrupts, as interrupt handlers may be in flash, and we
     // are about to temporarily disable flash access!
     //uint32_t flags = save_and_disable_interrupts();    
-    storeSettings(ActiveBatteryIndex);
+    //storeSettings(ActiveBatteryIndex);
     //restore_interrupts(flags);
+
+    CreateSaveScreen("Saving board settings");
+    lv_timer_handler();
+    delay(500);
+    lv_screen_brightness(0);
+    delay(200);
+    storeSettings(ActiveBatteryIndex);
+    delay(200);
+    lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
+    //lv_obj_delete();
+    lv_timer_handler();
+    lv_screen_brightness(100);
   }   
+  
   if (StoreBoardInfo)
   {
     StoreBoardInfo = false;

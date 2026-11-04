@@ -384,8 +384,6 @@ void pio_rgb_dma_init(pio_rgb_info_t *info)
     // 1. Channel-level high priority
     channel_config_set_high_priority(&c0, true);
 
-    //sm_config_set_fifo_join(&c0, PIO_FIFO_JOIN_TX);
-
     // 2. Bus-fabric high priority for DMA
     busctrl_hw->priority = BUSCTRL_BUS_PRIORITY_DMA_R_BITS |
                         BUSCTRL_BUS_PRIORITY_DMA_W_BITS;

@@ -25,6 +25,19 @@ static int rgb_dma_chan;
 static pio_rgb_info_t *g_pio_rgb_info;
 static uint16_t *buffer;
 
+static void __not_in_flash_func(sram_copy_u16)(uint16_t *dst, const uint16_t *src, size_t count)
+{
+    uint32_t *d = (uint32_t *)dst;
+    const uint32_t *s = (const uint32_t *)src;
+    size_t words = count >> 1;
+    for (size_t i = 0; i < words; i++) {
+        d[i] = s[i];
+    }
+    if (count & 1) {
+        dst[count - 1] = src[count - 1];
+    }
+}
+
 static inline void fast_copy_u16(uint16_t *dst, const uint16_t *src, size_t count)
 {
     // Treat the buffers as 32-bit words
@@ -117,7 +130,7 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
             dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
 
             // 2. Copy next chunk from PSRAM → SRAM bounce buffer.
-            fast_copy_u16(fill_buffer, next_chunk, g_pio_rgb_info->transfer_size);
+            sram_copy_u16(fill_buffer, next_chunk, g_pio_rgb_info->transfer_size);
             //memcpy(fill_buffer, next_chunk,
             //        g_pio_rgb_info->transfer_size * sizeof(uint16_t));
         }
@@ -205,7 +218,7 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
     uint16_t *dst = &freeframebuffer[y1 * g_pio_rgb_info->width + x1];
     for (size_t i = 0; i < color_height; i++)
     {
-        fast_copy_u16(dst, color_p, color_width);
+        sram_copy_u16(dst, color_p, color_width);
         dst     += g_pio_rgb_info->width;   // next line in framebuffer
         color_p += color_width;             // next line in source
     }

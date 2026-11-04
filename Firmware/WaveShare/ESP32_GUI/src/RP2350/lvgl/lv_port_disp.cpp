@@ -22,7 +22,7 @@
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #else
 #define RENDER_MODE_DIRECT
-#define PINGPONG_BUF_LINES  20 // number of display lines in each transfer buffer in SRAM
+#define PINGPONG_BUF_LINES  120 // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  0 // number of display lines in each draw buffer in partial mode
 #endif
 
