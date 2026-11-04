@@ -23,8 +23,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="2103"/>
-        <CursorPos Y="2108"/>
+        <TopLine Value="2415"/>
+        <CursorPos Y="2437"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -3427,10 +3427,11 @@
       </Unit>
       <Unit>
         <Filename Value="..\Common\tools.pas"/>
-        <UsageCount Value="6"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="6"/>
-        <CursorPos Y="23"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="15"/>
+        <CursorPos Y="34"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\libusb\src\libusboop.pas"/>
@@ -3684,10 +3685,11 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\comctrls.pp"/>
         <UnitName Value="ComCtrls"/>
-        <UsageCount Value="6"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="967"/>
-        <CursorPos X="67" Y="981"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="581"/>
+        <CursorPos X="24" Y="595"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\classes\util.inc"/>
@@ -3862,14 +3864,14 @@
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="37"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="6"/>
         <CursorPos X="17" Y="19"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="37"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="348"/>
         <CursorPos X="42" Y="363"/>
       </Unit>
@@ -3994,9 +3996,25 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="10"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="41"/>
         <CursorPos X="40" Y="52"/>
+      </Unit>
+      <Unit>
+        <Filename Value="processframe_simple.pas"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="102"/>
+        <CursorPos Y="122"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\pagecontrol.inc"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="40"/>
+        <CursorPos X="3" Y="42"/>
       </Unit>
     </Units>
     <Debugger>
@@ -4005,123 +4023,123 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="26" TopLine="15"/>
+        <Caret Line="234" Column="19" TopLine="213"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="612" Column="5" TopLine="586"/>
+        <Caret Line="764" Column="25" TopLine="741"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="581" Column="11" TopLine="569"/>
+        <Caret Line="765" Column="25" TopLine="742"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="558" Column="25" TopLine="548"/>
+        <Caret Line="768" Column="18" TopLine="745"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="559" Column="21" TopLine="547"/>
+        <Caret Line="770" Column="19" TopLine="747"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1142" TopLine="1131"/>
+        <Caret Line="772" Column="20" TopLine="749"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1140" Column="13" TopLine="1128"/>
+        <Caret Line="775" Column="87" TopLine="752"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="712" Column="19" TopLine="687"/>
+        <Caret Line="1205" Column="28" TopLine="1182"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="210" Column="32" TopLine="204"/>
+        <Caret Line="1420" Column="37" TopLine="1398"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="122" TopLine="108"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="719" TopLine="700"/>
+        <Caret Line="1497" Column="40" TopLine="1487"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="720" TopLine="702"/>
+        <Caret Line="655" TopLine="639"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="603" Column="28" TopLine="590"/>
+        <Caret Line="830" TopLine="811"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1991" Column="53" TopLine="1986"/>
+        <Caret Line="798" Column="9" TopLine="783"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="17" TopLine="201"/>
+        <Caret Line="764" Column="19" TopLine="754"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="617" TopLine="596"/>
+        <Caret Line="249" Column="21" TopLine="239"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1991" Column="38" TopLine="1984"/>
+        <Caret Line="645" Column="54" TopLine="623"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="32" TopLine="211"/>
+        <Caret Line="646" Column="53" TopLine="624"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="614" Column="49" TopLine="591"/>
+        <Caret Line="647" Column="60" TopLine="625"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="23" TopLine="210"/>
+        <Caret Line="648" Column="55" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="621" Column="29" TopLine="605"/>
+        <Caret Line="649" Column="55" TopLine="627"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="728" Column="5" TopLine="723"/>
+        <Caret Line="650" Column="55" TopLine="628"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="787" TopLine="760"/>
+        <Caret Line="2432" TopLine="2416"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="779" TopLine="753"/>
+        <Caret Line="2433" TopLine="2416"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="761" Column="14" TopLine="748"/>
+        <Caret Line="2434" TopLine="2416"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="769" Column="14" TopLine="757"/>
+        <Caret Line="2435" TopLine="2416"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="697" TopLine="697"/>
+        <Caret Line="2437" TopLine="2416"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="237" Column="20" TopLine="220"/>
+        <Caret Line="2440" Column="26" TopLine="2429"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2136" Column="35" TopLine="2117"/>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\comctrls.pp"/>
+        <Caret Line="622" Column="71" TopLine="610"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="237" Column="19" TopLine="225"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="634" Column="27" TopLine="611"/>
+        <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\comctrls.pp"/>
+        <Caret Line="595" Column="24" TopLine="581"/>
       </Position>
     </JumpHistory>
     <RunParams>

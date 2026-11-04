@@ -30,6 +30,7 @@ function  NowUTC: TDateTime;
 function  HexToInt(Hex:String) : Integer;
 function  StrToHex(const Value: Ansistring): string;
 function  OccurrencesOfChar(const ContentString: string; const CharToCount: char): integer;
+function IsOpen(var txt:TextFile):Boolean;
 
 implementation
 
@@ -388,6 +389,14 @@ begin
   for C in ContentString do
     if C = CharToCount then
       Inc(result);
+end;
+
+function IsOpen(var txt:TextFile):Boolean;
+const
+  fmTextOpenRead = 55217;
+  fmTextOpenWrite = 55218;
+begin
+  Result := (TTextRec(txt).Mode = fmTextOpenRead) or (TTextRec(txt).Mode = fmTextOpenWrite)
 end;
 
 end.

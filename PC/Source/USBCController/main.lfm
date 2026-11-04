@@ -26,7 +26,7 @@ object PowerbankMainForm: TPowerbankMainForm
     OnDragOver = PageControl1DragOver
     OnMouseDown = PageControl1MouseDown
     object tsOverview1: TTabSheet
-      Caption = 'Overview 1'
+      Caption = 'Overview1'
       ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
       ChildSizing.EnlargeVertical = crsHomogenousChildResize
       ChildSizing.ShrinkHorizontal = crsHomogenousChildResize
@@ -35,7 +35,7 @@ object PowerbankMainForm: TPowerbankMainForm
       ChildSizing.ControlsPerLine = 4
     end
     object tsOverview2: TTabSheet
-      Caption = 'Overview 2'
+      Caption = 'Overview2'
     end
     object Machine1Sheet: TTabSheet
       Caption = 'Machine 1'
@@ -375,7 +375,7 @@ object PowerbankMainForm: TPowerbankMainForm
               TabOrder = 2
               Text = 'Enter battery #'
             end
-            object StartStopButton: TSpeedButton
+            object StartStopSpeedButton: TSpeedButton
               AnchorSideTop.Side = asrBottom
               Left = 8
               Height = 40
@@ -393,7 +393,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Font.Style = [fsBold]
               GroupIndex = 1
               ParentFont = False
-              OnClick = StartStopButtonClick
+              OnClick = StartStopSpeedButtonClick
             end
             object ProgressBar1: TProgressBar
               AnchorSideLeft.Control = btnTestDischarge
@@ -410,10 +410,10 @@ object PowerbankMainForm: TPowerbankMainForm
               TabOrder = 3
             end
             object btnTestDischarge: TSpeedButton
-              AnchorSideLeft.Control = StartStopButton
-              AnchorSideTop.Control = StartStopButton
+              AnchorSideLeft.Control = StartStopSpeedButton
+              AnchorSideTop.Control = StartStopSpeedButton
               AnchorSideTop.Side = asrBottom
-              AnchorSideRight.Control = StartStopButton
+              AnchorSideRight.Control = StartStopSpeedButton
               AnchorSideRight.Side = asrBottom
               Left = 8
               Height = 25
@@ -544,10 +544,10 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideBottom.Control = GroupBox1
               AnchorSideBottom.Side = asrBottom
               Left = 8
-              Height = 260
-              Top = 110
+              Height = 84
+              Top = 286
               Width = 177
-              Anchors = [akTop, akLeft, akRight, akBottom]
+              Anchors = [akLeft, akRight, akBottom]
               BorderSpacing.Top = 8
               BorderSpacing.Bottom = 8
               ScrollBars = ssAutoBoth
@@ -555,13 +555,209 @@ object PowerbankMainForm: TPowerbankMainForm
             end
             object USBDebugLog: TMemo
               Left = 216
-              Height = 196
-              Top = 202
+              Height = 94
+              Top = 304
               Width = 176
               Lines.Strings = (
                 'USBDebugLog'
               )
               TabOrder = 9
+            end
+            object FileLabel: TLabel
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Control = FilenameEdit
+              AnchorSideTop.Side = asrCenter
+              Left = 2
+              Height = 17
+              Top = 117
+              Width = 22
+              BorderSpacing.Left = 2
+              Caption = 'File'
+              Font.Height = -13
+              Font.Style = [fsBold]
+              ParentFont = False
+            end
+            object FilenameEdit: TEdit
+              AnchorSideLeft.Control = FileLabel
+              AnchorSideLeft.Side = asrBottom
+              AnchorSideTop.Side = asrBottom
+              AnchorSideRight.Control = Panel2
+              AnchorSideRight.Side = asrBottom
+              Left = 72
+              Height = 23
+              Top = 114
+              Width = 190
+              Anchors = [akTop, akRight]
+              BorderSpacing.Top = 6
+              BorderSpacing.Right = 2
+              TabOrder = 10
+            end
+            object ProjectLabel: TLabel
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Control = Project_edit
+              AnchorSideTop.Side = asrCenter
+              Left = 2
+              Height = 17
+              Top = 144
+              Width = 43
+              BorderSpacing.Left = 2
+              Caption = 'Project'
+              Font.Height = -13
+              Font.Style = [fsBold]
+              ParentFont = False
+            end
+            object Project_edit: TEdit
+              AnchorSideLeft.Control = ProjectLabel
+              AnchorSideLeft.Side = asrBottom
+              AnchorSideTop.Control = FilenameEdit
+              AnchorSideTop.Side = asrBottom
+              AnchorSideRight.Control = Panel2
+              AnchorSideRight.Side = asrBottom
+              Left = 72
+              Height = 23
+              Top = 141
+              Width = 190
+              Anchors = [akTop, akRight]
+              BorderSpacing.Top = 4
+              BorderSpacing.Right = 2
+              TabOrder = 11
+            end
+            object ProductLabel: TLabel
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Control = Product_edit
+              AnchorSideTop.Side = asrCenter
+              Left = 2
+              Height = 17
+              Top = 171
+              Width = 48
+              BorderSpacing.Left = 2
+              Caption = 'Product'
+              Font.Height = -13
+              Font.Style = [fsBold]
+              ParentFont = False
+            end
+            object Product_edit: TEdit
+              AnchorSideLeft.Control = ProductLabel
+              AnchorSideLeft.Side = asrBottom
+              AnchorSideTop.Control = Project_edit
+              AnchorSideTop.Side = asrBottom
+              AnchorSideRight.Control = Panel2
+              AnchorSideRight.Side = asrBottom
+              Left = 72
+              Height = 23
+              Top = 168
+              Width = 190
+              Anchors = [akTop, akRight]
+              BorderSpacing.Left = 12
+              BorderSpacing.Top = 4
+              BorderSpacing.Right = 2
+              TabOrder = 12
+            end
+            object RunLabel: TLabel
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Control = Runname_edit
+              AnchorSideTop.Side = asrCenter
+              Left = 2
+              Height = 17
+              Top = 198
+              Width = 51
+              BorderSpacing.Left = 2
+              Caption = 'Runtype'
+              Font.Height = -13
+              Font.Style = [fsBold]
+              ParentFont = False
+            end
+            object Runname_edit: TEdit
+              AnchorSideLeft.Control = RunLabel
+              AnchorSideLeft.Side = asrBottom
+              AnchorSideTop.Control = Product_edit
+              AnchorSideTop.Side = asrBottom
+              AnchorSideRight.Control = Panel2
+              AnchorSideRight.Side = asrBottom
+              Left = 72
+              Height = 23
+              Top = 195
+              Width = 190
+              Anchors = [akTop, akRight]
+              BorderSpacing.Top = 4
+              BorderSpacing.Right = 2
+              TabOrder = 13
+            end
+            object RunNumberLabel: TLabel
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Control = Runnumber_edit
+              AnchorSideTop.Side = asrCenter
+              Left = 2
+              Height = 17
+              Top = 225
+              Width = 36
+              BorderSpacing.Left = 2
+              Caption = 'Run #'
+              Font.Height = -13
+              Font.Style = [fsBold]
+              ParentFont = False
+            end
+            object Runnumber_edit: TEdit
+              AnchorSideLeft.Control = RunLabel
+              AnchorSideLeft.Side = asrBottom
+              AnchorSideTop.Control = Runname_edit
+              AnchorSideTop.Side = asrBottom
+              AnchorSideRight.Control = Panel2
+              AnchorSideRight.Side = asrBottom
+              Left = 72
+              Height = 23
+              Top = 222
+              Width = 190
+              Anchors = [akTop, akRight]
+              BorderSpacing.Left = 12
+              BorderSpacing.Top = 4
+              BorderSpacing.Right = 2
+              TabOrder = 14
+            end
+            object InfoLabel: TLabel
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Control = MachineInfoMemo
+              Left = 2
+              Height = 17
+              Top = 249
+              Width = 25
+              BorderSpacing.Left = 2
+              Caption = 'Info'
+              Font.Height = -13
+              Font.Style = [fsBold]
+              ParentFont = False
+            end
+            object MachineInfoMemo: TMemo
+              AnchorSideLeft.Control = InfoLabel
+              AnchorSideLeft.Side = asrBottom
+              AnchorSideTop.Control = Runnumber_edit
+              AnchorSideTop.Side = asrBottom
+              AnchorSideRight.Control = Panel2
+              AnchorSideRight.Side = asrBottom
+              Left = 72
+              Height = 14
+              Top = 249
+              Width = 190
+              Anchors = [akTop, akRight, akBottom]
+              BorderSpacing.Left = 8
+              BorderSpacing.Top = 4
+              BorderSpacing.Right = 2
+              BorderSpacing.Bottom = 4
+              TabOrder = 15
+            end
+            object AutoFileNameCheckBox: TCheckBox
+              AnchorSideLeft.Control = Panel2
+              AnchorSideTop.Side = asrBottom
+              Left = 0
+              Height = 19
+              Top = 89
+              Width = 62
+              BorderSpacing.Top = 4
+              Caption = 'AutoFile'
+              Checked = True
+              State = cbChecked
+              TabOrder = 16
+              OnClick = AutoFileNameCheckBoxClick
             end
           end
           object DisplaysPanel: TPanel
@@ -690,7 +886,7 @@ object PowerbankMainForm: TPowerbankMainForm
               TabOrder = 5
             end
           end
-          object Chart1: TChart
+          object MachineChart: TChart
             AnchorSideLeft.Control = DisplaysPanel
             AnchorSideLeft.Side = asrBottom
             AnchorSideTop.Control = grpTesting
@@ -759,17 +955,17 @@ object PowerbankMainForm: TPowerbankMainForm
             )
             Anchors = [akTop, akLeft, akRight, akBottom]
             Color = clBlack
-            object Chart1LineSeries1: TLineSeries
+            object MachineChartLineSeries1: TLineSeries
               AxisIndexY = 0
               LinePen.Color = clAqua
               LinePen.Width = 3
             end
-            object Chart1LineSeries2: TLineSeries
+            object MachineChartLineSeries2: TLineSeries
               AxisIndexY = 2
               LinePen.Color = clRed
               LinePen.Width = 3
             end
-            object Chart1LineSeries3: TLineSeries
+            object MachineChartLineSeries3: TLineSeries
               Active = False
               AxisIndexY = 2
               LinePen.Color = clFuchsia
