@@ -21,6 +21,10 @@ object PowerbankMainForm: TPowerbankMainForm
     TabIndex = 2
     TabOrder = 0
     OnChange = PageControl1Change
+    OnChanging = PageControl1Changing
+    OnDragDrop = PageControl1DragDrop
+    OnDragOver = PageControl1DragOver
+    OnMouseDown = PageControl1MouseDown
     object tsOverview1: TTabSheet
       Caption = 'Overview 1'
       ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
@@ -34,7 +38,7 @@ object PowerbankMainForm: TPowerbankMainForm
       Caption = 'Overview 2'
     end
     object Machine1Sheet: TTabSheet
-      Caption = 'Channel 1'
+      Caption = 'Machine 1'
       ClientHeight = 702
       ClientWidth = 1461
       object MachineGroupBox: TPanel
@@ -960,6 +964,14 @@ object PowerbankMainForm: TPowerbankMainForm
     Left = 1136
     Top = 464
     object MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform
+    end
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 48
+    Top = 200
+    object MachineRemoveClick: TMenuItem
+      Caption = 'Remove machine'
+      OnClick = MachineRemoveClickClick
     end
   end
 end

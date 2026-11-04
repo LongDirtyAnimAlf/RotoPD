@@ -84,6 +84,7 @@ type
     lblCurrent: TLabel;
     lblDischargeSettings: TLabel;
     lblVoltage: TLabel;
+    MachineRemoveClick: TMenuItem;
     MT1: TAutoScaleAxisTransform;
     MyTransform1: TChartAxisTransformations;
     MyTransform2: TChartAxisTransformations;
@@ -95,6 +96,7 @@ type
     Panel3: TPanel;
     Panel4: TPanel;
     MachineGroupBox: TPanel;
+    PopupMenu1: TPopupMenu;
     SourceEPRPDODrawGrid: TDrawGrid;
     SourcePDODrawGrid: TDrawGrid;
     SinkPDODrawGrid: TDrawGrid;
@@ -133,7 +135,14 @@ type
       State: TCustomDrawState; var DefaultDraw: Boolean);
     procedure ListView1KeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure MachineRemoveClickClick(Sender: TObject);
     procedure PageControl1Change(Sender: TObject);
+    procedure PageControl1Changing(Sender: TObject; var AllowChange: Boolean);
+    procedure PageControl1DragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure PageControl1DragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
+    procedure PageControl1MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure PDODrawGridButtonClick(Sender: TObject; aCol, aRow: Integer
       );
     procedure PDODrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -226,6 +235,7 @@ type
     procedure Startup;
 
     procedure UpdateDevice(Sender: TObject;datacarrier:integer);
+    procedure UpdateUSB(Sender: TObject;datacarrier:integer);
     procedure UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 
     procedure SetEnable(Sender: TObject; value:boolean);
@@ -620,7 +630,8 @@ begin
 
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
-  DD.OnDeviceChange:=UpdateDevice;
+  //DD.OnDeviceChange:=UpdateDevice;
+  DD.OnDeviceChange:=UpdateUSB;
   DD.OnDataReceived:=UpdateData;
 end;
 
@@ -690,6 +701,32 @@ begin
   end;
 end;
 
+procedure TPowerbankMainForm.MachineRemoveClickClick(Sender: TObject);
+var
+  localmachine:word;
+  localtabmachine:word;
+  x:word;
+begin
+  localmachine:=StrToIntDef(RightStr(TMenuItem(Sender).Caption,2),0);
+  if localmachine>0 then
+  begin
+    //USBCounter.ChangeAddress(localmachine,0);
+    for x:=0 to (PageControl1.PageCount-1) do
+    begin
+      if Pos('Machine',PageControl1.Pages[x].Caption)>0 then
+      begin
+        localtabmachine:=StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),0);
+        if localtabmachine=localmachine then
+        begin
+          PageControl1.Pages[x].Tag:=0;
+          PageControl1.Repaint;
+          exit;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure TPowerbankMainForm.PageControl1Change(Sender: TObject);
 var
   z:integer;
@@ -716,6 +753,109 @@ begin
     //SetControls(Sender,Machineset[VisibleMachine].Running OR Machineset[VisibleMachine].Startup);
     //MachineChart.UndoZoom;
   end;
+end;
+
+procedure TPowerbankMainForm.PageControl1Changing(Sender: TObject;
+  var AllowChange: Boolean);
+begin
+  //SaveMachineData;
+  //AllowChange := TemperatureEdit.ReadOnly
+end;
+
+procedure TPowerbankMainForm.PageControl1DragDrop(Sender, Source: TObject; X,
+  Y: Integer);
+var
+  TabRect: TRect;
+  j: Integer;
+  OldBoard,NewBoard:integer;
+  buttonselected:integer;
+  TempTag:NativeInt;
+begin
+  //ShowMessage(InttoStr(PageControl1.ActivePage.PageIndex));
+  if (Sender is TPageControl) then
+  for j := 0 to PageControl1.PageCount - 1 do
+  begin
+    TabRect:=PageControl1.TabRect(j);
+    if PtInRect(TabRect, Point(X, Y)) then
+    begin
+      if PageControl1.ActivePage.PageIndex <> j then
+      begin
+       //PageControl1.ActivePage.PageIndex := j;
+       OldBoard:=StrToIntDef(RightStr(PageControl1.ActivePage.Caption,2),0);
+       NewBoard:=StrToIntDef(RightStr(PageControl1.Pages[j].Caption,2),0);
+       if OldBoard<>NewBoard then
+       begin
+         buttonSelected := MessageDlg('Confirm board change from '+InttoStr(OldBoard)+' to '+InttoStr(NewBoard),mtError, mbOKCancel, 0);
+         if buttonSelected = mrOK then
+         begin
+           //USBCounter.ChangeAddressNew(OldBoard,NewBoard);
+           //USBCounter.ChangeAddress(OldBoard,NewBoard);
+           TempTag:=PageControl1.ActivePage.Tag;
+           PageControl1.ActivePage.Tag:=PageControl1.Pages[j].Tag;
+           PageControl1.Pages[j].Tag:=TempTag;
+           PageControl1.Repaint;
+         end;
+       end;
+      end;
+      break;
+    end;
+  end;
+end;
+
+procedure TPowerbankMainForm.PageControl1DragOver(Sender, Source: TObject; X,
+  Y: Integer; State: TDragState; var Accept: Boolean);
+begin
+  if (Sender is TPageControl) then Accept := True;
+end;
+
+procedure TPowerbankMainForm.PageControl1MouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+   TabRect: TRect;
+   j: Integer;
+   NewBoard:integer;
+   localpagecaption:string;
+   AllowDrag:boolean;
+begin
+ if ssCtrl in Shift then
+ begin
+   AllowDrag:=true;
+   for j:=1 to NumberOfMachines do
+   begin
+      if Machineset[j].Running then
+      begin
+        AllowDrag:=false;
+        break;
+      end
+   end;
+   if AllowDrag then PageControl1.BeginDrag(False);
+ end
+ else
+ begin
+   //if (Button = mbRight) and (Shift = []) then
+   if (Button = mbRight) then
+   begin
+     NewBoard:=0;
+     if (Sender is TPageControl) then
+     for j := 0 to PageControl1.PageCount - 1 do
+     begin
+       TabRect:=PageControl1.TabRect(j);
+       //ShowMessage('Counter '+InttoStr(j));
+       if PtInRect(TabRect, Point(X, Y)) then
+       begin
+          localpagecaption:=PageControl1.Pages[j].Caption;
+          if (Pos('Machine',localpagecaption)>0)
+             then NewBoard:=StrToIntDef(RightStr(localpagecaption,2),0);
+          if NewBoard>0 then
+          begin
+            PopupMenu1.Items[0].Caption:='Remove machine '+InttoStr(NewBoard);
+            PopUpMenu1.Popup(Self.Left+PageControl1.Left+x,Self.Top+PageControl1.Top+y);
+          end;
+         exit;
+       end;
+     end;
+   end;
+ end;
 end;
 
 procedure TPowerbankMainForm.PDODrawGridButtonClick(Sender: TObject;
@@ -1949,10 +2089,80 @@ begin
   end;
 end;
 
+procedure TPowerbankMainForm.UpdateUSB(Sender: TObject;datacarrier:integer);
+var
+  Info:string;
+  x:integer;
+begin
+  if datacarrier<>0 then
+  begin
+    if datacarrier>0 then Info:='#'+InttoStr(datacarrier)+' board added.';
+    if datacarrier<0 then Info:='#'+InttoStr(-1*datacarrier)+' board removed.';
+    USBDebugLog.Lines.Append(Info);
+    Info:=DD.Errors;
+    if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
+    Info:=DD.Info;
+    if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
+  end;
+  if datacarrier=0 then USBDebugLog.Lines.Append('Unknown board error');
+
+
+  //MachineInfoMemo.Lines.Append('Board:'+InttoStr(datacarrier));
+  if datacarrier>0 then
+  begin
+    Info:='Data acquisitionboard '+InttoStr(datacarrier)+' added';
+    for x:=0 to (PageControl1.PageCount-1) do
+    begin
+      if Pos('Machine',PageControl1.Pages[x].Caption)>0 then
+      begin
+        if StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),-1)=datacarrier then
+        begin
+          PageControl1.Pages[x].Tag:=1;
+          break;
+        end;
+      end;
+    end;
+  end;
+  if datacarrier<0 then
+  begin
+    Info:='Data acquisitionboard '+InttoStr(-1*datacarrier)+' removed';
+    for x:=0 to (PageControl1.PageCount-1) do
+    begin
+      if Pos('Machine',PageControl1.Pages[x].Caption)>0 then
+      begin
+        if StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),-1)=abs(datacarrier) then
+        begin
+          PageControl1.Pages[x].Tag:=0;
+          break;
+        end;
+      end;
+    end;
+  end;
+
+  if datacarrier=0 then Info:='Unknown data acquisitionboard error';
+
+  PageControl1.Repaint;
+
+  //Sleep(250);
+  //Application.ProcessMessages;
+end;
+
+
 procedure TPowerbankMainForm.UpdateDevice(Sender: TObject;datacarrier:integer);
 var
   Info:string;
 begin
+
+
+
+
+
+
+
+
+
+
+
   if datacarrier<>0 then
   begin
     if datacarrier>0 then Info:='#'+InttoStr(datacarrier)+' board added.';
