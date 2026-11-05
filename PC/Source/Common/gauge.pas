@@ -343,6 +343,7 @@ var
   tw, th: integer;
   lr: double;
   vr: TRect;
+  needlePts: array of TPointF;
 begin
   clrArc := pick(FArcColor, blend(clBtnFace, clBtnShadow, 40));
   clrNeedle := pick(FNeedleColor, clWindowText);
@@ -435,14 +436,16 @@ begin
       // around the middle of the hub pixel
       hx := cx + 0.5;
       hy := cy + 0.5;
-      sp.FillPolygon([
-        PointF(hx + Cos(a) * tipR, hy - Sin(a) * tipR),
-        PointF(hx + Cos(side) * hubR * 0.6, hy - Sin(side) * hubR * 0.6),
-        PointF(hx - Cos(a) * tailR, hy + Sin(a) * tailR),
-        PointF(hx - Cos(side) * hubR * 0.6, hy + Sin(side) * hubR * 0.6)
-      ], clrNeedle);
-      paintCircle(sp, cx, cy, Round(hubR), clrNeedle, clNone);
-      paintCircle(sp, cx, cy, Math.Max(Round(hubR) div 2, 1), blend(clrNeedle, clWhite, 50), clNone);
+      SetLength(needlePts, 4);
+      needlePts[0] := PointF(hx + Cos(a) * tipR, hy - Sin(a) * tipR);
+      needlePts[1] := PointF(hx + Cos(side) * hubR * 0.6, hy - Sin(side) * hubR * 0.6);
+      needlePts[2] := PointF(hx - Cos(a) * tailR, hy + Sin(a) * tailR);
+      needlePts[3] := PointF(hx - Cos(side) * hubR * 0.6, hy + Sin(side) * hubR * 0.6);
+      sp.FillPolygon(needlePts, clrNeedle);
+      // black border-line around the needle
+      sp.StrokePolyline(needlePts, 1.5, clBlack, True, True);
+      paintCircle(sp, cx, cy, Round(hubR), clrNeedle, clBlack);
+      paintCircle(sp, cx, cy, Math.Max(Round(hubR) div 2, 1), blend(clrNeedle, clWhite, 50), clBlack);
     end;
     sp.Flush;
   finally

@@ -22,11 +22,9 @@ type
     MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform;
     Panel1: TPanel;
     Panel2: TPanel;
-    TemperatureBase: TEdit;
-    Water2Base: TEdit;
-    Water1Base: TEdit;
-    EnergyBase: TEdit;
     EnergySeries: TLineSeries;
+    panelVoltage: TPanel;
+    panelCurrent: TPanel;
     WaterSeries1: TLineSeries;
     WaterSeries2: TLineSeries;
     TemperatureSeries: TLineSeries;
@@ -37,13 +35,17 @@ type
     procedure Panel2Resize(Sender: TObject);
   private
     fEnabled                  : boolean;
+    fNewVoltageDisplay        : TLEDDisplay;
+    fNewCurrentDisplay        : TLEDDisplay;
     fPowerGauge               : TGauge;
     fNewEnergyDisplay         : TLEDDisplay;
-    procedure SetEnable(value:boolean);
+    procedure SetVoltage(AValue: single);
+    procedure SetCurrent(AValue: single);
+    procedure SetPower(AValue: single);
     procedure SetEnergy(AValue: single);
+    procedure SetEnable(value:boolean);
     procedure SetNumber(value:integer);
     function GetNumber:integer;
-    procedure SetPower(AValue: single);
     procedure SetTitle(value:string);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -52,8 +54,11 @@ type
     property Enable:boolean read fEnabled write SetEnable;
     property Number:integer read GetNumber write SetNumber;
     property Title:string write SetTitle;
+    property Voltage:single write SetVoltage;
+    property Current:single write SetCurrent;
     property Power:single write SetPower;
     property Energy:single write SetEnergy;
+
   end;
 
 implementation
@@ -66,6 +71,12 @@ uses
   FPWriteBMP, FPWriteJPEG,
   DateUtils,
   printform;
+
+const
+  IBUSCOLOR                    = TColor($4040FF);
+  VBUSCOLOR                    = TColor($80FF80);
+  ENERGYCOLOR                  = clYellow;
+  POWERCOLOR                   = clFuchsia;
 
 { TFrameSimple }
 
@@ -85,6 +96,7 @@ begin
     StartAngle := -140;
     SweepAngle := 280;
     MajorTicks := 13;
+    NeedleColor:=POWERCOLOR;
     with Zones.Add do
     begin
       FromValue := 0;
@@ -95,7 +107,7 @@ begin
     begin
       FromValue := 61;
       ToValue := 140;
-      Color := clYellow;
+      Color := TColor($008CFF);
     end;
     with Zones.Add do
     begin
@@ -120,11 +132,54 @@ begin
     ToValue := 240;
   end;
 
+  fNewVoltageDisplay := TLEDDisplay.Create(panelVoltage);
+  with fNewVoltageDisplay do begin
+    Parent := panelVoltage;
+    Align := alClient;
+    ColorLED:=VBUSCOLOR;
+    NumDigits := 5;
+    LeadingZeros := false;
+    LEDContrast := 7;
+    //DigitLineWidth := 8;
+    //DigitHeight := Parent.Height;
+    //DigitWidth := DigitHeight * 2 div 4 - 1;
+    Borderstyle := bsNone;
+    BevelStyle := bvLowered;
+    Angle := 0;
+    Clear;
+    Value:=0;
+    FractionDigits:=3;
+    Hint:='Voltage [V]';
+    ShowHint:=True;
+  end;
+
+  fNewCurrentDisplay := TLEDDisplay.Create(panelCurrent);
+  with fNewCurrentDisplay do begin
+    Parent := panelCurrent;
+    Align := alClient;
+    ColorLED:=IBUSCOLOR;
+    NumDigits := 5;
+    LeadingZeros := false;
+    LEDContrast := 7;
+    //DigitLineWidth := 8;
+    //DigitHeight := Parent.Height;
+    //DigitWidth := DigitHeight * 2 div 4 - 1;
+    Borderstyle := bsNone;
+    BevelStyle := bvLowered;
+    Angle := 0;
+    Clear;
+    Value:=0;
+    FractionDigits:=3;
+    Hint:='Current [A]';
+    ShowHint:=True;
+  end;
+
+
   fNewEnergyDisplay := TLEDDisplay.Create(fPowerGauge);
   with fNewEnergyDisplay do begin
     Parent := fPowerGauge;
     //Align := alBottom;
-    ColorLED:=clRed;
+    ColorLED:=ENERGYCOLOR;
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
@@ -207,10 +262,10 @@ begin
   if (value<>fEnabled) then
   begin
     fEnabled:=value;
-    Water1Base.Enabled:=value;
-    Water2Base.Enabled:=value;
-    EnergyBase.Enabled:=value;
-    TemperatureBase.Enabled:=value;
+    fNewVoltageDisplay.Enabled:=value;
+    fNewCurrentDisplay.Enabled:=value;
+    fPowerGauge.Enabled:=value;
+    fNewEnergyDisplay.Enabled:=value;
     Panel1.Enabled:=value;
     Panel2.Enabled:=value;
     if value then
@@ -222,6 +277,11 @@ begin
       Panel1.Color:=clGray;
     end;
   end;
+end;
+
+procedure TFrameSimple.SetCurrent(AValue: single);
+begin
+  fNewCurrentDisplay.Value:=AValue;
 end;
 
 procedure TFrameSimple.SetEnergy(AValue: single);
@@ -238,10 +298,8 @@ begin
     Tag:=value;
     Panel1.Tag:=value;
     Panel2.Tag:=value;
-    TemperatureBase.Tag:=value;
-    Water2Base.Tag:=value;
-    Water1Base.Tag:=value;
-    EnergyBase.Tag:=value;
+    fNewVoltageDisplay.Tag:=value;
+    fNewCurrentDisplay.Tag:=value;
     fPowerGauge.Tag:=value;
     fNewEnergyDisplay.Tag:=value;
   end;
@@ -261,16 +319,18 @@ procedure TFrameSimple.SetTitle(value:string);
 begin
 end;
 
+procedure TFrameSimple.SetVoltage(AValue: single);
+begin
+  fNewVoltageDisplay.Value:=AValue;
+end;
+
 procedure TFrameSimple.SetClick(Handler: TNotifyEvent);
 begin
   fNewEnergyDisplay.OnClick := Handler;
   fPowerGauge.OnClick := Handler;
-  TemperatureBase.OnClick := Handler;
-  EnergyBase.OnClick := Handler;
-  Water1Base.OnClick := Handler;
-  Water2Base.OnClick := Handler;
+  fNewVoltageDisplay.OnClick := Handler;
+  fNewCurrentDisplay.OnClick := Handler;
 end;
-
 
 end.
 

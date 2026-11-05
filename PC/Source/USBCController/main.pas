@@ -302,6 +302,9 @@ uses
 Const
   IBUSCOLOR                    = TColor($4040FF);
   VBUSCOLOR                    = TColor($80FF80);
+  ENERGYCOLOR                  = clYellow;
+  POWERCOLOR                   = clFuchsia;
+
 
 function ChangeBrightness(lIn: tColor; factor:double): TColor;
 var
@@ -414,7 +417,7 @@ begin
   with NewPowerDisplay do begin
     Parent := Panel1;
     Align := alClient;
-    ColorLED:=clRed;
+    ColorLED:=POWERCOLOR;
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
@@ -444,7 +447,7 @@ begin
   with NewEnergyDisplay do begin
     Parent := Panel2;
     Align := alClient;
-    ColorLED:=clRed;
+    ColorLED:=ENERGYCOLOR;
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;

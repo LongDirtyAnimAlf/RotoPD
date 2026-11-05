@@ -27,6 +27,7 @@ object PowerbankMainForm: TPowerbankMainForm
     OnMouseDown = PageControl1MouseDown
     object tsOverview1: TTabSheet
       Caption = 'Overview1'
+      ChildSizing.VerticalSpacing = 12
       ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
       ChildSizing.EnlargeVertical = crsHomogenousChildResize
       ChildSizing.ShrinkHorizontal = crsHomogenousChildResize

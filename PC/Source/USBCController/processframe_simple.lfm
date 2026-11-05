@@ -31,94 +31,19 @@ object FrameSimple: TFrameSimple
     ClientWidth = 456
     ParentBackground = False
     TabOrder = 0
-    object TemperatureBase: TEdit
-      AnchorSideRight.Control = Panel1
-      AnchorSideRight.Side = asrBottom
-      Left = 10
-      Height = 23
-      Top = 10
-      Width = 217
-      AutoSelect = False
-      BorderSpacing.Around = 2
-      Color = clRed
-      Font.CharSet = ANSI_CHARSET
-      Font.Color = clWhite
-      Font.Height = -13
-      Font.Name = 'Arial Narrow'
-      Font.Pitch = fpVariable
-      Font.Quality = fqDraft
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabStop = False
-      TabOrder = 3
-      Text = '0.00 °C'
-    end
-    object EnergyBase: TEdit
-      AnchorSideRight.Side = asrBottom
-      Left = 229
-      Height = 23
-      Top = 10
-      Width = 217
-      AutoSelect = False
-      BorderSpacing.Around = 2
-      Color = clBlack
-      Font.CharSet = ANSI_CHARSET
-      Font.Color = clWhite
-      Font.Height = -13
-      Font.Name = 'Arial Narrow'
-      Font.Pitch = fpVariable
-      Font.Quality = fqDraft
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabStop = False
-      TabOrder = 2
-      Text = '0.000 kWh'
-    end
-    object Water1Base: TEdit
-      AnchorSideRight.Side = asrBottom
-      Left = 10
-      Height = 23
-      Top = 35
-      Width = 217
-      AutoSelect = False
-      BorderSpacing.Around = 2
-      Color = clAqua
-      Font.CharSet = ANSI_CHARSET
-      Font.Color = clWhite
-      Font.Height = -13
-      Font.Name = 'Arial Narrow'
-      Font.Pitch = fpVariable
-      Font.Quality = fqDraft
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabStop = False
-      TabOrder = 1
-      Text = '0.00 litres'
-    end
-    object Water2Base: TEdit
-      AnchorSideRight.Side = asrBottom
-      Left = 229
-      Height = 23
-      Top = 35
-      Width = 217
-      AutoSelect = False
-      BorderSpacing.Around = 2
-      Color = clBlue
-      Font.CharSet = ANSI_CHARSET
-      Font.Color = clWhite
-      Font.Height = -13
-      Font.Name = 'Arial Narrow'
-      Font.Pitch = fpVariable
-      Font.Quality = fqDraft
-      Font.Style = [fsBold]
-      ParentFont = False
-      ReadOnly = True
-      TabStop = False
+    object panelVoltage: TPanel
+      Left = 8
+      Height = 52
+      Top = 8
+      Width = 220
       TabOrder = 0
-      Text = '0.00 litres'
+    end
+    object panelCurrent: TPanel
+      Left = 228
+      Height = 52
+      Top = 8
+      Width = 220
+      TabOrder = 1
     end
   end
   object Panel2: TPanel
