@@ -6,7 +6,9 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Graphics,
-  TAGraph, TASeries, TATransformations, TAIntervalSources;
+  TAGraph, TASeries, TATransformations, TAIntervalSources,
+  Gauge,
+  dlLEDCtrl;
 
 type
 
@@ -14,7 +16,6 @@ type
 
   TFrameSimple = class(TFrame)
     DateTimeIntervalChartSource2: TDateTimeIntervalChartSource;
-    GraphBase: TChart;
     MT1: TAutoScaleAxisTransform;
     MyTransform1: TChartAxisTransformations;
     MyTransform2: TChartAxisTransformations;
@@ -33,18 +34,26 @@ type
       const ARect: TRect; var ADoDefaultDrawing: Boolean);
     procedure GraphBaseBeforeDrawBackWall(ASender: TChart; ACanvas: TCanvas;
       const ARect: TRect; var ADoDefaultDrawing: Boolean);
+    procedure Panel2Resize(Sender: TObject);
   private
-    fEnabled:boolean;
+    fEnabled                  : boolean;
+    fPowerGauge               : TGauge;
+    fNewEnergyDisplay         : TLEDDisplay;
     procedure SetEnable(value:boolean);
+    procedure SetEnergy(AValue: single);
     procedure SetNumber(value:integer);
     function GetNumber:integer;
+    procedure SetPower(AValue: single);
     procedure SetTitle(value:string);
   public
     constructor Create(TheOwner: TComponent); override;
+    procedure SetClick(Handler: TNotifyEvent);
     procedure SaveAsBitMap(aWidth,aHeight:integer);
     property Enable:boolean read fEnabled write SetEnable;
     property Number:integer read GetNumber write SetNumber;
     property Title:string write SetTitle;
+    property Power:single write SetPower;
+    property Energy:single write SetEnergy;
   end;
 
 implementation
@@ -65,6 +74,72 @@ begin
   inherited Create(TheOwner);
   Tag:=-1;
   fEnabled:=false;
+
+  fPowerGauge:=TGauge.Create(Panel2);
+  fPowerGauge.Parent:=Panel2;
+
+  with fPowerGauge do
+  begin
+    Align := alClient;
+    Max := 240;
+    StartAngle := -140;
+    SweepAngle := 280;
+    MajorTicks := 13;
+    with Zones.Add do
+    begin
+      FromValue := 0;
+      ToValue := 60;
+      Color := clLime;
+    end;
+    with Zones.Add do
+    begin
+      FromValue := 61;
+      ToValue := 140;
+      Color := clYellow;
+    end;
+    with Zones.Add do
+    begin
+      FromValue := 141;
+      ToValue := 240;
+      Color := clRed;
+    end;
+
+    //Font.CharSet := ANSI_CHARSET;
+    Font.Height := -19;
+    Font.Pitch := fpVariable;
+    Font.Quality := fqDraft;
+    Font.Style := [fsBold];
+    ParentFont := False;
+
+    ValueFormat := '%.0f';
+    LabelFormat := '%.0f';
+  end;
+  with fPowerGauge.Zones.Add do
+  begin
+    FromValue := 140;
+    ToValue := 240;
+  end;
+
+  fNewEnergyDisplay := TLEDDisplay.Create(fPowerGauge);
+  with fNewEnergyDisplay do begin
+    Parent := fPowerGauge;
+    //Align := alBottom;
+    ColorLED:=clRed;
+    NumDigits := 5;
+    LeadingZeros := false;
+    LEDContrast := 7;
+    //DigitLineWidth := 8;
+    //DigitHeight := Parent.Height;
+    //DigitWidth := DigitHeight * 2 div 4 - 1;
+    Borderstyle := bsNone;
+    BevelStyle := bvLowered;
+    Angle := 0;
+    Clear;
+    Value:=0;
+    FractionDigits:=3;
+    Hint:='Energy [WH]';
+    ShowHint:=True;
+  end;
 end;
 
 procedure TFrameSimple.SaveAsBitMap(aWidth,aHeight:integer);
@@ -117,6 +192,16 @@ begin
   ADoDefaultDrawing:=false;
 end;
 
+procedure TFrameSimple.Panel2Resize(Sender: TObject);
+var
+  P:TPanel;
+begin
+  P:=TPanel(Sender);
+  fNewEnergyDisplay.Top:=P.Height- fNewEnergyDisplay.Height - (P.BevelWidth*2) - 10;
+  fNewEnergyDisplay.Left:=((P.Width - (P.BevelWidth*4)) DIV 2)-((fNewEnergyDisplay.Width + 2) DIV 2);
+
+end;
+
 procedure TFrameSimple.SetEnable(value:boolean);
 begin
   if (value<>fEnabled) then
@@ -126,20 +211,22 @@ begin
     Water2Base.Enabled:=value;
     EnergyBase.Enabled:=value;
     TemperatureBase.Enabled:=value;
-    GraphBase.Enabled:=value;
     Panel1.Enabled:=value;
     Panel2.Enabled:=value;
     if value then
     begin
       Panel1.Color:=clMenuHighlight;
-      GraphBase.Title.Brush.Color:=clLime;
     end
     else
     begin
       Panel1.Color:=clGray;
-      GraphBase.Title.Brush.Color:=clGray;
     end;
   end;
+end;
+
+procedure TFrameSimple.SetEnergy(AValue: single);
+begin
+  fNewEnergyDisplay.Value:=AValue;
 end;
 
 procedure TFrameSimple.SetNumber(value:integer);
@@ -149,13 +236,14 @@ begin
     Name:='NewFrame'+InttoStr(value);
     // Set all tags to identify [machine]number when clicked anywhere
     Tag:=value;
-    GraphBase.Tag:=value;
     Panel1.Tag:=value;
     Panel2.Tag:=value;
     TemperatureBase.Tag:=value;
     Water2Base.Tag:=value;
     Water1Base.Tag:=value;
     EnergyBase.Tag:=value;
+    fPowerGauge.Tag:=value;
+    fNewEnergyDisplay.Tag:=value;
   end;
 end;
 
@@ -164,15 +252,23 @@ begin
   result:=Tag;
 end;
 
+procedure TFrameSimple.SetPower(AValue: single);
+begin
+  fPowerGauge.Value:=AValue;
+end;
+
 procedure TFrameSimple.SetTitle(value:string);
 begin
-  GraphBase.Title.Text.Text:=value;
-  {
-  GraphBase.Title.Text.Clear;
-  if length(value)>22
-     then GraphBase.Title.Text.CommaText:=value
-     else GraphBase.Title.Caption:=value;
-  }
+end;
+
+procedure TFrameSimple.SetClick(Handler: TNotifyEvent);
+begin
+  fNewEnergyDisplay.OnClick := Handler;
+  fPowerGauge.OnClick := Handler;
+  TemperatureBase.OnClick := Handler;
+  EnergyBase.OnClick := Handler;
+  Water1Base.OnClick := Handler;
+  Water2Base.OnClick := Handler;
 end;
 
 

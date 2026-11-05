@@ -22,7 +22,7 @@ uses
   Generics.Collections,
   //fgl,
   //SynEditMiscClasses,
-  processframe, processframe_simple,
+  processframe_simple,
   fptimernew,
   dsLeds,
   dlLEDCtrl,
@@ -33,12 +33,12 @@ uses
 
 type
   TMachineData = record
-    Time:single;
-    Temperature1 : single;
-    Temperature2 : single;
-    Water1 : single;
-    Water2 : single;
+    Voltage : single;
+    Current : single;
+    Power : single;
+    Capacity : single;
     Energy : single;
+    Time:single;
   end;
   TDataList = TList<TMachineData>;
   //TDataList = specialize TList<TMachineData>;
@@ -174,31 +174,21 @@ type
 
     Machineset : array of
     record
-      Startup        : boolean;
-      Running        : boolean;
-      Start_time     : TDateTime;
-      Running_time   : TDateTime;
-      Energy         : single;
-      Water1         : single;
-      Water2         : single;
-      Temperature1   : single;
-      Temperature2   : single;
-      MaxTemp        : single;
-      AutoFileName   : boolean;
-      AutoStart      : boolean;
-      AutoStartReady : boolean;
       Project        : string;
       Product        : string;
       Runname        : string;
       Runnumber      : string;
       Info           : string;
       Filename       : string;
-      Water1Cal      : double;
-      Water2Cal      : double;
-      EnergyCal      : double;
-      //TemperatureCal : double;
-      TemperatureCalNew: double;
-      Data           : TDataList;
+      Startup        : boolean;
+      Running        : boolean;
+      Start_time     : TDateTime;
+      Running_time   : TDateTime;
+      AutoFileName   : boolean;
+      AutoStart      : boolean;
+      AutoStartReady : boolean;
+      CurrentData    : TMachineData;
+      RunData        : TDataList;
     end;
 
     FOldOnIdle          : TIdleEvent;
@@ -282,13 +272,13 @@ type
     procedure SetTemperature(value:double);
     function  GetTemperature:double;
   public
-    property SystemActive        : boolean read FSystemActive write SetActive;
-    property Voltage             : double read GetVoltage write SetVoltage;
-    property Current             : double read GetCurrent write SetCurrent;
-    property Capacity                  : double read GetCapacity write SetCapacity;
-    property Energy              : double read GetEnergy write SetEnergy;
-    property Power               : double read GetPower write SetPower;
-    property Temperature         : double read GetTemperature write SetTemperature;
+    property GUIActive              : boolean read FSystemActive write SetActive;
+    property GUIVoltage             : double read GetVoltage write SetVoltage;
+    property GUICurrent             : double read GetCurrent write SetCurrent;
+    property GUICapacity            : double read GetCapacity write SetCapacity;
+    property GUIEnergy              : double read GetEnergy write SetEnergy;
+    property GUIPower               : double read GetPower write SetPower;
+    property GUITemperature         : double read GetTemperature write SetTemperature;
   end;
 
 var
@@ -598,14 +588,6 @@ begin
   SetLength(MachineBox,NumberOfMachines+1);
   SetLength(Machineset,NumberOfMachines+1);
 
-  for i:=1 to NumberOfMachines do with Machineset[i] do
-  begin
-    Water1Cal := 1;
-    Water2Cal := 1;
-    EnergyCal := 1;
-    TemperatureCalNew := 0;
-  end;
-
   for i:=1 to NumberOfMachines do
   begin
     if i>1 then
@@ -634,7 +616,7 @@ begin
 
   for i:=1 to NumberOfMachines do
   begin
-    Machineset[i].Data:=TList<TMachineData>.Create();
+    Machineset[i].RunData:=TList<TMachineData>.Create();
     MachineBox[i]:=TFrameSimple.Create(tsOverview1);
     MachineBox[i].Number:=i;
     //MachineBox[i].Name:='NewFrame'+InttoStr(i);
@@ -642,12 +624,7 @@ begin
     //MachineBox[i].DoubleBuffered:=True;
     //MachineBox[i].Align:=alClient;
     MachineBox[i].Enable:=false;
-    MachineBox[i].GraphBase.OnClick := GraphBaseClick;
-    //MachineBox[i].Panel1.OnClick := GraphBaseClick;
-    MachineBox[i].TemperatureBase.OnClick := GraphBaseClick;
-    MachineBox[i].EnergyBase.OnClick := GraphBaseClick;
-    MachineBox[i].Water1Base.OnClick := GraphBaseClick;
-    MachineBox[i].Water2Base.OnClick := GraphBaseClick;
+    MachineBox[i].SetClick(GraphBaseClick);
   end;
 
   PageControl1.TabIndex:=2;
@@ -657,9 +634,11 @@ begin
 
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
+  DD.DataSource.MaxBoards:=8;
   //DD.OnDeviceChange:=UpdateDevice;
   DD.OnDeviceChange:=UpdateUSB;
   DD.OnDataReceived:=UpdateData;
+  DD.Enabled:=True;
 end;
 
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
@@ -786,30 +765,29 @@ begin
 
     StartTime:=Machineset[VisibleMachine].Start_time;
 
-    if Machineset[VisibleMachine].Data.Count>0 then
+    if Machineset[VisibleMachine].RunData.Count>0 then
     begin
-    for z:=0 to Machineset[VisibleMachine].Data.Count-1 do
+    for z:=0 to Machineset[VisibleMachine].RunData.Count-1 do
     begin
       //if AbsoluteTime.Checked
-      //   then ChartTime:=IncSecond(StartTime,round(Machineset[VisibleMachine].Data[z].Time))
-      //   else ChartTime:=IncSecond(DateOf(Now),round(Machineset[VisibleMachine].Data[z].Time));
-      ChartTime:=IncSecond(DateOf(Now),round(Machineset[VisibleMachine].Data[z].Time));
+      //   then ChartTime:=IncSecond(StartTime,round(Machineset[VisibleMachine].RunData[z].Time))
+      //   else ChartTime:=IncSecond(DateOf(Now),round(Machineset[VisibleMachine].RunData[z].Time));
+      ChartTime:=IncSecond(DateOf(Now),round(Machineset[VisibleMachine].RunData[z].Time));
 
-      TLineSeries(MachineChart.Series[0]).AddXY(ChartTime,Machineset[VisibleMachine].Data[z].Energy,'',clBlack);
-      TLineSeries(MachineChart.Series[1]).AddXY(ChartTime,Machineset[VisibleMachine].Data[z].Water1,'',clAqua);
-      TLineSeries(MachineChart.Series[2]).AddXY(ChartTime,Machineset[VisibleMachine].Data[z].Water2,'',clBlue);
-      TLineSeries(MachineChart.Series[3]).AddXY(ChartTime,Machineset[VisibleMachine].Data[z].Temperature1,'',clRed);
+      TLineSeries(MachineChart.Series[0]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Energy,'',clBlack);
+      TLineSeries(MachineChart.Series[1]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Voltage,'',clAqua);
+      TLineSeries(MachineChart.Series[2]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Current,'',clBlue);
+      TLineSeries(MachineChart.Series[3]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Power,'',clRed);
     end;
-
     if ((NOT Machineset[VisibleMachine].Running) AND (NOT Machineset[VisibleMachine].Startup)) then with Machineset[VisibleMachine] do
     begin
-      Energy:=Data.Last.Energy;
-      Water1:=Data.Last.Water1;
-      Water2:=Data.Last.Water2;
-      Temperature1:=Data.Last.Temperature1;
-      Temperature2:=Data.Last.Temperature2;
+      CurrentData.Energy:=RunData.Last.Energy;
+      CurrentData.Voltage:=RunData.Last.Voltage;
+      CurrentData.Current:=RunData.Last.Current;
+      CurrentData.Power:=RunData.Last.Power;
+      CurrentData.Capacity:=RunData.Last.Capacity;
       Start_time:=StartTime;
-      Running_time:=IncSecond(StartTime,round(Data.Last.Time));
+      Running_time:=IncSecond(StartTime,round(RunData.Last.Time));
     end;
     end;
 
@@ -1274,8 +1252,8 @@ begin
       SetChartAxis(Sender);
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
-      SystemActive:=True;
-      DD.SetOutput(ActiveBoard,SystemActive);
+      GUIActive:=True;
+      DD.SetOutput(ActiveBoard,GUIActive);
       DD.SetCurrent(ActiveBoard,1,ActiveTestType.Current);
       TestTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
@@ -1379,7 +1357,7 @@ begin
 
   for x:=1 to NumberOfMachines do
   begin
-    Machineset[x].Data.Destroy;
+    Machineset[x].RunData.Destroy;
   end;
 
   System.Finalize(Machineset);
@@ -1387,7 +1365,7 @@ end;
 
 procedure TPowerbankMainForm.FormShow(Sender: TObject);
 begin
-  FOldOnIdle := Application.OnIdle; // Save current OnIdle.
+  FOldOnIdle := Application.OnIdle; // Save GUICurrent OnIdle.
   Application.OnIdle:=AfterShow;
 end;
 
@@ -1542,12 +1520,6 @@ begin
         with (MachineBox[VisibleMachine]) do
         begin
           Enable:=true;
-          //GraphBase.UndoZoom;
-          if GraphBase.IsZoomed then GraphBase.ZoomFull(false);
-          TLineSeries(GraphBase.Series[0]).Clear;
-          TLineSeries(GraphBase.Series[1]).Clear;
-          TLineSeries(GraphBase.Series[2]).Clear;
-          TLineSeries(GraphBase.Series[3]).Clear;
           runtext:=Machineset[VisibleMachine].Runname+' '+Machineset[VisibleMachine].Runnumber;
           if Length(runtext)>1
              then Title:=Machineset[VisibleMachine].Product+' '+runtext
@@ -1570,13 +1542,15 @@ begin
 
         with Machineset[VisibleMachine] do
         begin
-          Data.Clear;
-          Temperature1:=0;
-          Temperature2:=0;
-          MaxTemp:=0;
-          Water1:=0;
-          Water2:=0;
-          Energy:=0;
+          RunData.Clear;
+          CurrentData.Capacity:=0;
+          CurrentData.Current:=0;
+          CurrentData.Energy:=0;
+          CurrentData.Power:=0;
+          CurrentData.Voltage:=0;
+          GUICapacity:=0;
+          GUIEnergy:=0;
+          GUIPower:=0;
           Start_time:=Now;
           Running_time:=Start_time;
           Running:=False;
@@ -1609,9 +1583,9 @@ begin
 
         SetEnable(Sender,false);
 
-        Power:=0;
-        Energy:=0;
-        Capacity:=0;
+        GUIPower:=0;
+        GUIEnergy:=0;
+        GUICapacity:=0;
 
         SetChartAxis(Sender);
 
@@ -1619,9 +1593,9 @@ begin
 
         TestInfoMemo.Lines.Append('Filename: '+BatteryDataFile);
 
-        SystemActive:=True;
+        GUIActive:=True;
 
-        DD.SetOutput(ActiveBoard,SystemActive);
+        DD.SetOutput(ActiveBoard,GUIActive);
         DD.SetCurrent(ActiveBoard,1,ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
@@ -1664,10 +1638,10 @@ var
   Elapsed:longword;
   qcalc:QWord;
 begin
-  MachineChartLineSeries1.Add(Voltage);
-  MachineChartLineSeries2.Add(Current);
+  MachineChartLineSeries1.Add(GUIVoltage);
+  MachineChartLineSeries2.Add(GUICurrent);
 
-  if SystemActive then
+  if GUIActive then
   begin
     // only perform the below if coming from the timer !
     if Assigned(Sender) then
@@ -1680,7 +1654,7 @@ begin
       if (
          (chkVoltageLimit.Checked)
          AND
-         (Voltage<(ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
+         (GUIVoltage<(ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
          )
       then
       begin
@@ -1691,7 +1665,7 @@ begin
       if (
          (chkCurrentLimit.Checked)
          AND
-         (Current<(ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
+         (GUICurrent<(ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
          )
       then
       begin
@@ -1953,7 +1927,7 @@ begin
 
   StartTime:=0;
 
-  SystemActive:=False;
+  GUIActive:=False;
 
   if Assigned(Sender) then
   begin
@@ -2034,10 +2008,10 @@ begin
     write(F,FloattoStr(NowUTC,LocalFormatSettings),LocalFormatSettings.ListSeparator);
     write(F,FormatDateTime('dd-mm-yyyy hh:nn:ss',NowUTC),LocalFormatSettings.ListSeparator);
     write(F,FloattoStrF((Elapsed/1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(Voltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(Current,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(Capacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(Energy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(GUIVoltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(GUICurrent,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(GUICapacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(GUIEnergy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
 
     writeln(F);
   finally
@@ -2112,76 +2086,79 @@ begin
     begin
       Counter:=DATASTART;
 
-      //RotoPD Voltage
+      //RotoPD GUIVoltage
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      Voltage:=(wd.Raw/1000);
+      GUIVoltage:=(wd.Raw/1000);
 
       Inc(counter,2);
 
-      //RotoPD Current
+      //RotoPD GUICurrent
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      Current:=(wd.Raw/1000);
+      GUICurrent:=(wd.Raw/1000);
 
       Inc(counter,2);
 
-      //RotoPD Power
+      //RotoPD GUIPower
       dwd.Bytes[0]:=PByteArray(data)^[counter];
       dwd.Bytes[1]:=PByteArray(data)^[counter+1];
       dwd.Bytes[2]:=PByteArray(data)^[counter+2];
       dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      Power:=(dwd.Raw/1000);
+      GUIPower:=(dwd.Raw/1000);
 
       Inc(counter,4);
 
-      //RotoPD Temperature
+      //RotoPD GUITemperature
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      Temperature:=(wd.Raw/10);
+      GUITemperature:=(wd.Raw/10);
 
       Inc(counter,2);
 
       if (length>13) then
       begin
-        //IT2704 Voltage
+        //IT2704 GUIVoltage
         wd.Bytes[0]:=PByteArray(data)^[counter];
         wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        Voltage:=(wd.Raw/1000);
+        GUIVoltage:=(wd.Raw/1000);
 
         Inc(counter,2);
 
-        //IT2704 Current
+        //IT2704 GUICurrent
         wd.Bytes[0]:=PByteArray(data)^[counter];
         wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        Current:=(wd.Raw/1000);
+        GUICurrent:=(wd.Raw/1000);
 
         Inc(counter,2);
 
-        //IT2704 Power
+        //IT2704 GUIPower
         dwd.Bytes[0]:=PByteArray(data)^[counter];
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        Power:=(dwd.Raw/1000);
+        GUIPower:=(dwd.Raw/1000);
+        MachineBox[1].Power:=(dwd.Raw/1000);
 
         Inc(counter,4);
 
-        //IT2704 Capacity
+        //IT2704 GUICapacity
         dwd.Bytes[0]:=PByteArray(data)^[counter];
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        Capacity:=(dwd.Raw/1000);
+        GUICapacity:=(dwd.Raw/1000);
 
         Inc(counter,4);
 
-        //IT2704 Energy
+        //IT2704 GUIEnergy
         dwd.Bytes[0]:=PByteArray(data)^[counter];
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        Energy:=(dwd.Raw/1000);
+        GUIEnergy:=(dwd.Raw/1000);
+        MachineBox[1].Energy:=(dwd.Raw/1000);
+
 
         Inc(counter,4);
       end;
@@ -2261,7 +2238,7 @@ begin
             //PeakCurrent                  := (PDO.maxCurrent_mA DIV 10);
             bd.Raw := 0;
             bd.Bits[0] := 1;
-            AugmentedPowerDataObjectType := bd.Raw; //%01;  // 0x01=EPRAVS Adjustable Voltage Supply
+            AugmentedPowerDataObjectType := bd.Raw; //%01;  // 0x01=EPRAVS Adjustable GUIVoltage Supply
             bd.Raw := 0;
             bd.Bits[0] := 1;
             bd.Bits[1] := 1;

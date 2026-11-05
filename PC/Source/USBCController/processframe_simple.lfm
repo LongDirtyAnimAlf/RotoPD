@@ -6,6 +6,7 @@ object FrameSimple: TFrameSimple
   ClientHeight = 416
   ClientWidth = 456
   Color = clDefault
+  LCLVersion = '4.99.0.0'
   ParentBackground = False
   ParentColor = False
   TabOrder = 0
@@ -129,110 +130,8 @@ object FrameSimple: TFrameSimple
     BevelInner = bvLowered
     BevelWidth = 4
     Caption = 'Panel2'
-    ClientHeight = 348
-    ClientWidth = 456
     TabOrder = 1
-    object GraphBase: TChart
-      Left = 8
-      Height = 328
-      Top = 8
-      Width = 440
-      AllowPanning = False
-      AllowZoom = False
-      AxisList = <      
-        item
-          Intervals.Count = 10
-          Intervals.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
-          Marks.LabelBrush.Style = bsClear
-          Minors = <>
-          Range.Max = 100
-          Range.UseMax = True
-          Range.UseMin = True
-          Title.Distance = 10
-          Title.LabelFont.Orientation = 900
-          Title.LabelFont.Style = [fsBold]
-          Title.Caption = 'Water [l]  /  Temperature [C]'
-          Title.LabelBrush.Style = bsClear
-          Transformations = MyTransform1
-        end      
-        item
-          Alignment = calBottom
-          Marks.Visible = False
-          Marks.Format = '%2:s'
-          Marks.LabelBrush.Style = bsClear
-          Marks.Source = DateTimeIntervalChartSource2
-          Marks.Style = smsLabel
-          Minors = <>
-          Title.LabelBrush.Style = bsClear
-        end      
-        item
-          Intervals.Count = 10
-          Intervals.Options = [aipUseCount, aipUseMaxLength, aipUseMinLength, aipUseNiceSteps]
-          Alignment = calRight
-          Group = 1
-          Marks.LabelBrush.Style = bsClear
-          Minors = <>
-          Range.Max = 10
-          Range.UseMax = True
-          Range.UseMin = True
-          Title.Distance = 10
-          Title.LabelFont.Orientation = -900
-          Title.LabelFont.Style = [fsBold]
-          Title.Caption = 'Energy [kWh]'
-          Title.LabelBrush.Style = bsClear
-          Transformations = MyTransform2
-        end>
-      Legend.Alignment = laTopCenter
-      Legend.ColumnCount = 4
-      Title.Margins.Left = 0
-      Title.Margins.Top = 0
-      Title.Margins.Right = 0
-      Title.Margins.Bottom = 0
-      Title.Brush.Color = clGray
-      Title.Font.CharSet = ANSI_CHARSET
-      Title.Font.Height = -16
-      Title.Font.Name = 'Arial'
-      Title.Font.Pitch = fpVariable
-      Title.Font.Quality = fqDraft
-      Title.Font.Style = [fsBold]
-      Title.Frame.Visible = True
-      Title.Margin = 2
-      Title.Text.Strings = (
-        'Machine data'
-      )
-      Title.Visible = True
-      OnBeforeDrawBackground = GraphBaseBeforeDrawBackground
-      OnBeforeDrawBackWall = GraphBaseBeforeDrawBackWall
-      Align = alClient
-      BorderSpacing.Bottom = 4
-      object EnergySeries: TLineSeries
-        Title = 'Energy'
-        AxisIndexX = 1
-        AxisIndexY = 2
-        LinePen.Width = 5
-      end
-      object WaterSeries1: TLineSeries
-        Title = 'Water1'
-        AxisIndexX = 1
-        AxisIndexY = 0
-        LinePen.Color = clAqua
-        LinePen.Width = 5
-      end
-      object WaterSeries2: TLineSeries
-        Title = 'Water2'
-        AxisIndexX = 1
-        AxisIndexY = 0
-        LinePen.Color = clBlue
-        LinePen.Width = 5
-      end
-      object TemperatureSeries: TLineSeries
-        Title = 'Temperature'
-        AxisIndexX = 1
-        AxisIndexY = 0
-        LinePen.Color = clRed
-        LinePen.Width = 5
-      end
-    end
+    OnResize = Panel2Resize
   end
   object MyTransform2: TChartAxisTransformations
     Left = 224

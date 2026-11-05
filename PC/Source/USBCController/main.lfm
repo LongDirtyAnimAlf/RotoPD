@@ -1163,8 +1163,8 @@ object PowerbankMainForm: TPowerbankMainForm
     end
   end
   object PopupMenu1: TPopupMenu
-    Left = 48
-    Top = 200
+    Left = 80
+    Top = 232
     object MachineRemoveClick: TMenuItem
       Caption = 'Remove machine'
       OnClick = MachineRemoveClickClick

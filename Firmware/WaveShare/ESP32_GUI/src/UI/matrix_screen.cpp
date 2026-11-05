@@ -152,9 +152,9 @@ static void resolve_box_collisions(bouncing_box_t boxes[BOX_COUNT])
             // Clamp immediately after every separation
             auto clamp = [](bouncing_box_t *b) {
                 if (b->x < 0)                     b->x = 0;
-                if (b->x + b->width > SCREEN_WIDTH)  b->x = SCREEN_WIDTH - b->width;
+                if (b->x + b->width >= SCREEN_WIDTH)  b->x = SCREEN_WIDTH - b->width;
                 if (b->y < 0)                     b->y = 0;
-                if (b->y + b->height > SCREEN_HEIGHT) b->y = SCREEN_HEIGHT - b->height;
+                if (b->y + b->height >= SCREEN_HEIGHT) b->y = SCREEN_HEIGHT - b->height - 1;
             };
             clamp(b1);
             clamp(b2);
@@ -202,7 +202,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
             b->y  = 0;
             b->vy = abs(b->vy);
         } else if (b->y + b->height >= SCREEN_HEIGHT) {
-            b->y  = SCREEN_HEIGHT - b->height;
+            b->y  = SCREEN_HEIGHT - b->height -1;
             b->vy = -abs(b->vy);
         }
 
