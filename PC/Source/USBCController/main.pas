@@ -44,6 +44,25 @@ type
   //TDataList = specialize TList<TMachineData>;
   //TDataList = specialize TFPGList<TMachineData>;
 
+  TMachineSet = record
+    Project        : string;
+    Product        : string;
+    Runname        : string;
+    Runnumber      : string;
+    Info           : string;
+    Filename       : string;
+    Startup        : boolean;
+    Running        : boolean;
+    Start_time     : TDateTime;
+    Running_time   : TDateTime;
+    AutoFileName   : boolean;
+    AutoStart      : boolean;
+    AutoStartReady : boolean;
+    LatestMeasurementData    : TMachineData;
+    RunData        : TDataList;
+  end;
+  PMachineSet = ^TMachineSet;
+
   TTestType = record
     Name:string;
     Current:word;
@@ -169,35 +188,19 @@ type
 
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
-  private
-    MachineBox: array of TFrameSimple;
+  strict private
+    MachineBox          : array of TFrameSimple;
+    Machineset          : array of TMachineSet;
+    DUT                 : array of TUSBPDDevice;
 
-    Machineset : array of
-    record
-      Project        : string;
-      Product        : string;
-      Runname        : string;
-      Runnumber      : string;
-      Info           : string;
-      Filename       : string;
-      Startup        : boolean;
-      Running        : boolean;
-      Start_time     : TDateTime;
-      Running_time   : TDateTime;
-      AutoFileName   : boolean;
-      AutoStart      : boolean;
-      AutoStartReady : boolean;
-      CurrentData    : TMachineData;
-      RunData        : TDataList;
-    end;
+    TestTypes           : array of TTestType;
 
     FOldOnIdle          : TIdleEvent;
 
     LocalFormatSettings : TFormatSettings;
 
-    RealVoltageDisplay  : TdsSevenSegmentMultiDisplay;
-    RealCurrentDisplay  : TdsSevenSegmentMultiDisplay;
-
+    RealVoltageDisplay    : TdsSevenSegmentMultiDisplay;
+    RealCurrentDisplay    : TdsSevenSegmentMultiDisplay;
     NewPowerDisplay       : TLEDDisplay;
     NewEnergyDisplay      : TLEDDisplay;
     NewAHDisplay          : TLEDDisplay;
@@ -218,15 +221,11 @@ type
     StartTime           : TDateTime;
     LastTime            : TDateTime;
 
-    DUT                 : TUSBPDDevice;
-
-    ActiveBoard         : word;
-    VisibleMachine      : word;
+    ActiveMachine       : word;
     ApplicationDirectory:string;
 
     RotoPDController    : TUSBPDController;
 
-    TestTypes           : array of TTestType;
     ActiveTestType      : TTestType;
     BatteryDataFile     : string;
 
@@ -336,11 +335,6 @@ begin
   LocalFormatSettings.LongTimeFormat:='hh:nn:ss';
   LocalFormatSettings.DecimalSeparator:=',';
   LocalFormatSettings.ListSeparator:=';';
-
-  ActiveBoard := 1;
-
-  DUT:=TUSBPDDevice.Create;
-  DUT.Cleanup;
 
   RotoPDController:=TUSBPDController.Create;
   RotoPDController.Cleanup;
@@ -588,9 +582,6 @@ begin
   BaseMachineNumber := 1;
   NumberOfMachines  := 8;
 
-  SetLength(MachineBox,NumberOfMachines+1);
-  SetLength(Machineset,NumberOfMachines+1);
-
   for i:=1 to NumberOfMachines do
   begin
     if i>1 then
@@ -605,20 +596,21 @@ begin
     begin
       ts:=Machine1Sheet;
     end;
+    // The tag in used as boardnumber to indicate the board belonging to this sheet
+    // Is a bit tricky
     ts.Tag:=0;
-
-    (*
-    with TFrame1.Create(ts) do
-    begin
-      Parent:=ts;
-      Align:=alClient;
-      Name:='Frame1_'+InttoStr(x);
-    end;
-    *)
   end;
+
+  // We start at board 1, so dummy board added
+  // Also tricky
+  SetLength(MachineBox,NumberOfMachines+1);
+  SetLength(Machineset,NumberOfMachines+1);
+  SetLength(DUT,NumberOfMachines+1);
 
   for i:=1 to NumberOfMachines do
   begin
+    DUT[i]:=TUSBPDDevice.Create;
+    DUT[i].Cleanup;
     Machineset[i].RunData:=TList<TMachineData>.Create();
     MachineBox[i]:=TFrameSimple.Create(tsOverview1);
     MachineBox[i].Number:=i;
@@ -630,11 +622,6 @@ begin
     MachineBox[i].SetClick(GraphBaseClick);
   end;
 
-  PageControl1.TabIndex:=2;
-  VisibleMachine:=1;
-  PageControl1Change(PageControl1);
-
-
   // Create HID manager
   DD:=TDataDevice.Create(Application.GetNamePath);
   DD.DataSource.MaxBoards:=8;
@@ -642,6 +629,11 @@ begin
   DD.OnDeviceChange:=UpdateUSB;
   DD.OnDataReceived:=UpdateData;
   DD.Enabled:=True;
+
+
+  ActiveMachine:=1;
+  PageControl1.TabIndex:=2;
+  PageControl1Change(PageControl1);
 end;
 
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
@@ -739,69 +731,89 @@ end;
 procedure TPowerbankMainForm.PageControl1Change(Sender: TObject);
 var
   z:integer;
-  ChartTime,StartTime:TDateTime;
+  ChartTime,LocalStartTime:TDateTime;
   PG:TPageControl;
+  LocalVisibleMachine:integer;
+
+  PMS : PMachineSet;
+
 begin
   PG:=TPageControl(Sender);
 
   if PG.OwnerDraw then PG.Invalidate;
 
-  (*
-  if Pos('Machine',PG.ActivePage.Caption)>0
-     then VisibleMachine:=StrToIntDef(RightStr(PG.ActivePage.Caption,2),0)
-     else VisibleMachine:=0;
-  *)
-  if (PG.TabIndex>1)then
-   VisibleMachine:=(PG.TabIndex-1)
+  if Pos('Machine',PG.ActivePage.Caption)=1 then
+    LocalVisibleMachine:=StrToIntDef(RightStr(PG.ActivePage.Caption,2),0)
   else
-    VisibleMachine:=0;
+    LocalVisibleMachine:=0;
 
-  if VisibleMachine>0 then
+  if (LocalVisibleMachine <> 0) then
   begin
-    MachineGroupBox.Parent:=PG.ActivePage;
-    SetControls(Sender,Machineset[VisibleMachine].Running OR Machineset[VisibleMachine].Startup);
-
-    //MachineChart.UndoZoom;
-    if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
-    TLineSeries(MachineChart.Series[0]).Clear;
-    TLineSeries(MachineChart.Series[1]).Clear;
-
-    StartTime:=Machineset[VisibleMachine].Start_time;
-
-    if Machineset[VisibleMachine].RunData.Count>0 then
+    if (LocalVisibleMachine<>ActiveMachine) then
     begin
-    for z:=0 to Machineset[VisibleMachine].RunData.Count-1 do
-    begin
-      //if AbsoluteTime.Checked
-      //   then ChartTime:=IncSecond(StartTime,round(Machineset[VisibleMachine].RunData[z].Time))
-      //   else ChartTime:=IncSecond(DateOf(Now),round(Machineset[VisibleMachine].RunData[z].Time));
-      ChartTime:=IncSecond(DateOf(Now),round(Machineset[VisibleMachine].RunData[z].Time));
+      ActiveMachine:=LocalVisibleMachine;
 
-      TLineSeries(MachineChart.Series[0]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Energy,'',clBlack);
-      TLineSeries(MachineChart.Series[1]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Voltage,'',clAqua);
-      TLineSeries(MachineChart.Series[2]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Current,'',clBlue);
-      TLineSeries(MachineChart.Series[3]).AddXY(ChartTime,Machineset[VisibleMachine].RunData[z].Power,'',clRed);
-    end;
-    if ((NOT Machineset[VisibleMachine].Running) AND (NOT Machineset[VisibleMachine].Startup)) then with Machineset[VisibleMachine] do
-    begin
-      CurrentData.Energy:=RunData.Last.Energy;
-      CurrentData.Voltage:=RunData.Last.Voltage;
-      CurrentData.Current:=RunData.Last.Current;
-      CurrentData.Power:=RunData.Last.Power;
-      CurrentData.Capacity:=RunData.Last.Capacity;
-      Start_time:=StartTime;
-      Running_time:=IncSecond(StartTime,round(RunData.Last.Time));
-    end;
-    end;
+      // Point towards the correct dataset
+      PMS:=@Machineset[ActiveMachine];
 
-    AutoFileNameCheckBox.Checked:=Machineset[VisibleMachine].AutoFileName;
-    FilenameEdit.Text:=ExtractFileName(Machineset[VisibleMachine].Filename);
-    Project_edit.Text:=Machineset[VisibleMachine].Project;
-    Product_edit.Text:=Machineset[VisibleMachine].Product;
-    Runname_edit.Text:=Machineset[VisibleMachine].Runname;
-    Runnumber_edit.Text:=Machineset[VisibleMachine].Runnumber;
-    MachineInfoMemo.Lines.CommaText:=Machineset[VisibleMachine].Info;
+      MachineGroupBox.Parent:=PG.ActivePage;
+
+      SetControls(Sender,PMS^.Running OR PMS^.Startup);
+
+      //MachineChart.UndoZoom;
+      if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
+      TLineSeries(MachineChart.Series[0]).Clear;
+      TLineSeries(MachineChart.Series[1]).Clear;
+
+      //with Machineset[ActiveMachine] do
+      begin
+        LocalStartTime:=PMS^.Start_time;
+
+        if PMS^.RunData.Count>0 then
+        begin
+          for z:=0 to PMS^.RunData.Count-1 do
+          begin
+            //if AbsoluteTime.Checked
+            //   then ChartTime:=IncSecond(LocalStartTime,round(PMS^.RunData[z].Time))
+            //   else ChartTime:=IncSecond(DateOf(Now),round(PMS^.RunData[z].Time));
+            ChartTime:=IncSecond(DateOf(Now),round(PMS^.RunData[z].Time));
+            TLineSeries(MachineChart.Series[0]).AddXY(ChartTime,PMS^.RunData[z].Energy,'',clBlack);
+            TLineSeries(MachineChart.Series[1]).AddXY(ChartTime,PMS^.RunData[z].Voltage,'',clAqua);
+            TLineSeries(MachineChart.Series[2]).AddXY(ChartTime,PMS^.RunData[z].Current,'',clBlue);
+            TLineSeries(MachineChart.Series[3]).AddXY(ChartTime,PMS^.RunData[z].Power,'',clRed);
+          end;
+          if ((NOT PMS^.Running) AND (NOT PMS^.Startup)) then
+          begin
+            PMS^.LatestMeasurementData.Energy:=PMS^.RunData.Last.Energy;
+            PMS^.LatestMeasurementData.Voltage:=PMS^.RunData.Last.Voltage;
+            PMS^.LatestMeasurementData.Current:=PMS^.RunData.Last.Current;
+            PMS^.LatestMeasurementData.Power:=PMS^.RunData.Last.Power;
+            PMS^.LatestMeasurementData.Capacity:=PMS^.RunData.Last.Capacity;
+            PMS^.Start_time:=LocalStartTime;
+            PMS^.Running_time:=IncSecond(LocalStartTime,round(PMS^.RunData.Last.Time));
+          end;
+        end;
+
+        AutoFileNameCheckBox.Checked:=PMS^.AutoFileName;
+        FilenameEdit.Text:=ExtractFileName(PMS^.Filename);
+        Project_edit.Text:=PMS^.Project;
+        Product_edit.Text:=PMS^.Product;
+        Runname_edit.Text:=PMS^.Runname;
+        Runnumber_edit.Text:=PMS^.Runnumber;
+        MachineInfoMemo.Lines.CommaText:=PMS^.Info;
+
+        GUIVoltage:=PMS^.LatestMeasurementData.Voltage;
+        GUICurrent:=PMS^.LatestMeasurementData.Current;
+        GUIPower:=PMS^.LatestMeasurementData.Power;
+        GUIEnergy:=PMS^.LatestMeasurementData.Energy;
+        GUICapacity:=PMS^.LatestMeasurementData.Capacity;
+      end;
+
+      SourcePDODrawGrid.Invalidate;
+      SourceEPRPDODrawGrid.Invalidate;
+    end;
   end;
+
 end;
 
 procedure TPowerbankMainForm.PageControl1Changing(Sender: TObject;
@@ -918,6 +930,7 @@ var
   aSinkPDO        : TSINKPDO;
   aPDOType        : TSUPPLY_TYPES;
   aAPDOType       : TAPDO_TYPES;
+  PDUT            : PUSBPDDevice;
 begin
   PDOCurrent:=0;
   PDOVoltage:=0;
@@ -927,11 +940,13 @@ begin
 
   PDONumber:=0;
 
-  if Sender=SourcePDODrawGrid then aSourcePDO:=DUT.SourcePDOs[aRow];
-  if Sender=SourceEPRPDODrawGrid then aSourcePDO:=DUT.SourceEPRPDOs[aRow];
+  PDUT := @DUT[Self.ActiveMachine];
 
-  if Sender=SinkPDODrawGrid then aSinkPDO:=DUT.SinkPDOs[aRow];
-  if Sender=SinkEPRPDODrawGrid then aSinkPDO:=DUT.SinkEPRPDOs[aRow];
+  if Sender=SourcePDODrawGrid then aSourcePDO:=PDUT^.SourcePDOs[aRow];
+  if Sender=SourceEPRPDODrawGrid then aSourcePDO:=PDUT^.SourceEPRPDOs[aRow];
+
+  if Sender=SinkPDODrawGrid then aSinkPDO:=PDUT^.SinkPDOs[aRow];
+  if Sender=SinkEPRPDODrawGrid then aSinkPDO:=PDUT^.SinkEPRPDOs[aRow];
 
 
   if ((aSourcePDO.Raw>0) OR (aSinkPDO.Raw>0)) then
@@ -1001,7 +1016,7 @@ begin
 
     USBDebugLog.Lines.Append('Requesting Source PDO #'+InttoStr(PDONumber)+' at '+InttoStr(PDOVoltage)+'mV and '+InttoStr(PDOCurrent)+'mA.');
 
-    DD.SetMaxPDO(ActiveBoard,PDONumber);
+    DD.SetMaxPDO(ActiveMachine,PDONumber);
 
   end;
 
@@ -1017,9 +1032,12 @@ var
   aPDOType       : TSUPPLY_TYPES;
   aAPDOType      : TAPDO_TYPES;
 
+  PDUT            : PUSBPDDevice;
 begin
   if ((aRow>0) AND (aCol>0)) then
   begin
+    PDUT := @DUT[Self.ActiveMachine];
+
     aDrawGrid:=TDrawGrid(Sender);
     s:='';
     if (aCol=1) then
@@ -1035,8 +1053,8 @@ begin
 
       if ((Sender=SourcePDODrawGrid) OR (Sender=SourceEPRPDODrawGrid)) then
       begin
-        if (Sender=SourcePDODrawGrid) then aSourcePDO:=DUT.SourcePDOs[aRow];
-        if (Sender=SourceEPRPDODrawGrid) then aSourcePDO:=DUT.SourceEPRPDOs[aRow];
+        if (Sender=SourcePDODrawGrid) then aSourcePDO:=PDUT^.SourcePDOs[aRow];
+        if (Sender=SourceEPRPDODrawGrid) then aSourcePDO:=PDUT^.SourceEPRPDOs[aRow];
         if (aSourcePDO.Raw>0) then
         begin
           aPDOType:=TSUPPLY_TYPES(aSourcePDO.GenericPdo.SupplyType);
@@ -1054,8 +1072,8 @@ begin
 
       if ((Sender=SinkPDODrawGrid) OR (Sender=SinkEPRPDODrawGrid)) then
       begin
-        if (Sender=SinkPDODrawGrid) then aSinkPDO:=DUT.SinkPDOs[aRow];
-        if (Sender=SinkEPRPDODrawGrid) then aSinkPDO:=DUT.SinkEPRPDOs[aRow];
+        if (Sender=SinkPDODrawGrid) then aSinkPDO:=PDUT^.SinkPDOs[aRow];
+        if (Sender=SinkEPRPDODrawGrid) then aSinkPDO:=PDUT^.SinkEPRPDOs[aRow];
         if (aSinkPDO.Raw>0) then
         begin
           aPDOType:=TSUPPLY_TYPES(aSinkPDO.GenericPdo.SupplyType);
@@ -1208,7 +1226,7 @@ begin
     *)
     InflateRect(ARect, -constCellpadding, -constCellPadding);
 
-    if (((Sender=SourcePDODrawGrid) AND (DUT.RDOPosition=aRow)) OR ((Sender=SourceEPRPDODrawGrid) AND (DUT.RDOPosition=aRow+7))) then
+    if (((Sender=SourcePDODrawGrid) AND (PDUT^.RDOPosition=aRow)) OR ((Sender=SourceEPRPDODrawGrid) AND (PDUT^.RDOPosition=aRow+7))) then
     begin
       aDrawGrid.Canvas.Font.Color:=clRed;
       aDrawGrid.Canvas.Font.Style:=[fsBold];
@@ -1228,13 +1246,13 @@ end;
 procedure TPowerbankMainForm.AutoFileNameCheckBoxClick(Sender: TObject);
 begin
   FilenameEdit.Enabled:=(NOT AutoFileNameCheckBox.Checked);
-  Machineset[VisibleMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
+  Machineset[ActiveMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
 end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
-  DD.GetPDOList(ActiveBoard);
-  //DD.SetEnergy(ActiveBoard,876456789);
+  DD.GetPDOList(ActiveMachine);
+  //DD.SetEnergy(ActiveMachine,876456789);
 end;
 
 procedure TPowerbankMainForm.btnTestDischargeClick(Sender: TObject);
@@ -1256,8 +1274,8 @@ begin
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
       GUIActive:=True;
-      DD.SetOutput(ActiveBoard,GUIActive);
-      DD.SetCurrent(ActiveBoard,1,ActiveTestType.Current);
+      DD.SetOutput(ActiveMachine,GUIActive);
+      DD.SetCurrent(ActiveMachine,1,ActiveTestType.Current);
       TestTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
   end
@@ -1271,8 +1289,8 @@ end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
 begin
-  //DD.SetMaxPDO(ActiveBoard,1);
-  DD.SetPPSPDO(ActiveBoard,6,3000,8500);
+  //DD.SetMaxPDO(ActiveMachine,1);
+  DD.SetPPSPDO(ActiveMachine,6,3000,8500);
 end;
 
 procedure TPowerbankMainForm.DataEditKeyPress(Sender: TObject; var Key: char);
@@ -1335,11 +1353,13 @@ procedure TPowerbankMainForm.dgFlagsGetCheckboxState(Sender: TObject; ACol,
 var
   aPDO:TSOURCEPDO;
   state:boolean;
+  PDUT: PUSBPDDevice;
 begin
   if aCol=0 then
   begin
+    PDUT := @DUT[Self.ActiveMachine];
     state:=false;
-    aPDO:=DUT.GetFixed5VSRCPDO;
+    aPDO:=PDUT^.GetFixed5VSRCPDO;
     case aRow of
       0: state:=(aPDO.FixedSupplyPdo.DataRoleSwap=1);
       1: state:=(aPDO.FixedSupplyPdo.UsbCommunicationCapable=1);
@@ -1361,9 +1381,11 @@ begin
   for x:=1 to NumberOfMachines do
   begin
     Machineset[x].RunData.Destroy;
+    DUT[x].Destroy;
   end;
 
   System.Finalize(Machineset);
+  System.Finalize(DUT);
 end;
 
 procedure TPowerbankMainForm.FormShow(Sender: TObject);
@@ -1396,7 +1418,6 @@ begin
          DD.OnDataReceived:=nil;
          DD.OnDeviceChange:=nil;
          DD.Destroy;
-         DUT.Destroy;
          RotoPDController.Destroy;
 
          Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
@@ -1444,18 +1465,18 @@ begin
         end;
 
         //if AutoFileNameCheckBox.Checked then
-        if Machineset[VisibleMachine].AutoFileName then
+        if Machineset[ActiveMachine].AutoFileName then
         begin
           backupname:=ApplicationDirectory+'Data';
-          backupname:=backupname+'_MP'+InttoStr(VisibleMachine+BaseMachineNumber-1);
-          if Length(Machineset[VisibleMachine].Project)>0 then backupname:=backupname+'_'+Machineset[VisibleMachine].Project;
-          if Length(Machineset[VisibleMachine].Product)>0 then backupname:=backupname+'_'+Machineset[VisibleMachine].Product;
-          runtext:=Machineset[VisibleMachine].Runname+'_'+Machineset[VisibleMachine].Runnumber;
+          backupname:=backupname+'_MP'+InttoStr(ActiveMachine+BaseMachineNumber-1);
+          if Length(Machineset[ActiveMachine].Project)>0 then backupname:=backupname+'_'+Machineset[ActiveMachine].Project;
+          if Length(Machineset[ActiveMachine].Product)>0 then backupname:=backupname+'_'+Machineset[ActiveMachine].Product;
+          runtext:=Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber;
           if Length(runtext)>1 then backupname:=backupname+'_'+runtext;
           backupname:=backupname+'_'+ FormatDateTime('dd-mm-yyyy', Now);
           backupname:=backupname+'_'+ FormatDateTime('HH', Now)+'h'+FormatDateTime('nn', Now);
           backupname:=backupname+'.dat';
-          Machineset[VisibleMachine].Filename:=backupname;
+          Machineset[ActiveMachine].Filename:=backupname;
           if Sender=StartStopSpeedButton then FilenameEdit.text:=ExtractFileName(backupname);
         end;
 
@@ -1464,7 +1485,7 @@ begin
          //SaveMachineData;
 
           // Backup old file if needed !!!!
-          if FileExists(Machineset[VisibleMachine].Filename) then
+          if FileExists(Machineset[ActiveMachine].Filename) then
           begin
              if MessageDlg ('Are you REALLY SURE you want to overwrite the datafile ?'+
                          chr(13)+'(This is your last change to rescue your previous data!)',
@@ -1475,8 +1496,8 @@ begin
                Exit;
              end;
 
-             backupname := ChangeFileExt(Machineset[VisibleMachine].Filename, '.bak');
-             OldFile := TFileStream.Create(Machineset[VisibleMachine].Filename, fmOpenRead or fmShareDenyWrite);
+             backupname := ChangeFileExt(Machineset[ActiveMachine].Filename, '.bak');
+             OldFile := TFileStream.Create(Machineset[ActiveMachine].Filename, fmOpenRead or fmShareDenyWrite);
              try
                 {$WARN SYMBOL_PLATFORM OFF}
                 NewFile := TFileStream.Create(backupname, fmCreate or fmShareDenyRead);
@@ -1493,19 +1514,19 @@ begin
         end;
 
         try
-          AssignFile(F,Machineset[VisibleMachine].Filename);
+          AssignFile(F,Machineset[ActiveMachine].Filename);
           if (NOT IsOpen(F)) then
           try
             Rewrite(F);
             if IOResult=0 then
             begin
-              Writeln(F, 'Project: '+Machineset[VisibleMachine].Project);
-              Writeln(F, 'Product: '+Machineset[VisibleMachine].Product);
-              Writeln(F, 'Run: '+Machineset[VisibleMachine].Runname+'_'+Machineset[VisibleMachine].Runnumber);
+              Writeln(F, 'Project: '+Machineset[ActiveMachine].Project);
+              Writeln(F, 'Product: '+Machineset[ActiveMachine].Product);
+              Writeln(F, 'Run: '+Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber);
               Writeln(F, 'Info:');
-              Writeln(F, Machineset[VisibleMachine].Info);
-              Writeln(F, 'Date: '+DateTimeToStr(Machineset[VisibleMachine].Start_time,LocalFormatSettings));
-              Writeln(F, 'Location: '+InttoStr(VisibleMachine+BaseMachineNumber-1));
+              Writeln(F, Machineset[ActiveMachine].Info);
+              Writeln(F, 'Date: '+DateTimeToStr(Machineset[ActiveMachine].Start_time,LocalFormatSettings));
+              Writeln(F, 'Location: '+InttoStr(ActiveMachine+BaseMachineNumber-1));
               Writeln(F, '**********************************************');
               Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
               Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
@@ -1521,13 +1542,13 @@ begin
           CloseFile(F);
         end;
 
-        with (MachineBox[VisibleMachine]) do
+        with (MachineBox[ActiveMachine]) do
         begin
           Enable:=true;
-          runtext:=Machineset[VisibleMachine].Runname+' '+Machineset[VisibleMachine].Runnumber;
+          runtext:=Machineset[ActiveMachine].Runname+' '+Machineset[ActiveMachine].Runnumber;
           if Length(runtext)>1
-             then Title:=Machineset[VisibleMachine].Product+' '+runtext
-             else Title:=Machineset[VisibleMachine].Product;
+             then Title:=Machineset[ActiveMachine].Product+' '+runtext
+             else Title:=Machineset[ActiveMachine].Product;
         end;
 
         if Sender=StartStopSpeedButton then
@@ -1544,14 +1565,14 @@ begin
           ProgressBar1.Show;
         end;
 
-        with Machineset[VisibleMachine] do
+        with Machineset[ActiveMachine] do
         begin
           RunData.Clear;
-          CurrentData.Capacity:=0;
-          CurrentData.Current:=0;
-          CurrentData.Energy:=0;
-          CurrentData.Power:=0;
-          CurrentData.Voltage:=0;
+          LatestMeasurementData.Capacity:=0;
+          LatestMeasurementData.Current:=0;
+          LatestMeasurementData.Energy:=0;
+          LatestMeasurementData.Power:=0;
+          LatestMeasurementData.Voltage:=0;
           GUICapacity:=0;
           GUIEnergy:=0;
           GUIPower:=0;
@@ -1567,7 +1588,7 @@ begin
           begin
             try
               RootKey := HKEY_CURRENT_USER;
-              if OpenKey(REGSTOREPOSITION+'Board'+InttoStr(VisibleMachine)+'\', True) then
+              if OpenKey(REGSTOREPOSITION+'Board'+InttoStr(ActiveMachine)+'\', True) then
               begin
                 WriteString('Project',Project);
                 WriteString('Product',Product);
@@ -1599,8 +1620,8 @@ begin
 
         GUIActive:=True;
 
-        DD.SetOutput(ActiveBoard,GUIActive);
-        DD.SetCurrent(ActiveBoard,1,ActiveTestType.Current);
+        DD.SetOutput(ActiveMachine,GUIActive);
+        DD.SetCurrent(ActiveMachine,1,ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1619,16 +1640,16 @@ begin
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
-      with Machineset[VisibleMachine] do
+      with Machineset[ActiveMachine] do
       begin
         Running:=False;
         Startup:=False;
       end;
 
       if Sender=StartStopSpeedButton then SetControls(Sender,false);
-      MachineBox[VisibleMachine].Enable:=false;
+      MachineBox[ActiveMachine].Enable:=false;
 
-      if Machineset[VisibleMachine].RunData.Count>1 then
+      if Machineset[ActiveMachine].RunData.Count>1 then
       begin
         SummaryFilename:=ApplicationDirectory+'Summary__';
         SummaryFilename:=SummaryFilename + Format('%.4d-%.2d-%.2d',[YearOf(Now), MonthOfTheYear(Now), DayOfTheMonth(Now)]);
@@ -1656,18 +1677,18 @@ begin
                 Writeln(F,'Temperature (max) [°C]');
               end;
             end else Append(F);
-            if IOResult=0 then with Machineset[VisibleMachine] do
+            if IOResult=0 then with Machineset[ActiveMachine] do
             begin
               Write(F,Project+LocalFormatSettings.ListSeparator);
               Write(F,Product+LocalFormatSettings.ListSeparator);
               Write(F,Runname+'_'+Runnumber+LocalFormatSettings.ListSeparator);
-              Write(F,InttoStr(VisibleMachine)+LocalFormatSettings.ListSeparator);
+              Write(F,InttoStr(ActiveMachine)+LocalFormatSettings.ListSeparator);
               Write(F,ExtractFileName(Filename)+LocalFormatSettings.ListSeparator);
               Write(F,TimetoStr(IncSecond(0,SecondsBetween(Running_time,Start_time)))+LocalFormatSettings.ListSeparator);
               Write(F,FloatToStrF(ActiveTestType.Voltage,ffFixed, 9, 3));
               Write(F,FloatToStrF(ActiveTestType.Current,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
-              Write(F,FloatToStrF(CurrentData.Energy,ffFixed, 9, 3)+LocalFormatSettings.ListSeparator);
-              Writeln(F,FloatToStrF(CurrentData.Power,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
+              Write(F,FloatToStrF(LatestMeasurementData.Energy,ffFixed, 9, 3)+LocalFormatSettings.ListSeparator);
+              Writeln(F,FloatToStrF(LatestMeasurementData.Power,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
             end;
           finally
             CloseFile(F);
@@ -1994,8 +2015,8 @@ begin
 
   if Assigned(Sender) then
   begin
-    DD.SetOutput(ActiveBoard,false);
-    DD.SetOff(ActiveBoard,1);
+    DD.SetOutput(ActiveMachine,false);
+    DD.SetOff(ActiveMachine,1);
   end;
 
   SetEnable(Sender,true);
@@ -2137,38 +2158,44 @@ var
   qwd                  : TQWordData;
   bd                   : TByteData;
   aSourcePDO           : ^TSOURCEPDO;
+  PMS                  : PMachineSet;
 begin
-  cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
+  // The boardnumber is an absolute indicator !!
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
+  // Point towards the correct dataset
+  PMS:=@Machineset[boardnumber];
+
+  cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   length:=PByteArray(data)^[LENGTHPOSITION];
 
   USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
+
 
   case cmd of
     TCommands.CMD_get_data:
     begin
       Counter:=DATASTART;
 
-      //RotoPD GUIVoltage
+      //RotoPD Voltage
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      GUIVoltage:=(wd.Raw/1000);
+      PMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
 
       Inc(counter,2);
 
-      //RotoPD GUICurrent
+      //RotoPD Current
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      GUICurrent:=(wd.Raw/1000);
+      PMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
 
       Inc(counter,2);
 
-      //RotoPD GUIPower
+      //RotoPD Power
       dwd.Bytes[0]:=PByteArray(data)^[counter];
       dwd.Bytes[1]:=PByteArray(data)^[counter+1];
       dwd.Bytes[2]:=PByteArray(data)^[counter+2];
       dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      GUIPower:=(dwd.Raw/1000);
+      PMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
 
       Inc(counter,4);
 
@@ -2181,49 +2208,65 @@ begin
 
       if (length>13) then
       begin
-        //IT2704 GUIVoltage
+        //IT2704 Voltage
         wd.Bytes[0]:=PByteArray(data)^[counter];
         wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        GUIVoltage:=(wd.Raw/1000);
+        PMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
 
         Inc(counter,2);
 
-        //IT2704 GUICurrent
+        //IT2704 Current
         wd.Bytes[0]:=PByteArray(data)^[counter];
         wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        GUICurrent:=(wd.Raw/1000);
+        PMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
 
         Inc(counter,2);
 
-        //IT2704 GUIPower
+        //IT2704 Power
         dwd.Bytes[0]:=PByteArray(data)^[counter];
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        GUIPower:=(dwd.Raw/1000);
-        MachineBox[1].Power:=(dwd.Raw/1000);
+        PMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
 
         Inc(counter,4);
 
-        //IT2704 GUICapacity
+        //IT2704 Capacity
         dwd.Bytes[0]:=PByteArray(data)^[counter];
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        GUICapacity:=(dwd.Raw/1000);
+        PMS^.LatestMeasurementData.Capacity:=(dwd.Raw/1000);
 
         Inc(counter,4);
 
-        //IT2704 GUIEnergy
+        //IT2704 Energy
         dwd.Bytes[0]:=PByteArray(data)^[counter];
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        GUIEnergy:=(dwd.Raw/1000);
-        MachineBox[1].Energy:=(dwd.Raw/1000);
-
+        PMS^.LatestMeasurementData.Energy:=(dwd.Raw/1000);
 
         Inc(counter,4);
+      end;
+
+      if (boardnumber=ActiveMachine) then
+      begin
+        // We got data addressed to our current visible machine
+        // So update the GUI also
+        GUIVoltage:=PMS^.LatestMeasurementData.Voltage;
+        GUICurrent:=PMS^.LatestMeasurementData.Current;
+        GUIPower:=PMS^.LatestMeasurementData.Power;
+        GUIEnergy:=PMS^.LatestMeasurementData.Energy;
+        GUICapacity:=PMS^.LatestMeasurementData.Capacity;
+      end;
+
+      with MachineBox[boardnumber] do
+      begin
+        Voltage:=PMS^.LatestMeasurementData.Voltage;
+        Current:=PMS^.LatestMeasurementData.Current;
+        Power:=PMS^.LatestMeasurementData.Power;
+        Energy:=PMS^.LatestMeasurementData.Energy;
       end;
 
     end;
@@ -2255,9 +2298,9 @@ begin
         end;
 
         if (PDO.isEPR) then
-          aSourcePDO := @DUT.SourceEPRPDOs[PDO.index-8]
+          aSourcePDO := @DUT[boardnumber].SourceEPRPDOs[PDO.index-8]
         else
-          aSourcePDO := @DUT.SourcePDOs[PDO.index-1];
+          aSourcePDO := @DUT[boardnumber].SourcePDOs[PDO.index-1];
 
         if (PDO.ptype=PDO_TYPE_FIXED) then
         begin
@@ -2335,9 +2378,9 @@ begin
       USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxCurrent_mA)+'mA');
       if PDO.isEPR then USBDebugLog.Lines.Append('AP33772S '+'(EPR)');
 
-      DUT.ActiveSRCPDO:=PDOIndex;
+      DUT[boardnumber].ActiveSRCPDO:=PDOIndex;
 
-      DUT.RDOPosition:=PDOIndex;
+      DUT[boardnumber].RDOPosition:=PDOIndex;
 
       TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
       TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
@@ -2490,9 +2533,9 @@ end;
 
 procedure TPowerbankMainForm.SaveMachineData;
 begin
-  if (VisibleMachine>0) then
+  if (ActiveMachine>0) then
   begin
-    if ((NOT Machineset[VisibleMachine].Running) AND (NOT Machineset[VisibleMachine].Startup)) then with Machineset[VisibleMachine] do
+    if ((NOT Machineset[ActiveMachine].Running) AND (NOT Machineset[ActiveMachine].Startup)) then with Machineset[ActiveMachine] do
     begin
       Project:=Project_edit.Text;
       Product:=Product_edit.Text;
@@ -2532,7 +2575,7 @@ begin
       StartStopSpeedButton.Caption:='Start';
       StartStopSpeedButton.Font.Color:=clLime;
     end;
-    FilenameEdit.Enabled:=(NOT Machineset[VisibleMachine].AutoFileName);
+    FilenameEdit.Enabled:=(NOT Machineset[ActiveMachine].AutoFileName);
   end;
 end;
 

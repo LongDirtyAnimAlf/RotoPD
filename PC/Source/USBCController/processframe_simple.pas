@@ -59,8 +59,8 @@ type
     property Current:single write SetCurrent;
     property Power:single write SetPower;
     property Energy:single write SetEnergy;
-
   end;
+  PFrameSimple = ^TFrameSimple;
 
 implementation
 

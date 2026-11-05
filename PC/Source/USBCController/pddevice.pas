@@ -11,6 +11,7 @@ uses
 type
   TUSBPDDevice = class(TUSBPD)
   end;
+  PUSBPDDevice = ^TUSBPDDevice;
 
 implementation
 
