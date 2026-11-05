@@ -316,10 +316,10 @@ object PowerbankMainForm: TPowerbankMainForm
             object TypesBox: TComboBox
               AnchorSideLeft.Side = asrBottom
               AnchorSideRight.Side = asrBottom
-              Left = 208
+              Left = 216
               Height = 23
-              Top = -1
-              Width = 187
+              Top = 0
+              Width = 176
               Anchors = []
               BorderSpacing.Left = 8
               BorderSpacing.Right = 8
@@ -339,7 +339,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 'TA00012 Avanca Powerbar Pro 9000'
               )
               TabOrder = 0
-              Text = 'Enter battery type'
+              Text = 'Select battery type'
             end
             object TestsBox: TComboBox
               AnchorSideLeft.Control = TypesBox
@@ -347,15 +347,15 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideTop.Side = asrBottom
               AnchorSideRight.Control = TypesBox
               AnchorSideRight.Side = asrBottom
-              Left = 208
+              Left = 216
               Height = 23
-              Top = 61
-              Width = 187
+              Top = 62
+              Width = 176
               Anchors = [akTop, akLeft, akRight]
               BorderSpacing.Top = 8
               ItemHeight = 15
               TabOrder = 1
-              Text = 'Enter test type'
+              Text = 'Select test type'
               OnChange = TestsBoxChange
             end
             object SamplesBox: TComboBox
@@ -364,10 +364,10 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideTop.Side = asrBottom
               AnchorSideRight.Control = TypesBox
               AnchorSideRight.Side = asrBottom
-              Left = 208
+              Left = 216
               Height = 23
-              Top = 30
-              Width = 187
+              Top = 31
+              Width = 176
               Anchors = [akTop, akLeft, akRight]
               BorderSpacing.Top = 8
               ItemHeight = 15
@@ -375,14 +375,14 @@ object PowerbankMainForm: TPowerbankMainForm
                 '1'
               )
               TabOrder = 2
-              Text = 'Enter battery #'
+              Text = 'Select battery #'
             end
             object StartStopSpeedButton: TSpeedButton
               AnchorSideTop.Side = asrBottom
               Left = 8
               Height = 40
               Top = 0
-              Width = 177
+              Width = 200
               AllowAllUp = True
               BorderSpacing.Top = 12
               Caption = 'Start'
@@ -403,11 +403,11 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideTop.Side = asrBottom
               AnchorSideRight.Control = btnTestDischarge
               AnchorSideRight.Side = asrBottom
-              Left = 8
+              Left = 216
               Height = 23
-              Top = 79
-              Width = 177
-              Anchors = [akTop, akLeft, akRight]
+              Top = 344
+              Width = 176
+              Anchors = []
               BorderSpacing.Top = 6
               TabOrder = 3
             end
@@ -420,7 +420,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 8
               Height = 25
               Top = 48
-              Width = 177
+              Width = 200
               AllowAllUp = True
               Anchors = [akTop, akLeft, akRight]
               BorderSpacing.Top = 8
@@ -432,7 +432,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideTop.Side = asrBottom
               Left = 216
               Height = 13
-              Top = 112
+              Top = 121
               Width = 106
               BorderSpacing.Top = 20
               Caption = 'Discharge Settings'
@@ -451,7 +451,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideBottom.Control = CurrentEdit
               Left = 216
               Height = 13
-              Top = 129
+              Top = 138
               Width = 75
               BorderSpacing.Top = 4
               Caption = 'Current [mA]'
@@ -472,7 +472,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideBottom.Side = asrCenter
               Left = 216
               Height = 23
-              Top = 146
+              Top = 155
               Width = 86
               BorderSpacing.Top = 4
               NumbersOnly = True
@@ -486,7 +486,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideTop.Side = asrBottom
               Left = 216
               Height = 19
-              Top = 169
+              Top = 178
               Width = 45
               Caption = 'Limit'
               TabOrder = 5
@@ -495,9 +495,9 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = VoltageEdit
               AnchorSideTop.Side = asrBottom
               AnchorSideBottom.Control = VoltageEdit
-              Left = 309
+              Left = 306
               Height = 13
-              Top = 127
+              Top = 136
               Width = 74
               Anchors = [akLeft, akBottom]
               BorderSpacing.Top = 16
@@ -515,9 +515,9 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideTop.Control = CurrentEdit
               AnchorSideRight.Control = TestsBox
               AnchorSideRight.Side = asrBottom
-              Left = 309
+              Left = 306
               Height = 23
-              Top = 146
+              Top = 155
               Width = 86
               Anchors = [akTop, akRight]
               BorderSpacing.Left = 8
@@ -530,9 +530,9 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = VoltageEdit
               AnchorSideTop.Control = VoltageEdit
               AnchorSideTop.Side = asrBottom
-              Left = 309
+              Left = 306
               Height = 19
-              Top = 169
+              Top = 178
               Width = 45
               Caption = 'Limit'
               TabOrder = 7
@@ -548,8 +548,8 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 8
               Height = 84
               Top = 286
-              Width = 177
-              Anchors = [akLeft, akRight, akBottom]
+              Width = 200
+              Anchors = [akBottom]
               BorderSpacing.Top = 8
               BorderSpacing.Bottom = 8
               ScrollBars = ssAutoBoth
@@ -557,8 +557,8 @@ object PowerbankMainForm: TPowerbankMainForm
             end
             object USBDebugLog: TMemo
               Left = 216
-              Height = 94
-              Top = 304
+              Height = 121
+              Top = 216
               Width = 176
               Lines.Strings = (
                 'USBDebugLog'
@@ -569,7 +569,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Control = FilenameEdit
               AnchorSideTop.Side = asrCenter
-              Left = 2
+              Left = 8
               Height = 17
               Top = 117
               Width = 22
@@ -588,7 +588,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 72
               Height = 23
               Top = 114
-              Width = 190
+              Width = 136
               Anchors = [akTop, akRight]
               BorderSpacing.Top = 6
               BorderSpacing.Right = 2
@@ -598,7 +598,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Control = Project_edit
               AnchorSideTop.Side = asrCenter
-              Left = 2
+              Left = 10
               Height = 17
               Top = 144
               Width = 43
@@ -618,7 +618,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 72
               Height = 23
               Top = 141
-              Width = 190
+              Width = 136
               Anchors = [akTop, akRight]
               BorderSpacing.Top = 4
               BorderSpacing.Right = 2
@@ -628,7 +628,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Control = Product_edit
               AnchorSideTop.Side = asrCenter
-              Left = 2
+              Left = 8
               Height = 17
               Top = 171
               Width = 48
@@ -648,7 +648,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 72
               Height = 23
               Top = 168
-              Width = 190
+              Width = 136
               Anchors = [akTop, akRight]
               BorderSpacing.Left = 12
               BorderSpacing.Top = 4
@@ -659,7 +659,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Control = Runname_edit
               AnchorSideTop.Side = asrCenter
-              Left = 2
+              Left = 8
               Height = 17
               Top = 198
               Width = 51
@@ -679,7 +679,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 72
               Height = 23
               Top = 195
-              Width = 190
+              Width = 136
               Anchors = [akTop, akRight]
               BorderSpacing.Top = 4
               BorderSpacing.Right = 2
@@ -689,7 +689,7 @@ object PowerbankMainForm: TPowerbankMainForm
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Control = Runnumber_edit
               AnchorSideTop.Side = asrCenter
-              Left = 2
+              Left = 8
               Height = 17
               Top = 225
               Width = 36
@@ -709,7 +709,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 72
               Height = 23
               Top = 222
-              Width = 190
+              Width = 136
               Anchors = [akTop, akRight]
               BorderSpacing.Left = 12
               BorderSpacing.Top = 4
@@ -719,7 +719,7 @@ object PowerbankMainForm: TPowerbankMainForm
             object InfoLabel: TLabel
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Control = MachineInfoMemo
-              Left = 2
+              Left = 10
               Height = 17
               Top = 249
               Width = 25
@@ -739,7 +739,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Left = 72
               Height = 14
               Top = 249
-              Width = 190
+              Width = 136
               Anchors = [akTop, akRight, akBottom]
               BorderSpacing.Left = 8
               BorderSpacing.Top = 4
@@ -750,9 +750,9 @@ object PowerbankMainForm: TPowerbankMainForm
             object AutoFileNameCheckBox: TCheckBox
               AnchorSideLeft.Control = Panel2
               AnchorSideTop.Side = asrBottom
-              Left = 0
+              Left = 8
               Height = 19
-              Top = 89
+              Top = 88
               Width = 62
               BorderSpacing.Top = 4
               Caption = 'AutoFile'
@@ -1134,15 +1134,15 @@ object PowerbankMainForm: TPowerbankMainForm
       end
     end
   end
-  object StoreTimer: TTimer
+  object DataStoreTimer: TTimer
     Enabled = False
-    OnTimer = StoreTimerTimer
+    OnTimer = DataStoreTimerTimer
     Left = 1029
     Top = 70
   end
-  object TestTimer: TTimer
+  object ProgressStepperTimer: TTimer
     Enabled = False
-    OnTimer = TestTimerTimer
+    OnTimer = ProgressStepperTimerTimer
     Left = 1026
     Top = 138
   end

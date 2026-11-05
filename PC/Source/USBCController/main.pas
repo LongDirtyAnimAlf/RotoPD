@@ -38,7 +38,8 @@ type
     Power : single;
     Capacity : single;
     Energy : single;
-    Time:single;
+    //Time:single;
+    Elapsed:uint64;  // ms
   end;
   TDataList = TList<TMachineData>;
   //TDataList = specialize TList<TMachineData>;
@@ -51,13 +52,9 @@ type
     Runnumber      : string;
     Info           : string;
     Filename       : string;
-    Startup        : boolean;
     Running        : boolean;
-    Start_time     : TDateTime;
-    Running_time   : TDateTime;
+    Last_time      : TDateTime;
     AutoFileName   : boolean;
-    AutoStart      : boolean;
-    AutoStartReady : boolean;
     LatestMeasurementData    : TMachineData;
     RunData        : TDataList;
   end;
@@ -142,8 +139,8 @@ type
     StartStopSpeedButton: TSpeedButton;
     StaticText1: TStaticText;
     TestsBox: TComboBox;
-    StoreTimer: TTimer;
-    TestTimer: TTimer;
+    DataStoreTimer: TTimer;
+    ProgressStepperTimer: TTimer;
     UpdateTimer: TTimer;
     TypesBox: TComboBox;
     USBDebugLog: TMemo;
@@ -181,9 +178,9 @@ type
     procedure PDODrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
     procedure StartStopSpeedButtonClick(Sender: TObject);
-    procedure StoreTimerTimer(Sender: TObject);
+    procedure DataStoreTimerTimer(Sender: TObject);
     procedure TestsBoxChange(Sender: TObject);
-    procedure TestTimerTimer({%H-}Sender: TObject);
+    procedure ProgressStepperTimerTimer({%H-}Sender: TObject);
     procedure UpdateTimerTimer({%H-}Sender: TObject);
 
     procedure FormCreate({%H-}Sender: TObject);
@@ -206,10 +203,6 @@ type
     NewAHDisplay          : TLEDDisplay;
     NewTemperatureDisplay : TLEDDisplay;
 
-    Led                 : TShape;
-
-    FSystemActive       : boolean;
-
     FVoltage            : double;
     FCurrent            : double;
     FCapacity           : double;
@@ -218,8 +211,6 @@ type
     FTemperature        : double;
 
     NumRate             : integer;
-    StartTime           : TDateTime;
-    LastTime            : TDateTime;
 
     ActiveMachine       : word;
     ApplicationDirectory:string;
@@ -232,8 +223,6 @@ type
     DD                  : TDataDevice;
 
     NumberOfMachines    : integer;
-    BaseMachineNumber   : byte;
-
 
     procedure GraphBaseClick(Sender: TObject);
     procedure SaveMachineData;
@@ -250,34 +239,26 @@ type
     procedure SetChartAxis({%H-}Sender:TObject);
     procedure CreateDataFile(Sender: TObject);
     procedure AllStop(Sender: TObject);
-    procedure SaveBatteryData(Elapsed:longword);
+    procedure SaveBatteryData(MN:integer);
 
     function  CorrectVoltage(value:double):double;
     function  CorrectCurrent(value:double):double;
 
-    procedure SetActive(value:boolean);
     procedure SetActiveTestType(const TT:TTestType);
 
     procedure SetVoltage(value:double);
-    function  GetVoltage:double;
     procedure SetCurrent(value:double);
-    function  GetCurrent:double;
     procedure SetCapacity(value:double);
-    function  GetCapacity:double;
     procedure SetEnergy(value:double);
-    function  GetEnergy:double;
     procedure SetPower(value:double);
-    function  GetPower:double;
     procedure SetTemperature(value:double);
-    function  GetTemperature:double;
   public
-    property GUIActive              : boolean read FSystemActive write SetActive;
-    property GUIVoltage             : double read GetVoltage write SetVoltage;
-    property GUICurrent             : double read GetCurrent write SetCurrent;
-    property GUICapacity            : double read GetCapacity write SetCapacity;
-    property GUIEnergy              : double read GetEnergy write SetEnergy;
-    property GUIPower               : double read GetPower write SetPower;
-    property GUITemperature         : double read GetTemperature write SetTemperature;
+    property GUIVoltage             : double write SetVoltage;
+    property GUICurrent             : double write SetCurrent;
+    property GUICapacity            : double write SetCapacity;
+    property GUIEnergy              : double write SetEnergy;
+    property GUIPower               : double write SetPower;
+    property GUITemperature         : double write SetTemperature;
   end;
 
 var
@@ -338,13 +319,6 @@ begin
 
   RotoPDController:=TUSBPDController.Create;
   RotoPDController.Cleanup;
-
-  Led:=TShape.Create(GroupBox1);
-  Led.Parent:=GroupBox1;
-  Led.Width := 30;
-  Led.Height := 30;
-  Led.Brush.Color := clLime;
-  Led.Shape := stCircle;
 
   RealVoltageDisplay:=TdsSevenSegmentMultiDisplay.Create(grpVAData);
   with RealVoltageDisplay do
@@ -579,7 +553,6 @@ begin
     Ini.Free;
   end;
 
-  BaseMachineNumber := 1;
   NumberOfMachines  := 8;
 
   for i:=1 to NumberOfMachines do
@@ -628,12 +601,15 @@ begin
   //DD.OnDeviceChange:=UpdateDevice;
   DD.OnDeviceChange:=UpdateUSB;
   DD.OnDataReceived:=UpdateData;
-  DD.Enabled:=True;
-
+  // Done in startup
+  //DD.Enabled:=True;
 
   ActiveMachine:=1;
   PageControl1.TabIndex:=2;
   PageControl1Change(PageControl1);
+
+  DataStoreTimer.Interval:=NumRate*1000;
+  DataStoreTimer.Enabled:=True;
 end;
 
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
@@ -758,7 +734,7 @@ begin
 
       MachineGroupBox.Parent:=PG.ActivePage;
 
-      SetControls(Sender,PMS^.Running OR PMS^.Startup);
+      SetControls(Sender,PMS^.Running);
 
       //MachineChart.UndoZoom;
       if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
@@ -767,30 +743,22 @@ begin
 
       //with Machineset[ActiveMachine] do
       begin
-        LocalStartTime:=PMS^.Start_time;
-
         if PMS^.RunData.Count>0 then
         begin
           for z:=0 to PMS^.RunData.Count-1 do
           begin
-            //if AbsoluteTime.Checked
-            //   then ChartTime:=IncSecond(LocalStartTime,round(PMS^.RunData[z].Time))
-            //   else ChartTime:=IncSecond(DateOf(Now),round(PMS^.RunData[z].Time));
-            ChartTime:=IncSecond(DateOf(Now),round(PMS^.RunData[z].Time));
-            TLineSeries(MachineChart.Series[0]).AddXY(ChartTime,PMS^.RunData[z].Energy,'',clBlack);
-            TLineSeries(MachineChart.Series[1]).AddXY(ChartTime,PMS^.RunData[z].Voltage,'',clAqua);
-            TLineSeries(MachineChart.Series[2]).AddXY(ChartTime,PMS^.RunData[z].Current,'',clBlue);
-            TLineSeries(MachineChart.Series[3]).AddXY(ChartTime,PMS^.RunData[z].Power,'',clRed);
+            ChartTime:=(PMS^.RunData[z].Elapsed DIV 1000);
+            MachineChartLineSeries1.Add(PMS^.RunData[z].Voltage);
+            MachineChartLineSeries2.Add(PMS^.RunData[z].Current);
           end;
-          if ((NOT PMS^.Running) AND (NOT PMS^.Startup)) then
+          if (NOT PMS^.Running) then
           begin
             PMS^.LatestMeasurementData.Energy:=PMS^.RunData.Last.Energy;
             PMS^.LatestMeasurementData.Voltage:=PMS^.RunData.Last.Voltage;
             PMS^.LatestMeasurementData.Current:=PMS^.RunData.Last.Current;
             PMS^.LatestMeasurementData.Power:=PMS^.RunData.Last.Power;
             PMS^.LatestMeasurementData.Capacity:=PMS^.RunData.Last.Capacity;
-            PMS^.Start_time:=LocalStartTime;
-            PMS^.Running_time:=IncSecond(LocalStartTime,round(PMS^.RunData.Last.Time));
+            PMS^.LatestMeasurementData.Elapsed:=PMS^.RunData.Last.Elapsed;
           end;
         end;
 
@@ -1268,21 +1236,17 @@ begin
        )
     then
     begin
-      StartTime:=NowUTC;
-      LastTime:=StartTime;
       SetChartAxis(Sender);
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
-      GUIActive:=True;
-      DD.SetOutput(ActiveMachine,GUIActive);
+      DD.SetOutput(ActiveMachine,True);
       DD.SetCurrent(ActiveMachine,1,ActiveTestType.Current);
-      TestTimer.Enabled:=true;
+      ProgressStepperTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
   end
   else
   //if (NOT TSpeedButton(Sender).Down) then
   begin
-    AllStop(Sender);
     TestInfoMemo.Lines.Append('Check finished.');
   end;
 end;
@@ -1468,7 +1432,7 @@ begin
         if Machineset[ActiveMachine].AutoFileName then
         begin
           backupname:=ApplicationDirectory+'Data';
-          backupname:=backupname+'_MP'+InttoStr(ActiveMachine+BaseMachineNumber-1);
+          backupname:=backupname+'_MP'+InttoStr(ActiveMachine);
           if Length(Machineset[ActiveMachine].Project)>0 then backupname:=backupname+'_'+Machineset[ActiveMachine].Project;
           if Length(Machineset[ActiveMachine].Product)>0 then backupname:=backupname+'_'+Machineset[ActiveMachine].Product;
           runtext:=Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber;
@@ -1518,6 +1482,7 @@ begin
           if (NOT IsOpen(F)) then
           try
             Rewrite(F);
+            Write(F, #$EF#$BB#$BF);
             if IOResult=0 then
             begin
               Writeln(F, 'Project: '+Machineset[ActiveMachine].Project);
@@ -1525,8 +1490,8 @@ begin
               Writeln(F, 'Run: '+Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber);
               Writeln(F, 'Info:');
               Writeln(F, Machineset[ActiveMachine].Info);
-              Writeln(F, 'Date: '+DateTimeToStr(Machineset[ActiveMachine].Start_time,LocalFormatSettings));
-              Writeln(F, 'Location: '+InttoStr(ActiveMachine+BaseMachineNumber-1));
+              Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
+              Writeln(F, 'Location: '+InttoStr(ActiveMachine));
               Writeln(F, '**********************************************');
               Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
               Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
@@ -1568,19 +1533,12 @@ begin
         with Machineset[ActiveMachine] do
         begin
           RunData.Clear;
-          LatestMeasurementData.Capacity:=0;
-          LatestMeasurementData.Current:=0;
-          LatestMeasurementData.Energy:=0;
-          LatestMeasurementData.Power:=0;
-          LatestMeasurementData.Voltage:=0;
+          LatestMeasurementData:=Default(TMachineData);
           GUICapacity:=0;
           GUIEnergy:=0;
           GUIPower:=0;
-          Start_time:=Now;
-          Running_time:=Start_time;
-          Running:=False;
-          Startup:=True;
-          AutoStartReady:=(NOT AutoStart);
+          Running:=True;
+          Last_time:=NowUTC;
 
           (*
           reg:=TRegistry.Create;
@@ -1618,21 +1576,12 @@ begin
 
         TestInfoMemo.Lines.Append('Filename: '+BatteryDataFile);
 
-        GUIActive:=True;
-
-        DD.SetOutput(ActiveMachine,GUIActive);
+        DD.SetOutput(ActiveMachine,True);
         DD.SetCurrent(ActiveMachine,1,ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
 
-        StartTime:=NowUTC;
-        LastTime:=StartTime;
-
-        StoreTimer.Enabled:=False;
-        StoreTimer.Interval:=NumRate*1000;
-        StoreTimer.Enabled:=True;
-
-        StoreTimerTimer(nil);
+        DataStoreTimerTimer(nil);
 
       end else TSpeedButton(Sender).Down:=false;
     end
@@ -1643,7 +1592,6 @@ begin
       with Machineset[ActiveMachine] do
       begin
         Running:=False;
-        Startup:=False;
       end;
 
       if Sender=StartStopSpeedButton then SetControls(Sender,false);
@@ -1661,6 +1609,7 @@ begin
             if NOT FileExists(SummaryFileName) then
             begin
               Rewrite(F);
+              Write(F, #$EF#$BB#$BF);
               if IOResult=0 then
               begin
                 Writeln(F, 'Overview of data collected on '+DateToStr(Now));
@@ -1670,11 +1619,11 @@ begin
                 Write(F,'Run'+LocalFormatSettings.ListSeparator);
                 Write(F,'Location'+LocalFormatSettings.ListSeparator);
                 Write(F,'Filename'+LocalFormatSettings.ListSeparator);
-                Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
+                Write(F,'Time [msec]'+LocalFormatSettings.ListSeparator);
+                Write(F,'Voltage [V]'+LocalFormatSettings.ListSeparator);
+                Write(F,'Current [A]'+LocalFormatSettings.ListSeparator);
                 Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
-                Write(F,'Water1 [l]'+LocalFormatSettings.ListSeparator);
-                Write(F,'Water2 [l]'+LocalFormatSettings.ListSeparator);
-                Writeln(F,'Temperature (max) [°C]');
+                Writeln(F,'Power [W]'+LocalFormatSettings.ListSeparator);
               end;
             end else Append(F);
             if IOResult=0 then with Machineset[ActiveMachine] do
@@ -1684,7 +1633,7 @@ begin
               Write(F,Runname+'_'+Runnumber+LocalFormatSettings.ListSeparator);
               Write(F,InttoStr(ActiveMachine)+LocalFormatSettings.ListSeparator);
               Write(F,ExtractFileName(Filename)+LocalFormatSettings.ListSeparator);
-              Write(F,TimetoStr(IncSecond(0,SecondsBetween(Running_time,Start_time)))+LocalFormatSettings.ListSeparator);
+              Write(F,InttoStr(LatestMeasurementData.Elapsed)+LocalFormatSettings.ListSeparator);
               Write(F,FloatToStrF(ActiveTestType.Voltage,ffFixed, 9, 3));
               Write(F,FloatToStrF(ActiveTestType.Current,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
               Write(F,FloatToStrF(LatestMeasurementData.Energy,ffFixed, 9, 3)+LocalFormatSettings.ListSeparator);
@@ -1704,10 +1653,6 @@ begin
     begin
       TSpeedButton(Sender).Caption:='Stop';
       TSpeedButton(Sender).Font.Color:=clRed;
-    end
-    else
-    begin
-      AllStop(Sender);
     end;
 
   finally
@@ -1715,50 +1660,64 @@ begin
   end;
 end;
 
-procedure TPowerbankMainForm.StoreTimerTimer(Sender: TObject);
+procedure TPowerbankMainForm.DataStoreTimerTimer(Sender: TObject);
 const
   STOPPERCENTAGE = 80;
 var
   Elapsed:longword;
-  qcalc:QWord;
+  PMS: PMachineSet;
+  x:integer;
 begin
-  MachineChartLineSeries1.Add(GUIVoltage);
-  MachineChartLineSeries2.Add(GUICurrent);
+  // Point towards the correct dataset
+  PMS:=@Machineset[ActiveMachine];
+  MachineChartLineSeries1.Add(PMS^.LatestMeasurementData.Voltage);
+  MachineChartLineSeries2.Add(PMS^.LatestMeasurementData.Current);
 
-  if GUIActive then
+  if NOT Assigned(Sender) then
+  begin
+    SaveBatteryData(ActiveMachine);
+  end;
+
+  for x:=1 to NumberOfMachines do
   begin
     // only perform the below if coming from the timer !
     if Assigned(Sender) then
     begin
-      Elapsed:=MilliSecondsBetween(NowUTC,LastTime);
-      LastTime:=NowUTC;
-
-      SaveBatteryData(Elapsed);
-
-      if (
-         (chkVoltageLimit.Checked)
-         AND
-         (GUIVoltage<(ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
-         )
-      then
+      PMS:=@Machineset[x];
+      if (PMS^.Running) then
       begin
-        TestInfoMemo.Lines.Append('Voltage below threshold. Test ready.');
-        AllStop(Sender);
-      end;
+        Elapsed:=MilliSecondsBetween(NowUTC,PMS^.Last_time);
+        PMS^.Last_time:=NowUTC;
+        PMS^.LatestMeasurementData.Elapsed:=PMS^.LatestMeasurementData.Elapsed+Elapsed;
 
-      if (
-         (chkCurrentLimit.Checked)
-         AND
-         (GUICurrent<(ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
-         )
-      then
-      begin
-        TestInfoMemo.Lines.Append('Current below threshold. Test ready.');
-        AllStop(Sender);
-      end;
+        PMS^.RunData.Add(PMS^.LatestMeasurementData);
 
+        SaveBatteryData(ActiveMachine);
+
+        if (
+           (chkVoltageLimit.Checked)
+           AND
+           (PMS^.LatestMeasurementData.Voltage<(ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
+           )
+        then
+        begin
+          TestInfoMemo.Lines.Append('Voltage below threshold. Test ready.');
+          // Do something !!
+        end;
+
+        if (
+           (chkCurrentLimit.Checked)
+           AND
+           (PMS^.LatestMeasurementData.Current<(ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
+           )
+        then
+        begin
+          TestInfoMemo.Lines.Append('Current below threshold. Test ready.');
+          // Do something !!
+        end;
+
+      end;
     end;
-
   end;
 end;
 
@@ -1778,7 +1737,7 @@ begin
   end;
 end;
 
-procedure TPowerbankMainForm.TestTimerTimer(Sender: TObject);
+procedure TPowerbankMainForm.ProgressStepperTimerTimer(Sender: TObject);
 begin
   if (ProgressBar1.Position=ProgressBar1.Max) then
     ProgressBar1.Position:=1
@@ -1788,10 +1747,7 @@ end;
 
 procedure TPowerbankMainForm.UpdateTimerTimer(Sender: TObject);
 begin
-  if (StartTime<>0) then
-    Edit1.Text:='Running: '+InttoStr(SecondsBetween(NowUTC,StartTime))+' sec'
-  else
-    Edit1.Text:='CONSULAB    ' + DateTimeToStr(NowUTC);
+  Edit1.Text:='CONSULAB    ' + DateTimeToStr(NowUTC);
 end;
 
 procedure TPowerbankMainForm.SetEnable(Sender: TObject; value:boolean);
@@ -1842,11 +1798,6 @@ begin
   end;
 end;
 
-function  TPowerbankMainForm.GetVoltage:double;
-begin
-  result:=FVoltage;
-end;
-
 procedure TPowerbankMainForm.SetCurrent(value:double);
 begin
   if (FCurrent<>value) then
@@ -1854,11 +1805,6 @@ begin
     FCurrent:=value;
     RealCurrentDisplay.Value:=value;
   end;
-end;
-
-function  TPowerbankMainForm.GetCurrent:double;
-begin
-  result:=FCurrent;
 end;
 
 procedure TPowerbankMainForm.SetCapacity(value:double);
@@ -1870,12 +1816,6 @@ begin
   end;
 end;
 
-function  TPowerbankMainForm.GetCapacity:double;
-begin
-  result:=FCapacity;
-end;
-
-
 procedure TPowerbankMainForm.SetEnergy(value:double);
 begin
   if (FEnergy<>value) then
@@ -1883,11 +1823,6 @@ begin
     FEnergy:=value;
     NewEnergyDisplay.Value:=value;
   end;
-end;
-
-function  TPowerbankMainForm.GetEnergy:double;
-begin
-  result:=FEnergy;
 end;
 
 procedure TPowerbankMainForm.SetPower(value:double);
@@ -1899,11 +1834,6 @@ begin
   end;
 end;
 
-function  TPowerbankMainForm.GetPower:double;
-begin
-  result:=FPower;
-end;
-
 procedure TPowerbankMainForm.SetTemperature(value:double);
 begin
   if (FTemperature<>value) then
@@ -1911,11 +1841,6 @@ begin
     FTemperature:=value;
     NewTemperatureDisplay.Value:=value;
   end;
-end;
-
-function  TPowerbankMainForm.GetTemperature:double;
-begin
-  result:=FTemperature;
 end;
 
 procedure TPowerbankMainForm.SetChartAxis(Sender:TObject);
@@ -2005,18 +1930,20 @@ begin
 end;
 
 procedure TPowerbankMainForm.AllStop(Sender: TObject);
+var
+  x:integer;
 begin
-  StoreTimer.Enabled:=False;
-  TestTimer.Enabled:=False;
+  UpdateTimer.Enabled:=False;
+  DataStoreTimer.Enabled:=False;
+  ProgressStepperTimer.Enabled:=False;
 
-  StartTime:=0;
-
-  GUIActive:=False;
-
-  if Assigned(Sender) then
+  for x:=1 to NumberOfMachines do
   begin
-    DD.SetOutput(ActiveMachine,false);
-    DD.SetOff(ActiveMachine,1);
+    DD.SetOutput(x,false);
+    DD.SetOff(x,1);
+    Machineset[x].Running:=false;
+    Machineset[x].RunData.Clear;
+    Machineset[x].LatestMeasurementData:=Default(TMachineData);
   end;
 
   SetEnable(Sender,true);
@@ -2030,11 +1957,12 @@ begin
   ProgressBar1.Position:=0;
 end;
 
-procedure TPowerbankMainForm.SaveBatteryData(Elapsed:longword);
+procedure TPowerbankMainForm.SaveBatteryData(MN:integer);
 var
   F : textfile;
   PC,PB,PS:string;
   i:integer;
+  PMS: PMachineSet;
 begin
   i:=pos(' ',TypesBox.Text);
   PC:=Copy(TypesBox.Text,1,i-1);
@@ -2052,6 +1980,7 @@ begin
        else
        begin
          Rewrite(F);
+         Write(F, #$EF#$BB#$BF);
          writeln(F,'Code: ',PC);
          writeln(F,'Brand: ',PB);
          writeln(F,'Model: ',PS);
@@ -2085,32 +2014,23 @@ begin
     else
       ProgressBar1.StepIt;
 
+    PMS:=@Machineset[MN];
+
     write(F,PC,LocalFormatSettings.ListSeparator);
     write(F,SamplesBox.Text,LocalFormatSettings.ListSeparator);
     write(F,'CD',LocalFormatSettings.ListSeparator);
     write(F,ActiveTestType.Current,LocalFormatSettings.ListSeparator);
     write(F,FloattoStr(NowUTC,LocalFormatSettings),LocalFormatSettings.ListSeparator);
     write(F,FormatDateTime('dd-mm-yyyy hh:nn:ss',NowUTC),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF((Elapsed/1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(GUIVoltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(GUICurrent,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(GUICapacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(GUIEnergy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF((PMS^.LatestMeasurementData.Elapsed / 1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PMS^.LatestMeasurementData.Voltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PMS^.LatestMeasurementData.Current,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PMS^.LatestMeasurementData.Capacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PMS^.LatestMeasurementData.Energy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
 
     writeln(F);
   finally
     CloseFile(F);
-  end;
-end;
-
-procedure TPowerbankMainForm.SetActive(value:boolean);
-begin
-  if value<>FSystemActive then
-  begin
-    FSystemActive:=value;
-    if value
-       then Led.Brush.Color := clRed
-       else Led.Brush.Color := clLime;
   end;
 end;
 
@@ -2130,7 +2050,6 @@ begin
   Application.OnIdle := FOldOnIdle; // Restore catched OnIdle.
   Startup;
 end;
-
 
 procedure TPowerbankMainForm.Startup;
 begin
@@ -2535,7 +2454,7 @@ procedure TPowerbankMainForm.SaveMachineData;
 begin
   if (ActiveMachine>0) then
   begin
-    if ((NOT Machineset[ActiveMachine].Running) AND (NOT Machineset[ActiveMachine].Startup)) then with Machineset[ActiveMachine] do
+    if (NOT Machineset[ActiveMachine].Running) then with Machineset[ActiveMachine] do
     begin
       Project:=Project_edit.Text;
       Product:=Product_edit.Text;
