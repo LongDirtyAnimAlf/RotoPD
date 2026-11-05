@@ -264,8 +264,8 @@ begin
   FMax := 100;
   FStartAngle := -120;
   FSweepAngle := 240;
-  FArcWidth := 10;
-  FMajorTicks := 5;
+  FArcWidth := 14;
+  FMajorTicks := 6;
   FMinorTicks := 4;
   FZones := TGaugeZones.Create(Self);
   FShowArc := True;
@@ -296,8 +296,8 @@ end;
 
 class function TGauge.GetControlClassDefaultSize: TSize;
 begin
-  Result.cx := 120;
-  Result.cy := 110;
+  Result.cx := 160;
+  Result.cy := 140;
 end;
 
 procedure TGauge.Loaded;
@@ -332,9 +332,10 @@ end;
 procedure TGauge.Paint;
 var
   clrArc, clrNeedle, clrTick, clrText, clrAccent: TColor;
+  clrFace, clrBezel, clrGroove, clrRim, clrHub, clrHubHi, clrShadow: TColor;
   sp: TSmoothPaint;
-  labelH, size, cx, cy, arcW, radius, startDeg, deg, parts, total, i, len: integer;
-  box: TRect;
+  labelH, size, cx, cy, arcW, radius, faceR, startDeg, deg, parts, total, i, len: integer;
+  box, faceBox: TRect;
   z: TGaugeZone;
   a, sweep, v, side, hubR, hx, hy, tipR, tailR, tickOuter: double;
   major: boolean;
@@ -343,16 +344,29 @@ var
   tw, th: integer;
   lr: double;
   vr: TRect;
-  needlePts: array of TPointF;
+  needlePts, shadowPts: array of TPointF;
+  zoneColor: TColor;
 begin
-  clrArc := pick(FArcColor, blend(clBtnFace, clBtnShadow, 40));
-  clrNeedle := pick(FNeedleColor, clWindowText);
-  clrTick := pick(FTickColor, clGrayText);
-  clrText := pick(FTextColor, clWindowText);
+  // resolved colours – richer defaults for a realistic dial
+  clrFace   := blend(GetRGBColorResolvingParent, clWhite, 12);
+  clrBezel  := blend(clBtnShadow, clBlack, 35);
+  clrGroove := blend(clBtnShadow, clBlack, 55);
+  clrRim    := blend(clBtnHighlight, clWhite, 40);
+  clrArc    := pick(FArcColor, blend(clSilver, clGray, 30));
+  clrNeedle := pick(FNeedleColor, RGBToColor(200, 28, 28));   // classic red
+  clrTick   := pick(FTickColor, blend(clBlack, clGray, 20));
+  clrText   := pick(FTextColor, clWindowText);
+  clrAccent := RGBToColor(30, 120, 220);                      // bright blue fill
+  clrHub    := blend(clSilver, clWhite, 25);
+  clrHubHi  := clWhite;
+  clrShadow := blend(clBlack, clBtnShadow, 40);
   if not Enabled then begin
     clrNeedle := ColorToRGB(clGrayText);
-    clrText := ColorToRGB(clGrayText);
+    clrText   := ColorToRGB(clGrayText);
+    clrAccent := blend(clrAccent, clBtnFace, 55);
+    clrArc    := blend(clrArc, clBtnFace, 40);
   end;
+
   sp := beginShapes(Canvas, ClientRect, GetRGBColorResolvingParent, FAntialiasing);
   try
     if FShowLabels then labelH := Canvas.TextHeight('0') else labelH := 0;
@@ -364,22 +378,44 @@ begin
       cy := (ClientHeight - labelH) div 2 + size div 5
     else
       cy := (ClientHeight - labelH) div 2;
+
     arcW := scaled(Self, FArcWidth);
     radius := size div 2 - arcW div 2 - 1;
+    faceR := radius + arcW div 2 + scaled(Self, 3);
     box := Rect(cx - radius, cy - radius, cx + radius, cy + radius);
+    faceBox := Rect(cx - faceR, cy - faceR, cx + faceR, cy + faceR);
     startDeg := 90 - FStartAngle;
+
+    // --- dial face & bezel ---
+    paintCircle(sp, cx, cy, faceR + scaled(Self, 3), clrBezel, blend(clBlack, clrBezel, 30), 2);
+    paintCircle(sp, cx, cy, faceR, clrFace, blend(clBtnShadow, clrFace, 40), 1);
+    // soft inner face ring
+    paintCircle(sp, cx, cy, radius - arcW div 2 - scaled(Self, 1),
+      blend(clrFace, clWhite, 8), blend(clBtnShadow, clrFace, 25), 1);
+
+    // --- arc track (groove) then coloured arc / zones ---
     if FShowArc then begin
+      // dark groove under the scale
+      paintArc(sp, box, startDeg, -FSweepAngle, clrGroove, arcW + scaled(Self, 2), False);
+      // base arc colour
       paintArc(sp, box, startDeg, -FSweepAngle, clrArc, arcW, False);
+      // thin outer rim highlight on the arc
+      paintArc(sp, Rect(box.Left - 1, box.Top - 1, box.Right + 1, box.Bottom + 1),
+        startDeg, -FSweepAngle, clrRim, MATH.Max(arcW div 4, 1), False);
+      // coloured zones on top of the base arc
       for i := 0 to FZones.Count - 1 do begin
         z := FZones[i];
         a := startDeg - Round(fraction(z.FromValue) * FSweepAngle);
         sweep := Round((fraction(z.ToValue) - fraction(z.FromValue)) * FSweepAngle);
-        if sweep > 0 then
-          paintArc(sp, box, Round(a), -Round(sweep), ColorToRGB(z.Color), arcW, False);
+        if sweep > 0 then begin
+          zoneColor := ColorToRGB(z.Color);
+          if not Enabled then zoneColor := blend(zoneColor, clBtnFace, 45);
+          paintArc(sp, box, Round(a), -Round(sweep), zoneColor, arcW, False);
+        end;
       end;
     end;
-    // the value on the arc itself: a filled part or lit segments
-    clrAccent := ColorToRGB(clHighlight);
+
+    // --- value on the arc: filled band or lit segments ---
     if not Enabled then clrAccent := blend(clrAccent, clBtnFace, 50);
     case FStyle of
       gsFilled: begin
@@ -388,20 +424,22 @@ begin
           paintArc(sp, box, startDeg, -deg, clrAccent, arcW, False);
       end;
       gsSegments: begin
-        parts := Math.Max(FSweepAngle div 10, 8);
+        parts := Math.Max(FSweepAngle div 8, 10);
         for i := 0 to parts - 1 do begin
           if fraction(FShown) > i / parts then
             paintArc(sp, box, startDeg - Round(i * FSweepAngle / parts),
-              -Round(FSweepAngle / parts * 0.7), clrAccent, arcW, False)
+              -Round(FSweepAngle / parts * 0.72), clrAccent, arcW, False)
           else
             paintArc(sp, box, startDeg - Round(i * FSweepAngle / parts),
-              -Round(FSweepAngle / parts * 0.7), clrArc, arcW, False);
+              -Round(FSweepAngle / parts * 0.72),
+              blend(clrArc, clBlack, 15), arcW, False);
         end;
       end;
     else
       ; // gsDial – needle drawn below
     end;
-    // the ticks sit just inside the arc
+
+    // --- tick marks ---
     tickOuter := radius - arcW div 2 - scaled(Self, 2);
     if FMajorTicks > 1 then begin
       total := (FMajorTicks - 1) * (FMinorTicks + 1);
@@ -409,7 +447,7 @@ begin
         major := (i mod (FMinorTicks + 1)) = 0;
         v := FMin + (FMax - FMin) * i / total;
         a := angleOf(v);
-        if major then len := scaled(Self, 8) else len := scaled(Self, 4);
+        if major then len := scaled(Self, 10) else len := scaled(Self, 5);
         if major then
           paintLine(sp,
             cx + Round(Cos(a) * (tickOuter - len)),
@@ -423,29 +461,42 @@ begin
             cy - Round(Sin(a) * (tickOuter - len)),
             cx + Round(Cos(a) * tickOuter),
             cy - Round(Sin(a) * tickOuter),
-            clrTick, 1);
+            blend(clrTick, clrFace, 35), 1);
       end;
     end;
+
+    // --- needle with shadow, body and rim ---
     if FShowNeedle and (FStyle = gsDial) then begin
       a := angleOf(FShown);
-      tipR := tickOuter - scaled(Self, 10);
-      tailR := radius div 6;
-      // a slim triangle from a hub to the tip
+      hubR := Math.Max(radius / 11, 4);
+      tipR := tickOuter - scaled(Self, 6);
+      tailR := Math.Max(radius / 5.5, hubR);
       side := DegToRad(90) + a;
-      hubR := Math.Max(radius div 12, 3);
-      // around the middle of the hub pixel
       hx := cx + 0.5;
       hy := cy + 0.5;
+
       SetLength(needlePts, 4);
       needlePts[0] := PointF(hx + Cos(a) * tipR, hy - Sin(a) * tipR);
-      needlePts[1] := PointF(hx + Cos(side) * hubR * 0.6, hy - Sin(side) * hubR * 0.6);
+      needlePts[1] := PointF(hx + Cos(side) * hubR * 0.55, hy - Sin(side) * hubR * 0.55);
       needlePts[2] := PointF(hx - Cos(a) * tailR, hy + Sin(a) * tailR);
-      needlePts[3] := PointF(hx - Cos(side) * hubR * 0.6, hy + Sin(side) * hubR * 0.6);
+      needlePts[3] := PointF(hx - Cos(side) * hubR * 0.55, hy + Sin(side) * hubR * 0.55);
+
+      // soft drop shadow (offset toward bottom-right)
+      SetLength(shadowPts, 4);
+      for i := 0 to 3 do
+        shadowPts[i] := PointF(needlePts[i].X + 1.5, needlePts[i].Y + 1.5);
+      sp.FillPolygon(shadowPts, blend(clrShadow, clrFace, 55));
+
+      // needle body + black outline
       sp.FillPolygon(needlePts, clrNeedle);
-      // black border-line around the needle
-      sp.StrokePolyline(needlePts, 1.5, clBlack, True, True);
-      paintCircle(sp, cx, cy, Round(hubR), clrNeedle, clBlack);
-      paintCircle(sp, cx, cy, Math.Max(Round(hubR) div 2, 1), blend(clrNeedle, clWhite, 50), clBlack);
+      sp.StrokePolyline(needlePts, 1.4, clBlack, True, True);
+
+      // hub: outer ring, metal disc, bright pin
+      paintCircle(sp, cx, cy, Round(hubR) + 1, blend(clBlack, clrHub, 40), clBlack, 1);
+      paintCircle(sp, cx, cy, Round(hubR), clrHub, blend(clBlack, clrHub, 50), 1);
+      paintCircle(sp, cx, cy, Math.Max(Round(hubR * 0.45), 2),
+        blend(clrHub, clWhite, 40), blend(clBlack, clrHub, 30), 1);
+      paintCircle(sp, cx, cy, Math.Max(Round(hubR * 0.2), 1), clrHubHi, clNone);
     end;
     sp.Flush;
   finally

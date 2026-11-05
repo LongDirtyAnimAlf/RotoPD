@@ -32,6 +32,7 @@ type
       const ARect: TRect; var ADoDefaultDrawing: Boolean);
     procedure GraphBaseBeforeDrawBackWall(ASender: TChart; ACanvas: TCanvas;
       const ARect: TRect; var ADoDefaultDrawing: Boolean);
+    procedure Panel1Resize(Sender: TObject);
     procedure Panel2Resize(Sender: TObject);
   private
     fEnabled                  : boolean;
@@ -77,6 +78,10 @@ const
   VBUSCOLOR                    = TColor($80FF80);
   ENERGYCOLOR                  = clYellow;
   POWERCOLOR                   = clFuchsia;
+  ACTIVECOLOR                  = TColor($E0F0FF); // clMenuHighlight
+  //INACTIVECOLOR                = TColor($404040); // clDefault
+  INACTIVECOLOR                = clLtGray;
+
 
 { TFrameSimple }
 
@@ -140,9 +145,7 @@ begin
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
-    //DigitLineWidth := 8;
-    //DigitHeight := Parent.Height;
-    //DigitWidth := DigitHeight * 2 div 4 - 1;
+    DigitLineWidth := 4;
     Borderstyle := bsNone;
     BevelStyle := bvLowered;
     Angle := 0;
@@ -161,9 +164,7 @@ begin
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
-    //DigitLineWidth := 8;
-    //DigitHeight := Parent.Height;
-    //DigitWidth := DigitHeight * 2 div 4 - 1;
+    DigitLineWidth := 4;
     Borderstyle := bsNone;
     BevelStyle := bvLowered;
     Angle := 0;
@@ -195,6 +196,8 @@ begin
     Hint:='Energy [WH]';
     ShowHint:=True;
   end;
+
+  Enable:=false;
 end;
 
 procedure TFrameSimple.SaveAsBitMap(aWidth,aHeight:integer);
@@ -247,6 +250,18 @@ begin
   ADoDefaultDrawing:=false;
 end;
 
+procedure TFrameSimple.Panel1Resize(Sender: TObject);
+begin
+  with fNewCurrentDisplay do begin
+    DigitHeight := Parent.Height-4;
+    DigitWidth := DigitHeight * 2 div 4 - 1;
+  end;
+  with fNewVoltageDisplay do begin
+    DigitHeight := Parent.Height-4;
+    DigitWidth := DigitHeight * 2 div 4 - 1;
+  end;
+end;
+
 procedure TFrameSimple.Panel2Resize(Sender: TObject);
 var
   P:TPanel;
@@ -270,11 +285,15 @@ begin
     Panel2.Enabled:=value;
     if value then
     begin
-      Panel1.Color:=clMenuHighlight;
+      //Panel1.Color:=clMenuHighlight;
+      Panel1.Color:=ACTIVECOLOR;
+      fPowerGauge.Color:=Panel1.Color;
     end
     else
     begin
-      Panel1.Color:=clGray;
+      //Panel1.Color:=clGray;
+      Panel1.Color:=INACTIVECOLOR;
+      fPowerGauge.Color:=Panel1.Color;
     end;
   end;
 end;

@@ -1421,6 +1421,7 @@ var
   F                            : textfile;
   Oldfile,NewFile              : TFileStream;
   backupname,runtext           : string;
+  SummaryFilename:string;
 begin
   TSpeedButton(Sender).Enabled:=False;
   try
@@ -1617,6 +1618,65 @@ begin
     else
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
+
+      with Machineset[VisibleMachine] do
+      begin
+        Running:=False;
+        Startup:=False;
+      end;
+
+      if Sender=StartStopSpeedButton then SetControls(Sender,false);
+      MachineBox[VisibleMachine].Enable:=false;
+
+      if Machineset[VisibleMachine].RunData.Count>1 then
+      begin
+        SummaryFilename:=ApplicationDirectory+'Summary__';
+        SummaryFilename:=SummaryFilename + Format('%.4d-%.2d-%.2d',[YearOf(Now), MonthOfTheYear(Now), DayOfTheMonth(Now)]);
+        SummaryFilename:=SummaryFilename+'.dat';
+        try
+          AssignFile(F,SummaryFileName);
+          if (NOT IsOpen(F)) then
+          try
+            if NOT FileExists(SummaryFileName) then
+            begin
+              Rewrite(F);
+              if IOResult=0 then
+              begin
+                Writeln(F, 'Overview of data collected on '+DateToStr(Now));
+                Writeln(F);
+                Write(F,'Project'+LocalFormatSettings.ListSeparator);
+                Write(F,'Product'+LocalFormatSettings.ListSeparator);
+                Write(F,'Run'+LocalFormatSettings.ListSeparator);
+                Write(F,'Location'+LocalFormatSettings.ListSeparator);
+                Write(F,'Filename'+LocalFormatSettings.ListSeparator);
+                Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
+                Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
+                Write(F,'Water1 [l]'+LocalFormatSettings.ListSeparator);
+                Write(F,'Water2 [l]'+LocalFormatSettings.ListSeparator);
+                Writeln(F,'Temperature (max) [°C]');
+              end;
+            end else Append(F);
+            if IOResult=0 then with Machineset[VisibleMachine] do
+            begin
+              Write(F,Project+LocalFormatSettings.ListSeparator);
+              Write(F,Product+LocalFormatSettings.ListSeparator);
+              Write(F,Runname+'_'+Runnumber+LocalFormatSettings.ListSeparator);
+              Write(F,InttoStr(VisibleMachine)+LocalFormatSettings.ListSeparator);
+              Write(F,ExtractFileName(Filename)+LocalFormatSettings.ListSeparator);
+              Write(F,TimetoStr(IncSecond(0,SecondsBetween(Running_time,Start_time)))+LocalFormatSettings.ListSeparator);
+              Write(F,FloatToStrF(ActiveTestType.Voltage,ffFixed, 9, 3));
+              Write(F,FloatToStrF(ActiveTestType.Current,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
+              Write(F,FloatToStrF(CurrentData.Energy,ffFixed, 9, 3)+LocalFormatSettings.ListSeparator);
+              Writeln(F,FloatToStrF(CurrentData.Power,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
+            end;
+          finally
+            CloseFile(F);
+          end;
+        except
+          CloseFile(F);
+        end;
+      end;
+
     end;
 
     if TSpeedButton(Sender).Down then

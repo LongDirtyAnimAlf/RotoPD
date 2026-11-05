@@ -31,6 +31,7 @@ object FrameSimple: TFrameSimple
     ClientWidth = 456
     ParentBackground = False
     TabOrder = 0
+    OnResize = Panel1Resize
     object panelVoltage: TPanel
       Left = 8
       Height = 52
