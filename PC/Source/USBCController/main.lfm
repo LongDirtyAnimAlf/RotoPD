@@ -340,6 +340,7 @@ object PowerbankMainForm: TPowerbankMainForm
               )
               TabOrder = 0
               Text = 'Select battery type'
+              OnSelect = TypesBoxSelect
             end
             object TestsBox: TComboBox
               AnchorSideLeft.Control = TypesBox
@@ -357,6 +358,7 @@ object PowerbankMainForm: TPowerbankMainForm
               TabOrder = 1
               Text = 'Select test type'
               OnChange = TestsBoxChange
+              OnSelect = TestsBoxSelect
             end
             object SamplesBox: TComboBox
               AnchorSideLeft.Control = TypesBox
@@ -592,6 +594,7 @@ object PowerbankMainForm: TPowerbankMainForm
               Anchors = [akTop, akRight]
               BorderSpacing.Top = 6
               BorderSpacing.Right = 2
+              Enabled = False
               TabOrder = 10
             end
             object ProjectLabel: TLabel
@@ -757,6 +760,7 @@ object PowerbankMainForm: TPowerbankMainForm
               BorderSpacing.Top = 4
               Caption = 'AutoFile'
               Checked = True
+              Enabled = False
               State = cbChecked
               TabOrder = 16
               OnClick = AutoFileNameCheckBoxClick

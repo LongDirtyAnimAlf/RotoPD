@@ -45,26 +45,28 @@ type
   //TDataList = specialize TList<TMachineData>;
   //TDataList = specialize TFPGList<TMachineData>;
 
-  TMachineSet = record
-    Project        : string;
-    Product        : string;
-    Runname        : string;
-    Runnumber      : string;
-    Info           : string;
-    Filename       : string;
-    Running        : boolean;
-    Last_time      : TDateTime;
-    AutoFileName   : boolean;
-    LatestMeasurementData    : TMachineData;
-    RunData        : TDataList;
-  end;
-  PMachineSet = ^TMachineSet;
-
   TTestType = record
     Name:string;
     Current:word;
     Voltage:word;
   end;
+
+  TMachineSet = record
+    Project                : string;
+    Product                : string;
+    Runname                : string;
+    Runnumber              : string;
+    Info                   : string;
+    Filename               : string;
+    Running                : boolean;
+    Last_time              : TDateTime;
+    //AutoFileName           : boolean;
+    ActiveTestType         : TTestType;
+    LatestMeasurementData  : TMachineData;
+    RunData                : TDataList;
+  end;
+  PMachineSet = ^TMachineSet;
+
 
   TUSBPDController = class(TUSBPD)
   end;
@@ -181,6 +183,8 @@ type
     procedure DataStoreTimerTimer(Sender: TObject);
     procedure TestsBoxChange(Sender: TObject);
     procedure ProgressStepperTimerTimer({%H-}Sender: TObject);
+    procedure TestsBoxSelect(Sender: TObject);
+    procedure TypesBoxSelect(Sender: TObject);
     procedure UpdateTimerTimer({%H-}Sender: TObject);
 
     procedure FormCreate({%H-}Sender: TObject);
@@ -216,26 +220,23 @@ type
     ApplicationDirectory:string;
 
     RotoPDController    : TUSBPDController;
-
-    ActiveTestType      : TTestType;
-    BatteryDataFile     : string;
-
     DD                  : TDataDevice;
 
     NumberOfMachines    : integer;
 
     procedure GraphBaseClick(Sender: TObject);
     procedure SaveMachineData;
-    procedure SetControls(Sender:TObject;localsetting:boolean);
 
-    procedure AfterShow(Sender: TObject; var Done: Boolean);
+    procedure SetControls(Sender:TObject;localsetting:boolean);
+    procedure SetEnable(Sender: TObject; value:boolean);
+
+    procedure AfterShow(Sender: TObject; var {%H-}Done: Boolean);
     procedure Startup;
 
     procedure UpdateDevice(Sender: TObject;datacarrier:integer);
     procedure UpdateUSB(Sender: TObject;datacarrier:integer);
-    procedure UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
+    procedure UpdateData(Sender: TObject; {%H-}ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 
-    procedure SetEnable(Sender: TObject; value:boolean);
     procedure SetChartAxis({%H-}Sender:TObject);
     procedure CreateDataFile(Sender: TObject);
     procedure AllStop(Sender: TObject);
@@ -707,12 +708,9 @@ end;
 procedure TPowerbankMainForm.PageControl1Change(Sender: TObject);
 var
   z:integer;
-  ChartTime,LocalStartTime:TDateTime;
   PG:TPageControl;
   LocalVisibleMachine:integer;
-
   PMS : PMachineSet;
-
 begin
   PG:=TPageControl(Sender);
 
@@ -738,8 +736,8 @@ begin
 
       //MachineChart.UndoZoom;
       if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
-      TLineSeries(MachineChart.Series[0]).Clear;
-      TLineSeries(MachineChart.Series[1]).Clear;
+      MachineChartLineSeries1.Clear;
+      MachineChartLineSeries2.Clear;
 
       //with Machineset[ActiveMachine] do
       begin
@@ -747,10 +745,11 @@ begin
         begin
           for z:=0 to PMS^.RunData.Count-1 do
           begin
-            ChartTime:=(PMS^.RunData[z].Elapsed DIV 1000);
             MachineChartLineSeries1.Add(PMS^.RunData[z].Voltage);
             MachineChartLineSeries2.Add(PMS^.RunData[z].Current);
           end;
+
+          // Why ?
           if (NOT PMS^.Running) then
           begin
             PMS^.LatestMeasurementData.Energy:=PMS^.RunData.Last.Energy;
@@ -760,9 +759,11 @@ begin
             PMS^.LatestMeasurementData.Capacity:=PMS^.RunData.Last.Capacity;
             PMS^.LatestMeasurementData.Elapsed:=PMS^.RunData.Last.Elapsed;
           end;
+
         end;
 
-        AutoFileNameCheckBox.Checked:=PMS^.AutoFileName;
+        //AutoFileNameCheckBox.Checked:=PMS^.AutoFileName;
+
         FilenameEdit.Text:=ExtractFileName(PMS^.Filename);
         Project_edit.Text:=PMS^.Project;
         Product_edit.Text:=PMS^.Product;
@@ -1213,8 +1214,8 @@ end;
 
 procedure TPowerbankMainForm.AutoFileNameCheckBoxClick(Sender: TObject);
 begin
-  FilenameEdit.Enabled:=(NOT AutoFileNameCheckBox.Checked);
-  Machineset[ActiveMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
+  //FilenameEdit.Enabled:=(NOT AutoFileNameCheckBox.Checked);
+  //Machineset[ActiveMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
 end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
@@ -1232,7 +1233,7 @@ begin
        //AND
        //(SamplesBox.ItemIndex<>-1)
        //AND
-       (Length(ActiveTestType.Name)>0)
+       (Length(Machineset[ActiveMachine].ActiveTestType.Name)>0)
        )
     then
     begin
@@ -1240,7 +1241,7 @@ begin
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
       DD.SetOutput(ActiveMachine,True);
-      DD.SetCurrent(ActiveMachine,1,ActiveTestType.Current);
+      DD.SetCurrent(ActiveMachine,1,Machineset[ActiveMachine].ActiveTestType.Current);
       ProgressStepperTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
   end
@@ -1403,110 +1404,26 @@ end;
 
 procedure TPowerbankMainForm.StartStopSpeedButtonClick(Sender: TObject);
 var
-  F                            : textfile;
-  Oldfile,NewFile              : TFileStream;
-  backupname,runtext           : string;
+  F        : textfile;
+  runtext  : string;
   SummaryFilename:string;
 begin
+
+  if Sender<>StartStopSpeedButton then
+  begin
+    raise SysUtils.Exception.Create('Wrong button !!');
+  end;
+
   TSpeedButton(Sender).Enabled:=False;
+
   try
     if TSpeedButton(Sender).Down then
     begin
-      if (
-         //(HPsource.Connected)
-         //AND
-         (TypesBox.ItemIndex<>-1)
-         AND
-         (SamplesBox.ItemIndex<>-1)
-         AND
-         (Length(ActiveTestType.Name)>0)
-         )
-      then
+      if (true) then
       begin
-        if Sender=StartStopSpeedButton then
-        begin
-          SaveMachineData;
-        end;
+        SaveMachineData;
 
-        //if AutoFileNameCheckBox.Checked then
-        if Machineset[ActiveMachine].AutoFileName then
-        begin
-          backupname:=ApplicationDirectory+'Data';
-          backupname:=backupname+'_MP'+InttoStr(ActiveMachine);
-          if Length(Machineset[ActiveMachine].Project)>0 then backupname:=backupname+'_'+Machineset[ActiveMachine].Project;
-          if Length(Machineset[ActiveMachine].Product)>0 then backupname:=backupname+'_'+Machineset[ActiveMachine].Product;
-          runtext:=Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber;
-          if Length(runtext)>1 then backupname:=backupname+'_'+runtext;
-          backupname:=backupname+'_'+ FormatDateTime('dd-mm-yyyy', Now);
-          backupname:=backupname+'_'+ FormatDateTime('HH', Now)+'h'+FormatDateTime('nn', Now);
-          backupname:=backupname+'.dat';
-          Machineset[ActiveMachine].Filename:=backupname;
-          if Sender=StartStopSpeedButton then FilenameEdit.text:=ExtractFileName(backupname);
-        end;
-
-        if Sender=StartStopSpeedButton then
-        begin
-         //SaveMachineData;
-
-          // Backup old file if needed !!!!
-          if FileExists(Machineset[ActiveMachine].Filename) then
-          begin
-             if MessageDlg ('Are you REALLY SURE you want to overwrite the datafile ?'+
-                         chr(13)+'(This is your last change to rescue your previous data!)',
-                         mtConfirmation, [mbYes,mbNo],0)=idNo
-             then
-             begin
-               TSpeedButton(Sender).Down:=False;
-               Exit;
-             end;
-
-             backupname := ChangeFileExt(Machineset[ActiveMachine].Filename, '.bak');
-             OldFile := TFileStream.Create(Machineset[ActiveMachine].Filename, fmOpenRead or fmShareDenyWrite);
-             try
-                {$WARN SYMBOL_PLATFORM OFF}
-                NewFile := TFileStream.Create(backupname, fmCreate or fmShareDenyRead);
-                {$WARN SYMBOL_PLATFORM ON}
-                try
-                  NewFile.CopyFrom(OldFile, OldFile.Size);
-                finally
-                  FreeAndNil(NewFile);
-                end;
-             finally
-               FreeAndNil(OldFile);
-             end;
-          end;
-        end;
-
-        try
-          AssignFile(F,Machineset[ActiveMachine].Filename);
-          if (NOT IsOpen(F)) then
-          try
-            Rewrite(F);
-            Write(F, #$EF#$BB#$BF);
-            if IOResult=0 then
-            begin
-              Writeln(F, 'Project: '+Machineset[ActiveMachine].Project);
-              Writeln(F, 'Product: '+Machineset[ActiveMachine].Product);
-              Writeln(F, 'Run: '+Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber);
-              Writeln(F, 'Info:');
-              Writeln(F, Machineset[ActiveMachine].Info);
-              Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
-              Writeln(F, 'Location: '+InttoStr(ActiveMachine));
-              Writeln(F, '**********************************************');
-              Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
-              Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
-              Write(F,'Water1 [l]'+LocalFormatSettings.ListSeparator);
-              Write(F,'Water2 [l]'+LocalFormatSettings.ListSeparator);
-              Write(F,'Temperature1 [°C]'+LocalFormatSettings.ListSeparator);
-              Writeln(F,'Temperature2 [°C]');
-            end;
-          finally
-            CloseFile(F);
-          end;
-        except
-          CloseFile(F);
-        end;
-
+        // Do machinebox things
         with (MachineBox[ActiveMachine]) do
         begin
           Enable:=true;
@@ -1516,20 +1433,7 @@ begin
              else Title:=Machineset[ActiveMachine].Product;
         end;
 
-        if Sender=StartStopSpeedButton then
-        begin
-          //MachineChart.UndoZoom;
-          if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
-          TLineSeries(MachineChart.Series[0]).Clear;
-          TLineSeries(MachineChart.Series[1]).Clear;
-          //TLineSeries(MachineChart.Series[2]).Clear;
-          //TLineSeries(MachineChart.Series[3]).Clear;
-
-          SetControls(Sender,true);
-
-          ProgressBar1.Show;
-        end;
-
+        // Do machineset things
         with Machineset[ActiveMachine] do
         begin
           RunData.Clear;
@@ -1539,30 +1443,15 @@ begin
           GUIPower:=0;
           Running:=True;
           Last_time:=NowUTC;
-
-          (*
-          reg:=TRegistry.Create;
-          with reg do
-          begin
-            try
-              RootKey := HKEY_CURRENT_USER;
-              if OpenKey(REGSTOREPOSITION+'Board'+InttoStr(ActiveMachine)+'\', True) then
-              begin
-                WriteString('Project',Project);
-                WriteString('Product',Product);
-                WriteString('Runname',Runname);
-                WriteString('Runnumber',Runnumber);
-                WriteString('Info',Info);
-                CloseKey;
-              end;
-            finally
-              reg.Free;
-            end;
-          end;
-          *)
         end;
 
+        //MachineChart.UndoZoom;
+        if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
+        MachineChartLineSeries1.Clear;
+        MachineChartLineSeries2.Clear;
+        MachineChartLineSeries3.Clear;
 
+        SetControls(Sender,true);
 
         SetEnable(Sender,false);
 
@@ -1574,10 +1463,12 @@ begin
 
         CreateDataFile(Sender);
 
-        TestInfoMemo.Lines.Append('Filename: '+BatteryDataFile);
+        FilenameEdit.Text:=ExtractFileName(Machineset[ActiveMachine].Filename);
+
+        TestInfoMemo.Lines.Append('Filename: '+Machineset[ActiveMachine].Filename);
 
         DD.SetOutput(ActiveMachine,True);
-        DD.SetCurrent(ActiveMachine,1,ActiveTestType.Current);
+        DD.SetCurrent(ActiveMachine,1,Machineset[ActiveMachine].ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1589,63 +1480,66 @@ begin
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
+      SetEnable(Sender,false);
+
+      SetControls(Sender,false);
+      MachineBox[ActiveMachine].Enable:=false;
+
       with Machineset[ActiveMachine] do
       begin
         Running:=False;
-      end;
 
-      if Sender=StartStopSpeedButton then SetControls(Sender,false);
-      MachineBox[ActiveMachine].Enable:=false;
-
-      if Machineset[ActiveMachine].RunData.Count>1 then
-      begin
-        SummaryFilename:=ApplicationDirectory+'Summary__';
-        SummaryFilename:=SummaryFilename + Format('%.4d-%.2d-%.2d',[YearOf(Now), MonthOfTheYear(Now), DayOfTheMonth(Now)]);
-        SummaryFilename:=SummaryFilename+'.dat';
-        try
-          AssignFile(F,SummaryFileName);
-          if (NOT IsOpen(F)) then
+        if RunData.Count>1 then
+        begin
+          SummaryFilename:=ApplicationDirectory+'Summary__';
+          SummaryFilename:=SummaryFilename + Format('%.4d-%.2d-%.2d',[YearOf(Now), MonthOfTheYear(Now), DayOfTheMonth(Now)]);
+          SummaryFilename:=SummaryFilename+'.dat';
           try
-            if NOT FileExists(SummaryFileName) then
-            begin
-              Rewrite(F);
-              Write(F, #$EF#$BB#$BF);
+            AssignFile(F,SummaryFileName);
+            if (NOT IsOpen(F)) then
+            try
+              if NOT FileExists(SummaryFileName) then
+              begin
+                Rewrite(F);
+                Write(F, #$EF#$BB#$BF);
+                if IOResult=0 then
+                begin
+                  Writeln(F, 'Overview of data collected on '+DateToStr(Now));
+                  Writeln(F);
+                  Write(F,'Project'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Product'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Run'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Location'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Filename'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Time [msec]'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Voltage [V]'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Current [A]'+LocalFormatSettings.ListSeparator);
+                  Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
+                  Writeln(F,'Power [W]'+LocalFormatSettings.ListSeparator);
+                end;
+              end else Append(F);
               if IOResult=0 then
               begin
-                Writeln(F, 'Overview of data collected on '+DateToStr(Now));
-                Writeln(F);
-                Write(F,'Project'+LocalFormatSettings.ListSeparator);
-                Write(F,'Product'+LocalFormatSettings.ListSeparator);
-                Write(F,'Run'+LocalFormatSettings.ListSeparator);
-                Write(F,'Location'+LocalFormatSettings.ListSeparator);
-                Write(F,'Filename'+LocalFormatSettings.ListSeparator);
-                Write(F,'Time [msec]'+LocalFormatSettings.ListSeparator);
-                Write(F,'Voltage [V]'+LocalFormatSettings.ListSeparator);
-                Write(F,'Current [A]'+LocalFormatSettings.ListSeparator);
-                Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
-                Writeln(F,'Power [W]'+LocalFormatSettings.ListSeparator);
+                Write(F,Project+LocalFormatSettings.ListSeparator);
+                Write(F,Product+LocalFormatSettings.ListSeparator);
+                Write(F,Runname+'_'+Runnumber+LocalFormatSettings.ListSeparator);
+                Write(F,InttoStr(ActiveMachine)+LocalFormatSettings.ListSeparator);
+                Write(F,ExtractFileName(Filename)+LocalFormatSettings.ListSeparator);
+                Write(F,InttoStr(LatestMeasurementData.Elapsed)+LocalFormatSettings.ListSeparator);
+                Write(F,FloatToStrF(ActiveTestType.Voltage,ffFixed, 9, 3));
+                Write(F,FloatToStrF(ActiveTestType.Current,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
+                Write(F,FloatToStrF(LatestMeasurementData.Energy,ffFixed, 9, 3)+LocalFormatSettings.ListSeparator);
+                Writeln(F,FloatToStrF(LatestMeasurementData.Power,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
               end;
-            end else Append(F);
-            if IOResult=0 then with Machineset[ActiveMachine] do
-            begin
-              Write(F,Project+LocalFormatSettings.ListSeparator);
-              Write(F,Product+LocalFormatSettings.ListSeparator);
-              Write(F,Runname+'_'+Runnumber+LocalFormatSettings.ListSeparator);
-              Write(F,InttoStr(ActiveMachine)+LocalFormatSettings.ListSeparator);
-              Write(F,ExtractFileName(Filename)+LocalFormatSettings.ListSeparator);
-              Write(F,InttoStr(LatestMeasurementData.Elapsed)+LocalFormatSettings.ListSeparator);
-              Write(F,FloatToStrF(ActiveTestType.Voltage,ffFixed, 9, 3));
-              Write(F,FloatToStrF(ActiveTestType.Current,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
-              Write(F,FloatToStrF(LatestMeasurementData.Energy,ffFixed, 9, 3)+LocalFormatSettings.ListSeparator);
-              Writeln(F,FloatToStrF(LatestMeasurementData.Power,ffFixed, 9, 1)+LocalFormatSettings.ListSeparator);
+            finally
+              CloseFile(F);
             end;
-          finally
+          except
             CloseFile(F);
           end;
-        except
-          CloseFile(F);
         end;
       end;
+
 
     end;
 
@@ -1697,7 +1591,7 @@ begin
         if (
            (chkVoltageLimit.Checked)
            AND
-           (PMS^.LatestMeasurementData.Voltage<(ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
+           (PMS^.LatestMeasurementData.Voltage<(PMS^.ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
            )
         then
         begin
@@ -1708,7 +1602,7 @@ begin
         if (
            (chkCurrentLimit.Checked)
            AND
-           (PMS^.LatestMeasurementData.Current<(ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
+           (PMS^.LatestMeasurementData.Current<(PMS^.ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
            )
         then
         begin
@@ -1745,32 +1639,20 @@ begin
     ProgressBar1.StepIt;
 end;
 
+procedure TPowerbankMainForm.TestsBoxSelect(Sender: TObject);
+begin
+  Runname_edit.Text:=TestsBox.Text;
+end;
+
+procedure TPowerbankMainForm.TypesBoxSelect(Sender: TObject);
+begin
+  Product_edit.Text:=TypesBox.Text;
+end;
+
 procedure TPowerbankMainForm.UpdateTimerTimer(Sender: TObject);
 begin
   Edit1.Text:='CONSULAB    ' + DateTimeToStr(NowUTC);
 end;
-
-procedure TPowerbankMainForm.SetEnable(Sender: TObject; value:boolean);
-begin
-  if Sender<>nil then
-  begin
-    if (Sender<>StartStopSpeedButton) then StartStopSpeedButton.Enabled:=value;
-
-    if (Sender<>btnTestDischarge) then btnTestDischarge.Enabled:=value;
-
-    if (Sender<>TypesBox) then TypesBox.Enabled:=value;
-    if (Sender<>SamplesBox) then SamplesBox.Enabled:=value;
-    if (Sender<>TestsBox) then TestsBox.Enabled:=value;
-    if (Sender<>CurrentEdit) then CurrentEdit.Enabled:=value;
-    if (Sender<>VoltageEdit) then VoltageEdit.Enabled:=value;
-
-    if (Sender<>chkVoltageLimit) then chkVoltageLimit.Enabled:=value;
-    if (Sender<>chkCurrentLimit) then chkCurrentLimit.Enabled:=value;
-
-    Application.ProcessMessages;
-  end;
-end;
-
 
 procedure TPowerbankMainForm.gridPDOResize(Sender: TObject);
 var
@@ -1856,36 +1738,21 @@ begin
   {$ifndef FPC}
   MachineChart.UndoZoom;
   {$endif}
-  {$ifdef FPC}
-
-  exit;
-
-  MachineChart.AxisList.GetAxisByAlign(calRight).Range.Min:=0;
-  MachineChart.AxisList.GetAxisByAlign(calRight).Range.UseMin:=True;
-  MachineChart.AxisList.GetAxisByAlign(calRight).Range.Max:=ActiveTestType.Current*1.2/1000;
-  MachineChart.AxisList.GetAxisByAlign(calRight).Range.UseMax:=True;
-  MachineChart.AxisList.GetAxisByAlign(calRight).Intervals.Count:=10;
-  MachineChart.AxisList.GetAxisByAlign(calLeft).Range.Min:=0;
-  MachineChart.AxisList.GetAxisByAlign(calLeft).Range.UseMin:=True;
-  MachineChart.AxisList.GetAxisByAlign(calLeft).Range.Max:=ActiveTestType.Voltage*1.2/1000;
-  MachineChart.AxisList.GetAxisByAlign(calLeft).Range.UseMax:=True;
-  MachineChart.AxisList.GetAxisByAlign(calLeft).Intervals.Count:=10;
-  {$else}
-  MachineChart.RightAxis.SetMinMax(0,ActiveTestType.Current*1.2/1000);
-  MachineChart.RightAxis.Increment:=0.1;
-  {$endif}
 end;
 
 procedure TPowerbankMainForm.CreateDataFile(Sender: TObject);
 var
   BatteryDataFileBackup      : string;
+  BatteryDataFile            : string;
   Oldfile,NewFile            : TFileStream;
   TimeString                 : string;
 begin
   TimeString := Format('%.2d-%.2d-%.4d',[DayOfTheMonth(NowUTC), MonthOfTheYear(NowUTC), YearOf(NowUTC)])+'__';
   TimeString := TimeString + Format('%.2d-%.2d-%.2d',[HourOfTheDay(NowUTC), MinuteOfTheHour(NowUTC), SecondOfTheMinute(NowUTC)])+'__';
 
-  BatteryDataFile:=Copy(TypesBox.Text,1,pos(' ',TypesBox.Text)-1)+'_'+SamplesBox.Text;
+  //BatteryDataFile:=Copy(TypesBox.Text,1,pos(' ',TypesBox.Text)-1)+'_'+SamplesBox.Text;
+  BatteryDataFile:=Copy(Product_edit.Text ,1,pos(' ',Product_edit.Text )-1);
+
   if Assigned(Sender) then
   begin
     //if Sender=btnCurve then BatteryDataFile:=BatteryDataFile+'_Curve';
@@ -1895,7 +1762,7 @@ begin
   begin
     BatteryDataFile:=BatteryDataFile+'_Special';
   end;
-  BatteryDataFile:=BatteryDataFile+'_'+ActiveTestType.Name+'__'+TimeString;
+  BatteryDataFile:=BatteryDataFile+'_'+Machineset[Self.ActiveMachine].ActiveTestType.Name+'__'+TimeString;
   BatteryDataFile:=BatteryDataFile+'data.csv';
 
   BatteryDataFile:=StringReplace(BatteryDataFile,' ','-',[rfReplaceAll]);
@@ -1903,6 +1770,8 @@ begin
   BatteryDataFile:=StringReplace(BatteryDataFile,'/','-',[rfReplaceAll]);
 
   BatteryDataFile:=ExtractFilePath(Application.ExeName)+BatteryDataFile;
+
+  Machineset[ActiveMachine].Filename:=BatteryDataFile;
 
   if FileExists(BatteryDataFile) then
   begin
@@ -1970,29 +1839,54 @@ begin
   i:=pos(' ',PB);
   PS:=Copy(PB,i+1,MaxInt);
   PB:=Copy(PB,1,i-1);
-  if (Length(BatteryDataFile)=0) then CreateDataFile(nil);
+  if (Length(Machineset[MN].Filename)=0) then CreateDataFile(nil);
 
-  AssignFile(F,BatteryDataFile );
+  (*
+
+  Write(F, #$EF#$BB#$BF);
+  if IOResult=0 then
+  begin
+    Writeln(F, 'Project: '+Machineset[ActiveMachine].Project);
+    Writeln(F, 'Product: '+Machineset[ActiveMachine].Product);
+    Writeln(F, 'Run: '+Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber);
+    Writeln(F, 'Info:');
+    Writeln(F, Machineset[ActiveMachine].Info);
+    Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
+    Writeln(F, 'Location: '+InttoStr(ActiveMachine));
+    Writeln(F, '**********************************************');
+    Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
+    Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
+    Write(F,'Water1 [l]'+LocalFormatSettings.ListSeparator);
+    Write(F,'Water2 [l]'+LocalFormatSettings.ListSeparator);
+    Write(F,'Temperature1 [°C]'+LocalFormatSettings.ListSeparator);
+    Writeln(F,'Temperature2 [°C]');
+  end;
+finally
+  CloseFile(F);
+ *)
+
+
+  AssignFile(F,Machineset[MN].Filename );
   try
 
-    if FileExists(BatteryDataFile)
+    if FileExists(Machineset[MN].Filename)
        then Append(F)
        else
        begin
          Rewrite(F);
          Write(F, #$EF#$BB#$BF);
-         writeln(F,'Code: ',PC);
-         writeln(F,'Brand: ',PB);
-         writeln(F,'Model: ',PS);
-         writeln(F,'Sample: ',SamplesBox.Text);
-         writeln(F,'Test: ',ActiveTestType.Name);
-         writeln(F,'Current: ',ActiveTestType.Current,' mA');
-         writeln(F,'Voltage: ',ActiveTestType.Voltage,' mV');
-         //writeln(F,'Extra info:');
-         //writeln(F,DataInfoMemo.Lines.Text);
-         writeln(F);
-         writeln(F,DateTimeToStr(NowUTC));
-         writeln(F,'*************************************************');
+         writeln(F, 'Code: ',PC);
+         writeln(F, 'Brand: ',PB);
+         writeln(F, 'Model: ',PS);
+         writeln(F, 'Sample: ',SamplesBox.Text);
+         writeln(F, 'Test: ',Machineset[MN].ActiveTestType.Name);
+         writeln(F, 'Discharge current: ',Machineset[MN].ActiveTestType.Current,' mA');
+         writeln(F, 'Discharge voltage: ',Machineset[MN].ActiveTestType.Voltage,' mV');
+         Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
+         Writeln(F, 'Machine: '+InttoStr(MN));
+         Writeln(F, 'Info:');
+         Writeln(F, Machineset[MN].Info);
+         Writeln(F, '**********************************************');
          writeln(F);
 
          write(F,'B_code',LocalFormatSettings.ListSeparator);
@@ -2019,7 +1913,7 @@ begin
     write(F,PC,LocalFormatSettings.ListSeparator);
     write(F,SamplesBox.Text,LocalFormatSettings.ListSeparator);
     write(F,'CD',LocalFormatSettings.ListSeparator);
-    write(F,ActiveTestType.Current,LocalFormatSettings.ListSeparator);
+    write(F,PMS^.ActiveTestType.Current,LocalFormatSettings.ListSeparator);
     write(F,FloattoStr(NowUTC,LocalFormatSettings),LocalFormatSettings.ListSeparator);
     write(F,FormatDateTime('dd-mm-yyyy hh:nn:ss',NowUTC),LocalFormatSettings.ListSeparator);
     write(F,FloattoStrF((PMS^.LatestMeasurementData.Elapsed / 1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
@@ -2036,12 +1930,12 @@ end;
 
 procedure TPowerbankMainForm.SetActiveTestType(const TT:TTestType);
 begin
-  ActiveTestType.Name:=TT.Name;
-  ActiveTestType.Voltage:=TT.Voltage;
-  ActiveTestType.Current:=TT.Current;
-  CurrentEdit.Text:=InttoStr(ActiveTestType.Current);
-  VoltageEdit.Text:=InttoStr(ActiveTestType.Voltage);
-  CurrentEdit.ReadOnly:=((Pos('Power',ActiveTestType.Name)=0) AND (Pos('Variable',ActiveTestType.Name)=0));
+  Machineset[Self.ActiveMachine].ActiveTestType.Name:=TT.Name;
+  Machineset[Self.ActiveMachine].ActiveTestType.Voltage:=TT.Voltage;
+  Machineset[Self.ActiveMachine].ActiveTestType.Current:=TT.Current;
+  CurrentEdit.Text:=InttoStr(Machineset[Self.ActiveMachine].ActiveTestType.Current);
+  VoltageEdit.Text:=InttoStr(Machineset[Self.ActiveMachine].ActiveTestType.Voltage);
+  CurrentEdit.ReadOnly:=((Pos('Power',Machineset[Self.ActiveMachine].ActiveTestType.Name)=0) AND (Pos('Variable',Machineset[Self.ActiveMachine].ActiveTestType.Name)=0));
   VoltageEdit.ReadOnly:=CurrentEdit.ReadOnly;
 end;
 
@@ -2210,7 +2104,7 @@ begin
         begin
           TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
           TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
-          if (ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+          if (PMS^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
           begin
             SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
           end;
@@ -2304,7 +2198,7 @@ begin
       TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
       TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
 
-      if (ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+      if (PMS^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
       begin
         SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
       end;
@@ -2461,7 +2355,7 @@ begin
       Runname:=Runname_edit.Text;
       Runnumber:=Runnumber_edit.Text;
       Info:=MachineInfoMemo.Lines.CommaText;
-      AutoFileName:=AutoFileNameCheckBox.Checked;
+      //AutoFileName:=AutoFileNameCheckBox.Checked;
     end;
   end;
 end;
@@ -2469,14 +2363,12 @@ end;
 procedure TPowerbankMainForm.SetControls(Sender:TObject;localsetting:boolean);
 begin
   if (Sender<>StartStopSpeedButton) then StartStopSpeedButton.Down:=localsetting;
-  MachineInfoMemo.Enabled:=NOT localsetting;
-  FilenameEdit.Enabled:=NOT localsetting;
+  //FilenameEdit.Enabled:=NOT localsetting;
   Project_edit.Enabled:=NOT localsetting;
   Product_edit.Enabled:=NOT localsetting;
   Runname_edit.Enabled:=NOT localsetting;
   Runnumber_edit.Enabled:=NOT localsetting;
-  AutoFileNameCheckBox.Enabled:=NOT localsetting;
-  ProgressBar1.Visible:=localsetting;
+  MachineInfoMemo.Enabled:=NOT localsetting;
   //btnClear.Enabled:=NOT localsetting;
 
   if localsetting then
@@ -2494,9 +2386,33 @@ begin
       StartStopSpeedButton.Caption:='Start';
       StartStopSpeedButton.Font.Color:=clLime;
     end;
-    FilenameEdit.Enabled:=(NOT Machineset[ActiveMachine].AutoFileName);
+    //FilenameEdit.Enabled:=(NOT Machineset[ActiveMachine].AutoFileName);
+  end;
+
+  SetEnable(Sender,NOT localsetting);
+end;
+
+procedure TPowerbankMainForm.SetEnable(Sender: TObject; value:boolean);
+begin
+  if Sender<>nil then
+  begin
+    if (Sender<>StartStopSpeedButton) then StartStopSpeedButton.Enabled:=value;
+
+    if (Sender<>btnTestDischarge) then btnTestDischarge.Enabled:=value;
+
+    if (Sender<>TypesBox) then TypesBox.Enabled:=value;
+    if (Sender<>SamplesBox) then SamplesBox.Enabled:=value;
+    if (Sender<>TestsBox) then TestsBox.Enabled:=value;
+    if (Sender<>CurrentEdit) then CurrentEdit.Enabled:=value;
+    if (Sender<>VoltageEdit) then VoltageEdit.Enabled:=value;
+
+    if (Sender<>chkVoltageLimit) then chkVoltageLimit.Enabled:=value;
+    if (Sender<>chkCurrentLimit) then chkCurrentLimit.Enabled:=value;
+
+    Application.ProcessMessages;
   end;
 end;
+
 
 {$ifdef MSWindows}
 procedure TPageControl.CNDrawItem(var Message: TLMDrawItems);
