@@ -3,7 +3,7 @@
   <ProjectSession>
     <PathDelim Value="\"/>
     <Version Value="13"/>
-    <BuildModes Active="Debug"/>
+    <BuildModes Active="win32"/>
     <Units>
       <Unit>
         <Filename Value="Powerbank.lpr"/>
@@ -23,8 +23,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1461"/>
-        <CursorPos Y="1463"/>
+        <TopLine Value="1805"/>
+        <CursorPos Y="1809"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -3994,18 +3994,6 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="606" Column="9" TopLine="584"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="607" Column="41" TopLine="585"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="728" Column="27" TopLine="705"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
         <Caret Line="804" Column="24" TopLine="782"/>
       </Position>
       <Position>
@@ -4110,7 +4098,19 @@
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1568" TopLine="1571"/>
+        <Caret Line="1467" Column="56" TopLine="1461"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1406" Column="20" TopLine="1386"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="236" Column="22" TopLine="224"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1808" Column="60" TopLine="1788"/>
       </Position>
     </JumpHistory>
     <RunParams>

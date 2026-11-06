@@ -1790,32 +1790,25 @@ begin
          Writeln(F, LocalPMS^.Info);
          Writeln(F, '**********************************************');
          writeln(F);
-
-         write(F,'B_code',LocalFormatSettings.ListSeparator);
-         write(F,'Sample#',LocalFormatSettings.ListSeparator);
-         write(F,'Battery mode',LocalFormatSettings.ListSeparator); // = CD
-         write(F,'Battery mode value',LocalFormatSettings.ListSeparator);
          write(F,'Trigger moment UTC',LocalFormatSettings.ListSeparator);
          write(F,'Human time',LocalFormatSettings.ListSeparator);
-         write(F,'Time(sec)',LocalFormatSettings.ListSeparator);
+         write(F,'Elapsed(msec)',LocalFormatSettings.ListSeparator);
          write(F,'Voltage(V)',LocalFormatSettings.ListSeparator);
          write(F,'Current(A)',LocalFormatSettings.ListSeparator);
+         write(F,'Power(W)',LocalFormatSettings.ListSeparator);
          write(F,'Capacity(Ah)',LocalFormatSettings.ListSeparator);
          write(F,'Energy(Wh)',LocalFormatSettings.ListSeparator);
          writeln(F);
        end;
 
-    write(F,PC,LocalFormatSettings.ListSeparator);
-    write(F,SamplesBox.Text,LocalFormatSettings.ListSeparator);
-    write(F,'CD',LocalFormatSettings.ListSeparator);
-    write(F,PCurrentMachineSet^.ActiveTestType.Current,LocalFormatSettings.ListSeparator);
     write(F,FloattoStr(NowUTC,LocalFormatSettings),LocalFormatSettings.ListSeparator);
     write(F,FormatDateTime('dd-mm-yyyy hh:nn:ss',NowUTC),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF((PCurrentMachineSet^.LatestMeasurementData.Elapsed / 1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Voltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Current,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Capacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Energy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF((LocalPMS^.LatestMeasurementData.Elapsed / 1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(LocalPMS^.LatestMeasurementData.Voltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(LocalPMS^.LatestMeasurementData.Current,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(LocalPMS^.LatestMeasurementData.Power,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(LocalPMS^.LatestMeasurementData.Capacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(LocalPMS^.LatestMeasurementData.Energy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
 
     writeln(F);
   finally
