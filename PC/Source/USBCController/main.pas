@@ -68,7 +68,6 @@ type
   end;
   PMachineSet = ^TMachineSet;
 
-
   TUSBPDController = class(TUSBPD)
   end;
 
@@ -192,6 +191,8 @@ type
     Machineset          : array of TMachineSet;
     DUT                 : array of TUSBPDDevice;
 
+    PCurrentMachineSet  : PMachineSet;
+
     TestTypes           : array of TTestType;
 
     FOldOnIdle          : TIdleEvent;
@@ -231,7 +232,6 @@ type
     procedure AfterShow(Sender: TObject; var {%H-}Done: Boolean);
     procedure Startup;
 
-    procedure UpdateDevice(Sender: TObject;datacarrier:integer);
     procedure UpdateUSB(Sender: TObject;datacarrier:integer);
     procedure UpdateData(Sender: TObject; {%H-}ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 
@@ -586,6 +586,8 @@ begin
   //DD.Enabled:=True;
 
   ActiveMachine:=1;
+  PCurrentMachineSet:=@Machineset[ActiveMachine];
+
   PageControl1.TabIndex:=2;
 
   DataStoreTimer.Interval:=NumRate*1000;
@@ -1029,7 +1031,7 @@ begin
        //AND
        //(SamplesBox.ItemIndex<>-1)
        //AND
-       (Length(Machineset[ActiveMachine].ActiveTestType.Name)>0)
+       (Length(PCurrentMachineSet^.ActiveTestType.Name)>0)
        )
     then
     begin
@@ -1037,7 +1039,7 @@ begin
       SetEnable(Sender,false);
       TestInfoMemo.Lines.Append('Checking selected discharge.');
       DD.SetOutput(ActiveMachine,True);
-      DD.SetCurrent(ActiveMachine,1,Machineset[ActiveMachine].ActiveTestType.Current);
+      DD.SetCurrent(ActiveMachine,1,PCurrentMachineSet^.ActiveTestType.Current);
       ProgressStepperTimer.Enabled:=true;
     end else TSpeedButton(Sender).Down:=False;
   end
@@ -1223,14 +1225,14 @@ begin
         with (MachineBox[ActiveMachine]) do
         begin
           Enable:=true;
-          runtext:=Machineset[ActiveMachine].Runname+' '+Machineset[ActiveMachine].Runnumber;
+          runtext:=PCurrentMachineSet^.Runname+' '+PCurrentMachineSet^.Runnumber;
           if Length(runtext)>1
-             then Title:=Machineset[ActiveMachine].Product+' '+runtext
-             else Title:=Machineset[ActiveMachine].Product;
+             then Title:=PCurrentMachineSet^.Product+' '+runtext
+             else Title:=PCurrentMachineSet^.Product;
         end;
 
         // Do machineset things
-        with Machineset[ActiveMachine] do
+        with PCurrentMachineSet^ do
         begin
           RunData.Clear;
           LatestMeasurementData:=Default(TMachineData);
@@ -1259,12 +1261,12 @@ begin
 
         CreateDataFile(Sender);
 
-        FilenameEdit.Text:=ExtractFileName(Machineset[ActiveMachine].Filename);
+        FilenameEdit.Text:=ExtractFileName(PCurrentMachineSet^.Filename);
 
-        TestInfoMemo.Lines.Append('Filename: '+Machineset[ActiveMachine].Filename);
+        TestInfoMemo.Lines.Append('Filename: '+PCurrentMachineSet^.Filename);
 
         DD.SetOutput(ActiveMachine,True);
-        DD.SetCurrent(ActiveMachine,1,Machineset[ActiveMachine].ActiveTestType.Current);
+        DD.SetCurrent(ActiveMachine,1,PCurrentMachineSet^.ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1281,7 +1283,7 @@ begin
       SetControls(Sender,false);
       MachineBox[ActiveMachine].Enable:=false;
 
-      with Machineset[ActiveMachine] do
+      with PCurrentMachineSet^ do
       begin
         Running:=False;
 
@@ -1355,13 +1357,11 @@ const
   STOPPERCENTAGE = 80;
 var
   Elapsed:longword;
-  PMS: PMachineSet;
   x:integer;
+  LocalPMS:PMachineSet;
 begin
-  // Point towards the correct dataset
-  PMS:=@Machineset[ActiveMachine];
-  MachineChartLineSeries1.Add(PMS^.LatestMeasurementData.Voltage);
-  MachineChartLineSeries2.Add(PMS^.LatestMeasurementData.Current);
+  MachineChartLineSeries1.Add(PCurrentMachineSet^.LatestMeasurementData.Voltage);
+  MachineChartLineSeries2.Add(PCurrentMachineSet^.LatestMeasurementData.Current);
 
   if NOT Assigned(Sender) then
   begin
@@ -1373,21 +1373,21 @@ begin
     // only perform the below if coming from the timer !
     if Assigned(Sender) then
     begin
-      PMS:=@Machineset[x];
-      if (PMS^.Running) then
+      LocalPMS:=@Machineset[x];
+      if (LocalPMS^.Running) then
       begin
-        Elapsed:=MilliSecondsBetween(NowUTC,PMS^.Last_time);
-        PMS^.Last_time:=NowUTC;
-        PMS^.LatestMeasurementData.Elapsed:=PMS^.LatestMeasurementData.Elapsed+Elapsed;
+        Elapsed:=MilliSecondsBetween(NowUTC,LocalPMS^.Last_time);
+        LocalPMS^.Last_time:=NowUTC;
+        LocalPMS^.LatestMeasurementData.Elapsed:=LocalPMS^.LatestMeasurementData.Elapsed+Elapsed;
 
-        PMS^.RunData.Add(PMS^.LatestMeasurementData);
+        LocalPMS^.RunData.Add(LocalPMS^.LatestMeasurementData);
 
         SaveBatteryData(ActiveMachine);
 
         if (
            (chkVoltageLimit.Checked)
            AND
-           (PMS^.LatestMeasurementData.Voltage<(PMS^.ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
+           (LocalPMS^.LatestMeasurementData.Voltage<(LocalPMS^.ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
            )
         then
         begin
@@ -1398,7 +1398,7 @@ begin
         if (
            (chkCurrentLimit.Checked)
            AND
-           (PMS^.LatestMeasurementData.Current<(PMS^.ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
+           (LocalPMS^.LatestMeasurementData.Current<(LocalPMS^.ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
            )
         then
         begin
@@ -1416,11 +1416,8 @@ var
   z:integer;
   TC:TTabControl;
   LocalVisibleMachine:integer;
-  PMS : PMachineSet;
 begin
   TC:=TTabControl(Sender);
-
-  //if TC.OwnerDraw then TC.Invalidate;
 
   LocalVisibleMachine:=TC.TabIndex+1;
 
@@ -1430,10 +1427,10 @@ begin
     begin
       ActiveMachine:=LocalVisibleMachine;
 
-      // Point towards the correct dataset
-      PMS:=@Machineset[ActiveMachine];
+      // Point global dataset towards the correct dataset
+      PCurrentMachineSet:=@Machineset[ActiveMachine];
 
-      SetControls(Sender,PMS^.Running);
+      SetControls(Sender,PCurrentMachineSet^.Running);
 
       MachineChartLineSeries1.BeginUpdate;
       MachineChartLineSeries2.BeginUpdate;
@@ -1444,22 +1441,22 @@ begin
       //MachineChart.UndoZoom;
       if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
 
-      if PMS^.RunData.Count>0 then
+      if PCurrentMachineSet^.RunData.Count>0 then
       begin
-        for z:=0 to PMS^.RunData.Count-1 do
+        for z:=0 to PCurrentMachineSet^.RunData.Count-1 do
         begin
-          MachineChartLineSeries1.Add(PMS^.RunData[z].Voltage);
-          MachineChartLineSeries2.Add(PMS^.RunData[z].Current);
+          MachineChartLineSeries1.Add(PCurrentMachineSet^.RunData[z].Voltage);
+          MachineChartLineSeries2.Add(PCurrentMachineSet^.RunData[z].Current);
         end;
         // Why ?
-        if (NOT PMS^.Running) then
+        if (NOT PCurrentMachineSet^.Running) then
         begin
-          PMS^.LatestMeasurementData.Energy:=PMS^.RunData.Last.Energy;
-          PMS^.LatestMeasurementData.Voltage:=PMS^.RunData.Last.Voltage;
-          PMS^.LatestMeasurementData.Current:=PMS^.RunData.Last.Current;
-          PMS^.LatestMeasurementData.Power:=PMS^.RunData.Last.Power;
-          PMS^.LatestMeasurementData.Capacity:=PMS^.RunData.Last.Capacity;
-          PMS^.LatestMeasurementData.Elapsed:=PMS^.RunData.Last.Elapsed;
+          PCurrentMachineSet^.LatestMeasurementData.Energy:=PCurrentMachineSet^.RunData.Last.Energy;
+          PCurrentMachineSet^.LatestMeasurementData.Voltage:=PCurrentMachineSet^.RunData.Last.Voltage;
+          PCurrentMachineSet^.LatestMeasurementData.Current:=PCurrentMachineSet^.RunData.Last.Current;
+          PCurrentMachineSet^.LatestMeasurementData.Power:=PCurrentMachineSet^.RunData.Last.Power;
+          PCurrentMachineSet^.LatestMeasurementData.Capacity:=PCurrentMachineSet^.RunData.Last.Capacity;
+          PCurrentMachineSet^.LatestMeasurementData.Elapsed:=PCurrentMachineSet^.RunData.Last.Elapsed;
         end;
 
       end;
@@ -1468,20 +1465,20 @@ begin
       MachineChartLineSeries1.EndUpdate;
 
 
-      //AutoFileNameCheckBox.Checked:=PMS^.AutoFileName;
+      //AutoFileNameCheckBox.Checked:=PCurrentMachineSet^.AutoFileName;
 
-      FilenameEdit.Text:=ExtractFileName(PMS^.Filename);
-      Project_edit.Text:=PMS^.Project;
-      Product_edit.Text:=PMS^.Product;
-      Runname_edit.Text:=PMS^.Runname;
-      Runnumber_edit.Text:=PMS^.Runnumber;
-      MachineInfoMemo.Lines.CommaText:=PMS^.Info;
+      FilenameEdit.Text:=ExtractFileName(PCurrentMachineSet^.Filename);
+      Project_edit.Text:=PCurrentMachineSet^.Project;
+      Product_edit.Text:=PCurrentMachineSet^.Product;
+      Runname_edit.Text:=PCurrentMachineSet^.Runname;
+      Runnumber_edit.Text:=PCurrentMachineSet^.Runnumber;
+      MachineInfoMemo.Lines.CommaText:=PCurrentMachineSet^.Info;
 
-      GUIVoltage:=PMS^.LatestMeasurementData.Voltage;
-      GUICurrent:=PMS^.LatestMeasurementData.Current;
-      GUIPower:=PMS^.LatestMeasurementData.Power;
-      GUIEnergy:=PMS^.LatestMeasurementData.Energy;
-      GUICapacity:=PMS^.LatestMeasurementData.Capacity;
+      GUIVoltage:=PCurrentMachineSet^.LatestMeasurementData.Voltage;
+      GUICurrent:=PCurrentMachineSet^.LatestMeasurementData.Current;
+      GUIPower:=PCurrentMachineSet^.LatestMeasurementData.Power;
+      GUIEnergy:=PCurrentMachineSet^.LatestMeasurementData.Energy;
+      GUICapacity:=PCurrentMachineSet^.LatestMeasurementData.Capacity;
 
       SourcePDODrawGrid.Invalidate;
       SourceEPRPDODrawGrid.Invalidate;
@@ -1642,7 +1639,7 @@ begin
   begin
     BatteryDataFile:=BatteryDataFile+'_Special';
   end;
-  BatteryDataFile:=BatteryDataFile+'_'+Machineset[Self.ActiveMachine].ActiveTestType.Name+'__'+TimeString;
+  BatteryDataFile:=BatteryDataFile+'_'+PCurrentMachineSet^.ActiveTestType.Name+'__'+TimeString;
   BatteryDataFile:=BatteryDataFile+'data.csv';
 
   BatteryDataFile:=StringReplace(BatteryDataFile,' ','-',[rfReplaceAll]);
@@ -1651,7 +1648,7 @@ begin
 
   BatteryDataFile:=ExtractFilePath(Application.ExeName)+BatteryDataFile;
 
-  Machineset[ActiveMachine].Filename:=BatteryDataFile;
+  PCurrentMachineSet^.Filename:=BatteryDataFile;
 
   if FileExists(BatteryDataFile) then
   begin
@@ -1711,26 +1708,28 @@ var
   F : textfile;
   PC,PB,PS:string;
   i:integer;
-  PMS: PMachineSet;
+  LocalPMS: PMachineSet;
 begin
+  LocalPMS:=@Machineset[MN];
+
   i:=pos(' ',TypesBox.Text);
   PC:=Copy(TypesBox.Text,1,i-1);
   PB:=Copy(TypesBox.Text,i+1,MaxInt);
   i:=pos(' ',PB);
   PS:=Copy(PB,i+1,MaxInt);
   PB:=Copy(PB,1,i-1);
-  if (Length(Machineset[MN].Filename)=0) then CreateDataFile(nil);
+  if (Length(LocalPMS^.Filename)=0) then CreateDataFile(nil);
 
   (*
 
   Write(F, #$EF#$BB#$BF);
   if IOResult=0 then
   begin
-    Writeln(F, 'Project: '+Machineset[ActiveMachine].Project);
-    Writeln(F, 'Product: '+Machineset[ActiveMachine].Product);
-    Writeln(F, 'Run: '+Machineset[ActiveMachine].Runname+'_'+Machineset[ActiveMachine].Runnumber);
+    Writeln(F, 'Project: '+LocalPMS^..Project);
+    Writeln(F, 'Product: '+LocalPMS^..Product);
+    Writeln(F, 'Run: '+LocalPMS^..Runname+'_'+LocalPMS^..Runnumber);
     Writeln(F, 'Info:');
-    Writeln(F, Machineset[ActiveMachine].Info);
+    Writeln(F, LocalPMS^..Info);
     Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
     Writeln(F, 'Location: '+InttoStr(ActiveMachine));
     Writeln(F, '**********************************************');
@@ -1746,10 +1745,10 @@ finally
  *)
 
 
-  AssignFile(F,Machineset[MN].Filename );
+  AssignFile(F,LocalPMS^.Filename );
   try
 
-    if FileExists(Machineset[MN].Filename)
+    if FileExists(LocalPMS^.Filename)
        then Append(F)
        else
        begin
@@ -1759,13 +1758,13 @@ finally
          writeln(F, 'Brand: ',PB);
          writeln(F, 'Model: ',PS);
          writeln(F, 'Sample: ',SamplesBox.Text);
-         writeln(F, 'Test: ',Machineset[MN].ActiveTestType.Name);
-         writeln(F, 'Discharge current: ',Machineset[MN].ActiveTestType.Current,' mA');
-         writeln(F, 'Discharge voltage: ',Machineset[MN].ActiveTestType.Voltage,' mV');
+         writeln(F, 'Test: ',LocalPMS^.ActiveTestType.Name);
+         writeln(F, 'Discharge current: ',LocalPMS^.ActiveTestType.Current,' mA');
+         writeln(F, 'Discharge voltage: ',LocalPMS^.ActiveTestType.Voltage,' mV');
          Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
          Writeln(F, 'Machine: '+InttoStr(MN));
          Writeln(F, 'Info:');
-         Writeln(F, Machineset[MN].Info);
+         Writeln(F, LocalPMS^.Info);
          Writeln(F, '**********************************************');
          writeln(F);
 
@@ -1788,19 +1787,17 @@ finally
     else
       ProgressBar1.StepIt;
 
-    PMS:=@Machineset[MN];
-
     write(F,PC,LocalFormatSettings.ListSeparator);
     write(F,SamplesBox.Text,LocalFormatSettings.ListSeparator);
     write(F,'CD',LocalFormatSettings.ListSeparator);
-    write(F,PMS^.ActiveTestType.Current,LocalFormatSettings.ListSeparator);
+    write(F,PCurrentMachineSet^.ActiveTestType.Current,LocalFormatSettings.ListSeparator);
     write(F,FloattoStr(NowUTC,LocalFormatSettings),LocalFormatSettings.ListSeparator);
     write(F,FormatDateTime('dd-mm-yyyy hh:nn:ss',NowUTC),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF((PMS^.LatestMeasurementData.Elapsed / 1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PMS^.LatestMeasurementData.Voltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PMS^.LatestMeasurementData.Current,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PMS^.LatestMeasurementData.Capacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
-    write(F,FloattoStrF(PMS^.LatestMeasurementData.Energy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF((PCurrentMachineSet^.LatestMeasurementData.Elapsed / 1000),ffFixed,6,1,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Voltage,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Current,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Capacity,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
+    write(F,FloattoStrF(PCurrentMachineSet^.LatestMeasurementData.Energy,ffFixed,10,3,LocalFormatSettings),LocalFormatSettings.ListSeparator);
 
     writeln(F);
   finally
@@ -1810,12 +1807,12 @@ end;
 
 procedure TPowerbankMainForm.SetActiveTestType(const TT:TTestType);
 begin
-  Machineset[Self.ActiveMachine].ActiveTestType.Name:=TT.Name;
-  Machineset[Self.ActiveMachine].ActiveTestType.Voltage:=TT.Voltage;
-  Machineset[Self.ActiveMachine].ActiveTestType.Current:=TT.Current;
-  CurrentEdit.Text:=InttoStr(Machineset[Self.ActiveMachine].ActiveTestType.Current);
-  VoltageEdit.Text:=InttoStr(Machineset[Self.ActiveMachine].ActiveTestType.Voltage);
-  CurrentEdit.ReadOnly:=((Pos('Power',Machineset[Self.ActiveMachine].ActiveTestType.Name)=0) AND (Pos('Variable',Machineset[Self.ActiveMachine].ActiveTestType.Name)=0));
+  PCurrentMachineSet^.ActiveTestType.Name:=TT.Name;
+  PCurrentMachineSet^.ActiveTestType.Voltage:=TT.Voltage;
+  PCurrentMachineSet^.ActiveTestType.Current:=TT.Current;
+  CurrentEdit.Text:=InttoStr(PCurrentMachineSet^.ActiveTestType.Current);
+  VoltageEdit.Text:=InttoStr(PCurrentMachineSet^.ActiveTestType.Voltage);
+  CurrentEdit.ReadOnly:=((Pos('Power',PCurrentMachineSet^.ActiveTestType.Name)=0) AND (Pos('Variable',PCurrentMachineSet^.ActiveTestType.Name)=0));
   VoltageEdit.ReadOnly:=CurrentEdit.ReadOnly;
 end;
 
@@ -1851,12 +1848,12 @@ var
   qwd                  : TQWordData;
   bd                   : TByteData;
   aSourcePDO           : ^TSOURCEPDO;
-  PMS                  : PMachineSet;
+  LocalPMS             : PMachineSet;
 begin
   // The boardnumber is an absolute indicator !!
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
   // Point towards the correct dataset
-  PMS:=@Machineset[boardnumber];
+  LocalPMS:=@Machineset[boardnumber];
 
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   length:=PByteArray(data)^[LENGTHPOSITION];
@@ -1872,14 +1869,14 @@ begin
       //RotoPD Voltage
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      PMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
+      LocalPMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
 
       Inc(counter,2);
 
       //RotoPD Current
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      PMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
+      LocalPMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
 
       Inc(counter,2);
 
@@ -1888,7 +1885,7 @@ begin
       dwd.Bytes[1]:=PByteArray(data)^[counter+1];
       dwd.Bytes[2]:=PByteArray(data)^[counter+2];
       dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      PMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
+      LocalPMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
 
       Inc(counter,4);
 
@@ -1904,14 +1901,14 @@ begin
         //IT2704 Voltage
         wd.Bytes[0]:=PByteArray(data)^[counter];
         wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        PMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
+        LocalPMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
 
         Inc(counter,2);
 
         //IT2704 Current
         wd.Bytes[0]:=PByteArray(data)^[counter];
         wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        PMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
+        LocalPMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
 
         Inc(counter,2);
 
@@ -1920,7 +1917,7 @@ begin
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        PMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
+        LocalPMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
 
         Inc(counter,4);
 
@@ -1929,7 +1926,7 @@ begin
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        PMS^.LatestMeasurementData.Capacity:=(dwd.Raw/1000);
+        LocalPMS^.LatestMeasurementData.Capacity:=(dwd.Raw/1000);
 
         Inc(counter,4);
 
@@ -1938,7 +1935,7 @@ begin
         dwd.Bytes[1]:=PByteArray(data)^[counter+1];
         dwd.Bytes[2]:=PByteArray(data)^[counter+2];
         dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        PMS^.LatestMeasurementData.Energy:=(dwd.Raw/1000);
+        LocalPMS^.LatestMeasurementData.Energy:=(dwd.Raw/1000);
 
         Inc(counter,4);
       end;
@@ -1947,19 +1944,19 @@ begin
       begin
         // We got data addressed to our current visible machine
         // So update the GUI also
-        GUIVoltage:=PMS^.LatestMeasurementData.Voltage;
-        GUICurrent:=PMS^.LatestMeasurementData.Current;
-        GUIPower:=PMS^.LatestMeasurementData.Power;
-        GUIEnergy:=PMS^.LatestMeasurementData.Energy;
-        GUICapacity:=PMS^.LatestMeasurementData.Capacity;
+        GUIVoltage:=LocalPMS^.LatestMeasurementData.Voltage;
+        GUICurrent:=LocalPMS^.LatestMeasurementData.Current;
+        GUIPower:=LocalPMS^.LatestMeasurementData.Power;
+        GUIEnergy:=LocalPMS^.LatestMeasurementData.Energy;
+        GUICapacity:=LocalPMS^.LatestMeasurementData.Capacity;
       end;
 
       with MachineBox[boardnumber] do
       begin
-        Voltage:=PMS^.LatestMeasurementData.Voltage;
-        Current:=PMS^.LatestMeasurementData.Current;
-        Power:=PMS^.LatestMeasurementData.Power;
-        Energy:=PMS^.LatestMeasurementData.Energy;
+        Voltage:=LocalPMS^.LatestMeasurementData.Voltage;
+        Current:=LocalPMS^.LatestMeasurementData.Current;
+        Power:=LocalPMS^.LatestMeasurementData.Power;
+        Energy:=LocalPMS^.LatestMeasurementData.Energy;
       end;
 
     end;
@@ -1984,7 +1981,7 @@ begin
         begin
           TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
           TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
-          if (PMS^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+          if (PCurrentMachineSet^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
           begin
             SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
           end;
@@ -2046,8 +2043,11 @@ begin
         end;
       end;
 
-      SourcePDODrawGrid.Invalidate;
-      SourceEPRPDODrawGrid.Invalidate;
+      if (boardnumber=ActiveMachine) then
+      begin
+        SourcePDODrawGrid.Invalidate;
+        SourceEPRPDODrawGrid.Invalidate;
+      end;
     end;
 
     TCommands.CMD_set_MAXPDO,TCommands.CMD_set_FIXEDPDO,TCommands.CMD_set_PPSPDO,TCommands.CMD_set_AVSPDO:
@@ -2078,13 +2078,16 @@ begin
       TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
       TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
 
-      if (PMS^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+      if (PCurrentMachineSet^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
       begin
         SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
       end;
 
-      SourcePDODrawGrid.Invalidate;
-      SourceEPRPDODrawGrid.Invalidate;
+      if (boardnumber=ActiveMachine) then
+      begin
+        SourcePDODrawGrid.Invalidate;
+        SourceEPRPDODrawGrid.Invalidate;
+      end;
     end;
 
   else
@@ -2094,15 +2097,52 @@ begin
   end;
 end;
 
+procedure ReplaceImageFromResource(AImageList: TImageList; AIndex: Integer; const AResName: string);
+var
+  Stream: TResourceStream;
+  Png: TPortableNetworkGraphic;
+begin
+  if (AIndex < 0) or (AIndex >= AImageList.Count) then Exit;
+
+  Stream := TResourceStream.Create(HInstance, AResName, RT_RCDATA);
+  try
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromStream(Stream);
+      Png.Transparent := True;
+      AImageList.Replace(AIndex, Png, nil);   // replaces the image
+    finally
+      Png.Free;
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
 procedure TPowerbankMainForm.UpdateUSB(Sender: TObject;datacarrier:integer);
 var
   Info:string;
-  x:integer;
+  BN:integer;
+  LocalPMS:PMachineSet;
 begin
   if datacarrier<>0 then
   begin
-    if datacarrier>0 then Info:='#'+InttoStr(datacarrier)+' board added.';
-    if datacarrier<0 then Info:='#'+InttoStr(-1*datacarrier)+' board removed.';
+    BN:=(Abs(datacarrier));
+    if datacarrier>0 then Info:='Channel #'+InttoStr(BN)+' board added.';
+    if datacarrier<0 then Info:='Channel #'+InttoStr(BN)+' board removed.';
+
+    LocalPMS:=@Machineset[BN];
+    LocalPMS^.BoardAvailable:=(datacarrier>0);
+
+    ImageList1.BeginUpdate;
+    if LocalPMS^.BoardAvailable then
+      ReplaceImageFromResource(ImageList1,BN-1,'OK_02_32')
+    else
+      ReplaceImageFromResource(ImageList1,BN-1,'DELETE_01_32');
+    ImageList1.EndUpdate;
+
+    TabControl1.Invalidate;
+
     USBDebugLog.Lines.Append(Info);
     Info:=DD.Errors;
     if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
@@ -2110,74 +2150,20 @@ begin
     if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
   end;
   if datacarrier=0 then USBDebugLog.Lines.Append('Unknown board error');
-
-
-  //MachineInfoMemo.Lines.Append('Board:'+InttoStr(datacarrier));
-  if datacarrier>0 then
-  begin
-    Info:='Data acquisitionboard '+InttoStr(datacarrier)+' added';
-    Machineset[datacarrier].BoardAvailable:=true;
-  end;
-  if datacarrier<0 then
-  begin
-    Info:='Data acquisitionboard '+InttoStr(Abs(datacarrier))+' removed';
-    Machineset[abs(datacarrier)].BoardAvailable:=false;
-  end;
-
   if datacarrier=0 then Info:='Unknown data acquisitionboard error';
 
-  PageControl1.Repaint;
-
-  //Sleep(250);
-  //Application.ProcessMessages;
-end;
-
-
-procedure TPowerbankMainForm.UpdateDevice(Sender: TObject;datacarrier:integer);
-var
-  Info:string;
-begin
-
-
-
-
-
-
-
-
-
-
-
-  if datacarrier<>0 then
-  begin
-    if datacarrier>0 then Info:='#'+InttoStr(datacarrier)+' board added.';
-    if datacarrier<0 then Info:='#'+InttoStr(-1*datacarrier)+' board removed.';
-    USBDebugLog.Lines.Append(Info);
-    Info:=DD.Errors;
-    if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
-    Info:=DD.Info;
-    if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
-  end;
-  if datacarrier=0 then USBDebugLog.Lines.Append('Unknown board error');
   {$ifdef MSWINDOWS}
   SplashForm:=TSplashForm.Create(application);
   Splashform.Label2.Caption:='Board '+InttoStr(abs(datacarrier))+' change';
   SplashForm.Update;
   //Splashform.Label3.Caption:='Init ready';
   SplashForm.Update;
+  //Application.ProcessMessages;
   sleep(500);
   if Assigned(SplashForm) then SplashForm.Destroy;
   SplashForm:=nil;
+  //Application.ProcessMessages;
   {$endif}
-
-  if (datacarrier>0) then
-  begin
-    Info:=DD.Errors;
-    if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
-    Info:=DD.Info;
-    if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
-  end;
-  Application.ProcessMessages;
 end;
 
 procedure TPowerbankMainForm.GraphBaseClick(Sender: TObject);
@@ -2202,7 +2188,7 @@ procedure TPowerbankMainForm.SaveMachineData;
 begin
   if (ActiveMachine>0) then
   begin
-    if (NOT Machineset[ActiveMachine].Running) then with Machineset[ActiveMachine] do
+    if (NOT PCurrentMachineSet^.Running) then with PCurrentMachineSet^ do
     begin
       Project:=Project_edit.Text;
       Product:=Product_edit.Text;

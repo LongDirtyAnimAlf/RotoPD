@@ -13,6 +13,10 @@
         <DpiAware Value="True"/>
       </XPManifest>
       <Icon Value="0"/>
+      <Resources Count="2">
+        <Resource_0 FileName="icons\Delete_01_32.png" Type="RCDATA" ResourceName="DELETE_01_32"/>
+        <Resource_1 FileName="icons\Ok_02_32.png" Type="RCDATA" ResourceName="OK_02_32"/>
+      </Resources>
     </General>
     <BuildModes>
       <Item Name="Debug" Default="True"/>
