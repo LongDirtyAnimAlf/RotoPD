@@ -358,6 +358,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 )
                 TabOrder = 0
                 Text = 'Select battery type'
+                OnDblClick = TypesBoxDblClick
                 OnSelect = TypesBoxSelect
               end
               object TestsBox: TComboBox
@@ -376,6 +377,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 TabOrder = 1
                 Text = 'Select test type'
                 OnChange = TestsBoxChange
+                OnDblClick = TestsBoxDblClick
                 OnSelect = TestsBoxSelect
               end
               object SamplesBox: TComboBox

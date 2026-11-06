@@ -176,7 +176,9 @@ type
     procedure TabControl1Changing(Sender: TObject; var AllowChange: Boolean);
     procedure TestsBoxChange(Sender: TObject);
     procedure ProgressStepperTimerTimer({%H-}Sender: TObject);
+    procedure TestsBoxDblClick(Sender: TObject);
     procedure TestsBoxSelect(Sender: TObject);
+    procedure TypesBoxDblClick(Sender: TObject);
     procedure TypesBoxSelect(Sender: TObject);
     procedure UpdateTimerTimer({%H-}Sender: TObject);
 
@@ -1568,9 +1570,19 @@ begin
     ProgressBar1.StepIt;
 end;
 
+procedure TPowerbankMainForm.TestsBoxDblClick(Sender: TObject);
+begin
+  Runname_edit.Text:=TestsBox.Text;
+end;
+
 procedure TPowerbankMainForm.TestsBoxSelect(Sender: TObject);
 begin
   Runname_edit.Text:=TestsBox.Text;
+end;
+
+procedure TPowerbankMainForm.TypesBoxDblClick(Sender: TObject);
+begin
+  Product_edit.Text:=TypesBox.Text;
 end;
 
 procedure TPowerbankMainForm.TypesBoxSelect(Sender: TObject);

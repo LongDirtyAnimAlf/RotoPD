@@ -22,9 +22,8 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="1805"/>
-        <CursorPos Y="1809"/>
+        <TopLine Value="1573"/>
+        <CursorPos Y="1576"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -3299,7 +3298,7 @@
         <Filename Value="..\Common\usbcpd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="100"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="871"/>
         <CursorPos X="10" Y="889"/>
       </Unit>
@@ -3351,7 +3350,7 @@
         <Filename Value="..\Common\tools.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="26"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="15"/>
         <CursorPos X="11" Y="29"/>
       </Unit>
@@ -3744,7 +3743,7 @@
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="54"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="693"/>
         <CursorPos X="3" Y="705"/>
       </Unit>
@@ -3752,7 +3751,7 @@
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="54"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="348"/>
         <CursorPos X="6" Y="363"/>
       </Unit>
@@ -3884,10 +3883,13 @@
         <ComponentName Value="FrameSimple"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
         <UsageCount Value="12"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="45"/>
-        <CursorPos X="4" Y="63"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="91"/>
+        <CursorPos Y="99"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\pagecontrol.inc"/>
@@ -3908,8 +3910,8 @@
         <UnitName Value="Gauge"/>
         <UsageCount Value="12"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="385"/>
-        <CursorPos X="36" Y="395"/>
+        <TopLine Value="399"/>
+        <CursorPos X="50" Y="412"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\controlpaint.pas"/>
@@ -3992,18 +3994,6 @@
       <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
     </Debugger>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="804" Column="24" TopLine="782"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="824" Column="29" TopLine="801"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1034" Column="22" TopLine="1011"/>
-      </Position>
       <Position>
         <Filename Value="main.pas"/>
         <Caret Line="1040" Column="13" TopLine="1017"/>
@@ -4111,6 +4101,18 @@
       <Position>
         <Filename Value="main.pas"/>
         <Caret Line="1808" Column="60" TopLine="1788"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1809" TopLine="1806"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1579" Column="38" TopLine="1576"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1576" TopLine="1573"/>
       </Position>
     </JumpHistory>
     <RunParams>
