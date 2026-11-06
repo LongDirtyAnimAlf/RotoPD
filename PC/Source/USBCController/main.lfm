@@ -415,7 +415,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 Font.Style = [fsBold]
                 GroupIndex = 1
                 ParentFont = False
-                OnClick = StartStopSpeedButtonClick
+                OnClick = EngageClick
               end
               object ProgressBar1: TProgressBar
                 AnchorSideLeft.Control = btnTestDischarge
@@ -444,9 +444,11 @@ object PowerbankMainForm: TPowerbankMainForm
                 AllowAllUp = True
                 Anchors = [akTop, akLeft, akRight]
                 BorderSpacing.Top = 8
-                Caption = 'Test Discharge'
+                Caption = 'Start Testing'
+                Font.Color = clLime
                 GroupIndex = 1
-                OnClick = btnTestDischargeClick
+                ParentFont = False
+                OnClick = EngageClick
               end
               object lblDischargeSettings: TLabel
                 AnchorSideTop.Side = asrBottom

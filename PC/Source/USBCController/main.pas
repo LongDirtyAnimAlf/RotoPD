@@ -60,7 +60,8 @@ type
     Info                   : string;
     Filename               : string;
     MachineNumber          : byte;
-    Running                : boolean;
+    Active                 : boolean;
+    Testing                : boolean;
     Last_time              : TDateTime;
     //AutoFileName           : boolean;
     ActiveTestType         : TTestType;
@@ -146,7 +147,6 @@ type
     procedure AutoFileNameCheckBoxClick(Sender: TObject);
     procedure btnCleanLogsClick({%H-}Sender: TObject);
     procedure btnRotoPDGetPDOListClick(Sender: TObject);
-    procedure btnTestDischargeClick(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure DataEditKeyPress(Sender: TObject; var Key: char);
     procedure dgFlagsDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -168,7 +168,7 @@ type
       );
     procedure PDODrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
-    procedure StartStopSpeedButtonClick(Sender: TObject);
+    procedure EngageClick(Sender: TObject);
     procedure DataStoreTimerTimer(Sender: TObject);
     procedure TabControl1Change(Sender: TObject);
     procedure TabControl1Changing(Sender: TObject; var AllowChange: Boolean);
@@ -220,8 +220,7 @@ type
     procedure GraphBaseClick(Sender: TObject);
     procedure SaveMachineData;
 
-    procedure SetControls(Sender:TObject;localsetting:boolean);
-    procedure SetEnable(Sender: TObject; value:boolean);
+    procedure SetControls(Sender: TObject);
 
     procedure AfterShow(Sender: TObject; var {%H-}Done: Boolean);
     procedure Startup;
@@ -1038,34 +1037,6 @@ begin
   //DD.SetEnergy(ActiveMachine,876456789);
 end;
 
-procedure TPowerbankMainForm.btnTestDischargeClick(Sender: TObject);
-begin
-  if TSpeedButton(Sender).Down then
-  begin
-    if (
-       //(TypesBox.ItemIndex<>-1)
-       //AND
-       //(SamplesBox.ItemIndex<>-1)
-       //AND
-       (Length(PCurrentMachineSet^.ActiveTestType.Name)>0)
-       )
-    then
-    begin
-      SetChartAxis(Sender);
-      SetEnable(Sender,false);
-      TestInfoMemo.Lines.Append('Checking selected discharge.');
-      DD.SetOutput(ActiveMachine,True);
-      DD.SetCurrent(ActiveMachine,1,PCurrentMachineSet^.ActiveTestType.Current);
-      ProgressStepperTimer.Enabled:=true;
-    end else TSpeedButton(Sender).Down:=False;
-  end
-  else
-  //if (NOT TSpeedButton(Sender).Down) then
-  begin
-    TestInfoMemo.Lines.Append('Check finished.');
-  end;
-end;
-
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
 begin
   //DD.SetMaxPDO(ActiveMachine,1);
@@ -1187,8 +1158,6 @@ begin
        then CloseAction :=CaNone
        else
        begin
-         SetEnable(Sender,false);
-
          AllStop(nil);
 
          UpdateTimer.Enabled:=False;
@@ -1216,18 +1185,12 @@ begin
        end;
 end;
 
-procedure TPowerbankMainForm.StartStopSpeedButtonClick(Sender: TObject);
+procedure TPowerbankMainForm.EngageClick(Sender: TObject);
 var
   F        : textfile;
   runtext  : string;
   SummaryFilename:string;
 begin
-
-  if Sender<>StartStopSpeedButton then
-  begin
-    raise SysUtils.Exception.Create('Wrong button !!');
-  end;
-
   TSpeedButton(Sender).Enabled:=False;
 
   try
@@ -1255,7 +1218,8 @@ begin
           GUICapacity:=0;
           GUIEnergy:=0;
           GUIPower:=0;
-          Running:=True;
+          if (Sender=StartStopSpeedButton) then Active:=True;
+          if (Sender=btnTestDischarge) then Testing:=True;
           Last_time:=NowUTC;
         end;
 
@@ -1265,8 +1229,7 @@ begin
         MachineChartLineSeries2.Clear;
         MachineChartLineSeries3.Clear;
 
-        SetControls(Sender,true);
-        SetEnable(Sender,false);
+        SetControls(Sender);
 
         GUIPower:=0;
         GUIEnergy:=0;
@@ -1274,9 +1237,12 @@ begin
 
         SetChartAxis(Sender);
 
-        CreateDataFile(Sender);
-        FilenameEdit.Text:=ExtractFileName(PCurrentMachineSet^.Filename);
-        TestInfoMemo.Lines.Append('Filename: '+PCurrentMachineSet^.Filename);
+        if (Sender=StartStopSpeedButton) then
+        begin
+          CreateDataFile(Sender);
+          FilenameEdit.Text:=ExtractFileName(PCurrentMachineSet^.Filename);
+          TestInfoMemo.Lines.Append('Filename: '+PCurrentMachineSet^.Filename);
+        end;
 
         ImageList1.BeginUpdate;
         if PCurrentMachineSet^.BoardAvailable then
@@ -1285,7 +1251,6 @@ begin
         end;
         ImageList1.EndUpdate;
         TabControl1.Invalidate;
-
 
         DD.SetOutput(ActiveMachine,True);
         DD.SetCurrent(ActiveMachine,1,PCurrentMachineSet^.ActiveTestType.Current);
@@ -1300,8 +1265,14 @@ begin
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
-      SetEnable(Sender,false);
-      SetControls(Sender,false);
+      // Do machineset things
+      with PCurrentMachineSet^ do
+      begin
+        if (Sender=StartStopSpeedButton) then Active:=False;
+        if (Sender=btnTestDischarge) then Testing:=False;
+      end;
+
+      SetControls(Sender);
 
       MachineBox[ActiveMachine].Enable:=false;
 
@@ -1313,10 +1284,9 @@ begin
       ImageList1.EndUpdate;
       TabControl1.Invalidate;
 
+      if (Sender=StartStopSpeedButton) then
       with PCurrentMachineSet^ do
       begin
-        Running:=False;
-
         if RunData.Count>1 then
         begin
           SummaryFilename:=ApplicationDirectory+'Summary__';
@@ -1368,13 +1338,6 @@ begin
         end;
       end;
 
-
-    end;
-
-    if TSpeedButton(Sender).Down then
-    begin
-      TSpeedButton(Sender).Caption:='Stop';
-      TSpeedButton(Sender).Font.Color:=clRed;
     end;
 
   finally
@@ -1399,7 +1362,7 @@ begin
     if Assigned(Sender) then
     begin
       LocalPMS:=@Machineset[LocalMachine];
-      if (LocalPMS^.Running) then
+      if ((LocalPMS^.Active) OR (LocalPMS^.Testing)) then
       begin
         Running:=true;
 
@@ -1411,8 +1374,6 @@ begin
         // Add the current data into the datastore
         LocalPMS^.RunData.Add(LocalPMS^.LatestMeasurementData);
 
-        SaveBatteryData(LocalPMS);
-
         if (LocalMachine=ActiveMachine) then
         begin
           // Add data into chart
@@ -1420,28 +1381,33 @@ begin
           MachineChartLineSeries2.Add(PCurrentMachineSet^.LatestMeasurementData.Current);
         end;
 
-        if (
-           (chkVoltageLimit.Checked)
-           AND
-           (LocalPMS^.LatestMeasurementData.Voltage<(LocalPMS^.ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
-           )
-        then
+        if (LocalPMS^.Active) then
         begin
-          TestInfoMemo.Lines.Append('Voltage below threshold. Test ready.');
-          // Do something !!
-        end;
+          SaveBatteryData(LocalPMS);
 
-        if (
-           (chkCurrentLimit.Checked)
-           AND
-           (LocalPMS^.LatestMeasurementData.Current<(LocalPMS^.ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
-           )
-        then
-        begin
-          TestInfoMemo.Lines.Append('Current below threshold. Test ready.');
-          // Do something !!
-        end;
+          if (
+             (chkVoltageLimit.Checked)
+             AND
+             (LocalPMS^.LatestMeasurementData.Voltage<(LocalPMS^.ActiveTestType.Voltage*(STOPPERCENTAGE/100)/1000))
+             )
+          then
+          begin
+            TestInfoMemo.Lines.Append('Voltage below threshold. Test ready.');
+            // Do something !!
+          end;
 
+          if (
+             (chkCurrentLimit.Checked)
+             AND
+             (LocalPMS^.LatestMeasurementData.Current<(LocalPMS^.ActiveTestType.Current*(STOPPERCENTAGE/100)/1000))
+             )
+          then
+          begin
+            TestInfoMemo.Lines.Append('Current below threshold. Test ready.');
+            // Do something !!
+          end;
+
+        end;
       end;
     end;
   end;
@@ -1475,7 +1441,7 @@ begin
       // Point global dataset towards the correct dataset
       PCurrentMachineSet:=@Machineset[ActiveMachine];
 
-      SetControls(Sender,PCurrentMachineSet^.Running);
+      SetControls(Sender);
 
       MachineChartLineSeries1.BeginUpdate;
       MachineChartLineSeries2.BeginUpdate;
@@ -1494,7 +1460,7 @@ begin
           MachineChartLineSeries2.Add(PCurrentMachineSet^.RunData[z].Current);
         end;
         // Why ?
-        if (NOT PCurrentMachineSet^.Running) then
+        if (NOT PCurrentMachineSet^.Active) then
         begin
           PCurrentMachineSet^.LatestMeasurementData.Energy:=PCurrentMachineSet^.RunData.Last.Energy;
           PCurrentMachineSet^.LatestMeasurementData.Voltage:=PCurrentMachineSet^.RunData.Last.Voltage;
@@ -1732,16 +1698,13 @@ begin
   begin
     DD.SetOutput(x,false);
     DD.SetOff(x,1);
-    Machineset[x].Running:=false;
+    Machineset[x].Active:=false;
+    Machineset[x].Testing:=false;
     Machineset[x].RunData.Clear;
     Machineset[x].LatestMeasurementData:=Default(TMachineData);
   end;
 
-  SetEnable(Sender,true);
-
-  StartStopSpeedButton.Down:=false;
-  StartStopSpeedButton.Caption:='Start';
-  StartStopSpeedButton.Font.Color:=clLime;
+  SetControls(Sender);
 
   btnTestDischarge.Down:=false;
 
@@ -2194,7 +2157,7 @@ procedure TPowerbankMainForm.SaveMachineData;
 begin
   if (ActiveMachine>0) then
   begin
-    if (NOT PCurrentMachineSet^.Running) then with PCurrentMachineSet^ do
+    if (NOT PCurrentMachineSet^.Active) then with PCurrentMachineSet^ do
     begin
       Project:=Project_edit.Text;
       Product:=Product_edit.Text;
@@ -2206,57 +2169,76 @@ begin
   end;
 end;
 
-procedure TPowerbankMainForm.SetControls(Sender:TObject;localsetting:boolean);
+procedure TPowerbankMainForm.SetControls(Sender: TObject);
+var
+  MachineIdle:boolean;
 begin
-  if (Sender<>StartStopSpeedButton) then StartStopSpeedButton.Down:=localsetting;
-  //FilenameEdit.Enabled:=NOT localsetting;
-  Project_edit.Enabled:=NOT localsetting;
-  Product_edit.Enabled:=NOT localsetting;
-  Runname_edit.Enabled:=NOT localsetting;
-  Runnumber_edit.Enabled:=NOT localsetting;
-  MachineInfoMemo.Enabled:=NOT localsetting;
-  //btnClear.Enabled:=NOT localsetting;
-
-  if localsetting then
+  if PCurrentMachineSet^.Active then
   begin
-    //if (Sender<>StartStopSpeedButton) then
+    if (Sender<>StartStopSpeedButton) then
     begin
-      StartStopSpeedButton.Caption:='Stop';
-      StartStopSpeedButton.Font.Color:=clRed;
+      StartStopSpeedButton.Down:=true;
+      StartStopSpeedButton.Enabled:=true;
     end;
+    StartStopSpeedButton.Caption:='Stop';
+    StartStopSpeedButton.Font.Color:=clRed;
   end
   else
   begin
-    //if (Sender<>StartStopSpeedButton) then
+    if (Sender<>StartStopSpeedButton) then
     begin
-      StartStopSpeedButton.Caption:='Start';
-      StartStopSpeedButton.Font.Color:=clLime;
+      StartStopSpeedButton.Down:=false;
+      StartStopSpeedButton.Enabled:=(NOT PCurrentMachineSet^.Testing);
     end;
-    //FilenameEdit.Enabled:=(NOT Machineset[ActiveMachine].AutoFileName);
+    StartStopSpeedButton.Caption:='Start';
+    StartStopSpeedButton.Font.Color:=clLime;
   end;
 
-  SetEnable(Sender,NOT localsetting);
-end;
-
-procedure TPowerbankMainForm.SetEnable(Sender: TObject; value:boolean);
-begin
-  if Sender<>nil then
+  if PCurrentMachineSet^.Testing then
   begin
-    if (Sender<>StartStopSpeedButton) then StartStopSpeedButton.Enabled:=value;
-
-    if (Sender<>btnTestDischarge) then btnTestDischarge.Enabled:=value;
-
-    if (Sender<>TypesBox) then TypesBox.Enabled:=value;
-    if (Sender<>SamplesBox) then SamplesBox.Enabled:=value;
-    if (Sender<>TestsBox) then TestsBox.Enabled:=value;
-    if (Sender<>CurrentEdit) then CurrentEdit.Enabled:=value;
-    if (Sender<>VoltageEdit) then VoltageEdit.Enabled:=value;
-
-    if (Sender<>chkVoltageLimit) then chkVoltageLimit.Enabled:=value;
-    if (Sender<>chkCurrentLimit) then chkCurrentLimit.Enabled:=value;
-
-    Application.ProcessMessages;
+    if (Sender<>btnTestDischarge) then
+    begin
+      btnTestDischarge.Down:=true;
+      btnTestDischarge.Enabled:=true;
+    end;
+    btnTestDischarge.Caption:='Stop Testing';
+    btnTestDischarge.Font.Color:=clRed;
+  end
+  else
+  begin
+    if (Sender<>btnTestDischarge) then
+    begin
+      btnTestDischarge.Down:=false;
+      btnTestDischarge.Enabled:=(NOT PCurrentMachineSet^.Active);
+    end;
+    btnTestDischarge.Caption:='Start Testing';
+    btnTestDischarge.Font.Color:=clLime;
   end;
+
+  MachineIdle:=(NOT (PCurrentMachineSet^.Active OR PCurrentMachineSet^.Testing));
+
+  //FilenameEdit.Enabled:=MachineIdle;
+  Project_edit.Enabled:=MachineIdle;
+  Product_edit.Enabled:=MachineIdle;
+  Runname_edit.Enabled:=MachineIdle;
+  Runnumber_edit.Enabled:=MachineIdle;
+  MachineInfoMemo.Enabled:=MachineIdle;
+
+  TypesBox.Enabled:=MachineIdle;
+  SamplesBox.Enabled:=MachineIdle;
+  TestsBox.Enabled:=MachineIdle;
+
+  CurrentEdit.Enabled:=MachineIdle;
+  VoltageEdit.Enabled:=MachineIdle;
+  chkCurrentLimit.Enabled:=MachineIdle;
+  chkVoltageLimit.Enabled:=MachineIdle;
+
+  MachineIdle:=(NOT PCurrentMachineSet^.Active);
+
+  btnRotoPDGetPDOList.Enabled:=MachineIdle;
+  Button2.Enabled:=MachineIdle;
+  SourcePDODrawGrid.Enabled:=MachineIdle;
+  SourceEPRPDODrawGrid.Enabled:=MachineIdle;
 end;
 
 end.
