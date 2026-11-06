@@ -59,6 +59,7 @@ type
     Runnumber              : string;
     Info                   : string;
     Filename               : string;
+    MachineNumber          : byte;
     Running                : boolean;
     Last_time              : TDateTime;
     //AutoFileName           : boolean;
@@ -70,13 +71,6 @@ type
 
   TUSBPDController = class(TUSBPD)
   end;
-
-  {$ifdef MSWindows}
-  TPageControl = class(ComCtrls.TPageControl)
-  private
-    procedure CNDrawItem(var Message: TLMDrawItems); message LM_DRAWITEM;
-  end;
-  {$endif}
 
   { TPowerbankMainForm }
 
@@ -238,7 +232,7 @@ type
     procedure SetChartAxis({%H-}Sender:TObject);
     procedure CreateDataFile(Sender: TObject);
     procedure AllStop(Sender: TObject);
-    procedure SaveBatteryData(MN:integer);
+    procedure SaveBatteryData(LocalPMS: PMachineSet);
 
     function  CorrectVoltage(value:double):double;
     function  CorrectCurrent(value:double):double;
@@ -284,6 +278,27 @@ Const
   ENERGYCOLOR                  = clYellow;
   POWERCOLOR                   = clFuchsia;
 
+procedure ReplaceImageFromResource(AImageList: TImageList; AIndex: Integer; const AResName: string);
+var
+  Stream: TResourceStream;
+  Png: TPortableNetworkGraphic;
+begin
+  if (AIndex < 0) or (AIndex >= AImageList.Count) then Exit;
+
+  Stream := TResourceStream.Create(HInstance, AResName, RT_RCDATA);
+  try
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromStream(Stream);
+      Png.Transparent := True;
+      AImageList.Replace(AIndex, Png, nil);   // replaces the image
+    finally
+      Png.Free;
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
 
 function ChangeBrightness(lIn: tColor; factor:double): TColor;
 var
@@ -301,10 +316,7 @@ procedure TPowerbankMainForm.FormCreate(Sender: TObject);
 var
   Ini     : TIniFile;
   i       : integer;
-  ts:TTabSheet;
 begin
-  PageControl1.OwnerDraw:=True;
-
   ApplicationDirectory:=ExtractFilePath(Application.ExeName);
 
   LocalFormatSettings:=DefaultFormatSettings;
@@ -1018,6 +1030,10 @@ end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
+  // Remove all previous data
+  DUT[ActiveMachine].Cleanup;
+  SourcePDODrawGrid.Invalidate;
+  SourceEPRPDODrawGrid.Invalidate;
   DD.GetPDOList(ActiveMachine);
   //DD.SetEnergy(ActiveMachine,876456789);
 end;
@@ -1250,7 +1266,6 @@ begin
         MachineChartLineSeries3.Clear;
 
         SetControls(Sender,true);
-
         SetEnable(Sender,false);
 
         GUIPower:=0;
@@ -1260,10 +1275,17 @@ begin
         SetChartAxis(Sender);
 
         CreateDataFile(Sender);
-
         FilenameEdit.Text:=ExtractFileName(PCurrentMachineSet^.Filename);
-
         TestInfoMemo.Lines.Append('Filename: '+PCurrentMachineSet^.Filename);
+
+        ImageList1.BeginUpdate;
+        if PCurrentMachineSet^.BoardAvailable then
+        begin
+          ReplaceImageFromResource(ImageList1,{Channel=Index=}PCurrentMachineSet^.MachineNumber-1,'RUNNING_05_32');
+        end;
+        ImageList1.EndUpdate;
+        TabControl1.Invalidate;
+
 
         DD.SetOutput(ActiveMachine,True);
         DD.SetCurrent(ActiveMachine,1,PCurrentMachineSet^.ActiveTestType.Current);
@@ -1279,9 +1301,17 @@ begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
       SetEnable(Sender,false);
-
       SetControls(Sender,false);
+
       MachineBox[ActiveMachine].Enable:=false;
+
+      ImageList1.BeginUpdate;
+      if PCurrentMachineSet^.BoardAvailable then
+      begin
+        ReplaceImageFromResource(ImageList1,{Channel=Index=}PCurrentMachineSet^.MachineNumber-1,'OK_02_32');
+      end;
+      ImageList1.EndUpdate;
+      TabControl1.Invalidate;
 
       with PCurrentMachineSet^ do
       begin
@@ -1356,33 +1386,39 @@ procedure TPowerbankMainForm.DataStoreTimerTimer(Sender: TObject);
 const
   STOPPERCENTAGE = 80;
 var
-  Elapsed:longword;
-  x:integer;
-  LocalPMS:PMachineSet;
+  Elapsed           : longword;
+  LocalMachine      : integer;
+  LocalPMS          : PMachineSet;
+  Running           : boolean;
 begin
-  MachineChartLineSeries1.Add(PCurrentMachineSet^.LatestMeasurementData.Voltage);
-  MachineChartLineSeries2.Add(PCurrentMachineSet^.LatestMeasurementData.Current);
+  Running:=false;
 
-  if NOT Assigned(Sender) then
-  begin
-    SaveBatteryData(ActiveMachine);
-  end;
-
-  for x:=1 to NumberOfMachines do
+  for LocalMachine:=1 to NumberOfMachines do
   begin
     // only perform the below if coming from the timer !
     if Assigned(Sender) then
     begin
-      LocalPMS:=@Machineset[x];
+      LocalPMS:=@Machineset[LocalMachine];
       if (LocalPMS^.Running) then
       begin
+        Running:=true;
+
+        // Calculate how much time has elapsed between two data storage moment
         Elapsed:=MilliSecondsBetween(NowUTC,LocalPMS^.Last_time);
         LocalPMS^.Last_time:=NowUTC;
         LocalPMS^.LatestMeasurementData.Elapsed:=LocalPMS^.LatestMeasurementData.Elapsed+Elapsed;
 
+        // Add the current data into the datastore
         LocalPMS^.RunData.Add(LocalPMS^.LatestMeasurementData);
 
-        SaveBatteryData(ActiveMachine);
+        SaveBatteryData(LocalPMS);
+
+        if (LocalMachine=ActiveMachine) then
+        begin
+          // Add data into chart
+          MachineChartLineSeries1.Add(PCurrentMachineSet^.LatestMeasurementData.Voltage);
+          MachineChartLineSeries2.Add(PCurrentMachineSet^.LatestMeasurementData.Current);
+        end;
 
         if (
            (chkVoltageLimit.Checked)
@@ -1409,6 +1445,15 @@ begin
       end;
     end;
   end;
+
+  if Running then
+  begin
+    if (ProgressBar1.Position=ProgressBar1.Max) then
+      ProgressBar1.Position:=1
+    else
+      ProgressBar1.StepIt;
+  end;
+
 end;
 
 procedure TPowerbankMainForm.TabControl1Change(Sender: TObject);
@@ -1703,47 +1748,13 @@ begin
   ProgressBar1.Position:=0;
 end;
 
-procedure TPowerbankMainForm.SaveBatteryData(MN:integer);
+procedure TPowerbankMainForm.SaveBatteryData(LocalPMS: PMachineSet);
 var
   F : textfile;
   PC,PB,PS:string;
   i:integer;
-  LocalPMS: PMachineSet;
 begin
-  LocalPMS:=@Machineset[MN];
-
-  i:=pos(' ',TypesBox.Text);
-  PC:=Copy(TypesBox.Text,1,i-1);
-  PB:=Copy(TypesBox.Text,i+1,MaxInt);
-  i:=pos(' ',PB);
-  PS:=Copy(PB,i+1,MaxInt);
-  PB:=Copy(PB,1,i-1);
   if (Length(LocalPMS^.Filename)=0) then CreateDataFile(nil);
-
-  (*
-
-  Write(F, #$EF#$BB#$BF);
-  if IOResult=0 then
-  begin
-    Writeln(F, 'Project: '+LocalPMS^..Project);
-    Writeln(F, 'Product: '+LocalPMS^..Product);
-    Writeln(F, 'Run: '+LocalPMS^..Runname+'_'+LocalPMS^..Runnumber);
-    Writeln(F, 'Info:');
-    Writeln(F, LocalPMS^..Info);
-    Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
-    Writeln(F, 'Location: '+InttoStr(ActiveMachine));
-    Writeln(F, '**********************************************');
-    Write(F,'Time [sec]'+LocalFormatSettings.ListSeparator);
-    Write(F,'Energy [kWh]'+LocalFormatSettings.ListSeparator);
-    Write(F,'Water1 [l]'+LocalFormatSettings.ListSeparator);
-    Write(F,'Water2 [l]'+LocalFormatSettings.ListSeparator);
-    Write(F,'Temperature1 [°C]'+LocalFormatSettings.ListSeparator);
-    Writeln(F,'Temperature2 [°C]');
-  end;
-finally
-  CloseFile(F);
- *)
-
 
   AssignFile(F,LocalPMS^.Filename );
   try
@@ -1752,17 +1763,25 @@ finally
        then Append(F)
        else
        begin
+         i:=pos(' ',LocalPMS^.Product);
+         PC:=Copy(LocalPMS^.Product,1,i-1);
+         PB:=Copy(LocalPMS^.Product,i+1,MaxInt);
+         i:=pos(' ',PB);
+         PS:=Copy(PB,i+1,MaxInt);
+         PB:=Copy(PB,1,i-1);
+
          Rewrite(F);
          Write(F, #$EF#$BB#$BF);
          writeln(F, 'Code: ',PC);
          writeln(F, 'Brand: ',PB);
          writeln(F, 'Model: ',PS);
+         writeln(F, 'Product: ',LocalPMS^.Product);
          writeln(F, 'Sample: ',SamplesBox.Text);
          writeln(F, 'Test: ',LocalPMS^.ActiveTestType.Name);
          writeln(F, 'Discharge current: ',LocalPMS^.ActiveTestType.Current,' mA');
          writeln(F, 'Discharge voltage: ',LocalPMS^.ActiveTestType.Voltage,' mV');
          Writeln(F, 'Date: '+DateTimeToStr(NowUTC,LocalFormatSettings));
-         Writeln(F, 'Machine: '+InttoStr(MN));
+         Writeln(F, 'Machine: '+InttoStr(LocalPMS^.MachineNumber));
          Writeln(F, 'Info:');
          Writeln(F, LocalPMS^.Info);
          Writeln(F, '**********************************************');
@@ -1781,11 +1800,6 @@ finally
          write(F,'Energy(Wh)',LocalFormatSettings.ListSeparator);
          writeln(F);
        end;
-
-    if (ProgressBar1.Position=ProgressBar1.Max) then
-      ProgressBar1.Position:=1
-    else
-      ProgressBar1.StepIt;
 
     write(F,PC,LocalFormatSettings.ListSeparator);
     write(F,SamplesBox.Text,LocalFormatSettings.ListSeparator);
@@ -1951,6 +1965,7 @@ begin
         GUICapacity:=LocalPMS^.LatestMeasurementData.Capacity;
       end;
 
+      // Update the overview frames also
       with MachineBox[boardnumber] do
       begin
         Voltage:=LocalPMS^.LatestMeasurementData.Voltage;
@@ -2097,48 +2112,28 @@ begin
   end;
 end;
 
-procedure ReplaceImageFromResource(AImageList: TImageList; AIndex: Integer; const AResName: string);
-var
-  Stream: TResourceStream;
-  Png: TPortableNetworkGraphic;
-begin
-  if (AIndex < 0) or (AIndex >= AImageList.Count) then Exit;
-
-  Stream := TResourceStream.Create(HInstance, AResName, RT_RCDATA);
-  try
-    Png := TPortableNetworkGraphic.Create;
-    try
-      Png.LoadFromStream(Stream);
-      Png.Transparent := True;
-      AImageList.Replace(AIndex, Png, nil);   // replaces the image
-    finally
-      Png.Free;
-    end;
-  finally
-    Stream.Free;
-  end;
-end;
-
 procedure TPowerbankMainForm.UpdateUSB(Sender: TObject;datacarrier:integer);
 var
   Info:string;
   BN:integer;
   LocalPMS:PMachineSet;
 begin
-  if datacarrier<>0 then
+  BN:=(Abs(datacarrier));
+
+  if BN<>0 then
   begin
-    BN:=(Abs(datacarrier));
-    if datacarrier>0 then Info:='Channel #'+InttoStr(BN)+' board added.';
-    if datacarrier<0 then Info:='Channel #'+InttoStr(BN)+' board removed.';
+    if datacarrier>0 then Info:='Channel #'+InttoStr(BN-1)+' board added.';
+    if datacarrier<0 then Info:='Channel #'+InttoStr(BN-1)+' board removed.';
 
     LocalPMS:=@Machineset[BN];
     LocalPMS^.BoardAvailable:=(datacarrier>0);
+    LocalPMS^.MachineNumber:=BN;
 
     ImageList1.BeginUpdate;
     if LocalPMS^.BoardAvailable then
-      ReplaceImageFromResource(ImageList1,BN-1,'OK_02_32')
+      ReplaceImageFromResource(ImageList1,{Channel=Index=}BN-1,'OK_02_32')
     else
-      ReplaceImageFromResource(ImageList1,BN-1,'DELETE_01_32');
+      ReplaceImageFromResource(ImageList1,{Channel=Index=}BN-1,'DELETE_01_32');
     ImageList1.EndUpdate;
 
     TabControl1.Invalidate;
@@ -2148,13 +2143,24 @@ begin
     if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
     Info:=DD.Info;
     if (Length(Info)>0) then USBDebugLog.Lines.Append(Info);
+
+    if (NOT LocalPMS^.BoardAvailable) then
+    begin
+      DUT[LocalPMS^.MachineNumber].Cleanup;
+      if (LocalPMS^.MachineNumber = ActiveMachine) then
+      begin
+        SourcePDODrawGrid.Invalidate;
+        SourceEPRPDODrawGrid.Invalidate;
+      end;
+    end;
+
   end;
-  if datacarrier=0 then USBDebugLog.Lines.Append('Unknown board error');
-  if datacarrier=0 then Info:='Unknown data acquisitionboard error';
+  if BN=0 then USBDebugLog.Lines.Append('Unknown board error');
+  if BN=0 then Info:='Unknown data acquisitionboard error';
 
   {$ifdef MSWINDOWS}
   SplashForm:=TSplashForm.Create(application);
-  Splashform.Label2.Caption:='Board '+InttoStr(abs(datacarrier))+' change';
+  Splashform.Label2.Caption:='Board '+InttoStr(BN)+' change';
   SplashForm.Update;
   //Splashform.Label3.Caption:='Init ready';
   SplashForm.Update;
@@ -2252,65 +2258,6 @@ begin
     Application.ProcessMessages;
   end;
 end;
-
-
-{$ifdef MSWindows}
-procedure TPageControl.CNDrawItem(var Message: TLMDrawItems);
-var
-  FontHandle       : HFONT;
-  TargetColor      : COLORREF;
-  FontObject       : TLogFont;
-  BrushHandle      : HBRUSH;
-begin
-  with Message.DrawItemStruct^ do
-  begin
-    GetObject(Font.Handle, SizeOf(FontObject), @FontObject);
-
-    if itemID = DWORD(-1) then
-    begin
-      // ??
-      TargetColor:=clBlack;
-    end;
-
-    if (Page[itemID].Tag=1) then
-    begin
-      if itemID = TabIndex then
-      //if (Page[itemID].IsControlVisible) then
-      begin
-        TargetColor:=clLime;
-      end
-      else
-      begin
-        TargetColor:=clRed;
-      end;
-    end
-    else
-    begin
-      if (itemID>1) then
-        TargetColor := TColor($202020)
-      else
-        TargetColor := clBlue;
-    end;
-
-
-    BrushHandle := CreateSolidBrush(TargetColor);
-    FillRect(_hDC, rcItem, BrushHandle);
-
-    FontObject.lfWeight := FW_BOLD;
-    FontHandle := CreateFontIndirect(FontObject);
-    try
-      SelectObject(_hDC, FontHandle);
-      SetTextColor(_hDC, ColorToRGB(clWhite));
-      SetBkMode(_hDC, TRANSPARENT);
-      DrawTextEx(_hDC, PChar(Page[itemID].Caption), -1, rcItem, DT_CENTER or
-        DT_VCENTER or DT_SINGLELINE, nil);
-    finally
-      DeleteObject(FontHandle);
-    end;
-  end;
-  Message.Result := 1;
-end;
-{$endif}
 
 end.
 
