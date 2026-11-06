@@ -170,6 +170,8 @@ type
       aRect: TRect; aState: TGridDrawState);
     procedure EngageClick(Sender: TObject);
     procedure DataStoreTimerTimer(Sender: TObject);
+    procedure EditChangeEmptyCheck(Sender: TObject);
+    procedure SamplesBoxSelect(Sender: TObject);
     procedure TabControl1Change(Sender: TObject);
     procedure TabControl1Changing(Sender: TObject; var AllowChange: Boolean);
     procedure TestsBoxChange(Sender: TObject);
@@ -498,10 +500,12 @@ begin
     SamplesBox.Enabled:=False;
   end;
 
+  Runnumber_edit.Text:='1';
 
   Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
   try
     NumRate           := Ini.ReadInteger('General', 'NumRate', 10);
+    Project_edit.Text := Ini.ReadString('Project', 'ID', '260000');
     Self.Top          := ini.ReadInteger(Self.Name,'Top',Self.Top);
     Self.Left         := ini.ReadInteger(Self.Name,'Left',Self.Left);
     Self.Width        := ini.ReadInteger(Self.Name,'Width',Self.Width);
@@ -574,8 +578,12 @@ begin
     // Create DUTS
     DUT[i]:=TUSBPDDevice.Create;
     DUT[i].Cleanup;
+
     // Create Machine datasets
     Machineset[i].RunData:=TList<TMachineData>.Create();
+    Machineset[i].Project:=Project_edit.Text;
+    Machineset[i].Runnumber:=Runnumber_edit.Text;
+
     // Create overview frames
     MachineBox[i]:=TFrameSimple.Create(tsOverview1);
     MachineBox[i].Number:=i;
@@ -1146,43 +1154,54 @@ end;
 
 procedure TPowerbankMainForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 var
-  Ini : TIniFile;
+  Ini               : TIniFile;
+  LocalMachine      : integer;
+  LocalPMS          : PMachineSet;
 begin
-    if (false) then
+  for LocalMachine:=1 to NumberOfMachines do
+  begin
+    LocalPMS:=@Machineset[LocalMachine];
+    if ((LocalPMS^.Active) OR (LocalPMS^.Testing)) then
     begin
-      CloseAction :=CaNone;
-    end
-    else if MessageDlg ('Are you REALLY SURE you want to exit ?'+
-                    chr(13)+'(This is your last change to stay with us!)',
-                    mtConfirmation, [mbYes,mbNo],0)=idNo
-       then CloseAction :=CaNone
-       else
-       begin
-         AllStop(nil);
+       CloseAction:=CaNone;
+       break;
+    end;
+  end;
 
-         UpdateTimer.Enabled:=False;
+  if (CloseAction<>CaNone) then
+  if MessageDlg ('Are you REALLY SURE you want to exit ?'+
+                  chr(13)+'(This is your last change to stay with us!)',
+                  mtConfirmation, [mbYes,mbNo],0)=idNo
+     then CloseAction :=CaNone
+     else
+     begin
+       AllStop(nil);
 
-         //DD.Enabled:=False;
-         DD.OnDataReceived:=nil;
-         DD.OnDeviceChange:=nil;
-         DD.Destroy;
-         RotoPDController.Destroy;
+       UpdateTimer.Enabled:=False;
 
-         Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
-         try
-           ini.WriteInteger(Self.Name,'Top',Self.Top);
-           ini.WriteInteger(Self.Name,'Left',Self.Left);
-           ini.WriteInteger(Self.Name,'Width',Self.Width);
-           ini.WriteInteger(Self.Name,'Height',Self.Height);
+       //DD.Enabled:=False;
+       DD.OnDataReceived:=nil;
+       DD.OnDeviceChange:=nil;
+       DD.Destroy;
+       RotoPDController.Destroy;
 
-           Ini.WriteInteger('General', 'NumRate', NumRate);
-         finally
-           Ini.Free;
-         end;
+       Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
+       try
+         ini.WriteInteger(Self.Name,'Top',Self.Top);
+         ini.WriteInteger(Self.Name,'Left',Self.Left);
+         ini.WriteInteger(Self.Name,'Width',Self.Width);
+         ini.WriteInteger(Self.Name,'Height',Self.Height);
 
+         Ini.WriteInteger('General', 'NumRate', NumRate);
+         Ini.WriteString('Project', 'ID', Project_edit.Text);
 
-         CloseAction:=caFree;
+       finally
+         Ini.Free;
        end;
+
+
+       CloseAction:=caFree;
+     end;
 end;
 
 procedure TPowerbankMainForm.EngageClick(Sender: TObject);
@@ -1369,6 +1388,7 @@ begin
         // Calculate how much time has elapsed between two data storage moment
         Elapsed:=MilliSecondsBetween(NowUTC,LocalPMS^.Last_time);
         LocalPMS^.Last_time:=NowUTC;
+        // We store elapsed cummulative
         LocalPMS^.LatestMeasurementData.Elapsed:=LocalPMS^.LatestMeasurementData.Elapsed+Elapsed;
 
         // Add the current data into the datastore
@@ -1420,6 +1440,27 @@ begin
       ProgressBar1.StepIt;
   end;
 
+end;
+
+procedure TPowerbankMainForm.EditChangeEmptyCheck(Sender: TObject);
+begin
+  if
+  (Length(Project_edit.Text)>0)
+  AND
+  (Length(Product_edit.Text)>0)
+  AND
+  (Length(Runname_edit.Text)>0)
+  AND
+  (Length(Runnumber_edit.Text)>0)
+  then
+    StartStopSpeedButton.Enabled:=true
+  else
+    StartStopSpeedButton.Enabled:=false;
+end;
+
+procedure TPowerbankMainForm.SamplesBoxSelect(Sender: TObject);
+begin
+  Runnumber_edit.Text:=SamplesBox.Text;
 end;
 
 procedure TPowerbankMainForm.TabControl1Change(Sender: TObject);
@@ -2188,7 +2229,12 @@ begin
     if (Sender<>StartStopSpeedButton) then
     begin
       StartStopSpeedButton.Down:=false;
-      StartStopSpeedButton.Enabled:=(NOT PCurrentMachineSet^.Testing);
+      if (NOT PCurrentMachineSet^.Testing) then
+      begin
+        // StartStop might be enabled
+        // But only if we have valid test-data-fields
+        EditChangeEmptyCheck(Sender);
+      end else StartStopSpeedButton.Enabled:=false;
     end;
     StartStopSpeedButton.Caption:='Start';
     StartStopSpeedButton.Font.Color:=clLime;

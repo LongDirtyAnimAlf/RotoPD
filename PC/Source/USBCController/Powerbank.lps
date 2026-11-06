@@ -23,8 +23,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1355"/>
-        <CursorPos Y="1408"/>
+        <TopLine Value="1461"/>
+        <CursorPos Y="1463"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -36,21 +36,21 @@
       <Unit>
         <Filename Value="text.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="93"/>
+        <UsageCount Value="94"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="15"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\ap33772s.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="91"/>
+        <UsageCount Value="92"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="3" Y="13"/>
       </Unit>
       <Unit>
         <Filename Value="text1.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="89"/>
+        <UsageCount Value="90"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
         <CursorPos Y="107"/>
@@ -1136,7 +1136,7 @@
       </Unit>
       <Unit>
         <Filename Value="..\..\GitHub\mORMot\SynSQLite3.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2375"/>
         <CursorPos X="14" Y="2389"/>
@@ -1192,7 +1192,7 @@
       </Unit>
       <Unit>
         <Filename Value="db_mormot1\shared\mORMotDDDLocal.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="7"/>
         <CursorPos X="3" Y="21"/>
@@ -1249,7 +1249,7 @@
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\objpas\sysutils\sysstr.inc"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="571"/>
         <CursorPos X="53" Y="574"/>
@@ -1416,84 +1416,84 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable\fpcsrc\packages\rtl-objpas\src\inc\strutils.pp"/>
         <UnitName Value="StrUtils"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="21"/>
         <CursorPos X="24" Y="31"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable\fpcsrc\rtl\inc\ustringh.inc"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="93"/>
         <CursorPos X="21" Y="107"/>
       </Unit>
       <Unit>
         <Filename Value="..\..\GitHub\mORMot\SynTable.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="15465"/>
         <CursorPos Y="15479"/>
       </Unit>
       <Unit>
         <Filename Value="..\BatteryDatabase\OriginalSources\Main.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="539"/>
         <CursorPos X="10" Y="556"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_dpm_user.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="94"/>
         <CursorPos X="20" Y="106"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_vdm_user.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="104"/>
         <CursorPos Y="120"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="615"/>
         <CursorPos X="11" Y="629"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="414"/>
         <CursorPos X="27" Y="428"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="172"/>
         <CursorPos X="29" Y="183"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="398"/>
         <CursorPos X="27" Y="412"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_nearlyworking_v1\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="787"/>
         <CursorPos X="29" Y="801"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="438"/>
         <CursorPos X="27" Y="452"/>
@@ -1507,7 +1507,7 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="364"/>
         <CursorPos X="49" Y="379"/>
@@ -1521,63 +1521,63 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Middlewares\ST\STM32_USB_Device_Library\Core\Src\usbd_desc_template.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="168"/>
         <CursorPos X="42" Y="182"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_dpm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="978"/>
         <CursorPos X="52" Y="992"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_nearlyworking_v2\Applications\USB_PD\USBPDM1_Sink_PPS\Inc\usbpd_pdo_defs.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="79"/>
         <CursorPos X="43" Y="99"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Inc\usbpd_pdo_defs.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="71"/>
         <CursorPos X="9" Y="79"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE_working_v1\Applications\USB_PD\SNK1M1_Sink\Inc\usbpd_pdo_defs.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="158"/>
         <CursorPos X="9" Y="79"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Inc\usbpd_pdo_defs.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="65"/>
         <CursorPos Y="173"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP - Copy\Inc\usbpd_vdm_user.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="33"/>
         <CursorPos X="2" Y="47"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="99"/>
         <CursorPos X="20" Y="113"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_gui_memmap.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="65"/>
         <CursorPos X="24" Y="79"/>
@@ -1591,42 +1591,42 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="396"/>
         <CursorPos X="20" Y="410"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="396"/>
         <CursorPos X="20" Y="410"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="340"/>
         <CursorPos X="3" Y="354"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\USBPDM1_Sink_LPM\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="99"/>
         <CursorPos X="20" Y="113"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\USBPDM1_Sink_PPS\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="99"/>
         <CursorPos X="20" Y="113"/>
@@ -1640,119 +1640,119 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP - Copy\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_Sink_PPS\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\USBPDM1_Sink_LPM\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\USBPDM1_Sink_PPS\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="97"/>
         <CursorPos X="28" Y="111"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\USBPDM1_Sink\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="340"/>
         <CursorPos X="3" Y="354"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="515"/>
         <CursorPos X="59" Y="529"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_vdm_user.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="102"/>
         <CursorPos X="16" Y="65"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G081B_EVAL\stm32g081b_eval_mux.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="370"/>
         <CursorPos Y="536"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\BSP\STM32G0C1E-EV\stm32g0c1e_eval_mux.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="228"/>
         <CursorPos X="19" Y="515"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Consumer_1port\Src\usbpd_vdm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="193"/>
         <CursorPos X="13" Y="207"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_user.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="102"/>
         <CursorPos X="23" Y="112"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Utilities\GUI_INTERFACE\gui_api.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2813"/>
         <CursorPos X="59" Y="2827"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G071RB\Applications\USB_PD\DRP1M1_DRP\Src\usbpd_dpm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="1208"/>
         <CursorPos X="38" Y="1216"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_vdm_user.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="107"/>
         <CursorPos X="33" Y="121"/>
@@ -1766,21 +1766,21 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP\Inc\usbpd_dpm_conf.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="59"/>
         <CursorPos X="38" Y="74"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G071B-DISCO\Demonstrations\USBPD_Analyzer\Inc\usbpd_dpm_conf.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="116"/>
         <CursorPos X="14" Y="171"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\USBPDM1_Sink_LPM\Inc\usbpd_dpm_conf.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="170"/>
         <CursorPos X="71" Y="171"/>
@@ -1794,28 +1794,28 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Demonstrations\Modules\ucpd\usbpd_dpm_user.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="455"/>
         <CursorPos X="15" Y="469"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G474RE\Applications\USB_PD\SNK1M1_Sink\Src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="314"/>
         <CursorPos X="15" Y="328"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Middlewares\ST\STM32_USBPD_Library\Core\src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="293"/>
         <CursorPos X="29" Y="358"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G081B-EVAL\Applications\USB-PD\USB-PD_Provider_1port\Src\usbpd_dpm_core.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="420"/>
         <CursorPos X="27" Y="370"/>
@@ -1829,35 +1829,35 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\SNK1M1_Sink\Src\stm32g0xx_hal_msp.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="65"/>
         <CursorPos X="22" Y="88"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Utilities\TRACER_EMB\tracer_emb.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="366"/>
         <CursorPos X="14" Y="3"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\STM32G0xx_HAL_Driver\Inc\stm32g0xx_hal_dma.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="189"/>
         <CursorPos X="31" Y="204"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Drivers\STM32G0xx_HAL_Driver\Inc\Legacy\stm32_hal_legacy.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="335"/>
         <CursorPos X="35" Y="349"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\NUCLEO-G071RB\Examples\UART\LPUART_WakeUpFromStop\Src\stm32g0xx_hal_msp.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="133"/>
         <CursorPos X="21" Y="126"/>
@@ -1871,28 +1871,28 @@
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\NUCLEO-G0B1RE\Examples_LL\LPUART\LPUART_WakeUpFromStop_Init\Src\stm32g0xx_it.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="150"/>
         <CursorPos X="43" Y="148"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Projects\STM32G0C1E-EV\Applications\USB-PD\USB-PD_Consumer_1port\Src\stm32g0xx_it.c"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="195"/>
         <CursorPos X="25" Y="210"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\STM32Cube_FW_G0_V1.5.0\Middlewares\ST\STM32_USBPD_Library\Core\inc\usbpd_core.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="830"/>
         <CursorPos X="6" Y="844"/>
       </Unit>
       <Unit>
         <Filename Value="C:\dev\x-cube-tcpp-3_1_0\Projects\NUCLEO-G0B1RE\Applications\USB_PD\DRP1M1_DRP - Copy\Inc\usbpd_dpm_conf.h"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="59"/>
         <CursorPos X="6" Y="73"/>
@@ -3350,7 +3350,7 @@
       <Unit>
         <Filename Value="..\Common\tools.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="26"/>
         <EditorIndex Value="2"/>
         <TopLine Value="15"/>
         <CursorPos X="11" Y="29"/>
@@ -3399,14 +3399,14 @@
       </Unit>
       <Unit>
         <Filename Value="..\Common\mORMot2\mormot.lib.static.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="14"/>
         <CursorPos X="2" Y="27"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\mORMot2\src\mormot.core.base.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="9272"/>
         <CursorPos X="4" Y="9285"/>
@@ -3420,35 +3420,35 @@
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\compiler\ogcoff.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="1002"/>
         <CursorPos X="29" Y="1014"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\compiler\pdecsub.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2782"/>
         <CursorPos X="14" Y="2795"/>
       </Unit>
       <Unit>
         <Filename Value="C:\msys64\home\superdad\libusb\libusb\Makefile.am"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="72"/>
         <CursorPos X="21" Y="85"/>
       </Unit>
       <Unit>
         <Filename Value="C:\msys64\home\superdad\libusb\configure.ac"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="374"/>
         <CursorPos X="19" Y="387"/>
       </Unit>
       <Unit>
         <Filename Value="C:\msys64\home\superdad\libusb\autom4te.cache\output.0"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="684"/>
         <CursorPos Y="697"/>
@@ -3461,19 +3461,19 @@
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\func.inc"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2336"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\base.inc"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="959"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\symdef.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="1762"/>
         <CursorPos X="34" Y="1783"/>
@@ -3481,42 +3481,42 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\packages\winunits-jedi\src\jwantdsapi.pas"/>
         <UnitName Value="JwaNtDsApi"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="3455"/>
         <CursorPos X="40" Y="3207"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\ptype.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="437"/>
         <CursorPos X="30" Y="351"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\compiler\dbgstabs.pas"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="652"/>
         <CursorPos X="19" Y="665"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\unix\unixcp.pp"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="723"/>
         <CursorPos X="14" Y="739"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\win64\windows.pp"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="22"/>
         <CursorPos X="11" Y="30"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\trunk\fpcsrc\rtl\win64\seh64.inc"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="15" Y="233"/>
       </Unit>
@@ -3743,7 +3743,7 @@
       <Unit>
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="54"/>
         <EditorIndex Value="3"/>
         <TopLine Value="693"/>
         <CursorPos X="3" Y="705"/>
@@ -3751,7 +3751,7 @@
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="54"/>
         <EditorIndex Value="4"/>
         <TopLine Value="348"/>
         <CursorPos X="6" Y="363"/>
@@ -3994,121 +3994,123 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="19" TopLine="204"/>
+        <Caret Line="606" Column="9" TopLine="584"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2212" Column="46" TopLine="2196"/>
+        <Caret Line="607" Column="41" TopLine="585"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1235" Column="15" TopLine="1211"/>
+        <Caret Line="728" Column="27" TopLine="705"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="20" TopLine="211"/>
+        <Caret Line="804" Column="24" TopLine="782"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2186" TopLine="2176"/>
+        <Caret Line="824" Column="29" TopLine="801"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1277" Column="12" TopLine="1264"/>
+        <Caret Line="1034" Column="22" TopLine="1011"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="224" Column="19" TopLine="212"/>
+        <Caret Line="1040" Column="13" TopLine="1017"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2219" Column="30" TopLine="2210"/>
+        <Caret Line="1043" Column="23" TopLine="1020"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
+        <Caret Line="1044" Column="24" TopLine="1021"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1273" Column="46" TopLine="1190"/>
+        <Caret Line="1049" Column="24" TopLine="1026"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="224" Column="19" TopLine="204"/>
+        <Caret Line="1050" Column="22" TopLine="1027"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2225" TopLine="2201"/>
+        <Caret Line="1117" Column="29" TopLine="1094"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
+        <Caret Line="1206" Column="19" TopLine="1206"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1343" Column="70" TopLine="1329"/>
+        <Caret Line="1213" Column="32" TopLine="1206"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1461" Column="12" TopLine="1438"/>
+        <Caret Line="1230" Column="55" TopLine="1208"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="19" TopLine="213"/>
+        <Caret Line="1264" Column="28" TopLine="1242"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2207" TopLine="2190"/>
+        <Caret Line="1265" Column="65" TopLine="1243"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1161" TopLine="1147"/>
+        <Caret Line="1280" Column="53" TopLine="1258"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1233" TopLine="1219"/>
+        <Caret Line="1286" Column="24" TopLine="1264"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1275" TopLine="1262"/>
+        <Caret Line="1333" Column="40" TopLine="1311"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1723" Column="9" TopLine="1697"/>
+        <Caret Line="1336" Column="43" TopLine="1314"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="223" Column="18" TopLine="211"/>
+        <Caret Line="1337" Column="43" TopLine="1315"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2233" Column="32" TopLine="2215"/>
+        <Caret Line="1377" TopLine="1351"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1354" Column="46" TopLine="1341"/>
+        <Caret Line="1158" Column="9" TopLine="1154"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1718" TopLine="1698"/>
+        <Caret Line="1165" Column="15" TopLine="1154"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2188" TopLine="2183"/>
+        <Caret Line="1166" Column="42" TopLine="1154"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2206" Column="39" TopLine="2183"/>
+        <Caret Line="1377" TopLine="1354"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2227" Column="35" TopLine="2205"/>
+        <Caret Line="1170" Column="5" TopLine="1152"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1340" TopLine="1335"/>
+        <Caret Line="1193" Column="20" TopLine="1153"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="2212" Column="26" TopLine="2205"/>
+        <Caret Line="1568" TopLine="1571"/>
       </Position>
     </JumpHistory>
     <RunParams>

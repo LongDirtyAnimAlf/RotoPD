@@ -1,7 +1,7 @@
 object PowerbankMainForm: TPowerbankMainForm
-  Left = 256
+  Left = 451
   Height = 784
-  Top = 134
+  Top = 135
   Width = 1469
   Caption = 'CONSULAB Powerbank Discharger'
   ClientHeight = 784
@@ -396,6 +396,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 )
                 TabOrder = 2
                 Text = 'Select battery #'
+                OnSelect = SamplesBoxSelect
               end
               object StartStopSpeedButton: TSpeedButton
                 AnchorSideTop.Side = asrBottom
@@ -406,6 +407,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 AllowAllUp = True
                 BorderSpacing.Top = 12
                 Caption = 'Start'
+                Enabled = False
                 Font.CharSet = ANSI_CHARSET
                 Font.Color = clLime
                 Font.Height = -27
@@ -647,6 +649,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 BorderSpacing.Top = 4
                 BorderSpacing.Right = 2
                 TabOrder = 11
+                OnChange = EditChangeEmptyCheck
               end
               object ProductLabel: TLabel
                 AnchorSideLeft.Control = Panel2
@@ -678,6 +681,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 BorderSpacing.Top = 4
                 BorderSpacing.Right = 2
                 TabOrder = 12
+                OnChange = EditChangeEmptyCheck
               end
               object RunLabel: TLabel
                 AnchorSideLeft.Control = Panel2
@@ -708,6 +712,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 BorderSpacing.Top = 4
                 BorderSpacing.Right = 2
                 TabOrder = 13
+                OnChange = EditChangeEmptyCheck
               end
               object RunNumberLabel: TLabel
                 AnchorSideLeft.Control = Panel2
@@ -739,6 +744,7 @@ object PowerbankMainForm: TPowerbankMainForm
                 BorderSpacing.Top = 4
                 BorderSpacing.Right = 2
                 TabOrder = 14
+                OnChange = EditChangeEmptyCheck
               end
               object InfoLabel: TLabel
                 AnchorSideLeft.Control = Panel2
