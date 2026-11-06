@@ -52,6 +52,7 @@ type
   end;
 
   TMachineSet = record
+    BoardAvailable         : boolean;
     Project                : string;
     Product                : string;
     Runname                : string;
@@ -85,10 +86,6 @@ type
     btnRotoPDGetPDOList: TButton;
     btnTestDischarge: TSpeedButton;
     Button2: TButton;
-    MachineChart: TChart;
-    MachineChartLineSeries1: TLineSeries;
-    MachineChartLineSeries2: TLineSeries;
-    MachineChartLineSeries3: TLineSeries;
     chkCurrentLimit: TCheckBox;
     chkVoltageLimit: TCheckBox;
     CurrentEdit: TEdit;
@@ -98,53 +95,59 @@ type
     FilenameEdit: TEdit;
     GroupBox1: TGroupBox;
     grpEPRPDOs: TGroupBox;
-    grpTesting: TGroupBox;
-    grpRotoPDControl: TGroupBox;
-    grpVAData: TGroupBox;
     grpPDOs: TGroupBox;
+    grpRotoPDControl: TGroupBox;
+    grpTesting: TGroupBox;
+    grpVAData: TGroupBox;
+    ImageList1: TImageList;
     InfoLabel: TLabel;
     lblCurrent: TLabel;
     lblDischargeSettings: TLabel;
     lblVoltage: TLabel;
+    MachineChart: TChart;
+    MachineChartLineSeries1: TLineSeries;
+    MachineChartLineSeries2: TLineSeries;
+    MachineChartLineSeries3: TLineSeries;
+    MachineGroupBox: TPanel;
     MachineInfoMemo: TMemo;
     MachineRemoveClick: TMenuItem;
+    MemoUnhandled: TMemo;
     MT1: TAutoScaleAxisTransform;
     MyTransform1: TChartAxisTransformations;
     MyTransform2: TChartAxisTransformations;
     MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform;
-    MemoUnhandled: TMemo;
     PageControl1: TPageControl;
     Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
     Panel4: TPanel;
-    MachineGroupBox: TPanel;
     PopupMenu1: TPopupMenu;
+    ChannelSheet: TTabSheet;
     ProductLabel: TLabel;
     Product_edit: TEdit;
+    ProgressBar1: TProgressBar;
     ProjectLabel: TLabel;
     Project_edit: TEdit;
     RunLabel: TLabel;
     Runname_edit: TEdit;
     RunNumberLabel: TLabel;
     Runnumber_edit: TEdit;
+    SamplesBox: TComboBox;
+    SinkEPRPDODrawGrid: TDrawGrid;
+    SinkPDODrawGrid: TDrawGrid;
     SourceEPRPDODrawGrid: TDrawGrid;
     SourcePDODrawGrid: TDrawGrid;
-    SinkPDODrawGrid: TDrawGrid;
-    SinkEPRPDODrawGrid: TDrawGrid;
-    Machine1Sheet: TTabSheet;
-    tsOverview1: TTabSheet;
-    tsOverview2: TTabSheet;
-    TestInfoMemo: TMemo;
-    ProgressBar1: TProgressBar;
-    SamplesBox: TComboBox;
     StartStopSpeedButton: TSpeedButton;
     StaticText1: TStaticText;
+    TabControl1: TTabControl;
+    TestInfoMemo: TMemo;
     TestsBox: TComboBox;
+    tsOverview1: TTabSheet;
+    tsOverview2: TTabSheet;
     DataStoreTimer: TTimer;
     ProgressStepperTimer: TTimer;
-    UpdateTimer: TTimer;
     TypesBox: TComboBox;
+    UpdateTimer: TTimer;
     USBDebugLog: TMemo;
     VoltageEdit: TEdit;
     procedure AutoFileNameCheckBoxClick(Sender: TObject);
@@ -168,19 +171,14 @@ type
     procedure ListView1KeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure MachineRemoveClickClick(Sender: TObject);
-    procedure PageControl1Change(Sender: TObject);
-    procedure PageControl1Changing(Sender: TObject; var AllowChange: Boolean);
-    procedure PageControl1DragDrop(Sender, Source: TObject; X, Y: Integer);
-    procedure PageControl1DragOver(Sender, Source: TObject; X, Y: Integer;
-      State: TDragState; var Accept: Boolean);
-    procedure PageControl1MouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
     procedure PDODrawGridButtonClick(Sender: TObject; aCol, aRow: Integer
       );
     procedure PDODrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
     procedure StartStopSpeedButtonClick(Sender: TObject);
     procedure DataStoreTimerTimer(Sender: TObject);
+    procedure TabControl1Change(Sender: TObject);
+    procedure TabControl1Changing(Sender: TObject; var AllowChange: Boolean);
     procedure TestsBoxChange(Sender: TObject);
     procedure ProgressStepperTimerTimer({%H-}Sender: TObject);
     procedure TestsBoxSelect(Sender: TObject);
@@ -303,8 +301,6 @@ procedure TPowerbankMainForm.FormCreate(Sender: TObject);
 var
   Ini     : TIniFile;
   i       : integer;
-  s       : string;
-  CList,CListDetails:TStringList;
   ts:TTabSheet;
 begin
   PageControl1.OwnerDraw:=True;
@@ -556,25 +552,6 @@ begin
 
   NumberOfMachines  := 8;
 
-  for i:=1 to NumberOfMachines do
-  begin
-    if i>1 then
-    begin
-      ts:=TTabSheet.Create(Self);
-      ts.Parent:=PageControl1;
-      ts.Name:='Machine'+InttoStr(i)+'Sheet';
-      ts.Caption:='Machine '+InttoStr(i);
-      ts.PageControl:=PageControl1;
-    end
-    else
-    begin
-      ts:=Machine1Sheet;
-    end;
-    // The tag in used as boardnumber to indicate the board belonging to this sheet
-    // Is a bit tricky
-    ts.Tag:=0;
-  end;
-
   // We start at board 1, so dummy board added
   // Also tricky
   SetLength(MachineBox,NumberOfMachines+1);
@@ -583,9 +560,12 @@ begin
 
   for i:=1 to NumberOfMachines do
   begin
+    // Create DUTS
     DUT[i]:=TUSBPDDevice.Create;
     DUT[i].Cleanup;
+    // Create Machine datasets
     Machineset[i].RunData:=TList<TMachineData>.Create();
+    // Create overview frames
     MachineBox[i]:=TFrameSimple.Create(tsOverview1);
     MachineBox[i].Number:=i;
     //MachineBox[i].Name:='NewFrame'+InttoStr(i);
@@ -607,7 +587,6 @@ begin
 
   ActiveMachine:=1;
   PageControl1.TabIndex:=2;
-  PageControl1Change(PageControl1);
 
   DataStoreTimer.Interval:=NumRate*1000;
   DataStoreTimer.Enabled:=True;
@@ -703,189 +682,6 @@ begin
       end;
     end;
   end;
-end;
-
-procedure TPowerbankMainForm.PageControl1Change(Sender: TObject);
-var
-  z:integer;
-  PG:TPageControl;
-  LocalVisibleMachine:integer;
-  PMS : PMachineSet;
-begin
-  PG:=TPageControl(Sender);
-
-  if PG.OwnerDraw then PG.Invalidate;
-
-  if Pos('Machine',PG.ActivePage.Caption)=1 then
-    LocalVisibleMachine:=StrToIntDef(RightStr(PG.ActivePage.Caption,2),0)
-  else
-    LocalVisibleMachine:=0;
-
-  if (LocalVisibleMachine <> 0) then
-  begin
-    if (LocalVisibleMachine<>ActiveMachine) then
-    begin
-      ActiveMachine:=LocalVisibleMachine;
-
-      // Point towards the correct dataset
-      PMS:=@Machineset[ActiveMachine];
-
-      MachineGroupBox.Parent:=PG.ActivePage;
-
-      SetControls(Sender,PMS^.Running);
-
-      //MachineChart.UndoZoom;
-      if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
-      MachineChartLineSeries1.Clear;
-      MachineChartLineSeries2.Clear;
-
-      //with Machineset[ActiveMachine] do
-      begin
-        if PMS^.RunData.Count>0 then
-        begin
-          for z:=0 to PMS^.RunData.Count-1 do
-          begin
-            MachineChartLineSeries1.Add(PMS^.RunData[z].Voltage);
-            MachineChartLineSeries2.Add(PMS^.RunData[z].Current);
-          end;
-
-          // Why ?
-          if (NOT PMS^.Running) then
-          begin
-            PMS^.LatestMeasurementData.Energy:=PMS^.RunData.Last.Energy;
-            PMS^.LatestMeasurementData.Voltage:=PMS^.RunData.Last.Voltage;
-            PMS^.LatestMeasurementData.Current:=PMS^.RunData.Last.Current;
-            PMS^.LatestMeasurementData.Power:=PMS^.RunData.Last.Power;
-            PMS^.LatestMeasurementData.Capacity:=PMS^.RunData.Last.Capacity;
-            PMS^.LatestMeasurementData.Elapsed:=PMS^.RunData.Last.Elapsed;
-          end;
-
-        end;
-
-        //AutoFileNameCheckBox.Checked:=PMS^.AutoFileName;
-
-        FilenameEdit.Text:=ExtractFileName(PMS^.Filename);
-        Project_edit.Text:=PMS^.Project;
-        Product_edit.Text:=PMS^.Product;
-        Runname_edit.Text:=PMS^.Runname;
-        Runnumber_edit.Text:=PMS^.Runnumber;
-        MachineInfoMemo.Lines.CommaText:=PMS^.Info;
-
-        GUIVoltage:=PMS^.LatestMeasurementData.Voltage;
-        GUICurrent:=PMS^.LatestMeasurementData.Current;
-        GUIPower:=PMS^.LatestMeasurementData.Power;
-        GUIEnergy:=PMS^.LatestMeasurementData.Energy;
-        GUICapacity:=PMS^.LatestMeasurementData.Capacity;
-      end;
-
-      SourcePDODrawGrid.Invalidate;
-      SourceEPRPDODrawGrid.Invalidate;
-    end;
-  end;
-
-end;
-
-procedure TPowerbankMainForm.PageControl1Changing(Sender: TObject;
-  var AllowChange: Boolean);
-begin
-  SaveMachineData;
-  //AllowChange := TemperatureEdit.ReadOnly
-end;
-
-procedure TPowerbankMainForm.PageControl1DragDrop(Sender, Source: TObject; X,
-  Y: Integer);
-var
-  TabRect: TRect;
-  j: Integer;
-  OldBoard,NewBoard:integer;
-  buttonselected:integer;
-  TempTag:NativeInt;
-begin
-  //ShowMessage(InttoStr(PageControl1.ActivePage.PageIndex));
-  if (Sender is TPageControl) then
-  for j := 0 to PageControl1.PageCount - 1 do
-  begin
-    TabRect:=PageControl1.TabRect(j);
-    if PtInRect(TabRect, Point(X, Y)) then
-    begin
-      if PageControl1.ActivePage.PageIndex <> j then
-      begin
-       //PageControl1.ActivePage.PageIndex := j;
-       OldBoard:=StrToIntDef(RightStr(PageControl1.ActivePage.Caption,2),0);
-       NewBoard:=StrToIntDef(RightStr(PageControl1.Pages[j].Caption,2),0);
-       if OldBoard<>NewBoard then
-       begin
-         buttonSelected := MessageDlg('Confirm board change from '+InttoStr(OldBoard)+' to '+InttoStr(NewBoard),mtError, mbOKCancel, 0);
-         if buttonSelected = mrOK then
-         begin
-           //USBCounter.ChangeAddressNew(OldBoard,NewBoard);
-           //USBCounter.ChangeAddress(OldBoard,NewBoard);
-           TempTag:=PageControl1.ActivePage.Tag;
-           PageControl1.ActivePage.Tag:=PageControl1.Pages[j].Tag;
-           PageControl1.Pages[j].Tag:=TempTag;
-           PageControl1.Repaint;
-         end;
-       end;
-      end;
-      break;
-    end;
-  end;
-end;
-
-procedure TPowerbankMainForm.PageControl1DragOver(Sender, Source: TObject; X,
-  Y: Integer; State: TDragState; var Accept: Boolean);
-begin
-  if (Sender is TPageControl) then Accept := True;
-end;
-
-procedure TPowerbankMainForm.PageControl1MouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-   TabRect: TRect;
-   j: Integer;
-   NewBoard:integer;
-   localpagecaption:string;
-   AllowDrag:boolean;
-begin
- if ssCtrl in Shift then
- begin
-   AllowDrag:=true;
-   for j:=1 to NumberOfMachines do
-   begin
-      if Machineset[j].Running then
-      begin
-        AllowDrag:=false;
-        break;
-      end
-   end;
-   if AllowDrag then PageControl1.BeginDrag(False);
- end
- else
- begin
-   //if (Button = mbRight) and (Shift = []) then
-   if (Button = mbRight) then
-   begin
-     NewBoard:=0;
-     if (Sender is TPageControl) then
-     for j := 0 to PageControl1.PageCount - 1 do
-     begin
-       TabRect:=PageControl1.TabRect(j);
-       //ShowMessage('Counter '+InttoStr(j));
-       if PtInRect(TabRect, Point(X, Y)) then
-       begin
-          localpagecaption:=PageControl1.Pages[j].Caption;
-          if (Pos('Machine',localpagecaption)>0)
-             then NewBoard:=StrToIntDef(RightStr(localpagecaption,2),0);
-          if NewBoard>0 then
-          begin
-            PopupMenu1.Items[0].Caption:='Remove machine '+InttoStr(NewBoard);
-            PopUpMenu1.Popup(Self.Left+PageControl1.Left+x,Self.Top+PageControl1.Top+y);
-          end;
-         exit;
-       end;
-     end;
-   end;
- end;
 end;
 
 procedure TPowerbankMainForm.PDODrawGridButtonClick(Sender: TObject;
@@ -1615,6 +1411,90 @@ begin
   end;
 end;
 
+procedure TPowerbankMainForm.TabControl1Change(Sender: TObject);
+var
+  z:integer;
+  TC:TTabControl;
+  LocalVisibleMachine:integer;
+  PMS : PMachineSet;
+begin
+  TC:=TTabControl(Sender);
+
+  //if TC.OwnerDraw then TC.Invalidate;
+
+  LocalVisibleMachine:=TC.TabIndex+1;
+
+  if (LocalVisibleMachine <> 0) then
+  begin
+    if (LocalVisibleMachine<>ActiveMachine) then
+    begin
+      ActiveMachine:=LocalVisibleMachine;
+
+      // Point towards the correct dataset
+      PMS:=@Machineset[ActiveMachine];
+
+      SetControls(Sender,PMS^.Running);
+
+      MachineChartLineSeries1.BeginUpdate;
+      MachineChartLineSeries2.BeginUpdate;
+
+      MachineChartLineSeries1.Clear;
+      MachineChartLineSeries2.Clear;
+
+      //MachineChart.UndoZoom;
+      if MachineChart.IsZoomed then MachineChart.ZoomFull(false);
+
+      if PMS^.RunData.Count>0 then
+      begin
+        for z:=0 to PMS^.RunData.Count-1 do
+        begin
+          MachineChartLineSeries1.Add(PMS^.RunData[z].Voltage);
+          MachineChartLineSeries2.Add(PMS^.RunData[z].Current);
+        end;
+        // Why ?
+        if (NOT PMS^.Running) then
+        begin
+          PMS^.LatestMeasurementData.Energy:=PMS^.RunData.Last.Energy;
+          PMS^.LatestMeasurementData.Voltage:=PMS^.RunData.Last.Voltage;
+          PMS^.LatestMeasurementData.Current:=PMS^.RunData.Last.Current;
+          PMS^.LatestMeasurementData.Power:=PMS^.RunData.Last.Power;
+          PMS^.LatestMeasurementData.Capacity:=PMS^.RunData.Last.Capacity;
+          PMS^.LatestMeasurementData.Elapsed:=PMS^.RunData.Last.Elapsed;
+        end;
+
+      end;
+
+      MachineChartLineSeries2.EndUpdate;
+      MachineChartLineSeries1.EndUpdate;
+
+
+      //AutoFileNameCheckBox.Checked:=PMS^.AutoFileName;
+
+      FilenameEdit.Text:=ExtractFileName(PMS^.Filename);
+      Project_edit.Text:=PMS^.Project;
+      Product_edit.Text:=PMS^.Product;
+      Runname_edit.Text:=PMS^.Runname;
+      Runnumber_edit.Text:=PMS^.Runnumber;
+      MachineInfoMemo.Lines.CommaText:=PMS^.Info;
+
+      GUIVoltage:=PMS^.LatestMeasurementData.Voltage;
+      GUICurrent:=PMS^.LatestMeasurementData.Current;
+      GUIPower:=PMS^.LatestMeasurementData.Power;
+      GUIEnergy:=PMS^.LatestMeasurementData.Energy;
+      GUICapacity:=PMS^.LatestMeasurementData.Capacity;
+
+      SourcePDODrawGrid.Invalidate;
+      SourceEPRPDODrawGrid.Invalidate;
+    end;
+  end;
+end;
+
+procedure TPowerbankMainForm.TabControl1Changing(Sender: TObject;
+  var AllowChange: Boolean);
+begin
+  SaveMachineData;
+end;
+
 procedure TPowerbankMainForm.TestsBoxChange(Sender: TObject);
 var
   aCombo:TComboBox;
@@ -2236,32 +2116,12 @@ begin
   if datacarrier>0 then
   begin
     Info:='Data acquisitionboard '+InttoStr(datacarrier)+' added';
-    for x:=0 to (PageControl1.PageCount-1) do
-    begin
-      if Pos('Machine',PageControl1.Pages[x].Caption)>0 then
-      begin
-        if StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),-1)=datacarrier then
-        begin
-          PageControl1.Pages[x].Tag:=1;
-          break;
-        end;
-      end;
-    end;
+    Machineset[datacarrier].BoardAvailable:=true;
   end;
   if datacarrier<0 then
   begin
-    Info:='Data acquisitionboard '+InttoStr(-1*datacarrier)+' removed';
-    for x:=0 to (PageControl1.PageCount-1) do
-    begin
-      if Pos('Machine',PageControl1.Pages[x].Caption)>0 then
-      begin
-        if StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),-1)=abs(datacarrier) then
-        begin
-          PageControl1.Pages[x].Tag:=0;
-          break;
-        end;
-      end;
-    end;
+    Info:='Data acquisitionboard '+InttoStr(Abs(datacarrier))+' removed';
+    Machineset[abs(datacarrier)].BoardAvailable:=false;
   end;
 
   if datacarrier=0 then Info:='Unknown data acquisitionboard error';
@@ -2328,16 +2188,10 @@ begin
   MachineAsked:=0;
   try
     if (Sender is TComponent) then MachineAsked:=(Sender as TComponent).Tag;
-    for x:=0 to (PageControl1.PageCount-1) do
+    if MachineAsked>0 then
     begin
-      if (Pos('Machine',PageControl1.Pages[x].Caption) <> 1) then continue;
-      if StrToIntDef(RightStr(PageControl1.Pages[x].Caption,2),-1)=MachineAsked then
-      begin
-        PageControl1.TabIndex:=x;
-        //PageControl1.ActivePage:=PageControl1.Pages[x];
-        PageControl1Change(PageControl1);
-        break;
-      end;
+      TabControl1.TabIndex:=(MachineAsked-1);
+      PageControl1.TabIndex:=2;
     end;
   except
     on E: EInvalidOperation do begin end;
