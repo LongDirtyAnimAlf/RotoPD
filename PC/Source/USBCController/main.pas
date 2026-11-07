@@ -1698,7 +1698,7 @@ begin
   for MachineRunner:=Low(MachineSet) to High(MachineSet) do
   begin
     DD.SetOutput(MachineRunner,false);
-    DD.SetOff(MachineRunner,1);
+    DD.SetOff(MachineRunner);
     MachineSet[MachineRunner].Active:=false;
     MachineSet[MachineRunner].Testing:=false;
     MachineSet[MachineRunner].RunData.Clear;

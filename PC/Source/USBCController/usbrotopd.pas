@@ -96,7 +96,7 @@ type
     function  FGetImax(board:word):word;
     function  FGetCaldate(board:word):ansistring;
 
-    function  SetValueFine(board,position:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
+    function  SetValueFine(board:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
     function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
   public
     MaxErrors:word;
@@ -106,9 +106,6 @@ type
     destructor Destroy;override;
 
     function  CheckParameters(board:word):boolean;overload;
-
-    function  ToTotal(board:word; out total:word):boolean;
-    function  FromTotal(total:word; out board:word):boolean;
 
     property  DataSource:TMyUSB read FDataSource;
 
@@ -133,16 +130,16 @@ type
     function  SetOutput(board:word; Engage:boolean):boolean;
     function  SetEnergy(board:word; Energy:qword):boolean;
 
-    function  ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;overload;
-    function  ReadBatteryData(board,position:word;out voltage,current:double):boolean;overload;
+    function  ReadBatteryData(board:word;out voltage,current,energy,temperature:double):boolean;overload;
+    function  ReadBatteryData(board:word;out voltage,current:double):boolean;overload;
 
-    function  SetOff(board,position:word):boolean;
-    function  SetCurrent(board,position:word;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
-    function  SetCurrent(board,position:word;value:dword;fine:word):boolean;overload;
-    function  SetCurrent(board,position:word;value:dword):boolean;overload;
-    function  SetPower(board,position:word;value:dword; out realvalue:UInt64):boolean;
-    function  SetResistor(board,position:word;value:dword; out realvalue:UInt64):boolean;
-    function  SetChargeCurrent(board,position:word;value:dword;fine:word; out realvalue:UInt64):boolean;
+    function  SetOff(board:word):boolean;
+    function  SetCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
+    function  SetCurrent(board:word;value:dword;fine:word):boolean;overload;
+    function  SetCurrent(board:word;value:dword):boolean;overload;
+    function  SetPower(board:word;value:dword; out realvalue:UInt64):boolean;
+    function  SetResistor(board:word;value:dword; out realvalue:UInt64):boolean;
+    function  SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
   end;
 
 implementation
@@ -607,18 +604,6 @@ begin
   end;
 end;
 
-function TDataDevice.ToTotal(board:word; out total:word):boolean;
-begin
-  result:=false;
-  total:=(board-1);
-end;
-
-function TDataDevice.FromTotal(total:word; out board:word):boolean;
-begin
-  result:=false;
-  board:=total+1;
-end;
-
 function TDataDevice.CheckParameters(board:word):boolean;
 var
   Ctrl:TUSBController;
@@ -902,7 +887,7 @@ begin
   result:=SetPDO(board,PDO,PDO_TYPE_AVS,MaxCurrent_mA,Voltage_mV);
 end;
 
-function  TDataDevice.ReadBatteryData(board,position:word;out voltage,current,energy,temperature:double):boolean;
+function  TDataDevice.ReadBatteryData(board:word;out voltage,current,energy,temperature:double):boolean;
 var
   error:boolean;
   cmd: TCommands;
@@ -981,14 +966,14 @@ begin
   result:=error;
 end;
 
-function  TDataDevice.ReadBatteryData(board,position:word;out voltage,current:double):boolean;
+function  TDataDevice.ReadBatteryData(board:word;out voltage,current:double):boolean;
 var
   e,t:double;
 begin
-  result:=ReadBatteryData(board,position,voltage,current,e,t);
+  result:=ReadBatteryData(board,voltage,current,e,t);
 end;
 
-function TDataDevice.SetValueFine(board,position:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;
+function TDataDevice.SetValueFine(board:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;
 var
   temp:dword;
   error:boolean;
@@ -1058,39 +1043,39 @@ begin
   result:=error;
 end;
 
-function  TDataDevice.SetOff(board,position:word):boolean;
+function  TDataDevice.SetOff(board:word):boolean;
 var
   realvalue:UInt64;
 begin
-  result:=SetValueFine(board,position,BatteryStatus.BSOff,0,0,realvalue);
+  result:=SetValueFine(board,BatteryStatus.BSOff,0,0,realvalue);
 end;
 
-function  TDataDevice.SetCurrent(board,position:word;value:dword;fine:word; out realvalue:UInt64):boolean;
+function  TDataDevice.SetCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,position,BatteryStatus.BSCurrent,value,fine,realvalue);
+  result:=SetValueFine(board,BatteryStatus.BSCurrent,value,fine,realvalue);
 end;
-function  TDataDevice.SetCurrent(board,position:word;value:dword;fine:word):boolean;
+function  TDataDevice.SetCurrent(board:word;value:dword;fine:word):boolean;
 var
   realvalue:UInt64;
 begin
-  result:=SetCurrent(board,position,value,fine,realvalue);
+  result:=SetCurrent(board,value,fine,realvalue);
 end;
-function  TDataDevice.SetCurrent(board,position:word;value:dword):boolean;
+function  TDataDevice.SetCurrent(board:word;value:dword):boolean;
 begin
-  result:=SetCurrent(board,position,value,0);
+  result:=SetCurrent(board,value,0);
 end;
 
-function  TDataDevice.SetPower(board,position:word;value:dword; out realvalue:UInt64):boolean;
+function  TDataDevice.SetPower(board:word;value:dword; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,position,BatteryStatus.BSPower,value,0,realvalue);
+  result:=SetValueFine(board,BatteryStatus.BSPower,value,0,realvalue);
 end;
-function  TDataDevice.SetResistor(board,position:word;value:dword; out realvalue:UInt64):boolean;
+function  TDataDevice.SetResistor(board:word;value:dword; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,position,BatteryStatus.BSResistor,value,0,realvalue);
+  result:=SetValueFine(board,BatteryStatus.BSResistor,value,0,realvalue);
 end;
-function  TDataDevice.SetChargeCurrent(board,position:word;value:dword;fine:word; out realvalue:UInt64):boolean;
+function  TDataDevice.SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,position,BatteryStatus.BSCharge,value,fine,realvalue);
+  result:=SetValueFine(board,BatteryStatus.BSCharge,value,fine,realvalue);
 end;
 
 end.
