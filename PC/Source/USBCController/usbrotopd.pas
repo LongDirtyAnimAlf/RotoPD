@@ -447,7 +447,6 @@ const
   );
 var
   error:boolean;
-  localboard:integer;
   storedboard:word;
   localboardserial:ansistring;
   localfirmware:word;
@@ -481,7 +480,6 @@ begin
 end;
 
 begin
-  localboard:=0;
   storedboard:=0;
   localfirmware:=0;
   localboardserial:='';
@@ -534,14 +532,8 @@ begin
         // Generate and store a new serial !
         if SerialDefault(localboardserial) then
         begin
-
           if AddressReset then
           begin
-            // We will generate a new random address to be used
-            // But first see if the old address is already assigned
-            // Do we have a board fitting with the default address ?
-            // To be done and implemented
-            localboard:=DataSource.GetBoardNumberFromSerial(localboardserial);
             error:=DataSource.SetBoardSerialRandom(Board,localboardserial);
           end;
 
@@ -550,36 +542,18 @@ begin
 
       if (NOT error) then
       begin
-        localboard:=DataSource.CheckAddressNewer(localboardserial,storedboard);
-        error:=(NOT (localboard>0));
-        if (error) then AddInfo('Check address error');
-      end;
-
-      if (NOT error) then
-      begin
-        // Get firmware
-        //DataSource.GetBoardFirmware(Board,localfirmware);
-
-        // Set the correct boardnumber on the board itself, if needed
-        if (storedboard<>localboard) then
+        if (storedboard<=DataSource.MaxBoards) then
         begin
-          // We do NOT use boardnumbers for batteryboards
-          //AddInfo('Changing boardnumber from '+InttoStr(storedboard)+' to '+InttoStr(localboard));
-          //DataSource.SetBoardNumber(Board,localboard);
-        end;
-
-        if (localboard<=DataSource.MaxBoards) then
-        begin
-          AddInfo('Board accepted. S/N of USB controller #'+InttoStr(localboard)+': '+localboardserial+'. FW: '+InttoStr((localfirmware SHR 8) AND $FF)+'-'+InttoStr(localfirmware AND $FF));
+          AddInfo('Board accepted. S/N of USB controller #'+InttoStr(storedboard)+': '+localboardserial+'. FW: '+InttoStr((localfirmware SHR 8) AND $FF)+'-'+InttoStr(localfirmware AND $FF));
           Board.Accepted:=True;
 
           // Set boardnumber
-          if Assigned(DataSource.FindBoard(localboard)) then
+          if Assigned(DataSource.FindBoard(storedboard)) then
           begin
             raise EUSBException.Create('USBboard to be added with boardnumber that is already taken !! Should never happen. Please check code !');
           end;
 
-          Board.BoardNumber:=localboard;
+          Board.BoardNumber:=storedboard;
 
           Board.ControllerData:=TControllerData.Create;
           with TControllerData(Board.ControllerData) do
@@ -590,7 +564,7 @@ begin
             Calibration:='N/A';
           end;
 
-          // As the firmware might send data by itself, allow auto-magic reception of this data
+          // The firmware sends data by itself, allow auto-magic reception of this data
           Board.OnDataReceived:=OnDeviceData;
 
         end;
@@ -604,17 +578,17 @@ begin
         AddInfo('Some unknown USB controllerboard error occured !!');
       end;
 
-      if (Board.Accepted AND Assigned(FOnDeviceChange)) then FOnDeviceChange(Self,localboard);
+      if (Board.Accepted AND Assigned(FOnDeviceChange)) then FOnDeviceChange(Self,storedboard);
     end
     else
     begin
       // Removal
-      localboard:=Board.BoardNumber;
-      AddInfo('Board [#'+InttoStr(localboard)+'] removed.');
+      storedboard:=Board.BoardNumber;
+      AddInfo('Board [#'+InttoStr(storedboard)+'] removed.');
 
-      if Assigned(FOnDeviceChange) then FOnDeviceChange(Self,-1*localboard);
+      if Assigned(FOnDeviceChange) then FOnDeviceChange(Self,-1*storedboard);
 
-      if (localboard=0) then
+      if (storedboard=0) then
       begin
         // In theory, we should never get here, but anyhow.
         raise EUSBException.Create('Databoard to be removed does not exist. Should never happen. Please check code !');

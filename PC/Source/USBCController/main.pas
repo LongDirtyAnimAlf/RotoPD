@@ -41,7 +41,7 @@ type
     //Time:single;
     Elapsed:uint64;  // ms
   end;
-  TDataList = TList<TMachineData>;
+  TMachineDataList = TList<TMachineData>;
   //TDataList = specialize TList<TMachineData>;
   //TDataList = specialize TFPGList<TMachineData>;
 
@@ -66,7 +66,7 @@ type
     //AutoFileName           : boolean;
     ActiveTestType         : TTestType;
     LatestMeasurementData  : TMachineData;
-    RunData                : TDataList;
+    RunData                : TMachineDataList;
     DUT                    : TUSBPDDevice;
   end;
   PMachineSet = ^TMachineSet;
@@ -208,7 +208,6 @@ type
     NewTemperatureDisplay : TLEDDisplay;
 
     NumRate             : integer;
-    ActiveMachine       : word;
 
     ApplicationDirectory:string;
 
@@ -586,9 +585,8 @@ begin
   // Done in startup
   //DD.Enabled:=True;
 
-  ActiveMachine:=1;
-  PCurrentMachineSet:=@MachineSet[ActiveMachine];
-  PCurrentMachineBox:=@MachineBox[ActiveMachine];
+  PCurrentMachineSet:=@MachineSet;
+  PCurrentMachineBox:=@MachineBox;
 
   PageControl1.TabIndex:=2;
 
@@ -797,8 +795,7 @@ begin
 
     USBDebugLog.Lines.Append('Requesting Source PDO #'+InttoStr(PDONumber)+' at '+InttoStr(PDOVoltage)+'mV and '+InttoStr(PDOCurrent)+'mA.');
 
-    DD.SetMaxPDO(ActiveMachine,PDONumber);
-
+    DD.SetMaxPDO(PCurrentMachineSet^.MachineNumber,PDONumber);
   end;
 
 end;
@@ -1027,7 +1024,7 @@ end;
 procedure TPowerbankMainForm.AutoFileNameCheckBoxClick(Sender: TObject);
 begin
   //FilenameEdit.Enabled:=(NOT AutoFileNameCheckBox.Checked);
-  //MachineSet[ActiveMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
+  //PCurrentMachineSet^.AutoFileName:=AutoFileNameCheckBox.Checked;
 end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
@@ -1036,14 +1033,14 @@ begin
   PCurrentMachineSet^.DUT.Cleanup;
   SourcePDODrawGrid.Invalidate;
   SourceEPRPDODrawGrid.Invalidate;
-  DD.GetPDOList(ActiveMachine);
-  //DD.SetEnergy(ActiveMachine,876456789);
+  DD.GetPDOList(PCurrentMachineSet^.MachineNumber);
+  //DD.SetEnergy(PCurrentMachineSet^.MachineNumber,876456789);
 end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
 begin
-  //DD.SetMaxPDO(ActiveMachine,1);
-  DD.SetPPSPDO(ActiveMachine,6,3000,8500);
+  //DD.SetMaxPDO(PCurrentMachineSet^.MachineNumber,1);
+  DD.SetPPSPDO(PCurrentMachineSet^.MachineNumber,6,3000,8500);
 end;
 
 procedure TPowerbankMainForm.DataEditKeyPress(Sender: TObject; var Key: char);
@@ -1249,8 +1246,8 @@ begin
         ImageList1.EndUpdate;
         TabControl1.Invalidate;
 
-        DD.SetOutput(ActiveMachine,True);
-        DD.SetCurrent(ActiveMachine,1,PCurrentMachineSet^.ActiveTestType.Current);
+        DD.SetOutput(PCurrentMachineSet^.MachineNumber,True);
+        DD.SetCurrent(PCurrentMachineSet^.MachineNumber,1,PCurrentMachineSet^.ActiveTestType.Current);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1318,7 +1315,7 @@ begin
                 Write(F,Project+LocalFormatSettings.ListSeparator);
                 Write(F,Product+LocalFormatSettings.ListSeparator);
                 Write(F,Runname+'_'+Runnumber+LocalFormatSettings.ListSeparator);
-                Write(F,InttoStr(ActiveMachine)+LocalFormatSettings.ListSeparator);
+                Write(F,InttoStr(PCurrentMachineSet^.MachineNumber)+LocalFormatSettings.ListSeparator);
                 Write(F,ExtractFileName(Filename)+LocalFormatSettings.ListSeparator);
                 Write(F,InttoStr(LatestMeasurementData.Elapsed)+LocalFormatSettings.ListSeparator);
                 Write(F,FloatToStrF(ActiveTestType.Voltage,ffFixed, 9, 3));
@@ -1372,7 +1369,7 @@ begin
         // Add the current data into the datastore
         LocalPMS^.RunData.Add(LocalPMS^.LatestMeasurementData);
 
-        if (LocalMachine=ActiveMachine) then
+        if (LocalMachine=PCurrentMachineSet^.MachineNumber) then
         begin
           // Add data into chart
           MachineChartLineSeries1.Add(PCurrentMachineSet^.LatestMeasurementData.Voltage);
@@ -1453,13 +1450,11 @@ begin
 
   if (LocalVisibleMachine <> 0) then
   begin
-    if (LocalVisibleMachine<>ActiveMachine) then
+    if (LocalVisibleMachine<>PCurrentMachineSet^.MachineNumber) then
     begin
-      ActiveMachine:=LocalVisibleMachine;
-
       // Point global dataset pointer towards the correct dataset
-      PCurrentMachineSet:=@MachineSet[ActiveMachine];
-      PCurrentMachineBox:=@MachineBox[ActiveMachine];
+      PCurrentMachineSet:=@MachineSet[LocalVisibleMachine];
+      PCurrentMachineBox:=@MachineBox[LocalVisibleMachine];
 
       SetControls(Sender);
 
@@ -1835,7 +1830,7 @@ begin
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   length:=PByteArray(data)^[LENGTHPOSITION];
 
-  USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
+  //USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
 
 
   case cmd of
@@ -1917,8 +1912,10 @@ begin
         Inc(counter,4);
       end;
 
-      if (boardnumber=ActiveMachine) then
+      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
       begin
+        USBDebugLog.Lines.Append('Received data for current board #'+InttoStr(boardnumber));
+
         // We got data addressed to our current visible machine
         // So update the GUI also
         GUIVoltage:=LocalPMS^.LatestMeasurementData.Voltage;
@@ -2021,7 +2018,7 @@ begin
         end;
       end;
 
-      if (boardnumber=ActiveMachine) then
+      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
       begin
         SourcePDODrawGrid.Invalidate;
         SourceEPRPDODrawGrid.Invalidate;
@@ -2062,7 +2059,7 @@ begin
         SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
       end;
 
-      if (boardnumber=ActiveMachine) then
+      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
       begin
         SourcePDODrawGrid.Invalidate;
         SourceEPRPDODrawGrid.Invalidate;
@@ -2111,7 +2108,7 @@ begin
     if (NOT LocalPMS^.BoardAvailable) then
     begin
       LocalPMS^.DUT.Cleanup;
-      if (LocalPMS^.MachineNumber = ActiveMachine) then
+      if (LocalPMS^.MachineNumber = PCurrentMachineSet^.MachineNumber) then
       begin
         SourcePDODrawGrid.Invalidate;
         SourceEPRPDODrawGrid.Invalidate;
@@ -2156,7 +2153,7 @@ end;
 
 procedure TPowerbankMainForm.SaveMachineData;
 begin
-  if (ActiveMachine>0) then
+  if (PCurrentMachineSet^.MachineNumber>0) then
   begin
     if (NOT PCurrentMachineSet^.Active) then with PCurrentMachineSet^ do
     begin
