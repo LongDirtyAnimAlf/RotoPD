@@ -281,7 +281,7 @@ begin
   FTextColor := clDefault;
   FTimer := TTimer.Create(Self);
   FTimer.Enabled := False;
-  FTimer.Interval := 30;
+  FTimer.Interval := 25;
   FTimer.OnTimer := @tick;
   ParentColor := True;
   with GetControlClassDefaultSize do SetInitialBounds(0, 0, cx, cy);
@@ -371,11 +371,12 @@ begin
     clrArc    := blend(clrArc, clBtnFace, 40);
   end;
 
+  if FShowLabels then labelH := Canvas.TextHeight('0') else labelH := 0;
+  size := Math.Min(ClientWidth - labelH * 2, ClientHeight - labelH);
+  if size < 10 then Exit;
+
   sp := beginShapes(Canvas, ClientRect, GetRGBColorResolvingParent, FAntialiasing);
   try
-    if FShowLabels then labelH := Canvas.TextHeight('0') else labelH := 0;
-    size := Math.Min(ClientWidth - labelH * 2, ClientHeight - labelH);
-    if size < 10 then Exit;
     cx := ClientWidth div 2;
     // the dial centers on the sweep: a half dial sits lower than a full one
     if FSweepAngle <= 200 then
@@ -389,102 +390,58 @@ begin
     box := Rect(cx - radius, cy - radius, cx + radius, cy + radius);
     startDeg := 90 - FStartAngle;
 
-    // --- multi-ring metallic bezel ---
-    // outer dark rim
-    paintCircle(sp, cx, cy, faceR + scaled(Self, 5),
+    // --- bezel (2 rings) ---
+    paintCircle(sp, cx, cy, faceR + scaled(Self, 4),
       blend(clBlack, clGray, 40), clBlack, 2);
-    // chrome mid ring
-    paintCircle(sp, cx, cy, faceR + scaled(Self, 3),
-      blend(clSilver, clWhite, 35), blend(clBlack, clGray, 50), 2);
-    // inner bezel step
-    paintCircle(sp, cx, cy, faceR + scaled(Self, 1),
-      blend(clGray, clBlack, 25), blend(clBlack, clGray, 40), 1);
+    paintCircle(sp, cx, cy, faceR + scaled(Self, 2),
+      blend(clSilver, clWhite, 30), blend(clBlack, clGray, 50), 1);
 
-    // --- dial face with stronger radial depth ---
-    // dark outer ring → mid → bright centre (reads even on light themes)
-    paintCircle(sp, cx, cy, faceR, blend(clrFace, clBlack, 32), clNone);
-    paintCircle(sp, cx, cy, Trunc(faceR * 0.94), blend(clrFace, clBlack, 22), clNone);
-    paintCircle(sp, cx, cy, Trunc(faceR * 0.86), blend(clrFace, clBlack, 12), clNone);
-    paintCircle(sp, cx, cy, Trunc(faceR * 0.74), clrFace, clNone);
-    paintCircle(sp, cx, cy, Trunc(faceR * 0.58), blend(clrFace, clWhite, 18), clNone);
-    paintCircle(sp, cx, cy, Trunc(faceR * 0.38), blend(clrFace, clWhite, 35), clNone);
-    paintCircle(sp, cx, cy, Trunc(faceR * 0.18), blend(clrFace, clWhite, 50), clNone);
-    // crisp face edge
+    // --- face (3 radial steps instead of 7) ---
+    paintCircle(sp, cx, cy, faceR, blend(clrFace, clBlack, 28), clNone);
+    paintCircle(sp, cx, cy, Trunc(faceR * 0.72), clrFace, clNone);
+    paintCircle(sp, cx, cy, Trunc(faceR * 0.40), blend(clrFace, clWhite, 30), clNone);
     paintCircle(sp, cx, cy, faceR, clNone, blend(clBlack, clGray, 40), 1);
 
-    // glass specular highlight (upper-left)
+    // one glass highlight arc
     paintArc(sp,
-      Rect(cx - Trunc(faceR * 0.90), cy - Trunc(faceR * 0.90),
-           cx + Trunc(faceR * 0.90), cy + Trunc(faceR * 0.90)),
-      105, 65, blend(clWhite, clrFace, 40), Math.Max(scaled(Self, 4), 3), True);
-    paintArc(sp,
-      Rect(cx - Trunc(faceR * 0.78), cy - Trunc(faceR * 0.78),
-           cx + Trunc(faceR * 0.78), cy + Trunc(faceR * 0.78)),
-      115, 45, blend(clWhite, clrFace, 25), Math.Max(scaled(Self, 2), 1), True);
+      Rect(cx - Trunc(faceR * 0.88), cy - Trunc(faceR * 0.88),
+           cx + Trunc(faceR * 0.88), cy + Trunc(faceR * 0.88)),
+      105, 60, blend(clWhite, clrFace, 35), Math.Max(scaled(Self, 3), 2), True);
 
-    // recessed scale plate under the ticks
+    // recessed scale plate
     paintCircle(sp, cx, cy, radius - arcW div 2 - scaled(Self, 1),
-      blend(clrFace, clWhite, 12), blend(clBlack, clrFace, 25), 1);
+      blend(clrFace, clWhite, 10), blend(clBlack, clrFace, 25), 1);
 
-    // --- technical face plate markings ---
+    // --- light technical markings ---
     clrTech := blend(clBlack, clrFace, 45);
-
-    // double engraved rings (tooling / machining marks)
     engR := radius - arcW div 2 - scaled(Self, 4);
     if engR > 8 then begin
-      paintCircle(sp, cx, cy, engR, clNone, blend(clrTech, clrFace, 50), 1);
-      paintCircle(sp, cx, cy, engR - scaled(Self, 2), clNone, blend(clrTech, clrFace, 65), 1);
-      paintCircle(sp, cx, cy, Trunc(engR * 0.70), clNone, blend(clrTech, clrFace, 60), 1);
-      paintCircle(sp, cx, cy, Trunc(engR * 0.70) - scaled(Self, 2), clNone, blend(clrTech, clrFace, 72), 1);
-      paintCircle(sp, cx, cy, Trunc(engR * 0.42), clNone, blend(clrTech, clrFace, 68), 1);
+      paintCircle(sp, cx, cy, engR, clNone, blend(clrTech, clrFace, 55), 1);
+      paintCircle(sp, cx, cy, Trunc(engR * 0.65), clNone, blend(clrTech, clrFace, 65), 1);
     end;
 
-    // micro-graduation ring just inside the main ticks
+    // micro-graduations: same count as minor ticks (not 2x)
     microR := radius - arcW div 2 - scaled(Self, 3);
     if (microR > 10) and (FMajorTicks > 1) then begin
-      total := (FMajorTicks - 1) * (FMinorTicks + 1) * 2;
+      total := (FMajorTicks - 1) * (FMinorTicks + 1);
       for i := 0 to total do begin
         a := angleOf(FMin + (FMax - FMin) * i / total);
-        if (i mod 2) = 0 then
-          len := scaled(Self, 3)
-        else
-          len := scaled(Self, 2);
         paintLine(sp,
-          cx + Round(Cos(a) * (microR - len)),
-          cy - Round(Sin(a) * (microR - len)),
+          cx + Round(Cos(a) * (microR - scaled(Self, 2))),
+          cy - Round(Sin(a) * (microR - scaled(Self, 2))),
           cx + Round(Cos(a) * microR),
           cy - Round(Sin(a) * microR),
-          blend(clrTech, clrFace, 35), 1);
+          blend(clrTech, clrFace, 40), 1);
       end;
     end;
 
-    // ordinal index dots at each major tick (technical index marks)
-    if FMajorTicks > 1 then
-      for i := 0 to FMajorTicks - 1 do begin
-        a := angleOf(FMin + (FMax - FMin) * i / (FMajorTicks - 1));
-        paintCircle(sp,
-          cx + Round(Cos(a) * (microR - scaled(Self, 7))),
-          cy - Round(Sin(a) * (microR - scaled(Self, 7))),
-          Math.Max(scaled(Self, 2), 1),
-          blend(clrTech, clrFace, 25), clNone);
-      end;
-
-    // faint cross-hair + short ticks at the ends (calibration cross)
-    paintLine(sp, cx - scaled(Self, 18), cy, cx + scaled(Self, 18), cy,
+    // simple cross-hair
+    paintLine(sp, cx - scaled(Self, 16), cy, cx + scaled(Self, 16), cy,
       blend(clrTech, clrFace, 55), 1);
-    paintLine(sp, cx, cy - scaled(Self, 18), cx, cy + scaled(Self, 18),
+    paintLine(sp, cx, cy - scaled(Self, 16), cx, cy + scaled(Self, 16),
       blend(clrTech, clrFace, 55), 1);
-    // end caps on the cross-hair
-    paintLine(sp, cx - scaled(Self, 18), cy - scaled(Self, 3),
-      cx - scaled(Self, 18), cy + scaled(Self, 3), blend(clrTech, clrFace, 45), 1);
-    paintLine(sp, cx + scaled(Self, 18), cy - scaled(Self, 3),
-      cx + scaled(Self, 18), cy + scaled(Self, 3), blend(clrTech, clrFace, 45), 1);
-    paintLine(sp, cx - scaled(Self, 3), cy - scaled(Self, 18),
-      cx + scaled(Self, 3), cy - scaled(Self, 18), blend(clrTech, clrFace, 45), 1);
-    paintLine(sp, cx - scaled(Self, 3), cy + scaled(Self, 18),
-      cx + scaled(Self, 3), cy + scaled(Self, 18), blend(clrTech, clrFace, 45), 1);
 
-    // zero / min reference triangle on the outer track
+    // min / max marks (fill only, no stroke)
     a := angleOf(FMin);
     SetLength(needlePts, 3);
     needlePts[0] := PointF(cx + Cos(a) * (radius + arcW div 2 + 2),
@@ -494,9 +451,7 @@ begin
     needlePts[2] := PointF(cx + Cos(a - 0.10) * (radius - arcW div 2 - 1),
                            cy - Sin(a - 0.10) * (radius - arcW div 2 - 1));
     sp.FillPolygon(needlePts, blend(clBlack, clrFace, 20));
-    sp.StrokePolyline(needlePts, 1.0, clBlack, True, True);
 
-    // max reference mark (warning colour)
     a := angleOf(FMax);
     needlePts[0] := PointF(cx + Cos(a) * (radius + arcW div 2 + 2),
                            cy - Sin(a) * (radius + arcW div 2 + 2));
@@ -505,41 +460,25 @@ begin
     needlePts[2] := PointF(cx + Cos(a - 0.10) * (radius - arcW div 2 - 1),
                            cy - Sin(a - 0.10) * (radius - arcW div 2 - 1));
     sp.FillPolygon(needlePts, RGBToColor(160, 30, 30));
-    sp.StrokePolyline(needlePts, 1.0, clBlack, True, True);
 
-    // larger bezel mounting screws (classic panel-meter look)
-    screwR := Math.Max(scaled(Self, 7), 6);
+    // simpler bezel screws (1 disc + cross)
+    screwR := Math.Max(scaled(Self, 6), 5);
     for si := 0 to 3 do begin
       a := DegToRad(45 + si * 90);
-      sx := cx + Cos(a) * (faceR + scaled(Self, 4));
-      sy := cy - Sin(a) * (faceR + scaled(Self, 4));
-      // raised collar under the screw
-      paintCircle(sp, Round(sx), Round(sy), screwR + 2,
-        blend(clBlack, clGray, 35), blend(clBlack, clGray, 55), 1);
-      // screw head body (domed look: dark ring + lighter disc)
+      sx := cx + Cos(a) * (faceR + scaled(Self, 3));
+      sy := cy - Sin(a) * (faceR + scaled(Self, 3));
       paintCircle(sp, Round(sx), Round(sy), screwR,
-        blend(clGray, clSilver, 30), clBlack, 1);
+        blend(clGray, clSilver, 35), clBlack, 1);
       paintCircle(sp, Round(sx), Round(sy), screwR - 1,
-        blend(clSilver, clWhite, 25), clNone);
-      // specular highlight on the head
-      paintCircle(sp,
-        Round(sx - screwR * 0.25), Round(sy - screwR * 0.25),
-        Math.Max(screwR div 3, 2),
-        blend(clWhite, clSilver, 40), clNone);
-      // Phillips cross slots
+        blend(clSilver, clWhite, 20), clNone);
       paintLine(sp,
-        Round(sx - screwR * 0.62), Round(sy),
-        Round(sx + screwR * 0.62), Round(sy),
-        blend(clBlack, clGray, 25), 2);
+        Round(sx - screwR * 0.55), Round(sy),
+        Round(sx + screwR * 0.55), Round(sy),
+        blend(clBlack, clGray, 30), 1);
       paintLine(sp,
-        Round(sx), Round(sy - screwR * 0.62),
-        Round(sx), Round(sy + screwR * 0.62),
-        blend(clBlack, clGray, 25), 2);
-      // slot depth shadow
-      paintLine(sp,
-        Round(sx - screwR * 0.50), Round(sy + 1),
-        Round(sx + screwR * 0.50), Round(sy + 1),
-        blend(clBlack, clGray, 50), 1);
+        Round(sx), Round(sy - screwR * 0.55),
+        Round(sx), Round(sy + screwR * 0.55),
+        blend(clBlack, clGray, 30), 1);
     end;
 
     // --- arc track (groove) then coloured arc / zones ---
@@ -548,9 +487,6 @@ begin
       paintArc(sp, box, startDeg, -FSweepAngle, clrGroove, arcW + scaled(Self, 2), False);
       // base arc colour
       paintArc(sp, box, startDeg, -FSweepAngle, clrArc, arcW, False);
-      // thin outer rim highlight on the arc
-      paintArc(sp, Rect(box.Left - 1, box.Top - 1, box.Right + 1, box.Bottom + 1),
-        startDeg, -FSweepAngle, clrRim, Math.Max(arcW div 4, 1), False);
       // coloured zones on top of the base arc
       for i := 0 to FZones.Count - 1 do begin
         z := FZones[i];
@@ -614,7 +550,7 @@ begin
       end;
     end;
 
-    // --- needle with shadow, body and rim ---
+    // --- needle (antialiased, above ticks; single pass – no double-draw) ---
     if FShowNeedle and (FStyle = gsDial) then begin
       a := angleOf(FShown);
       hubR := Math.Max(radius / 11, 4);
@@ -630,17 +566,17 @@ begin
       needlePts[2] := PointF(hx - Cos(a) * tailR, hy + Sin(a) * tailR);
       needlePts[3] := PointF(hx - Cos(side) * hubR * 0.55, hy + Sin(side) * hubR * 0.55);
 
-      // soft drop shadow (offset toward bottom-right)
+      // soft drop shadow
       SetLength(shadowPts, 4);
       for i := 0 to 3 do
         shadowPts[i] := PointF(needlePts[i].X + 1.5, needlePts[i].Y + 1.5);
       sp.FillPolygon(shadowPts, blend(clrShadow, clrFace, 55));
 
-      // needle body + black outline
+      // body + black outline
       sp.FillPolygon(needlePts, clrNeedle);
       sp.StrokePolyline(needlePts, 1.5, clBlack, True, True);
 
-      // hub: outer ring, metal disc, bright pin
+      // hub
       paintCircle(sp, cx, cy, Round(hubR) + 1, blend(clBlack, clrHub, 40), clBlack, 1);
       paintCircle(sp, cx, cy, Round(hubR), clrHub, blend(clBlack, clrHub, 50), 1);
       paintCircle(sp, cx, cy, Math.Max(Round(hubR * 0.45), 2),
@@ -651,6 +587,8 @@ begin
   finally
     sp.Free;
   end;
+
+  // labels & value after the dial (text may sit on top of the needle tip)
   applyTextQuality(Canvas);
   fs := formatSettingsOf(FLanguage);
   if FShowLabels and (FMajorTicks > 1) then begin
@@ -684,7 +622,6 @@ begin
       vr := Rect(0, cy + scaled(Self, 4), ClientWidth, cy + scaled(Self, 4) + th)
     else
       vr := Rect(0, cy + radius div 3, ClientWidth, cy + radius div 3 + th);
-    // small instrument readout plate behind the value
     Canvas.Brush.Style := bsSolid;
     Canvas.Brush.Color := blend(GetRGBColorResolvingParent, clBlack, 8);
     Canvas.Pen.Color := blend(clBtnShadow, clBlack, 25);
@@ -713,6 +650,26 @@ begin
     FShown := FShown + delta * 0.2;
   Invalidate;
 end;
+
+(*
+procedure TGauge.tick(Sender: TObject);
+var
+  delta, step: double;
+begin
+  delta := FValue - FShown;
+  if Abs(delta) < (FMax - FMin) / 1500 then begin
+    FShown := FValue;
+    FTimer.Enabled := False;
+  end else begin
+    // larger step when far away → fewer frames / less CPU
+    step := delta * 0.28;
+    if Abs(step) < (FMax - FMin) * 0.004 then
+      step := delta; // snap the last bit
+    FShown := FShown + step;
+  end;
+  Invalidate;
+end;
+*)
 
 procedure TGauge.syncTimer;
 begin

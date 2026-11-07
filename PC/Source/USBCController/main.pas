@@ -67,6 +67,7 @@ type
     ActiveTestType         : TTestType;
     LatestMeasurementData  : TMachineData;
     RunData                : TDataList;
+    DUT                    : TUSBPDDevice;
   end;
   PMachineSet = ^TMachineSet;
 
@@ -185,11 +186,13 @@ type
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
   strict private
-    MachineBox          : array of TFrameSimple;
-    Machineset          : array of TMachineSet;
-    DUT                 : array of TUSBPDDevice;
+    MachineBox          : array[1..8] of TFrameSimple;
+    MachineSet          : array[1..8] of TMachineSet;
+
+    DD                  : TDataDevice;
 
     PCurrentMachineSet  : PMachineSet;
+    PCurrentMachineBox  : PFrameSimple;
 
     TestTypes           : array of TTestType;
 
@@ -204,22 +207,10 @@ type
     NewAHDisplay          : TLEDDisplay;
     NewTemperatureDisplay : TLEDDisplay;
 
-    FVoltage            : double;
-    FCurrent            : double;
-    FCapacity           : double;
-    FEnergy             : double;
-    FPower              : double;
-    FTemperature        : double;
-
     NumRate             : integer;
-
     ActiveMachine       : word;
+
     ApplicationDirectory:string;
-
-    RotoPDController    : TUSBPDController;
-    DD                  : TDataDevice;
-
-    NumberOfMachines    : integer;
 
     procedure GraphBaseClick(Sender: TObject);
     procedure SaveMachineData;
@@ -328,9 +319,6 @@ begin
   LocalFormatSettings.LongTimeFormat:='hh:nn:ss';
   LocalFormatSettings.DecimalSeparator:=',';
   LocalFormatSettings.ListSeparator:=';';
-
-  RotoPDController:=TUSBPDController.Create;
-  RotoPDController.Cleanup;
 
   RealVoltageDisplay:=TdsSevenSegmentMultiDisplay.Create(grpVAData);
   with RealVoltageDisplay do
@@ -567,25 +555,17 @@ begin
     Ini.Free;
   end;
 
-  NumberOfMachines  := 8;
-
-  // We start at board 1, so dummy board added
-  // Also tricky
-  SetLength(MachineBox,NumberOfMachines+1);
-  SetLength(Machineset,NumberOfMachines+1);
-  SetLength(DUT,NumberOfMachines+1);
-
-  for i:=1 to NumberOfMachines do
+  for i:=Low(MachineSet) to High(MachineSet) do
   begin
-    // Create DUTS
-    DUT[i]:=TUSBPDDevice.Create;
-    DUT[i].Cleanup;
+     // Create Machine datasets
+    MachineSet[i].RunData:=TList<TMachineData>.Create();
+    MachineSet[i].DUT:=TUSBPDDevice.Create;
+    MachineSet[i].Project:=Project_edit.Text;
+    MachineSet[i].Runnumber:=Runnumber_edit.Text;
+  end;
 
-    // Create Machine datasets
-    Machineset[i].RunData:=TList<TMachineData>.Create();
-    Machineset[i].Project:=Project_edit.Text;
-    Machineset[i].Runnumber:=Runnumber_edit.Text;
-
+  for i:=Low(MachineBox) to High(MachineBox) do
+  begin
     // Create overview frames
     MachineBox[i]:=TFrameSimple.Create(tsOverview1);
     MachineBox[i].Number:=i;
@@ -607,13 +587,26 @@ begin
   //DD.Enabled:=True;
 
   ActiveMachine:=1;
-  PCurrentMachineSet:=@Machineset[ActiveMachine];
+  PCurrentMachineSet:=@MachineSet[ActiveMachine];
+  PCurrentMachineBox:=@MachineBox[ActiveMachine];
 
   PageControl1.TabIndex:=2;
 
   DataStoreTimer.Interval:=NumRate*1000;
   DataStoreTimer.Enabled:=True;
 end;
+
+procedure TPowerbankMainForm.FormDestroy(Sender: TObject);
+var
+  x:integer;
+begin
+  for x:=Low(MachineSet) to High(MachineSet) do
+  begin
+    MachineSet[x].RunData.Destroy;
+    MachineSet[x].DUT.Destroy;
+  end;
+end;
+
 
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
 begin
@@ -728,7 +721,7 @@ begin
 
   PDONumber:=0;
 
-  PDUT := @DUT[Self.ActiveMachine];
+  PDUT := @PCurrentMachineSet^.DUT;
 
   if Sender=SourcePDODrawGrid then aSourcePDO:=PDUT^.SourcePDOs[aRow];
   if Sender=SourceEPRPDODrawGrid then aSourcePDO:=PDUT^.SourceEPRPDOs[aRow];
@@ -824,7 +817,7 @@ var
 begin
   if ((aRow>0) AND (aCol>0)) then
   begin
-    PDUT := @DUT[Self.ActiveMachine];
+    PDUT := @PCurrentMachineSet^.DUT;
 
     aDrawGrid:=TDrawGrid(Sender);
     s:='';
@@ -1034,13 +1027,13 @@ end;
 procedure TPowerbankMainForm.AutoFileNameCheckBoxClick(Sender: TObject);
 begin
   //FilenameEdit.Enabled:=(NOT AutoFileNameCheckBox.Checked);
-  //Machineset[ActiveMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
+  //MachineSet[ActiveMachine].AutoFileName:=AutoFileNameCheckBox.Checked;
 end;
 
 procedure TPowerbankMainForm.btnRotoPDGetPDOListClick(Sender: TObject);
 begin
   // Remove all previous data
-  DUT[ActiveMachine].Cleanup;
+  PCurrentMachineSet^.DUT.Cleanup;
   SourcePDODrawGrid.Invalidate;
   SourceEPRPDODrawGrid.Invalidate;
   DD.GetPDOList(ActiveMachine);
@@ -1117,7 +1110,7 @@ var
 begin
   if aCol=0 then
   begin
-    PDUT := @DUT[Self.ActiveMachine];
+    PDUT := @PCurrentMachineSet^.DUT;
     state:=false;
     aPDO:=PDUT^.GetFixed5VSRCPDO;
     case aRow of
@@ -1132,22 +1125,6 @@ begin
 
 end;
 
-procedure TPowerbankMainForm.FormDestroy(Sender: TObject);
-var
-  x:integer;
-begin
-  System.Finalize(MachineBox);
-
-  for x:=1 to NumberOfMachines do
-  begin
-    Machineset[x].RunData.Destroy;
-    DUT[x].Destroy;
-  end;
-
-  System.Finalize(Machineset);
-  System.Finalize(DUT);
-end;
-
 procedure TPowerbankMainForm.FormShow(Sender: TObject);
 begin
   FOldOnIdle := Application.OnIdle; // Save GUICurrent OnIdle.
@@ -1160,9 +1137,9 @@ var
   LocalMachine      : integer;
   LocalPMS          : PMachineSet;
 begin
-  for LocalMachine:=1 to NumberOfMachines do
+  for LocalMachine:=Low(MachineSet) to High(MachineSet) do
   begin
-    LocalPMS:=@Machineset[LocalMachine];
+    LocalPMS:=@MachineSet[LocalMachine];
     if ((LocalPMS^.Active) OR (LocalPMS^.Testing)) then
     begin
        CloseAction:=CaNone;
@@ -1185,7 +1162,6 @@ begin
        DD.OnDataReceived:=nil;
        DD.OnDeviceChange:=nil;
        DD.Destroy;
-       RotoPDController.Destroy;
 
        Ini := TIniFile.Create( ChangeFileExt( Application.ExeName, '.ini' ) );
        try
@@ -1222,7 +1198,7 @@ begin
         SaveMachineData;
 
         // Do machinebox things
-        with (MachineBox[ActiveMachine]) do
+        with PCurrentMachineBox^ do
         begin
           Enable:=true;
           runtext:=PCurrentMachineSet^.Runname+' '+PCurrentMachineSet^.Runnumber;
@@ -1231,7 +1207,7 @@ begin
              else Title:=PCurrentMachineSet^.Product;
         end;
 
-        // Do machineset things
+        // Do MachineSet things
         with PCurrentMachineSet^ do
         begin
           RunData.Clear;
@@ -1286,7 +1262,7 @@ begin
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
-      // Do machineset things
+      // Do MachineSet things
       with PCurrentMachineSet^ do
       begin
         if (Sender=StartStopSpeedButton) then Active:=False;
@@ -1295,7 +1271,7 @@ begin
 
       SetControls(Sender);
 
-      MachineBox[ActiveMachine].Enable:=false;
+      PCurrentMachineBox^.Enable:=false;
 
       ImageList1.BeginUpdate;
       if PCurrentMachineSet^.BoardAvailable then
@@ -1377,12 +1353,12 @@ var
 begin
   Running:=false;
 
-  for LocalMachine:=1 to NumberOfMachines do
+  for LocalMachine:=Low(MachineSet) to High(MachineSet) do
   begin
     // only perform the below if coming from the timer !
     if Assigned(Sender) then
     begin
-      LocalPMS:=@Machineset[LocalMachine];
+      LocalPMS:=@MachineSet[LocalMachine];
       if ((LocalPMS^.Active) OR (LocalPMS^.Testing)) then
       begin
         Running:=true;
@@ -1481,8 +1457,9 @@ begin
     begin
       ActiveMachine:=LocalVisibleMachine;
 
-      // Point global dataset towards the correct dataset
-      PCurrentMachineSet:=@Machineset[ActiveMachine];
+      // Point global dataset pointer towards the correct dataset
+      PCurrentMachineSet:=@MachineSet[ActiveMachine];
+      PCurrentMachineBox:=@MachineBox[ActiveMachine];
 
       SetControls(Sender);
 
@@ -1614,56 +1591,32 @@ end;
 
 procedure TPowerbankMainForm.SetVoltage(value:double);
 begin
-  if (FVoltage<>value) then
-  begin
-    FVoltage:=value;
-    RealVoltageDisplay.Value:=value;
-  end;
+  RealVoltageDisplay.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetCurrent(value:double);
 begin
-  if (FCurrent<>value) then
-  begin
-    FCurrent:=value;
-    RealCurrentDisplay.Value:=value;
-  end;
+  RealCurrentDisplay.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetCapacity(value:double);
 begin
-  if (FCapacity<>value) then
-  begin
-    FCapacity:=value;
-    NewAHDisplay.Value:=value;
-  end;
+  NewAHDisplay.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetEnergy(value:double);
 begin
-  if (FEnergy<>value) then
-  begin
-    FEnergy:=value;
-    NewEnergyDisplay.Value:=value;
-  end;
+  NewEnergyDisplay.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetPower(value:double);
 begin
-  if (FPower<>value) then
-  begin
-    FPower:=value;
-    NewPowerDisplay.Value:=value;
-  end;
+  NewPowerDisplay.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetTemperature(value:double);
 begin
-  if (FTemperature<>value) then
-  begin
-    FTemperature:=value;
-    NewTemperatureDisplay.Value:=value;
-  end;
+  NewTemperatureDisplay.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetChartAxis(Sender:TObject);
@@ -1741,20 +1694,20 @@ end;
 
 procedure TPowerbankMainForm.AllStop(Sender: TObject);
 var
-  x:integer;
+  MachineRunner:integer;
 begin
   UpdateTimer.Enabled:=False;
   DataStoreTimer.Enabled:=False;
   ProgressStepperTimer.Enabled:=False;
 
-  for x:=1 to NumberOfMachines do
+  for MachineRunner:=Low(MachineSet) to High(MachineSet) do
   begin
-    DD.SetOutput(x,false);
-    DD.SetOff(x,1);
-    Machineset[x].Active:=false;
-    Machineset[x].Testing:=false;
-    Machineset[x].RunData.Clear;
-    Machineset[x].LatestMeasurementData:=Default(TMachineData);
+    DD.SetOutput(MachineRunner,false);
+    DD.SetOff(MachineRunner,1);
+    MachineSet[MachineRunner].Active:=false;
+    MachineSet[MachineRunner].Testing:=false;
+    MachineSet[MachineRunner].RunData.Clear;
+    MachineSet[MachineRunner].LatestMeasurementData:=Default(TMachineData);
   end;
 
   SetControls(Sender);
@@ -1863,6 +1816,7 @@ var
   boardnumber          : byte;
   length               : byte;
   counter              : integer;
+  MB:integer;
   PDOCount,PDOIndex    : byte;
   RawPDO               : PDO_DATA_T;
   PDO                  : TAP33772S_PDO;
@@ -1876,7 +1830,7 @@ begin
   // The boardnumber is an absolute indicator !!
   boardnumber:=PByteArray(data)^[INDEXPOSITION];
   // Point towards the correct dataset
-  LocalPMS:=@Machineset[boardnumber];
+  LocalPMS:=@MachineSet[boardnumber];
 
   cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
   length:=PByteArray(data)^[LENGTHPOSITION];
@@ -2012,9 +1966,9 @@ begin
         end;
 
         if (PDO.isEPR) then
-          aSourcePDO := @DUT[boardnumber].SourceEPRPDOs[PDO.index-8]
+          aSourcePDO := @PCurrentMachineSet^.DUT.SourceEPRPDOs[PDO.index-8]
         else
-          aSourcePDO := @DUT[boardnumber].SourcePDOs[PDO.index-1];
+          aSourcePDO := @PCurrentMachineSet^.DUT.SourcePDOs[PDO.index-1];
 
         if (PDO.ptype=PDO_TYPE_FIXED) then
         begin
@@ -2095,9 +2049,10 @@ begin
       USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxCurrent_mA)+'mA');
       if PDO.isEPR then USBDebugLog.Lines.Append('AP33772S '+'(EPR)');
 
-      DUT[boardnumber].ActiveSRCPDO:=PDOIndex;
 
-      DUT[boardnumber].RDOPosition:=PDOIndex;
+      LocalPMS^.DUT.ActiveSRCPDO:=PDOIndex;
+
+      LocalPMS^.DUT.RDOPosition:=PDOIndex;
 
       TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
       TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
@@ -2134,7 +2089,7 @@ begin
     if datacarrier>0 then Info:='Channel #'+InttoStr(BN-1)+' board added.';
     if datacarrier<0 then Info:='Channel #'+InttoStr(BN-1)+' board removed.';
 
-    LocalPMS:=@Machineset[BN];
+    LocalPMS:=@MachineSet[BN];
     LocalPMS^.BoardAvailable:=(datacarrier>0);
     LocalPMS^.MachineNumber:=BN;
 
@@ -2155,7 +2110,7 @@ begin
 
     if (NOT LocalPMS^.BoardAvailable) then
     begin
-      DUT[LocalPMS^.MachineNumber].Cleanup;
+      LocalPMS^.DUT.Cleanup;
       if (LocalPMS^.MachineNumber = ActiveMachine) then
       begin
         SourcePDODrawGrid.Invalidate;

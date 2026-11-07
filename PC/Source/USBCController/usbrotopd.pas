@@ -522,9 +522,10 @@ begin
 
       if (NOT error) then
       begin
-        // We do NOT use boardnumbers for batteryboards
-        //error:=DataSource.GetBoardNumber(Board,storedboard);
-        //if (error) then AddInfo('Board number reception error');
+        // We use the boardnumber as provided by the board
+        // BoardNumber = ChannelNumber - 1 !!
+        error:=DataSource.GetBoardNumber(Board,storedboard);
+        if (error) then AddInfo('Board number reception error');
       end;
 
       if (NOT error) then
@@ -651,7 +652,6 @@ begin
   result:=true;
   if FEmulation then exit;
   if DataSource.BoardCount=0 then exit;
-  if (board>DataSource.BoardCount) then exit;
   Ctrl:=DataSource.FindBoard(board);
   if (NOT Assigned(Ctrl)) then exit;
   result:=(NOT Assigned(Ctrl.HidCtrl));
