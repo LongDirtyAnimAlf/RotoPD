@@ -6,6 +6,8 @@ interface
 {$mode Delphi}
 {$endif}
 
+{$define MAXBOARDS = 8}
+
 {$scopedEnums on}
 
 uses
@@ -14,6 +16,8 @@ uses
   usbboard;
 
 const
+  MAXBOARDS        = 8;
+
   COMMANDPOSITION  = 0;
   INDEXPOSITION    = 1;
   LENGTHPOSITION   = 2;
@@ -146,13 +150,12 @@ implementation
 
 uses
   DateUtils,
-  IniFiles,
   bits,
   ap33772s;
 
 const
   USBErrorTimeout               = 50;
-  Bitssss                          = 16;
+  Bitssss                       = 16;
 
 function CRC16(Buffer: String): word;  // CRC16 XMODEM
 const
@@ -247,28 +250,11 @@ begin
 end;
 
 constructor TDataDevice.Create(AppPath:string);
-var
-  Ini:TIniFile;
-  BoardCount:word;
 begin
-  MaxErrors     := 2;
-
   FAddressReset := true;
-
-  Ini := TIniFile.Create(AppPath+'PBSettings.ini');
-  try
-    MaxErrors     := Ini.ReadInteger( 'General', 'NumError', MaxErrors );
-    if  (NOT Ini.ValueExists('General', 'NumError')) then Ini.WriteInteger( 'General', 'NumError', MaxErrors );
-    NumTypes      := Ini.ReadInteger( 'General', 'NumTypes', 0 );
-  finally
-    Ini.Free;
-  end;
-  if NumTypes<1 then NumTypes  := 1;
-  BoardCount:=NumTypes;
-
   FDataSource:=TMyUSB.Create;
-  DataSource.MaxBoards:=BoardCount;
-  DataSource.MaxErrors:=MaxErrors;
+  DataSource.MaxBoards:=MAXBOARDS;
+  DataSource.MaxErrors:=2;
 end;
 
 destructor TDataDevice.Destroy;

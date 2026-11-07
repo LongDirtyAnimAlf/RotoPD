@@ -3,7 +3,7 @@ object PowerbankMainForm: TPowerbankMainForm
   Height = 784
   Top = 135
   Width = 1469
-  Caption = 'CONSULAB Powerbank Discharger'
+  Caption = 'CONSULAB USB-HID Powerbank Discharger'
   ClientHeight = 784
   ClientWidth = 1469
   LCLVersion = '4.99.0.0'

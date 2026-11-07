@@ -186,8 +186,8 @@ type
     procedure FormCreate({%H-}Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
   strict private
-    MachineBox          : array[1..8] of TFrameSimple;
-    MachineSet          : array[1..8] of TMachineSet;
+    MachineBox          : array[1..MAXBOARDS] of TFrameSimple;
+    MachineSet          : array[1..MAXBOARDS] of TMachineSet;
 
     DD                  : TDataDevice;
 
