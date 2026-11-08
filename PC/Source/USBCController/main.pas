@@ -130,6 +130,7 @@ type
     SamplesBox: TComboBox;
     SinkEPRPDODrawGrid: TDrawGrid;
     SinkPDODrawGrid: TDrawGrid;
+    OverviewDrawGrid: TDrawGrid;
     SourceEPRPDODrawGrid: TDrawGrid;
     SourcePDODrawGrid: TDrawGrid;
     StartStopSpeedButton: TSpeedButton;
@@ -165,6 +166,8 @@ type
     procedure ListView1KeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure MachineRemoveClickClick(Sender: TObject);
+    procedure OverviewDrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
+      aRect: TRect; aState: TGridDrawState);
     procedure PDODrawGridButtonClick(Sender: TObject; aCol, aRow: Integer
       );
     procedure PDODrawGridDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -179,6 +182,7 @@ type
     procedure ProgressStepperTimerTimer({%H-}Sender: TObject);
     procedure TestsBoxDblClick(Sender: TObject);
     procedure TestsBoxSelect(Sender: TObject);
+    procedure tsOverview2Resize(Sender: TObject);
     procedure TypesBoxDblClick(Sender: TObject);
     procedure TypesBoxSelect(Sender: TObject);
     procedure UpdateTimerTimer({%H-}Sender: TObject);
@@ -695,6 +699,52 @@ begin
         end;
       end;
     end;
+  end;
+end;
+
+procedure TPowerbankMainForm.OverviewDrawGridDrawCell(Sender: TObject; aCol,
+  aRow: Integer; aRect: TRect; aState: TGridDrawState);
+var
+  aDrawGrid      : TDrawGrid;
+  s              : string;
+  PMS            : PMachineSet;
+begin
+  if ((aRow>0) AND (aRow<=High(MachineSet))) then
+  begin
+    PMS := @MachineSet[aRow];
+    aDrawGrid:=TDrawGrid(Sender);
+    s:='';
+
+    case aCol of
+      0:
+      begin
+        if (PMS^.MachineNumber=0) then
+          s:='-'
+        else
+          s:=InttoStr(PMS^.MachineNumber-1);
+      end;
+      1: s:=PMS^.Product;
+      4: s:=FloatToStrF(PMS^.LatestMeasurementData.Voltage,ffFixed, 9, 1);
+      5: s:=FloatToStrF(PMS^.LatestMeasurementData.Current,ffFixed, 9, 1);
+      6: s:=FloatToStrF(PMS^.LatestMeasurementData.Power,ffFixed, 9, 0);
+      7: s:=FloatToStrF(PMS^.LatestMeasurementData.Energy,ffFixed, 9, 0);
+      8: s:=FloatToStrF(PMS^.LatestMeasurementData.Capacity,ffFixed, 9, 0);
+    end;
+
+    if (PMS^.MachineNumber = 0) then
+    begin
+      aDrawGrid.Canvas.Font.Color:=clRed;
+      aDrawGrid.Canvas.Font.Style:=[fsBold];
+    end
+    else
+    begin
+      aDrawGrid.Canvas.Font.Color:=clLime;
+      aDrawGrid.Canvas.Font.Style:=[fsBold];
+    end;
+
+
+    InflateRect(aRect, -constCellpadding, -constCellPadding);
+    aDrawGrid.Canvas.TextRect(aRect, aRect.Left, aRect.Top, s);
   end;
 end;
 
@@ -1552,6 +1602,95 @@ begin
   Runname_edit.Text:=TestsBox.Text;
 end;
 
+function CalcCellHeight(AGrid: TDrawGrid; ACol, ARow: Integer): Integer;
+var
+  R: TRect;
+  s: String;
+begin
+  R := AGrid.CellRect(ACol, ARow);
+  R.Bottom := R.Top;
+  //s := AGrid.Cells[ACol, ARow];
+  s:='yolo';
+  DrawText(AGrid.Canvas.Handle, PChar(s), Length(s), R, DT_CALCRECT or DT_WORDBREAK or DT_NOPREFIX);
+  Result := R.Bottom - R.Top;
+
+  Result := 100;
+
+end;
+
+function CalcRowHeight(AGrid: TDrawGrid; ARow: Integer): Integer;
+var
+  col: Integer;
+  h, hmax: Integer;
+begin
+  hmax := AGrid.DefaultRowHeight;
+  for col := 0 to AGrid.ColCount-1 do
+  begin
+    h := CalcCellHeight(AGrid, col, ARow);
+    if h > hmax then hmax := h;
+  end;
+  Result := hmax;
+end;
+
+procedure AutoRowHeights(AGrid: TDrawGrid);
+var
+  row: Integer;
+begin
+  for row := 0 to AGrid.RowCount-1 do
+    AGrid.RowHeights[row] := CalcRowHeight(AGrid, row) + 2*varCellPadding;
+end;
+
+procedure TPowerbankMainForm.tsOverview2Resize(Sender: TObject);
+var
+ x,Count:integer;
+ rowheight,textsize,textwidth,textheight:integer;
+begin
+  //OverviewDrawGrid.BeginUpdate;
+  //AutoRowHeights(OverviewDrawGrid);
+  //OverviewDrawGrid.EndUpdate;
+
+  //exit;
+  OverviewDrawGrid.BeginUpdate;
+  with OverviewDrawGrid do
+  begin
+
+    Count:=RowCount-1;
+    //rowheight:=(Height-(Count+1)*GridLineWidth) DIV Count;
+    rowheight:=Max(10,((Height-DefaultRowHeight-(Count)*GridLineWidth) DIV (Count)-1));
+
+    //DefaultRowHeight:=rowheight;
+
+    for x:=1 to Count do
+    begin
+      RowHeights[x]:=rowheight;
+    end;
+
+    Count:=ColCount;
+    //DefaultColWidth:=Min(150,((tsOverview2.Width-(Count+1)*GridLineWidth) DIV Count)-1);
+    //DefaultColWidth:=((Width-(Count+1)*GridLineWidth) DIV Count)-1;
+    //Font.Size:=(DefaultRowHeight DIV 4)+2;
+    {$ifdef FPC}
+    textsize:=6;
+    while true do
+    begin
+      OverviewDrawGrid.Font.Size:=textsize;
+      textwidth:=OverviewDrawGrid.Canvas.TextWidth('0.000');
+      textheight:=OverviewDrawGrid.Canvas.TextHeight('0.000');
+      if (textheight>(rowheight-10)) then break;
+      Inc(textsize);
+    end;
+    Dec(textsize);
+    OverviewDrawGrid.Font.Size:=textsize;
+    OverviewDrawGrid.TitleFont.Size:=OverviewDrawGrid.Font.Size;
+    {$else}
+    OverviewDrawGrid.Canvas.Font.Size:=Max(DefaultRowHeight-7-(Count DIV 12),6);
+    {$endif}
+    //with OverviewDrawGrid.Canvas.TextExtent('jQH'#$00B0';') do DefaultRowHeight := cy+4;
+
+  end;
+  OverviewDrawGrid.EndUpdate;
+end;
+
 procedure TPowerbankMainForm.TypesBoxDblClick(Sender: TObject);
 begin
   Product_edit.Text:=TypesBox.Text;
@@ -1861,10 +2000,13 @@ begin
 
       Inc(counter,4);
 
-      //RotoPD GUITemperature
+      //RotoPD PCB/chip temperature
       wd.Bytes[0]:=PByteArray(data)^[counter];
       wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      GUITemperature:=(wd.Raw/10);
+      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
+      begin
+        GUITemperature:=(wd.Raw/10);
+      end;
 
       Inc(counter,2);
 
@@ -1924,6 +2066,8 @@ begin
         GUIEnergy:=LocalPMS^.LatestMeasurementData.Energy;
         GUICapacity:=LocalPMS^.LatestMeasurementData.Capacity;
       end;
+
+      OverviewDrawGrid.InvalidateRow(boardnumber);
 
       // Update the overview frames also
       with MachineBox[boardnumber] do
@@ -2087,14 +2231,22 @@ begin
     if datacarrier<0 then Info:='Channel #'+InttoStr(BN-1)+' board removed.';
 
     LocalPMS:=@MachineSet[BN];
+    LocalPMS^.LatestMeasurementData:=Default(TMachineData);
+    LocalPMS^.ActiveTestType:=Default(TTestType);
+    LocalPMS^.RunData.Clear;
     LocalPMS^.BoardAvailable:=(datacarrier>0);
-    LocalPMS^.MachineNumber:=BN;
 
     ImageList1.BeginUpdate;
     if LocalPMS^.BoardAvailable then
+    begin
+      LocalPMS^.MachineNumber:=BN;
       ReplaceImageFromResource(ImageList1,{Channel=Index=}BN-1,'OK_02_32')
+    end
     else
+    begin
+      LocalPMS^.MachineNumber:=0;
       ReplaceImageFromResource(ImageList1,{Channel=Index=}BN-1,'DELETE_01_32');
+    end;
     ImageList1.EndUpdate;
 
     TabControl1.Invalidate;
@@ -2115,6 +2267,7 @@ begin
       end;
     end;
 
+    OverviewDrawGrid.InvalidateRow(BN);
   end;
   if BN=0 then USBDebugLog.Lines.Append('Unknown board error');
   if BN=0 then Info:='Unknown data acquisitionboard error';

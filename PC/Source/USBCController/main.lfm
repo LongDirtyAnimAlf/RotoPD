@@ -16,9 +16,9 @@ object PowerbankMainForm: TPowerbankMainForm
     Height = 784
     Top = 0
     Width = 1469
-    ActivePage = ChannelSheet
+    ActivePage = tsOverview2
     Align = alClient
-    TabIndex = 2
+    TabIndex = 1
     TabOrder = 0
     object tsOverview1: TTabSheet
       Caption = 'Overview1'
@@ -33,6 +33,162 @@ object PowerbankMainForm: TPowerbankMainForm
     end
     object tsOverview2: TTabSheet
       Caption = 'Overview2'
+      ClientHeight = 756
+      ClientWidth = 1461
+      OnResize = tsOverview2Resize
+      object OverviewDrawGrid: TDrawGrid
+        Left = 4
+        Height = 748
+        Top = 4
+        Width = 1453
+        Align = alClient
+        AlternateColor = clBtnFace
+        AutoAdvance = aaNone
+        AutoEdit = False
+        AutoFillColumns = True
+        BorderSpacing.Around = 4
+        ColCount = 9
+        Columns = <        
+          item
+            Alignment = taCenter
+            MinSize = 90
+            MaxSize = 90
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Channel'
+            Width = 90
+          end        
+          item
+            Alignment = taCenter
+            ButtonStyle = cbsEllipsis
+            MinSize = 180
+            MaxSize = 180
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'ID'
+            Width = 180
+          end        
+          item
+            MinSize = 220
+            MaxSize = 220
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Brand'
+            Width = 220
+          end        
+          item
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Model'
+            Width = 242
+          end        
+          item
+            MinSize = 140
+            MaxSize = 140
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Voltage [V]'
+            Width = 140
+          end        
+          item
+            MinSize = 140
+            MaxSize = 140
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Current [A]'
+            Width = 140
+          end        
+          item
+            MinSize = 140
+            MaxSize = 140
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Power [W]'
+            Width = 140
+          end        
+          item
+            MinSize = 140
+            MaxSize = 140
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Energy [Wh]'
+            Width = 140
+          end        
+          item
+            MinSize = 140
+            MaxSize = 140
+            ReadOnly = True
+            Title.Alignment = taCenter
+            Title.Font.CharSet = ANSI_CHARSET
+            Title.Font.Height = -21
+            Title.Font.Pitch = fpVariable
+            Title.Font.Quality = fqDraft
+            Title.Font.Style = [fsBold]
+            Title.Caption = 'Capacity [Ah]'
+            Width = 140
+          end>
+        DefaultColWidth = 22
+        DefaultRowHeight = 40
+        ExtendedSelect = False
+        FixedCols = 0
+        FocusRectVisible = False
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goThumbTracking, goSmoothScroll]
+        RowCount = 9
+        ScrollBars = ssVertical
+        TabOrder = 0
+        OnDrawCell = OverviewDrawGridDrawCell
+        ColWidths = (
+          90
+          180
+          220
+          242
+          140
+          140
+          140
+          140
+          140
+        )
+      end
     end
     object ChannelSheet: TTabSheet
       Caption = 'Channels'
