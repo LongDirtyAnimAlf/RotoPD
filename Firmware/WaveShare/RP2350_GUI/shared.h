@@ -97,6 +97,14 @@ typedef struct
   bool DataReceived;
 } THIDData;
 
+struct HidReportFrame {
+  uint8_t report_id;
+  uint8_t data[HID_INT_OUT_EP_SIZE];
+  uint16_t len;
+};
+
+
+
 //typedef uint16_t word;
 typedef uint32_t dword;
 typedef uint64_t qword;

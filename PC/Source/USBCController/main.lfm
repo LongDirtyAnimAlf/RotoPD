@@ -16,9 +16,9 @@ object PowerbankMainForm: TPowerbankMainForm
     Height = 784
     Top = 0
     Width = 1469
-    ActivePage = tsOverview2
+    ActivePage = ChannelSheet
     Align = alClient
-    TabIndex = 1
+    TabIndex = 2
     TabOrder = 0
     object tsOverview1: TTabSheet
       Caption = 'Overview1'

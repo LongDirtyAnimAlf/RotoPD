@@ -724,11 +724,11 @@ begin
           s:=InttoStr(PMS^.MachineNumber-1);
       end;
       1: s:=PMS^.Product;
-      4: s:=FloatToStrF(PMS^.LatestMeasurementData.Voltage,ffFixed, 9, 1);
-      5: s:=FloatToStrF(PMS^.LatestMeasurementData.Current,ffFixed, 9, 1);
-      6: s:=FloatToStrF(PMS^.LatestMeasurementData.Power,ffFixed, 9, 0);
-      7: s:=FloatToStrF(PMS^.LatestMeasurementData.Energy,ffFixed, 9, 0);
-      8: s:=FloatToStrF(PMS^.LatestMeasurementData.Capacity,ffFixed, 9, 0);
+      4: s:=FloatToStrF(PMS^.LatestMeasurementData.Voltage,ffFixed, 2, 1);
+      5: s:=FloatToStrF(PMS^.LatestMeasurementData.Current,ffFixed, 1, 2);
+      6: s:=FloatToStrF(PMS^.LatestMeasurementData.Power,ffFixed, 4, 1);
+      7: s:=FloatToStrF(PMS^.LatestMeasurementData.Energy,ffFixed, 4, 1);
+      8: s:=FloatToStrF(PMS^.LatestMeasurementData.Capacity,ffFixed, 4, 1);
     end;
 
     if (PMS^.MachineNumber = 0) then
@@ -1084,7 +1084,6 @@ begin
   SourcePDODrawGrid.Invalidate;
   SourceEPRPDODrawGrid.Invalidate;
   DD.GetPDOList(PCurrentMachineSet^.MachineNumber);
-  //DD.SetEnergy(PCurrentMachineSet^.MachineNumber,876456789);
 end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
@@ -1259,9 +1258,6 @@ begin
         begin
           RunData.Clear;
           LatestMeasurementData:=Default(TMachineData);
-          GUICapacity:=0;
-          GUIEnergy:=0;
-          GUIPower:=0;
           if (Sender=StartStopSpeedButton) then Active:=True;
           if (Sender=btnTestDischarge) then Testing:=True;
           Last_time:=NowUTC;
@@ -1274,10 +1270,6 @@ begin
         MachineChartLineSeries3.Clear;
 
         SetControls(Sender);
-
-        GUIPower:=0;
-        GUIEnergy:=0;
-        GUICapacity:=0;
 
         SetChartAxis(Sender);
 
@@ -1296,8 +1288,20 @@ begin
         ImageList1.EndUpdate;
         TabControl1.Invalidate;
 
+        if (Sender=StartStopSpeedButton) then
+        begin
+          // Reset IT2704 energy data
+          DD.SetEnergy(PCurrentMachineSet^.MachineNumber,0);
+          //Sleep(25);
+          GUIPower:=0;
+          GUIEnergy:=0;
+          GUICapacity:=0;
+        end;
+
+        DD.SetCurrent(PCurrentMachineSet^.MachineNumber,PCurrentMachineSet^.ActiveTestType.Current,0);
+        Sleep(25);
         DD.SetOutput(PCurrentMachineSet^.MachineNumber,True);
-        DD.SetCurrent(PCurrentMachineSet^.MachineNumber,1,PCurrentMachineSet^.ActiveTestType.Current);
+        Sleep(25);
 
         TestInfoMemo.Lines.Append('Test started.');
 
@@ -1308,6 +1312,8 @@ begin
     else
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
+
+      DD.SetOutput(PCurrentMachineSet^.MachineNumber,False);
 
       // Do MachineSet things
       with PCurrentMachineSet^ do

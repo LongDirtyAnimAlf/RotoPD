@@ -65,8 +65,8 @@ void gauge_set_power(int32_t P)
 // ============== Create ==============
 void create_3d_gauge(lv_obj_t * parent)
 {
-    lv_obj_set_style_bg_color(parent, lv_color_hex(0x0a0e17), 0);
-    lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
+    //lv_obj_set_style_bg_color(parent, lv_color_hex(0x0a0e17), 0);
+    //lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
     lv_obj_set_scrollable(parent, false);
 
     /* Outer glowing container */

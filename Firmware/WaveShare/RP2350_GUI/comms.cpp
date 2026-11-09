@@ -42,9 +42,10 @@ extern COBSPacketSerial myPacketSerial; // for logging
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
-INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
+static INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
-volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
+CircularDataQueue<HidReportFrame, 8, true> hidQueue;
+
 //THIDData* const CurrentHIDData = HIDData;
 
 static float ina_mA_c       = 0;
@@ -531,9 +532,12 @@ bool process_command(void const *data, void *result)
     LocalBatteryBoard->PDO.targetVoltage_mV=dw_data.Val;    
 
     Info_Add("Comms. Received SetPD command.");
-    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->PDO.index);
-    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->PDO.maxCurrent_mA);
-    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->PDO.targetVoltage_mV);
+    Info_Add_Fmt("Comms. PDO requested index: #%d.", LocalBatteryBoard->PDO.index);
+    if (cCmd != CMD_set_MAXPDO)
+    {
+      Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->PDO.maxCurrent_mA);
+      Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->PDO.targetVoltage_mV);
+    }
 
     // Always stop the load current before switching PDO's
     // Just to be sure
@@ -842,12 +846,6 @@ void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint1
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize)
 #endif
 {
-  (void) report_id;
-  #ifndef ARDUINO_ARCH_ESP32
-  (void) report_type;
-  #endif
-  (void) bufsize;
-
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
   byte j;
 
@@ -917,8 +915,16 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       if (cBat<DAUGHTERBOARDCOUNT)
       {
         SendData = false;
-        for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) HIDData[cBat].HIDEPOUTData[j] = hid_report_out[j];
-        HIDData[cBat].DataReceived = true;
+
+        if (report_type == HID_REPORT_TYPE_OUTPUT)
+        {
+          HidReportFrame frame;
+          frame.report_id = report_id;
+          frame.len = (bufsize > HID_INT_OUT_EP_SIZE) ? HID_INT_OUT_EP_SIZE : bufsize;
+          memcpy(frame.data, hid_report_out, frame.len);
+          // Push into queue non-blockingly (tryPush returns false if queue is full)
+          hidQueue.tryPush(frame);
+        }
       }
       else
       {
@@ -940,7 +946,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
     #ifdef ARDUINO_ARCH_ESP32
     HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
     #else
-    HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
     #endif
 
   }

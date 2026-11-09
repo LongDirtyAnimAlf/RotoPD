@@ -209,7 +209,7 @@ type
     FOvlRead: TOverlapped;
     FReadEvent : THandle;
     FOvlWrite: TOverlapped;
-
+    FWriteEvent : THandle;
     // internal properties part
     FAttributes: THIDDAttributes;
     FPnPInfo: TJvHidPnPInfo;
@@ -1010,6 +1010,7 @@ begin
   FHidOverlappedRead := INVALID_HANDLE_VALUE;
   FHidOverlappedWrite := INVALID_HANDLE_VALUE;
   FReadEvent := CreateEvent(Nil, True, False, Nil);
+  FWriteEvent := CreateEvent(Nil, True, False, Nil);
   FVendorName := '';
   FProductName := '';
   FSerialNumber := '';
@@ -1088,6 +1089,7 @@ begin
   CloseFileEx(omhWrite);
 
   if (FReadEvent<>INVALID_HANDLE_VALUE) then CloseHandle(FReadEvent);
+  if (FWriteEvent<>INVALID_HANDLE_VALUE) then CloseHandle(FWriteEvent);
 
   // free the data which needs special handling
   if FPreparsedData <> nil then
@@ -1875,10 +1877,65 @@ begin
 end;
 
 function TJvHidDevice.WriteFile(var Report; ToWrite: DWORD; var BytesWritten: DWORD): Boolean;
+var
+  LocalError  : DWORD;
+  LocalRes    : DWORD;
 begin
   Result := False;
   if OpenFile then
-    Result := Windows.WriteFile(HidFileHandle, Report, ToWrite, BytesWritten, nil);
+  begin
+    FOvlWrite := Default(TOverlapped);
+    //FOvlWrite.Internal := STATUS_PENDING;
+    //Always use Manual-Reset (True) for Overlapped events
+    ResetEvent(FWriteEvent);
+    FOvlWrite.hEvent := FWriteEvent;
+
+    Result := Windows.WriteFile(HidFileHandle, Report, ToWrite, BytesWritten, @FOvlWrite);
+
+    if (NOT Result) then
+    begin
+      LocalError := GetLastError;
+      if LocalError = ERROR_IO_PENDING then
+      begin
+        LocalRes := WaitForSingleObject(FOvlWrite.hEvent, 100);
+        if LocalRes = WAIT_OBJECT_0 then
+        begin
+          Result := GetOverlappedResult(HidOverlappedWrite, FOvlWrite, BytesWritten, False);
+          if (NOT Result) then
+          begin
+            FErr := GetLastError;
+          end;
+        end
+        else
+        if LocalRes = WAIT_TIMEOUT then
+        begin
+          // Timeout or Error - WE MUST CANCEL SAFELY
+          CancelIOEx(omhWrite);
+          // Crucial: Wait for the OS to acknowledge the cancellation
+          // to ensure the 'Report' buffer is no longer being accessed by the kernel.
+          Result := GetOverlappedResult(HidOverlappedWrite, FOvlWrite, BytesWritten, True);
+          FErr := ERROR_TIMEOUT;
+        end
+        else
+        begin
+          //  Sever (unknown) error - WE MUST CANCEL SAFELY
+          CancelIOEx(omhRead);
+          // Crucial: Wait for the OS to acknowledge the cancellation
+          // to ensure the 'Report' buffer is no longer being accessed by the kernel.
+          Result := GetOverlappedResult(HidOverlappedWrite, FOvlWrite, BytesWritten, True);
+          FErr := GetLastError;
+          //Result := False;
+        end;
+      end
+      else
+      begin
+        FErr := LocalError;
+        Result := (LocalError = ERROR_HANDLE_EOF); // EOF is technically a success in some HID contexts
+      end;
+    end
+    else
+      Result := True; // Read completed immediately
+  end;
 end;
 
 // the TOverlapped structure is not needed externally

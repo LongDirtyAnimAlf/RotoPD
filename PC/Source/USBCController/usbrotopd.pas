@@ -694,9 +694,6 @@ begin
     exit;
   end;
 
-  // We do not set the output anymore
-  exit;
-
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_output;
 

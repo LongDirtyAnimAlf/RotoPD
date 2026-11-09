@@ -93,7 +93,8 @@ const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xF
 const byte DefaultCalDate[4] = {20,26,01,01};
 
 extern TBoardInfo BoardInfo;
-extern volatile THIDData HIDData[];//[DAUGHTERBOARDCOUNT];
+
+extern CircularDataQueue<HidReportFrame, 8, true> hidQueue;
 
 void Info_Add(const char *txt);
 void Info_Add_Fmt(const char *format, ...);

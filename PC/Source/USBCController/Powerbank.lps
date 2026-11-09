@@ -22,9 +22,8 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="2220"/>
-        <CursorPos X="29" Y="2235"/>
+        <TopLine Value="1272"/>
+        <CursorPos X="13" Y="1295"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -36,21 +35,21 @@
       <Unit>
         <Filename Value="text.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="100"/>
+        <UsageCount Value="104"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="15"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\ap33772s.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="98"/>
+        <UsageCount Value="102"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="3" Y="13"/>
       </Unit>
       <Unit>
         <Filename Value="text1.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="96"/>
+        <UsageCount Value="100"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
         <CursorPos Y="107"/>
@@ -3631,10 +3630,10 @@
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <UnitName Value="usb"/>
         <Loaded Value="True"/>
-        <UsageCount Value="41"/>
+        <UsageCount Value="43"/>
         <EditorIndex Value="5"/>
-        <TopLine Value="165"/>
-        <CursorPos X="3" Y="168"/>
+        <TopLine Value="401"/>
+        <CursorPos X="40" Y="416"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\jedi\jvcl\jvcl\run\JvHidControllerClass.pas"/>
@@ -3657,10 +3656,12 @@
       </Unit>
       <Unit>
         <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
-        <UsageCount Value="18"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="1509"/>
-        <CursorPos Y="1519"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="19"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="1874"/>
+        <CursorPos X="17" Y="1890"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\sysutils.pp"/>
@@ -3743,15 +3744,15 @@
       <Unit>
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="54"/>
+        <UsageCount Value="56"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="128"/>
-        <CursorPos X="38" Y="158"/>
+        <TopLine Value="702"/>
+        <CursorPos X="32" Y="727"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="54"/>
+        <UsageCount Value="56"/>
         <EditorIndex Value="4"/>
         <TopLine Value="63"/>
         <CursorPos X="40" Y="69"/>
@@ -3801,10 +3802,11 @@
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\defines.inc"/>
-        <UsageCount Value="8"/>
-        <EditorIndex Value="-1"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="5892"/>
-        <CursorPos X="20" Y="5901"/>
+        <CursorPos X="6" Y="5901"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\errors.inc"/>
@@ -3886,7 +3888,7 @@
         <ResourceBaseClass Value="Frame"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="14"/>
         <EditorIndex Value="1"/>
         <TopLine Value="45"/>
         <CursorPos X="15" Y="63"/>
@@ -4038,124 +4040,124 @@
     </Debugger>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1293" Column="55" TopLine="1269"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="755" TopLine="731"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="757" TopLine="733"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="758" TopLine="734"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="760" TopLine="736"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="762" TopLine="738"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1294" Column="56" TopLine="1270"/>
+        <Caret Line="1294" Column="16" TopLine="1278"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1320" Column="94" TopLine="1296"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="135" Column="18" TopLine="122"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1362" Column="67" TopLine="1338"/>
+        <Filename Value="..\Common\usblibs\USB.pas"/>
+        <Caret Line="479" Column="40" TopLine="473"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1416" Column="59" TopLine="1392"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="345" Column="17" TopLine="332"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1497" Column="63" TopLine="1472"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1881" TopLine="1875"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1881" Column="65" TopLine="1857"/>
+        <Filename Value="..\Common\usblibs\USB.pas"/>
+        <Caret Line="416" Column="40" TopLine="401"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2000" Column="56" TopLine="1976"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="346" Column="21" TopLine="332"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2051" Column="56" TopLine="2027"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1890" Column="14" TopLine="1874"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2157" Column="56" TopLine="2133"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="2012" Column="17" TopLine="1988"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2198" Column="56" TopLine="2174"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="2013" Column="25" TopLine="2002"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2226" TopLine="2216"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="212" TopLine="195"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2231" Column="35" TopLine="2218"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1013" TopLine="987"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="732" TopLine="704"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1092" TopLine="1065"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1679" Column="36" TopLine="1659"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="2014" Column="24" TopLine="1989"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="227" Column="23" TopLine="215"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="2015" Column="32" TopLine="1990"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2071" TopLine="2044"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1889" Column="27" TopLine="1878"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="734" Column="30" TopLine="717"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1900" Column="44" TopLine="1882"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1084" Column="31" TopLine="1059"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1906" Column="22" TopLine="1882"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1085" Column="34" TopLine="1060"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1905" TopLine="1882"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1297" Column="31" TopLine="1273"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1928" TopLine="1903"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1329" Column="29" TopLine="1305"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1891" Column="29" TopLine="1883"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1559" Column="35" TopLine="1535"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="212" Column="12" TopLine="196"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="1560" Column="38" TopLine="1536"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1013" Column="14" TopLine="988"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2073" TopLine="2046"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1092" Column="70" TopLine="1067"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2322" TopLine="2292"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="226" Column="17" TopLine="209"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2234" Column="30" TopLine="2218"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2235" Column="15" TopLine="2210"/>
-      </Position>
-      <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="2240" Column="14" TopLine="2210"/>
+        <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Caret Line="1888" Column="32" TopLine="1874"/>
       </Position>
     </JumpHistory>
     <RunParams>
@@ -4163,4 +4165,14 @@
       <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
+  <Debugging>
+    <BreakPoints>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <Source Value="..\Common\usblibs\windows\jvcl\jvcl\run\JvHidControllerClass.pas"/>
+        <Line Value="1898"/>
+      </Item>
+    </BreakPoints>
+  </Debugging>
 </CONFIG>

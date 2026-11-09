@@ -146,6 +146,55 @@ public:
     }
 
     // ---------- Read Side ----------
+    /*
+    bool pop(T& item) {
+        return popTimeout(item, 0);
+    }
+
+    bool tryPop(T& item) {
+        return popTimeout(item, 0);
+    }
+
+    bool popTimeout(T& item, uint32_t timeout_ms) {
+        if (!isValid()) return false;
+
+        absolute_time_t deadline = (timeout_ms == UINT32_MAX)
+                                   ? at_the_end_of_time
+                                   : make_timeout_time_ms(timeout_ms);
+
+        while (true) {
+            if constexpr (ThreadSafe) {
+                critical_section_enter_blocking(&lock);
+            }
+
+            if (count == 0) {
+                if constexpr (ThreadSafe) {
+                    critical_section_exit(&lock);
+                }
+                if (timeout_ms == 0 || time_reached(deadline)) {
+                    item = T{};
+                    return false;
+                }
+                tight_loop_contents();
+                continue;
+            }
+
+            if constexpr (std::is_trivially_copyable<T>::value) {
+                memcpy(&item, &frames[head], sizeof(T));
+            } else {
+                item = frames[head];
+            }
+
+            head = (head + 1) & MASK;
+            --count;
+
+            if constexpr (ThreadSafe) {
+                critical_section_exit(&lock);
+            }
+            return true;
+        }
+    }
+    */
 
     bool pop(T& item) {
         if (!isValid()) return false;

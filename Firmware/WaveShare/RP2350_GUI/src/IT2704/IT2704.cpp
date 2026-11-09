@@ -459,9 +459,10 @@ void IT2704::collectData(void)
 
       Msg.setSubID(IT2704_METER_AHOUR);
       _node->sendMsg(Msg);
+
+      Msg.setSubID(IT2704_METER_WHOUR);
+      _node->sendMsg(Msg);
     }
-    //Msg.setSubID(IT2704_METER_WHOUR);
-    //_node->sendMsg(Msg);
   }
 }
 

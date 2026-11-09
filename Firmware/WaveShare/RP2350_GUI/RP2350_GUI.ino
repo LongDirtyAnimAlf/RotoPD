@@ -731,7 +731,7 @@ void loop1() {
   datacounter += rxdatacount;
   //mutex_exit(&can_mutex);  
   //yield();
-  sleep_us(100);
+  //sleep_us(10);
   //delay(1);
   //delayMicroseconds(10);
 }
@@ -828,7 +828,7 @@ void setup()
   USBDevice.setSerialDescriptor(mySerial);  
   HID.setReportCallback(NULL, set_report_callback);
   HID.enableOutEndpoint(true);
-  HID.setPollInterval(1);
+  HID.setPollInterval(10);
   HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
   USBDevice.addStringDescriptor(myFirmware);  
 
@@ -1378,7 +1378,7 @@ void loop()
           #ifdef ARDUINO_ESP32S3_DEV
           HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
           #else
-          HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+          if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
           #endif      
           #endif
 
@@ -1387,9 +1387,6 @@ void loop()
     } // every second
   } // while Ticksbetween 
 
-  THIDData* PLocalHD;
-  THIDData LocalHDCopy;
-
   memset(INData,0,COMMAND_SIZE);  
 
   // Do we have a valid command ?
@@ -1397,40 +1394,26 @@ void loop()
   // Most likely, this command originates from a desktop PC
   if (!DataOk)
   {
-    if (HIDData[ActiveBatteryIndex].DataReceived)
+    HidReportFrame frame;
+    if (hidQueue.pop(frame))
     {
-      #ifndef TINYUSB_NEED_POLLING_TASK
-      // Make a local copy of the data 
-      // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
-      noInterrupts();
-      for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[ActiveBatteryIndex].HIDEPOUTData[j];
-      LocalHDCopy.DataReceived = HIDData[ActiveBatteryIndex].DataReceived;
-      HIDData[ActiveBatteryIndex].DataReceived = false;
-      interrupts();
-      PLocalHD = &LocalHDCopy; 
-      #else
-      PLocalHD = (THIDData*)&HIDData[ActiveBatteryIndex];
-      PLocalHD->DataReceived = false;
-      #endif
+      memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
       //Now perform the Data update  
-      DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+      DataOk |= process_command(frame.data,hid_report_in);
       if (DataOk)
       {
-        //ARDUINO_GENERIC_RP2350
-        //ARDUINO_ARCH_RP2040
-
         // Send report back to host
         #ifdef ENABLEUSB
         #ifdef ARDUINO_ESP32S3_DEV
-        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
+        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
         #else
-        HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
         #endif
         #endif
 
-        // Copy the result into the INData buffer for later processing !
-        for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
+        // Copy data into INDATA for later use
+        memcpy(INData,hid_report_in,COMMAND_SIZE);
       }
     }  
   }
@@ -1502,6 +1485,7 @@ void loop()
           if (RDS->Energy == 0)
           {
             load.clearEnergy();
+            Info_Add("GUI. Load clear energy");
             ClearRunData(RDS); 
             ClearMeasurementData(&LatestRotoPDData);
             ClearMeasurementData(&LatestIT2704Data);
@@ -1704,7 +1688,7 @@ void loop()
       #ifdef ARDUINO_ESP32S3_DEV
       HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
       #else
-      HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+      if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #endif      
       #endif
 
