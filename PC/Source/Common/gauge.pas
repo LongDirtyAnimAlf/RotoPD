@@ -281,7 +281,7 @@ begin
   FTextColor := clDefault;
   FTimer := TTimer.Create(Self);
   FTimer.Enabled := False;
-  FTimer.Interval := 25;
+  FTimer.Interval := 40;
   FTimer.OnTimer := @tick;
   ParentColor := True;
   with GetControlClassDefaultSize do SetInitialBounds(0, 0, cx, cy);
@@ -417,7 +417,7 @@ begin
     engR := radius - arcW div 2 - scaled(Self, 4);
     if engR > 8 then begin
       paintCircle(sp, cx, cy, engR, clNone, blend(clrTech, clrFace, 55), 1);
-      paintCircle(sp, cx, cy, Trunc(engR * 0.65), clNone, blend(clrTech, clrFace, 65), 1);
+      paintCircle(sp, cx, cy, Trunc(engR * 0.55), clNone, blend(clrTech, clrFace, 65), 1);
     end;
 
     // micro-graduations: same count as minor ticks (not 2x)
@@ -550,7 +550,55 @@ begin
       end;
     end;
 
-    // --- needle (antialiased, above ticks; single pass – no double-draw) ---
+    // --- labels & value into the buffer (under the needle) ---
+    applyTextQuality(Canvas);
+    fs := formatSettingsOf(FLanguage);
+    if FShowLabels and (FMajorTicks > 1) then begin
+      for i := 0 to FMajorTicks - 1 do begin
+        v := FMin + (FMax - FMin) * i / (FMajorTicks - 1);
+        a := angleOf(v);
+        if FLabelFormat = '' then
+          valueText := FloatToStr(v, fs)
+        else
+          valueText := Format(FLabelFormat, [v], fs);
+        lr := tickOuter - scaled(Self, 24);
+        tw := Canvas.TextWidth(valueText);
+        th := Canvas.TextHeight(valueText);
+        sp.TextOut(
+          cx + Round(Cos(a) * lr) - tw div 2,
+          cy - Round(Sin(a) * lr) - th div 2,
+          valueText, Canvas.Font, clrText);
+      end;
+    end;
+    if FShowValue then begin
+      if FValueFormat = '' then
+        valueText := FloatToStr(FValue, fs)
+      else
+        valueText := Format(FValueFormat, [FValue], fs);
+      if Assigned(FOnGetText) then FOnGetText(Self, FValue, valueText);
+      th := Canvas.TextHeight(valueText);
+      tw := Canvas.TextWidth(valueText);
+      if FSweepAngle <= 200 then
+        vr := Rect(0, cy + scaled(Self, 4), ClientWidth, cy + scaled(Self, 4) + th)
+      else
+        vr := Rect(0, cy + radius div 3, ClientWidth, cy + radius div 3 + th);
+      // readout plate behind the value
+      paintRoundRect(sp,
+        Rect(
+          (ClientWidth - tw) div 2 - scaled(Self, 6),
+          vr.Top - scaled(Self, 1),
+          (ClientWidth - tw) div 2 + tw + scaled(Self, 6),
+          vr.Bottom + scaled(Self, 2)),
+        scaled(Self, 6),
+        clBlack,
+        RGBToColor(80, 80, 80), 1);
+        //blend(GetRGBColorResolvingParent, clBlack, 8),
+        //blend(clBtnShadow, clBlack, 25), 1);
+      sp.TextRect(vr, valueText, Canvas.Font, clAqua);
+      //sp.TextRect(vr, valueText, Canvas.Font, clrText);
+    end;
+
+    // --- needle above ticks and text ---
     if FShowNeedle and (FStyle = gsDial) then begin
       a := angleOf(FShown);
       hubR := Math.Max(radius / 11, 4);
@@ -566,17 +614,14 @@ begin
       needlePts[2] := PointF(hx - Cos(a) * tailR, hy + Sin(a) * tailR);
       needlePts[3] := PointF(hx - Cos(side) * hubR * 0.55, hy + Sin(side) * hubR * 0.55);
 
-      // soft drop shadow
       SetLength(shadowPts, 4);
       for i := 0 to 3 do
         shadowPts[i] := PointF(needlePts[i].X + 1.5, needlePts[i].Y + 1.5);
       sp.FillPolygon(shadowPts, blend(clrShadow, clrFace, 55));
 
-      // body + black outline
       sp.FillPolygon(needlePts, clrNeedle);
       sp.StrokePolyline(needlePts, 1.5, clBlack, True, True);
 
-      // hub
       paintCircle(sp, cx, cy, Round(hubR) + 1, blend(clBlack, clrHub, 40), clBlack, 1);
       paintCircle(sp, cx, cy, Round(hubR), clrHub, blend(clBlack, clrHub, 50), 1);
       paintCircle(sp, cx, cy, Math.Max(Round(hubR * 0.45), 2),
@@ -587,71 +632,10 @@ begin
   finally
     sp.Free;
   end;
-
-  // labels & value after the dial (text may sit on top of the needle tip)
-  applyTextQuality(Canvas);
-  fs := formatSettingsOf(FLanguage);
-  if FShowLabels and (FMajorTicks > 1) then begin
-    Canvas.Brush.Style := bsClear;
-    Canvas.Font.Color := clrText;
-    for i := 0 to FMajorTicks - 1 do begin
-      v := FMin + (FMax - FMin) * i / (FMajorTicks - 1);
-      a := angleOf(v);
-      if FLabelFormat = '' then
-        valueText := FloatToStr(v, fs)
-      else
-        valueText := Format(FLabelFormat, [v], fs);
-      lr := tickOuter - scaled(Self, 22);
-      tw := Canvas.TextWidth(valueText);
-      Canvas.TextOut(
-        cx + Round(Cos(a) * lr) - tw div 2,
-        cy - Round(Sin(a) * lr) - labelH div 2,
-        valueText);
-    end;
-    Canvas.Brush.Style := bsSolid;
-  end;
-  if FShowValue then begin
-    if FValueFormat = '' then
-      valueText := FloatToStr(FValue, fs)
-    else
-      valueText := Format(FValueFormat, [FValue], fs);
-    if Assigned(FOnGetText) then FOnGetText(Self, FValue, valueText);
-    th := Canvas.TextHeight(valueText);
-    tw := Canvas.TextWidth(valueText);
-    if FSweepAngle <= 200 then
-      vr := Rect(0, cy + scaled(Self, 4), ClientWidth, cy + scaled(Self, 4) + th)
-    else
-      vr := Rect(0, cy + radius div 3, ClientWidth, cy + radius div 3 + th);
-    Canvas.Brush.Style := bsSolid;
-    Canvas.Brush.Color := blend(GetRGBColorResolvingParent, clBlack, 8);
-    Canvas.Pen.Color := blend(clBtnShadow, clBlack, 25);
-    Canvas.Pen.Width := 1;
-    Canvas.RoundRect(
-      (ClientWidth - tw) div 2 - scaled(Self, 6),
-      vr.Top - scaled(Self, 1),
-      (ClientWidth - tw) div 2 + tw + scaled(Self, 6),
-      vr.Bottom + scaled(Self, 2),
-      scaled(Self, 6), scaled(Self, 6));
-    paintCenteredText(Canvas, vr, valueText, clrText);
-  end;
 end;
 
 // -- animation ----------------------
 
-procedure TGauge.tick(Sender: TObject);
-var
-  delta: double;
-begin
-  delta := FValue - FShown;
-  if Abs(delta) < (FMax - FMin) / 2000 then begin
-    FShown := FValue;
-    FTimer.Enabled := False;
-  end else
-    FShown := FShown + delta * 0.2;
-  Invalidate;
-end;
-
-(*
 procedure TGauge.tick(Sender: TObject);
 var
   delta, step: double;
@@ -669,7 +653,6 @@ begin
   end;
   Invalidate;
 end;
-*)
 
 procedure TGauge.syncTimer;
 begin

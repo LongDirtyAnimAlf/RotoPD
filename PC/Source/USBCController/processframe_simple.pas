@@ -40,6 +40,7 @@ type
     fNewCurrentDisplay        : TLEDDisplay;
     fPowerGauge               : TGauge;
     fNewEnergyDisplay         : TLEDDisplay;
+    procedure OnGaugeText(Sender: TObject; value: double; var labeltext: string);
     procedure SetVoltage(AValue: single);
     procedure SetCurrent(AValue: single);
     procedure SetPower(AValue: single);
@@ -74,16 +75,25 @@ uses
   printform;
 
 const
-  IBUSCOLOR                    = TColor($4040FF);
-  VBUSCOLOR                    = TColor($80FF80);
-  ENERGYCOLOR                  = clYellow;
-  POWERCOLOR                   = clFuchsia;
+  //IBUSCOLOR                    = TColor($4040FF);
+  //VBUSCOLOR                    = TColor($80FF80);
+  //ENERGYCOLOR                  = clYellow;
+  //POWERCOLOR                   = clFuchsia;
+  IBUSCOLOR                    = clRed;
+  VBUSCOLOR                    = clRed;
+  ENERGYCOLOR                  = clRed;
+  POWERCOLOR                   = clRed;
   ACTIVECOLOR                  = TColor($E0F0FF); // clMenuHighlight
   //INACTIVECOLOR                = TColor($404040); // clDefault
   INACTIVECOLOR                = clLtGray;
 
 
 { TFrameSimple }
+
+procedure TFrameSimple.OnGaugeText(Sender: TObject; value: double; var labeltext: string);
+begin
+  labeltext := labeltext + ' Watt';
+end;
 
 constructor TFrameSimple.Create(TheOwner: TComponent);
 begin
@@ -93,6 +103,7 @@ begin
 
   fPowerGauge:=TGauge.Create(Panel2);
   fPowerGauge.Parent:=Panel2;
+  fPowerGauge.OnGetText:=@OnGaugeText;
 
   with fPowerGauge do
   begin
@@ -184,9 +195,9 @@ begin
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
-    //DigitLineWidth := 8;
+    DigitLineWidth := 4;
     //DigitHeight := Parent.Height;
-    //DigitWidth := DigitHeight * 2 div 4 - 1;
+    DigitWidth := 30;
     Borderstyle := bsNone;
     BevelStyle := bvLowered;
     Angle := 0;
@@ -253,12 +264,14 @@ end;
 procedure TFrameSimple.Panel1Resize(Sender: TObject);
 begin
   with fNewCurrentDisplay do begin
-    DigitHeight := Parent.Height-4;
-    DigitWidth := DigitHeight * 2 div 4 - 1;
+    DigitHeight := Parent.Height - 4;
+    DigitWidth := ((Parent.Width - 60) div NumDigits) + 8;
+    DigitLineWidth := (DigitWidth div 8) + 2;
   end;
   with fNewVoltageDisplay do begin
-    DigitHeight := Parent.Height-4;
-    DigitWidth := DigitHeight * 2 div 4 - 1;
+    DigitHeight := Parent.Height - 4;
+    DigitWidth := ((Parent.Width - 60) div NumDigits) + 8;
+    DigitLineWidth := (DigitWidth div 8) + 2;
   end;
 end;
 

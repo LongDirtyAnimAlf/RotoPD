@@ -93,6 +93,11 @@ type
     procedure StrokeArc(cx, cy, rx, ry, startDeg, sweepDeg, width: single; color: TColor; roundCaps: boolean);
     // the part `from` of the image scaled into `into`
     procedure DrawImage(image: TRasterImage; const from, into: TRect);
+    // text into the pixel buffer (or straight onto the canvas when Direct)
+    // so shapes drawn after it sit on top; uses a temporary 32-bit bitmap
+    procedure TextOut(x, y: integer; const text: string; font: TFont; color: TColor);
+    // text centered in `r`, clipped to it
+    procedure TextRect(const r: TRect; const text: string; font: TFont; color: TColor);
     // `w` by `h` pixels in the layout of the memory, a row after another,
     // with their top left corner at x, y
     procedure DrawPixels(x, y, w, h: integer; pixels: PCardinal);
@@ -1174,6 +1179,101 @@ begin
     Move(pixels[(localrow+FRect.Top-y)*w + x0+FRect.Left-x], FPixels[localrow*FWidth+x0], (x1-x0)*SizeOf(cardinal));
 end;
 
+procedure TSmoothPaint.TextOut(x, y: integer; const text: string; font: TFont; color: TColor);
+var
+  bmp: TBitmap;
+  tw, th, dx, dy, ix, iy, x0, x1, y0, y1: integer;
+  srcPix: PCardinal;
+  srcCol, packedColor, cover: cardinal;
+  pb, pg, pr: byte;
+begin
+  if text = '' then Exit;
+  if FDirect then begin
+    applyTextQuality(FTarget);
+    FTarget.Font.Assign(font);
+    FTarget.Font.Color := color;
+    FTarget.Brush.Style := bsClear;
+    FTarget.TextOut(x, y, text);
+    FTarget.Brush.Style := bsSolid;
+    Exit;
+  end;
+  if FFlushed or (FWidth = 0) or (FHeight = 0) then Exit;
+
+  bmp := TBitmap.Create;
+  try
+    bmp.PixelFormat := pf32bit;
+    bmp.Canvas.Font.Assign(font);
+    if textQuality <> fqDefault then
+      bmp.Canvas.Font.Quality := textQuality;
+    tw := Max(bmp.Canvas.TextWidth(text), 1);
+    th := Max(bmp.Canvas.TextHeight(text), 1);
+    bmp.SetSize(tw, th);
+    // white glyphs on black – intensity becomes coverage for blending
+    bmp.Canvas.Brush.Color := clBlack;
+    bmp.Canvas.FillRect(0, 0, tw, th);
+    bmp.Canvas.Font.Color := clWhite;
+    bmp.Canvas.Brush.Style := bsClear;
+    bmp.Canvas.TextOut(0, 0, text);
+
+    packedColor := PackColor(color);
+    dx := x - FRect.Left;
+    dy := y - FRect.Top;
+    x0 := Max(dx, FClip.Left);
+    x1 := Min(dx + tw, FClip.Right);
+    y0 := Max(dy, FClip.Top);
+    y1 := Min(dy + th, FClip.Bottom);
+    if (x1 <= x0) or (y1 <= y0) then Exit;
+
+    for iy := y0 to y1 - 1 do begin
+      srcPix := PCardinal(bmp.ScanLine[iy - dy]);
+      for ix := x0 to x1 - 1 do begin
+        srcCol := srcPix[ix - dx];
+        // BGRA or ARGB: use max of low three bytes as coverage
+        pb := srcCol and $FF;
+        pg := (srcCol shr 8) and $FF;
+        pr := (srcCol shr 16) and $FF;
+        cover := pb;
+        if pg > cover then cover := pg;
+        if pr > cover then cover := pr;
+        if cover = 0 then
+          Continue;
+        if cover >= 255 then
+          FPixels[iy * FWidth + ix] := packedColor
+        else
+          FPixels[iy * FWidth + ix] :=
+            mixPixel(FPixels[iy * FWidth + ix], packedColor, cover + 1);
+      end;
+    end;
+  finally
+    bmp.Free;
+  end;
+end;
+
+procedure TSmoothPaint.TextRect(const r: TRect; const text: string; font: TFont; color: TColor);
+var
+  measureBmp: TBitmap;
+  tw, th, tx, ty: integer;
+begin
+  if text = '' then Exit;
+  if FDirect then begin
+    applyTextQuality(FTarget);
+    FTarget.Font.Assign(font);
+    paintCenteredText(FTarget, r, text, color);
+    Exit;
+  end;
+  measureBmp := TBitmap.Create;
+  try
+    measureBmp.Canvas.Font.Assign(font);
+    tw := measureBmp.Canvas.TextWidth(text);
+    th := measureBmp.Canvas.TextHeight(text);
+  finally
+    measureBmp.Free;
+  end;
+  tx := r.Left + (r.Right - r.Left - tw) div 2;
+  ty := r.Top + (r.Bottom - r.Top - th) div 2;
+  TextOut(tx, ty, text, font, color);
+end;
+
 procedure TSmoothPaint.Flush;
 begin
   if FFlushed or FDirect then Exit;
@@ -1235,8 +1335,26 @@ begin
 end;
 
 function blend(a, b: TColor; percent: integer): TColor;
+var
+  ca, cb: LongInt;
+  ra, ga, ba, rb, gb, bb: integer;
 begin
-  //Result := mix(ColorToRGB(a), ColorToRGB(b), percent);
+  if percent <= 0 then begin
+    Result := ColorToRGB(a);
+    Exit;
+  end;
+  if percent >= 100 then begin
+    Result := ColorToRGB(b);
+    Exit;
+  end;
+  ca := ColorToRGB(a);
+  cb := ColorToRGB(b);
+  ra := Red(ca);  ga := Green(ca);  ba := Blue(ca);
+  rb := Red(cb);  gb := Green(cb);  bb := Blue(cb);
+  Result := RGBToColor(
+    ra + (rb - ra) * percent div 100,
+    ga + (gb - ga) * percent div 100,
+    ba + (bb - ba) * percent div 100);
 end;
 
 function isDark(color: TColor): boolean;
