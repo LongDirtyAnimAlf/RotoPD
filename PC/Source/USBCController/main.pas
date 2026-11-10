@@ -1302,6 +1302,10 @@ begin
         // To prevent any disturbance of this running test
         DD.SetLocal(PCurrentMachineSet^.MachineNumber, false);
 
+        // Set mode to easy and enable some GUI indications
+        DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmActive);
+
+        // Set the discharge value !!
         DD.SetCurrent(PCurrentMachineSet^.MachineNumber,PCurrentMachineSet^.ActiveTestType.Current,{Fine=}0);
         // Output already set with the above command.
         // So, SetOutput not needed here.
@@ -1319,6 +1323,10 @@ begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
       DD.SetOutput(PCurrentMachineSet^.MachineNumber, false);
+
+      // Set mode to easy and enable some GUI indications
+      //DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmIdle);
+      DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmReady);
 
       // Enable all buttons that can control the device
       DD.SetLocal(PCurrentMachineSet^.MachineNumber, true);
@@ -1453,6 +1461,9 @@ begin
           begin
             TestInfoMemo.Lines.Append('Voltage below threshold. Test ready.');
             // Do something !!
+
+            // Set mode to easy and enable some GUI indications
+            DD.SetMode(LocalPMS^.MachineNumber, TBatteryMode.bmReady);
           end;
 
           if (
@@ -1464,6 +1475,9 @@ begin
           begin
             TestInfoMemo.Lines.Append('Current below threshold. Test ready.');
             // Do something !!
+
+            // Set mode to easy and enable some GUI indications
+            DD.SetMode(LocalPMS^.MachineNumber, TBatteryMode.bmReady);
           end;
 
         end;

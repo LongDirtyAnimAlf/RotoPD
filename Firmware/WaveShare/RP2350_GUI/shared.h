@@ -31,12 +31,12 @@
 #define    STANDALONE
 #endif
 
-#define TICKERTIME                    50 // ms
-#define DATACOLLECTTIMEFAST           500 // ms
+#define TICKERTIME                    50u // ms
+#define DATACOLLECTTIMEFAST           500u // ms
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
-#define CALCULATIONTIME               100 // ms
+#define CALCULATIONTIME               100u // ms
 
-#define SAVERTIME                     (1000u * 60u * 1u) // 10 minutes in ms
+#define SAVERTIME                     (1000u * 60u * 10u) // 10 minutes in ms
 #define DVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 #define PVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 
@@ -166,6 +166,7 @@ typedef enum {
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
     CMD_set_output,
+    CMD_set_batterymode,
     CMD_set_local,
     CMD_get_curcal,
     CMD_set_curcal,
@@ -235,11 +236,14 @@ typedef struct
 
 typedef enum
 {
-  bmIdle = 0,
+  bmUnknown = 0,
+  bmIdle,
   bmActive,
+  bmPause,
+  bmWaiting,
   bmOff,
   bmReady,
-  bmError
+  bmError  
 } TBatteryMode;
 
 typedef struct

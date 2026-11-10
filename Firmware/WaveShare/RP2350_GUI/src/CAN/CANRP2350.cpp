@@ -99,25 +99,25 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
     {
         if (canintf & MCP2515::CANINTF_MERRF)
         {
-            Serial.println("Message error interrupt.");
+            //Serial.println("Message error interrupt.");
         }
 
         if (canintf & MCP2515::CANINTF_ERRIF)
         {
-            Serial.println("General Error interrupt.");
+            //Serial.println("General Error interrupt.");
         }
 
         eflg = caninterface.getErrorFlags();
 
         if (eflg & MCP2515::EFLG_RX0OVR)
         {
-            Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+            //Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
             canintf |= (MCP2515::CANINTF_RX0IF); // force a read action
         }
 
         if (eflg & MCP2515::EFLG_RX1OVR)
         {
-            Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+            //Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
             canintf |= (MCP2515::CANINTF_RX1IF); // force a read action
         }
     }
@@ -151,7 +151,7 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
 
         if ((millis() - taskCANTimer) > 10)
         {
-          Serial.println("Looping to long (>10ms). Breaking !!!!!!!!!!!!!!!!");
+          //Serial.println("Looping to long (>10ms). Breaking !!!!!!!!!!!!!!!!");
           break;
         }
 
@@ -261,11 +261,11 @@ bool CBUSDevice::processTxQueue(void)
 
     if (CanTxBuffer.getCount() > 20)
     {
-      Serial.println("MCP2515: Normal message buffer filling up.");
+      //Serial.println("MCP2515: Normal message buffer filling up.");
     }
     if (CanTxPrioBuffer.getCount() > 20)
     {
-      Serial.println("MCP2515: Prio message buffer filling up.");
+      //Serial.println("MCP2515: Prio message buffer filling up.");
     }
 
     if (CanTxPrioBuffer.peek(frame))
@@ -278,7 +278,7 @@ bool CBUSDevice::processTxQueue(void)
         }
         else
         {
-          Serial.println("MCP2515: Send prio message failure.");
+          //Serial.println("MCP2515: Send prio message failure.");
         }
     }
 
@@ -303,12 +303,12 @@ bool CBUSDevice::processTxQueue(void)
           }
           else
           {
-            Serial.println("MCP2515: Send normal -> prio message failure.");
+            //Serial.println("MCP2515: Send normal -> prio message failure.");
           }
         }
         else
         {
-          Serial.println("MCP2515: Send normal message failure.");
+          //Serial.println("MCP2515: Send normal message failure.");
         }
       }
     }

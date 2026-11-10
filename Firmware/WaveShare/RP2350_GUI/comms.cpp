@@ -516,16 +516,6 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
   dataindexer = DATASTART;
 
-  if (cCmd == CMD_set_local)
-  {
-    #ifdef USE_LCD
-    bool Local = (databuffer[dataindexer++] != 0);
-    Screen1SetLocal(Local);
-    ScreenPDOSetLocal(Local);
-    ScreenSettingsSetLocal(Local);
-    #endif
-  }
-
   if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
     // We got a SetPDO command

@@ -387,6 +387,7 @@ static void main_event_handler(lv_event_t * e)
           for(i = (tmNONE+1); i < tmLast; i++)
           {
             Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
+            Screen1SetThresholdLed((TThresholdModes)j, false);
           }
 
           if (!buttondown)
@@ -489,8 +490,12 @@ static void main_event_handler(lv_event_t * e)
           {
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
-            // Not the best place to do this !!
-            load.clearEnergy();
+            // Prepare the command to clear the energy
+            memset(SendCommand, 0, COMMAND_SIZE); 
+            SendCommand[COMMANDPOSITION]   = CMD_set_energy;
+            SendCommand[BOARDPOSITION]     = BoardInfo.getBoardNumber();
+            SendCommand[LENGTHPOSITION]    = 4U; // length
+            // Keep rest of data default == 0 !!
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
           Screen1AddEPData(RDS->Energy,0);        
@@ -1269,38 +1274,39 @@ void loop()
     }
 
     #ifdef ARDUINO_ARCH_RP2040
-    if ((loopcounter % 2000) == 0)
+    // Every 100s
+    if ((loopcounter % (100000u / TICKERTIME)) == 0)
     {
       Serial.printf("Loop: %d\n",counterCore1.load());
     }
     #endif
     
     // Get RotoPD measurement results for later averaging
-    // Every 50ms
+    // Every 50ms (== TICKERTIME)
     collectRotoPDData();
 
     // Every 250ms
-    if ((loopcounter % 5) == 0)
+    if ((loopcounter % (250u / TICKERTIME)) == 0)
     {
-    // Ask load IT2704 to send measurement results
-    // Result (when available) will be collected later by node.run()
+      // Ask load IT2704 to send measurement results
+      // Result (when available) will be collected later by node.run()
       load.collectData();
     }
 
     // Every 100ms
-    if ((loopcounter % 2) == 0)
+    if ((loopcounter % (100u / TICKERTIME)) == 0)
     {
       CalcBatteryData = true;
     }
 
     // Every 500ms
-    if ((loopcounter % 10) == 0)
+    if ((loopcounter % (500u / TICKERTIME)) == 0)
     {
       flagProcessMeasurementData = true;
     }
 
     // Every second
-    if ((loopcounter % 20) == 0)
+    if ((loopcounter % (1000u / TICKERTIME)) == 0)
     {
       #ifdef DEBUG                      
       //static uint32_t loopcounter = 0;
@@ -1322,7 +1328,6 @@ void loop()
       //mutex_exit(&can_mutex); 
 
       //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
-
 
       PDOCount = taskRotoPDInit();
 
@@ -1458,6 +1463,35 @@ void loop()
 
     switch(cCmd)
     {
+      case CMD_set_local:
+      {
+        #ifdef USE_LCD
+        bool Local = (INData[counter++] != 0);
+        Screen1SetLocal(Local);
+        ScreenPDOSetLocal(Local);
+        ScreenSettingsSetLocal(Local);
+        #endif
+        break;
+      }
+
+      case CMD_set_batterymode:
+      {
+        // Unfortunately, we have to set the batterymode by ourselves !!
+        SET->TestData.Active = (TBatteryMode)INData[counter++];
+        // Set trigger indicators
+        for(j = (tmNONE+1); j < tmLast; j++)
+        {
+          Screen1SetThresholdLedEnabled((TThresholdModes)j, false);
+          Screen1SetThresholdLed((TThresholdModes)j, false);
+        }
+        if ((SET->TestData.Active == bmActive) || (SET->TestData.Active == bmReady))
+        {
+          Screen1SetThresholdLedEnabled(tmMINV, true);
+          if (SET->TestData.Active == bmReady) Screen1SetThresholdLed(tmMINV, true);
+        }  
+
+        break;
+      }
 
       case CMD_set_value:
       {
@@ -1571,7 +1605,6 @@ void loop()
       }
     }
   }
-
   
   #ifdef STANDALONE
   if (flagProcessMeasurementData)
@@ -1587,7 +1620,8 @@ void loop()
         reset_screensaver_idle_timer();
         break;
       case bmReady:
-        SET->TestData.DataTriggerCounter = 0;
+        // We might decide not to send data anymore
+        SET->TestData.DataTriggerCounter = 1;
         break;
       case bmIdle:
         SET->TestData.DataTriggerCounter = 0;
@@ -1628,8 +1662,8 @@ void loop()
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
-      telemetry_screensaver_update_box5(node.getCAN().getCANRxQueueDepth()*10);
-      telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
+      //telemetry_screensaver_update_box5(node.getCAN().getCANRxQueueDepth()*10);
+      //telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
 
       if (load.isConnected())
       {
@@ -1651,6 +1685,8 @@ void loop()
       
       // Show data on screen 1
       Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
+
+      // Now prepare the data to be send back to the PC host
 
       dataindexer = DATASTART;
 

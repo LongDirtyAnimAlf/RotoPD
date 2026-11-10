@@ -429,16 +429,16 @@ void set_children_clickable(lv_obj_t * parent, bool enable)
 
         if(enable) {
             // Restore only if we previously marked it
-            if(lv_obj_has_flag(child, LV_OBJ_FLAG_USER_1)) {
-                lv_obj_add_flag(child, LV_OBJ_FLAG_CLICKABLE);
-                lv_obj_remove_flag(child, LV_OBJ_FLAG_USER_1);
+            if(lv_obj_get_user_flag(child, 0)) {
+                lv_obj_set_clickable(child, true);
+                lv_obj_set_user_flag(child, 0, false);
             }
         }
         else {
             // Disable only objects that are currently clickable
-            if(lv_obj_has_flag(child, LV_OBJ_FLAG_CLICKABLE)) {
-                lv_obj_remove_flag(child, LV_OBJ_FLAG_CLICKABLE);
-                lv_obj_add_flag(child, LV_OBJ_FLAG_USER_1);   // remember it
+            if(lv_obj_is_clickable(child)) {
+                lv_obj_set_clickable(child, false);
+                lv_obj_set_user_flag(child, 0, true);   // remember it
             }
         }
 

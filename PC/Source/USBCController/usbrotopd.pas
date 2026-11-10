@@ -26,6 +26,7 @@ const
   COMMAND_SIZE     = 64;
 
 type
+  TBatteryMode    = (bmUnknown,bmIdle,bmActive,bmPause,bmWaiting,bmOff,bmReady,bmError);
 
   TCommands = (
     CMD_unknown          = $00,
@@ -46,6 +47,7 @@ type
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
     CMD_set_output,
+    CMD_set_batterymode,
     CMD_set_local,
     CMD_get_curcal,
     CMD_set_curcal,
@@ -133,6 +135,7 @@ type
     function  SetAVSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
 
     function  SetOutput(board:word; Engage:boolean):boolean;
+    function  SetMode(board:word; Mode:TBatteryMode):boolean;
     function  SetEnergy(board:word; Energy:qword):boolean;
 
     function  ReadBatteryData(board:word;out voltage,current,energy,temperature:double):boolean;overload;
@@ -771,6 +774,48 @@ begin
 
   result:=error;
 end;
+
+function  TDataDevice.SetMode(board:word; Mode:TBatteryMode):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  PLocalData:PReport;
+  Ctrl:TUSBController;
+begin
+  result:=false;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+  ErrorCounter:=1;
+  cmd := TCommands.CMD_set_batterymode;
+
+  Ctrl:=DataSource.FindBoard(board);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
+      PLocalData^.Data[LENGTHPOSITION] := 1;        // data length
+      PLocalData^.Data[DATASTART] := Ord(Mode);
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
 
 function  TDataDevice.SetEnergy(board:word; Energy:qword):boolean;
 var
