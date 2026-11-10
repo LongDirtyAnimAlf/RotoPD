@@ -739,3 +739,17 @@ word Screen1GetChargeCurrent(void)
     return (atoi(text));
     //return (String(text).toInt());
 }
+
+void Screen1SetLocal(bool Local)
+{
+    lv_obj_set_clickable(testdischargebutton, Local);
+    lv_obj_set_clickable(startdischargebutton, Local);
+    lv_obj_set_clickable(testchargebutton, Local);
+    lv_obj_set_clickable(startchargebutton, Local);
+    lv_obj_set_clickable(outputbutton, Local);
+    lv_obj_set_clickable(zerocapacitybutton, Local);
+    lv_obj_set_clickable(zeroenergybutton, Local);
+    lv_obj_set_clickable(zerotimebutton, Local);
+    lv_obj_set_clickable(ta1, Local);
+    lv_obj_set_clickable(ta2, Local);
+}

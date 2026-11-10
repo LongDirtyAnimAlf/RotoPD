@@ -46,6 +46,7 @@ type
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
     CMD_set_output,
+    CMD_set_local,
     CMD_get_curcal,
     CMD_set_curcal,
     CMD_controller_reset = $B0
@@ -144,6 +145,9 @@ type
     function  SetPower(board:word;value:dword; out realvalue:UInt64):boolean;
     function  SetResistor(board:word;value:dword; out realvalue:UInt64):boolean;
     function  SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
+
+    function  SetLocal(board:word; local:boolean):boolean;
+
   end;
 
 implementation
@@ -667,6 +671,50 @@ begin
       PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
       PLocalData^.Data[INDEXPOSITION] := board;
 
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
+function  TDataDevice.SetLocal(board:word; local:boolean):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  PLocalData:PReport;
+  Ctrl:TUSBController;
+begin
+  result:=false;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+  ErrorCounter:=1;
+  cmd := TCommands.CMD_set_local;
+
+  Ctrl:=DataSource.FindBoard(board);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
+      PLocalData^.Data[LENGTHPOSITION] := 1;        // data length
+      if local then
+        PLocalData^.Data[DATASTART] := 1
+      else
+        PLocalData^.Data[DATASTART] := 0;
 
       error := HandleDataRequest(Ctrl,True);
 

@@ -398,7 +398,59 @@ void IT2704::setCurrent(uint16_t current) // in mA
     data.f /= 1000.0f; // current is set in float A !!
     Msg.setData(data.Val);
 
-    _node->sendMsg(Msg);
+    _node->sendMsg(Msg,true); // Setting output levels always with priority !!
+  }
+}
+
+void IT2704::setPower(uint32_t setValue) // in mW
+{
+  Message Msg;
+  DWORD_FLOAT data;
+
+  if (_connected)
+  {
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+
+    // Set current
+
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_POWER + (_channel * 0x100));
+    Msg.setSubID(IT2704_SOURCE_POWER_POWER_LEVEL);
+
+    data.f = setValue; // power is given in mW !!
+    data.f /= 1000.0f; // power is set in float W !!
+    Msg.setData(data.Val);
+
+    _node->sendMsg(Msg,true); // Setting output levels always with priority !!
+  }
+}
+
+void IT2704::setResistance(uint32_t setValue) // in mOhm
+{
+  Message Msg;
+  DWORD_FLOAT data;
+
+  if (_connected)
+  {
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+
+    // Set current
+
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_RESISTANCE + (_channel * 0x100));
+    Msg.setSubID(IT2704_SOURCE_RESISTANCE_RESISTANCE_LEVEL);
+
+    data.f = setValue; // resistance is given in mOhm !!
+    data.f /= 1000.0f; // resistance is set in float Ohm !!
+    Msg.setData(data.Val);
+
+    _node->sendMsg(Msg,true); // Setting output levels always with priority !!
   }
 }
 

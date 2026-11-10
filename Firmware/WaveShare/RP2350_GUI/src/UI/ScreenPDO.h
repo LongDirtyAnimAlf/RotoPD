@@ -20,6 +20,7 @@ void ScreenPDOSetPDO(
   uint16_t minVoltage_mV,  // 0 for Fixed; 3300 for PPS; 15000 for AVS
   uint16_t maxVoltage_mV,
   uint16_t maxCurrent_mA);  // Approximate upper bound of current range
+void ScreenPDOSetLocal(bool Local);  
 
 #ifdef __cplusplus
 } /*extern "C"*/

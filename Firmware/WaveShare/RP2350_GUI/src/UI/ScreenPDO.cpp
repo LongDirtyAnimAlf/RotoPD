@@ -252,6 +252,7 @@ void ScreenPDOSetPDO(
         return;
 
     lv_obj_t * cell = NULL;
+    lv_obj_t * obj = NULL;
 
     if (valid) {
         /* Find first free cell */
@@ -282,7 +283,7 @@ void ScreenPDOSetPDO(
     lv_obj_set_user_data(cell, (void *)(uintptr_t)index);
 
     /* Child 0 – SPR / EPR */
-    lv_obj_t * obj = lv_obj_get_child(cell, 0);
+    obj = lv_obj_get_child(cell, 0);
     if (obj && lv_obj_check_type(obj, &lv_label_class))
         lv_label_set_text(obj, isEPR ? "EPR" : "SPR");
 
@@ -345,5 +346,27 @@ void ScreenPDOSetPDO(
         lv_obj_set_style_bg_color(obj, lv_palette_darken(p, 4), LV_PART_MAIN);
         lv_obj_set_style_bg_color(obj, lv_palette_darken(p, 100), LV_STATE_DISABLED);
         lv_obj_set_user_data(obj, (void *)(uintptr_t)index);
+    }
+}
+
+void ScreenPDOSetLocal(bool Local)
+{
+    lv_obj_set_clickable(getpdolistbutton, Local);
+
+    lv_obj_t * cell = NULL;
+    lv_obj_t * obj = NULL;
+
+    for (uint8_t i = 0; i < MAX_PDO_ENTRIES; i++)
+    {
+        cell = PDOCells[i];
+        if (cell != NULL)
+        {
+            /* Child 4 – Select button */
+            obj = lv_obj_get_child(cell, 4);
+            if (obj != NULL)
+            {
+                lv_obj_set_clickable(obj, Local);            
+            }
+        }
     }
 }

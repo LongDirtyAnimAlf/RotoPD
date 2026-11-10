@@ -33,12 +33,12 @@ extern COBSPacketSerial myPacketSerial; // for logging
 #define USBSerial Serial
 #endif
 #ifdef ARDUINO_ARCH_ESP32
-#include "./src/UI/screenlogger.h"
+#include "./src/UI/screenbase.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-#include "./src/UI/screenlogger.h"
+#include "./src/UI/screenbase.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
@@ -516,6 +516,16 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
   dataindexer = DATASTART;
 
+  if (cCmd == CMD_set_local)
+  {
+    #ifdef USE_LCD
+    bool Local = (databuffer[dataindexer++] != 0);
+    Screen1SetLocal(Local);
+    ScreenPDOSetLocal(Local);
+    ScreenSettingsSetLocal(Local);
+    #endif
+  }
+
   if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
     // We got a SetPDO command
@@ -658,6 +668,15 @@ bool process_command(void const *data, void *result)
     StatusUpdateNeeded = true;
     Engage = false;
 
+    // When off or zero, alsways first switch-off output.
+    if ((LocalBatteryBoard->BM.Status == smOff) || (LocalBatteryBoard->BM.SetValue == 0))
+    {
+      if (LocalBatteryBoard->BM.Status == smOff) Info_Add("Comms. SetValue Off. Output off !");
+      if (LocalBatteryBoard->BM.SetValue == 0) Info_Add("Comms. SetValue 0. Output off !");      
+      load.setOutput(false);        
+      //pd.setOutput(false);
+    }
+
     switch(LocalBatteryBoard->BM.Status)
     {
       case smCurrent :
@@ -670,12 +689,14 @@ bool process_command(void const *data, void *result)
       case smPower :
       {
         Info_Add("Comms. SetValue power.");
+        load.setPower(LocalBatteryBoard->BM.SetValue);
         Engage = true;
         break;
       }
       case smResistor : 
       {
         Info_Add("Comms. SetValue resistor.");
+        load.setResistance(LocalBatteryBoard->BM.SetValue);
         Engage = true;
         break;
       }
@@ -689,17 +710,13 @@ bool process_command(void const *data, void *result)
       }
     }
 
+    if (Engage) Engage = (LocalBatteryBoard->BM.SetValue != 0);
     if (Engage)
     {
-      Info_Add("Comms. Output ON.");
-    }
-    else
-    {
-      Info_Add("Comms. Output OFF.");
-    }
-    if (!Engage) load.setOutput(Engage);
-    //pd.setOutput(Engage);
-    if (Engage) load.setOutput(Engage);
+      Info_Add("Comms. SetValue active. Output on !");
+      //pd.setOutput(true);
+      load.setOutput(true);
+    } 
   }
 
   if (cCmd == CMD_get_data)

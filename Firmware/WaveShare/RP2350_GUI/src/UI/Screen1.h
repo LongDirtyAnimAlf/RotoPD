@@ -38,6 +38,8 @@ word Screen1GetDischargeCurrent(void);
 void Screen1SetChargeCurrent(word I);
 word Screen1GetChargeCurrent(void);
 
+void Screen1SetLocal(bool Local);
+
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif

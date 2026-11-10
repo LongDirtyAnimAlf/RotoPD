@@ -413,3 +413,41 @@ void Setup_ScreenSettings(byte index, bool show)
     if (screensettings) Setup_Screen(screensettings);
 
 }
+
+/**
+ * Recursively enable/disable input on an object and all its descendants.
+ * Only objects that originally had LV_OBJ_FLAG_CLICKABLE are restored.
+ *
+ * Uses LV_OBJ_FLAG_USER_1 as a temporary marker "we disabled this one".
+ */
+void set_children_clickable(lv_obj_t * parent, bool enable)
+{
+    uint32_t cnt = lv_obj_get_child_count(parent);
+
+    for(uint32_t i = 0; i < cnt; i++) {
+        lv_obj_t * child = lv_obj_get_child(parent, i);
+
+        if(enable) {
+            // Restore only if we previously marked it
+            if(lv_obj_has_flag(child, LV_OBJ_FLAG_USER_1)) {
+                lv_obj_add_flag(child, LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_remove_flag(child, LV_OBJ_FLAG_USER_1);
+            }
+        }
+        else {
+            // Disable only objects that are currently clickable
+            if(lv_obj_has_flag(child, LV_OBJ_FLAG_CLICKABLE)) {
+                lv_obj_remove_flag(child, LV_OBJ_FLAG_CLICKABLE);
+                lv_obj_add_flag(child, LV_OBJ_FLAG_USER_1);   // remember it
+            }
+        }
+
+        // Recurse
+        set_children_clickable(child, enable);
+    }
+}
+
+void ScreenSettingsSetLocal(bool Local)
+{
+    set_children_clickable(screensettings, Local);
+}

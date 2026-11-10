@@ -166,6 +166,7 @@ typedef enum {
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
     CMD_set_output,
+    CMD_set_local,
     CMD_get_curcal,
     CMD_set_curcal,
     CMD_controller_reset = 0xB0

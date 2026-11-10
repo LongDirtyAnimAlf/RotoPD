@@ -37,8 +37,12 @@ public:
 
     void initDevice(bool reset);
 
-    void setCurrent(uint16_t current);
+    void setCurrent(uint16_t current); // in mA
+    void setPower(uint32_t setValue); // in mW
+    void setResistance(uint32_t setValue); // in mOhm
+
     void setOutput(bool enabled);
+
     void collectData(void);
     void collectDataEnergyOnly(void);
     void getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* A, uint32_t* E);

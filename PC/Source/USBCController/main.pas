@@ -1298,22 +1298,30 @@ begin
           GUICapacity:=0;
         end;
 
-        DD.SetCurrent(PCurrentMachineSet^.MachineNumber,PCurrentMachineSet^.ActiveTestType.Current,0);
-        Sleep(25);
-        DD.SetOutput(PCurrentMachineSet^.MachineNumber,True);
-        Sleep(25);
+        // Disable all buttons that can control the device
+        // To prevent any disturbance of this running test
+        DD.SetLocal(PCurrentMachineSet^.MachineNumber, false);
+
+        DD.SetCurrent(PCurrentMachineSet^.MachineNumber,PCurrentMachineSet^.ActiveTestType.Current,{Fine=}0);
+        // Output already set with the above command.
+        // So, SetOutput not needed here.
+        //DD.SetOutput(PCurrentMachineSet^.MachineNumber, true);
 
         TestInfoMemo.Lines.Append('Test started.');
 
+        // Do a forced first datastore event
         DataStoreTimerTimer(nil);
 
-      end else TSpeedButton(Sender).Down:=false;
+      end;
     end
     else
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
-      DD.SetOutput(PCurrentMachineSet^.MachineNumber,False);
+      DD.SetOutput(PCurrentMachineSet^.MachineNumber, false);
+
+      // Enable all buttons that can control the device
+      DD.SetLocal(PCurrentMachineSet^.MachineNumber, true);
 
       // Do MachineSet things
       with PCurrentMachineSet^ do
@@ -1561,6 +1569,7 @@ begin
       GUIPower:=PCurrentMachineSet^.LatestMeasurementData.Power;
       GUIEnergy:=PCurrentMachineSet^.LatestMeasurementData.Energy;
       GUICapacity:=PCurrentMachineSet^.LatestMeasurementData.Capacity;
+      GUITemperature:=0;
 
       SourcePDODrawGrid.Invalidate;
       SourceEPRPDODrawGrid.Invalidate;

@@ -575,8 +575,10 @@ end;
 
 function TUSB.HidReadWrite(Ctrl: TUSBController; WriteOnly:boolean):boolean;
 begin
-  result:=HidWriteReadSimple(Ctrl,WriteOnly);
-  //result:=HidWriteRead(Ctrl,WriteOnly);
+  if ((NOT WriteOnly) and Ctrl.ReadThreading) then
+    result:=HidWriteRead(Ctrl,WriteOnly)
+  else
+    result:=HidWriteReadSimple(Ctrl,WriteOnly);
 end;
 
 procedure TUSB.DeviceRemoval(HidDev: TJvHidDevice);
