@@ -387,7 +387,7 @@ static void main_event_handler(lv_event_t * e)
           for(i = (tmNONE+1); i < tmLast; i++)
           {
             Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
-            Screen1SetThresholdLed((TThresholdModes)j, false);
+            Screen1SetThresholdLed((TThresholdModes)i, false);
           }
 
           if (!buttondown)
@@ -1212,7 +1212,7 @@ void loop()
             if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
             {
               // Get the correct IT2704 data in the correct datastore
-              load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+              load.processDataMessage(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
 
               switch(rxmsg.getSubID())
               {
@@ -1300,7 +1300,7 @@ void loop()
     }
 
     // Every 500ms
-    if ((loopcounter % (500u / TICKERTIME)) == 0)
+    if ((loopcounter % (DATACOLLECTTIMEFAST / TICKERTIME)) == 0)
     {
       flagProcessMeasurementData = true;
     }
@@ -1621,17 +1621,24 @@ void loop()
         break;
       case bmReady:
         // We might decide not to send data anymore
-        SET->TestData.DataTriggerCounter = 1;
+        //SET->TestData.DataTriggerCounter = 1;
+        // We might decide to send data slowly
+        //SET->TestData.DataTriggerCounter = 0;
+        if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;        
         break;
+      case bmPause:
+      case bmWaiting:
+      case bmOff:
       case bmIdle:
         SET->TestData.DataTriggerCounter = 0;
         // Do not engage the screensaver when idle
         //reset_screensaver_idle_timer();
         break;
       default:
+        // We might decide not to send data anymore
+        SET->TestData.DataTriggerCounter = 1;
         #ifdef DEBUG  
-        Serial.print("Invalid battery mode !! Number: ");
-        Serial.println(SET->TestData.Active);          
+        Serial.printf("Invalid battery mode !! Number: %d\n",SET->TestData.Active);
         #endif
         break;
     }
@@ -1728,9 +1735,9 @@ void loop()
       #endif      
       #endif
 
-      if (SET->TestData.Active == bmActive)
+      if ( (SET->TestData.Active == bmActive) || (SET->TestData.Active == bmReady) )
       {
-        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
+        // Battery is active or ready. Slowdown the data acquisition (also to get accurate data into a small datastore during active)
         SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }
     }
