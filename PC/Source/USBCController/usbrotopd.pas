@@ -85,7 +85,7 @@ type
     function CheckCRCError(aReport:TReport):boolean;
     function HandleDataRequest(Ctrl: TUSBController; Final:boolean=false):boolean;
   type
-    BatteryStatus    = (BSOff=0,BSCurrent,BSPower,BSResistor,BSReserve,BSCharge,BSVoltage,BSPulse);
+    BoardMode    = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,smDisabled,smIndicator,smIRTask);
   private
     NumTypes         : word;
 
@@ -104,7 +104,7 @@ type
     function  FGetImax(board:word):word;
     function  FGetCaldate(board:word):ansistring;
 
-    function  SetValueFine(board:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
+    function  SetValueFine(board:word;whattoset:BoardMode;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
     function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
   public
     MaxErrors:word;
@@ -1050,7 +1050,7 @@ begin
   result:=ReadBatteryData(board,voltage,current,e,t);
 end;
 
-function TDataDevice.SetValueFine(board:word;whattoset:BatteryStatus;value:dword;fine:word; out realvalue:UInt64):boolean;
+function TDataDevice.SetValueFine(board:word;whattoset:BoardMode;value:dword;fine:word; out realvalue:UInt64):boolean;
 var
   temp:dword;
   error:boolean;
@@ -1083,9 +1083,9 @@ begin
       else
         PLocalData^.Data[2] := 7;
 
-      //if ((value=0) AND (fine=0) AND (whattoset<>BatteryStatus.BSOff)) then
+      //if ((value=0) AND (fine=0) AND (whattoset<>BoardMode.BSOff)) then
       //begin
-        //PLocalData^.Data[3] := Ord(BatteryStatus.BSOff);
+        //PLocalData^.Data[3] := Ord(BoardMode.BSOff);
         //temp:=0;
       //end
       //else
@@ -1124,12 +1124,12 @@ function  TDataDevice.SetOff(board:word):boolean;
 var
   realvalue:UInt64;
 begin
-  result:=SetValueFine(board,BatteryStatus.BSOff,0,0,realvalue);
+  result:=SetValueFine(board,BoardMode.smDisabled,0,0,realvalue);
 end;
 
 function  TDataDevice.SetCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BatteryStatus.BSCurrent,value,fine,realvalue);
+  result:=SetValueFine(board,BoardMode.smCurrent,value,fine,realvalue);
 end;
 function  TDataDevice.SetCurrent(board:word;value:dword;fine:word):boolean;
 var
@@ -1144,15 +1144,15 @@ end;
 
 function  TDataDevice.SetPower(board:word;value:dword; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BatteryStatus.BSPower,value,0,realvalue);
+  result:=SetValueFine(board,BoardMode.smPower,value,0,realvalue);
 end;
 function  TDataDevice.SetResistor(board:word;value:dword; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BatteryStatus.BSResistor,value,0,realvalue);
+  result:=SetValueFine(board,BoardMode.smResistor,value,0,realvalue);
 end;
 function  TDataDevice.SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BatteryStatus.BSCharge,value,fine,realvalue);
+  result:=SetValueFine(board,BoardMode.smCharge,value,fine,realvalue);
 end;
 
 end.

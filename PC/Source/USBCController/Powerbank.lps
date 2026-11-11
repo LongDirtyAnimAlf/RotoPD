@@ -22,9 +22,8 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="1307"/>
-        <CursorPos X="9" Y="1329"/>
+        <TopLine Value="1309"/>
+        <CursorPos X="27" Y="1317"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -3745,9 +3744,10 @@
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="62"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="6"/>
-        <TopLine Value="34"/>
-        <CursorPos X="16" Y="36"/>
+        <TopLine Value="73"/>
+        <CursorPos X="10" Y="88"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
@@ -4048,7 +4048,7 @@
     <Debugger>
       <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
     </Debugger>
-    <JumpHistory HistoryIndex="8">
+    <JumpHistory HistoryIndex="15">
       <Position>
         <Filename Value="processframe_simple.pas"/>
         <Caret Line="10" Column="6"/>
@@ -4084,6 +4084,34 @@
       <Position>
         <Filename Value="..\Common\gauge.pas"/>
         <Caret Line="595" Column="49" TopLine="574"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1327" Column="13" TopLine="1308"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="145" Column="19" TopLine="132"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1127" Column="47" TopLine="1121"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="88" TopLine="73"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1132" TopLine="1112"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1155" Column="46" TopLine="1128"/>
+      </Position>
+      <Position>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="88" Column="14" TopLine="73"/>
       </Position>
     </JumpHistory>
     <RunParams>
