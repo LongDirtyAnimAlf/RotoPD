@@ -27,6 +27,8 @@ const
 
 type
   TBatteryMode    = (bmUnknown,bmIdle,bmActive,bmPause,bmWaiting,bmOff,bmReady,bmError);
+  TStageMode      = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,smDisabled,smIndicator,smIRTask);
+  TThresholdMode  = (tmNONE,tmMAXV,tmMINV,tmDELTAV,tmPLATEAUV,tmABST,tmDELTAT,tmDVT,tmTIME,tmMAXC);
 
   TCommands = (
     CMD_unknown          = $00,
@@ -84,9 +86,6 @@ type
 
     function CheckCRCError(aReport:TReport):boolean;
     function HandleDataRequest(Ctrl: TUSBController; Final:boolean=false):boolean;
-  type
-    BoardMode       = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,smDisabled,smIndicator,smIRTask);
-    TThresholdMode  = (tmNONE,tmMAXV,tmMINV,tmDELTAV,tmPLATEAUV,tmABST,tmDELTAT,tmDVT,tmTIME,tmMAXC);
   private
     NumTypes         : word;
 
@@ -105,7 +104,7 @@ type
     function  FGetImax(board:word):word;
     function  FGetCaldate(board:word):ansistring;
 
-    function  SetValueFine(board:word;whattoset:BoardMode;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
+    function  SetValueFine(board:word;whattoset:TStageMode;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
     function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
   public
     MaxErrors:word;
@@ -152,6 +151,8 @@ type
     function  SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 
     function  SetLocal(board:word; local:boolean):boolean;
+
+    function  SetThreshold(board:word; SM:TStageMode; TM: TThresholdMode; Enabled:boolean; Value:word):boolean;
 
   end;
 
@@ -733,6 +734,53 @@ begin
   result:=error;
 end;
 
+function  TDataDevice.SetThreshold(board:word; SM:TStageMode; TM: TThresholdMode; Enabled:boolean; Value:word):boolean;
+var
+  error:boolean;
+  cmd: TCommands;
+  PLocalData:PReport;
+  temp:TWordData;
+  Ctrl:TUSBController;
+begin
+  result:=false;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+  ErrorCounter:=1;
+  cmd := TCommands.CMD_set_threshold;
+
+  Ctrl:=DataSource.FindBoard(board);
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
+      PLocalData^.Data[LENGTHPOSITION] := 5;        // data length
+      PLocalData^.Data[DATASTART] := Ord(SM);
+      PLocalData^.Data[DATASTART+1] := Ord(TM);
+      if Enabled then PLocalData^.Data[DATASTART+2] := 1;
+      temp.Raw:=Value;
+      PLocalData^.Data[DATASTART+3] := temp.Bytes[0];
+      PLocalData^.Data[DATASTART+4] := temp.Bytes[1];
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
 function  TDataDevice.SetOutput(board:word; Engage:boolean):boolean;
 var
   error:boolean;
@@ -1051,7 +1099,7 @@ begin
   result:=ReadBatteryData(board,voltage,current,e,t);
 end;
 
-function TDataDevice.SetValueFine(board:word;whattoset:BoardMode;value:dword;fine:word; out realvalue:UInt64):boolean;
+function TDataDevice.SetValueFine(board:word;whattoset:TStageMode;value:dword;fine:word; out realvalue:UInt64):boolean;
 var
   temp:dword;
   error:boolean;
@@ -1084,9 +1132,9 @@ begin
       else
         PLocalData^.Data[2] := 7;
 
-      //if ((value=0) AND (fine=0) AND (whattoset<>BoardMode.BSOff)) then
+      //if ((value=0) AND (fine=0) AND (whattoset<>TStageMode.BSOff)) then
       //begin
-        //PLocalData^.Data[3] := Ord(BoardMode.BSOff);
+        //PLocalData^.Data[3] := Ord(TStageMode.BSOff);
         //temp:=0;
       //end
       //else
@@ -1125,12 +1173,12 @@ function  TDataDevice.SetOff(board:word):boolean;
 var
   realvalue:UInt64;
 begin
-  result:=SetValueFine(board,BoardMode.smDisabled,0,0,realvalue);
+  result:=SetValueFine(board,TStageMode.smDisabled,0,0,realvalue);
 end;
 
 function  TDataDevice.SetCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BoardMode.smCurrent,value,fine,realvalue);
+  result:=SetValueFine(board,TStageMode.smCurrent,value,fine,realvalue);
 end;
 function  TDataDevice.SetCurrent(board:word;value:dword;fine:word):boolean;
 var
@@ -1145,15 +1193,15 @@ end;
 
 function  TDataDevice.SetPower(board:word;value:dword; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BoardMode.smPower,value,0,realvalue);
+  result:=SetValueFine(board,TStageMode.smPower,value,0,realvalue);
 end;
 function  TDataDevice.SetResistor(board:word;value:dword; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BoardMode.smResistor,value,0,realvalue);
+  result:=SetValueFine(board,TStageMode.smResistor,value,0,realvalue);
 end;
 function  TDataDevice.SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
-  result:=SetValueFine(board,BoardMode.smCharge,value,fine,realvalue);
+  result:=SetValueFine(board,TStageMode.smCharge,value,fine,realvalue);
 end;
 
 end.

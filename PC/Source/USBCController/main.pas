@@ -1298,6 +1298,9 @@ begin
           GUICapacity:=0;
         end;
 
+        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMINV,True,900);
+        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMAXV,True,19000);
+
         // Disable all buttons that can control the device
         // To prevent any disturbance of this running test
         DD.SetLocal(PCurrentMachineSet^.MachineNumber, false);
