@@ -766,7 +766,6 @@ bool process_command(void const *data, void *result)
       GUIUpdateNeeded = true;
       break;
     } 
-
   }
 
   // Start processing the collected data !!
@@ -793,101 +792,106 @@ bool process_command(void const *data, void *result)
   // Will be set in a later stage
   dataindexer = DATASTART;
 
-  // Return data
-  if (cCmd == CMD_get_data)
-  {
-    //memcpy(&resultbuffer[i],&CurrentBoard->Voltage, 2);
-    //i += 2;
-    // RotoPD data
-    w_data.Val = CurrentBoard->RotoPDData.V;
-    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    w_data.Val = CurrentBoard->RotoPDData.I;
-    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    dw_data.Val = CurrentBoard->RotoPDData.P;
-    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-    w_data.Val = CurrentBoard->RotoPDData.T;
-    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+  // Return data, if any
 
-    if (load.isConnected())
+  switch (cCmd)
+  {
+    case CMD_get_data:
     {
-      load.getData(&CurrentBoard->IT2704Data.I, &CurrentBoard->IT2704Data.V, &CurrentBoard->IT2704Data.P, &CurrentBoard->IT2704Data.C, &CurrentBoard->IT2704Data.E);
-      // IT2704 data
-      w_data.Val  = CurrentBoard->IT2704Data.V;
+      //memcpy(&resultbuffer[i],&CurrentBoard->Voltage, 2);
+      //i += 2;
+      // RotoPD data
+      w_data.Val = CurrentBoard->RotoPDData.V;
       for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-      w_data.Val  = CurrentBoard->IT2704Data.I;
+      w_data.Val = CurrentBoard->RotoPDData.I;
       for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-      dw_data.Val = CurrentBoard->IT2704Data.P;
+      dw_data.Val = CurrentBoard->RotoPDData.P;
       for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-      dw_data.Val = CurrentBoard->IT2704Data.C;
-      for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-      dw_data.Val = CurrentBoard->IT2704Data.E;
-      for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-    }
-  }
+      w_data.Val = CurrentBoard->RotoPDData.T;
+      for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
 
-  if (cCmd == CMD_set_value)
-  {
-    resultbuffer[dataindexer++]=(byte)CurrentBoard->TD.SetStageMode;
-    dw_data.Val = CurrentBoard->TD.SetStageValue;
-    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-  }  
-
-  if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
-  {
-    Info_Add_Fmt("Comms. Processing available [#%d] PDOs.",PDOCount);
-
-    if  ((PDOCount>=0) && (PDOCount<=MAX_PDO_ENTRIES))
-    {
-      resultbuffer[dataindexer++] = PDOCount;
-
-      if  (PDOCount>0)
+      if (load.isConnected())
       {
-        for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
-        {
-          if (pd.readPDO(j, PDO))
-          {
-            if (PDO.valid)
-            {
-              Info_Add_Fmt("Comms. Sending PDO #%d.",PDO.index);
+        load.getData(&CurrentBoard->IT2704Data.I, &CurrentBoard->IT2704Data.V, &CurrentBoard->IT2704Data.P, &CurrentBoard->IT2704Data.C, &CurrentBoard->IT2704Data.E);
+        // IT2704 data
+        w_data.Val  = CurrentBoard->IT2704Data.V;
+        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+        w_data.Val  = CurrentBoard->IT2704Data.I;
+        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+        dw_data.Val = CurrentBoard->IT2704Data.P;
+        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+        dw_data.Val = CurrentBoard->IT2704Data.C;
+        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+        dw_data.Val = CurrentBoard->IT2704Data.E;
+        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+      }
+      break;
+    }
+    case CMD_set_value:
+    {
+      resultbuffer[dataindexer++]=(byte)CurrentBoard->TD.SetStageMode;
+      dw_data.Val = CurrentBoard->TD.SetStageValue;
+      for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+      break;
+    }
+    case CMD_get_PDOList:
+    case CMD_read_PDOList:
+    {
+      Info_Add_Fmt("Comms. Processing available [#%d] PDOs.",PDOCount);
 
-              resultbuffer[dataindexer++] = PDO.index;
-              w_data.Val = PDO.raw;
-              resultbuffer[dataindexer++] = w_data.bytes.LB;
-              resultbuffer[dataindexer++] = w_data.bytes.HB;
-            }  
+      if  ((PDOCount>=0) && (PDOCount<=MAX_PDO_ENTRIES))
+      {
+        resultbuffer[dataindexer++] = PDOCount;
+
+        if  (PDOCount>0)
+        {
+          for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
+          {
+            if (pd.readPDO(j, PDO))
+            {
+              if (PDO.valid)
+              {
+                Info_Add_Fmt("Comms. Sending PDO #%d.",PDO.index);
+
+                resultbuffer[dataindexer++] = PDO.index;
+                w_data.Val = PDO.raw;
+                resultbuffer[dataindexer++] = w_data.bytes.LB;
+                resultbuffer[dataindexer++] = w_data.bytes.HB;
+              }  
+            }
           }
         }
+
+      }
+      else
+      {
+        Info_Add("Comms. Invalid PDO count.");
+        resultbuffer[dataindexer++] = 0;
       }
 
+      break;
     }
-    else
+    case CMD_set_MAXPDO:
+    case CMD_set_FIXEDPDO:
+    case CMD_set_PPSPDO:
+    case CMD_set_AVSPDO:
     {
-      Info_Add("Comms. Invalid PDO count.");
-      resultbuffer[dataindexer++] = 0;
+      resultbuffer[dataindexer++] = CurrentBoard->PDO.index;
+      
+      w_data.Val = CurrentBoard->PDO.maxCurrent_mA;
+      resultbuffer[dataindexer++] = w_data.v[0];
+      resultbuffer[dataindexer++] = w_data.v[1];
+
+      w_data.Val = CurrentBoard->PDO.targetVoltage_mV;
+      resultbuffer[dataindexer++] = w_data.v[0];
+      resultbuffer[dataindexer++] = w_data.v[1];
+
+      w_data.Val = CurrentBoard->PDO.raw;
+      resultbuffer[dataindexer++] = w_data.v[0];
+      resultbuffer[dataindexer++] = w_data.v[1];
+
+      break;
     }
-  }
-
-  if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
-  {
-
-    resultbuffer[dataindexer++] = CurrentBoard->PDO.index;
-    
-    w_data.Val = CurrentBoard->PDO.maxCurrent_mA;
-    resultbuffer[dataindexer++] = w_data.v[0];
-    resultbuffer[dataindexer++] = w_data.v[1];
-
-    w_data.Val = CurrentBoard->PDO.targetVoltage_mV;
-    resultbuffer[dataindexer++] = w_data.v[0];
-    resultbuffer[dataindexer++] = w_data.v[1];
-
-    w_data.Val = CurrentBoard->PDO.raw;
-    resultbuffer[dataindexer++] = w_data.v[0];
-    resultbuffer[dataindexer++] = w_data.v[1];
-  }
-
-  if (cCmd == CMD_get_firmware)
-  {
-    //CurrentBoard->NeedsDataUpdate;
   }
 
   if (dataindexer == DATASTART)
