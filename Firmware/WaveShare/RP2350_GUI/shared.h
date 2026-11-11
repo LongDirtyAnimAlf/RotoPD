@@ -103,8 +103,6 @@ struct HidReportFrame {
   uint16_t len;
 };
 
-
-
 //typedef uint16_t word;
 typedef uint32_t dword;
 typedef uint64_t qword;
@@ -142,6 +140,31 @@ typedef union
     uint16_t w[4];// __PACKED;
     uint32_t dw[2];// __PACKED;
 } QWORD_VAL, QWORD_BITS;
+
+typedef enum
+{
+  ieOk = 0,
+  // Standard I2C errors from Arduino Wire Library
+  ieDataLong,       //  1 : Data too long
+  ieAddressNACK,    //  2 : NACK on transmit of address
+  ieDataNACK,       //  3 : NACK on transmit of data
+  ieTransmit,       //  4 : Other error : could not send the required amount of data bytes
+  ieTimeOut,        //  5 : Timeout [on RP2040]
+  // Custom I2C errors
+  ieStuckWire,
+  ieBusyWire,
+  ieEmptyWire,
+  ieDataLength,
+  ieDataMismatch,
+  ieCRCError,  
+} TI2CError;
+
+typedef struct
+{
+  TI2CError I2CError;
+  byte I2CBytesReceived;
+  byte I2CAddress;
+} TI2CStatus,*PI2CStatus;
 
 #define IDDLESTAGENUMBER              0
 #define FIXEDDISCHARGESTAGENUMBER     1
@@ -213,32 +236,7 @@ typedef struct
   bool Enabled;
   bool Triggered;
   word GetValue;
-} TThresholdDataItem;
-
-typedef enum
-{
-  ieOk = 0,
-  // Standard I2C errors from Arduino Wire Library
-  ieDataLong,       //  1 : Data too long
-  ieAddressNACK,    //  2 : NACK on transmit of address
-  ieDataNACK,       //  3 : NACK on transmit of data
-  ieTransmit,       //  4 : Other error : could not send the required amount of data bytes
-  ieTimeOut,        //  5 : Timeout [on RP2040]
-  // Custom I2C errors
-  ieStuckWire,
-  ieBusyWire,
-  ieEmptyWire,
-  ieDataLength,
-  ieDataMismatch,
-  ieCRCError,  
-} TI2CError;
-
-typedef struct
-{
-  TI2CError I2CError;
-  byte I2CBytesReceived;
-  byte I2CAddress;
-} TI2CStatus,*PI2CStatus;
+} TThresholdDataItem, *PThresholdDataItem;
 
 typedef enum
 {
@@ -269,27 +267,6 @@ typedef struct
   uint32_t S;   // timestamp ms
   uint16_t T;   // temperature
 } TMeasurementData,*PMeasurementData;
-
-typedef struct
-{
-  // Actual board data
-  TMeasurementData RotoPDData;
-  TMeasurementData IT2704Data;
-  TStageData BM;
-  // PDO stuff
-  AP33772S_PDO PDO;
-  //TPDOMode pdoMode;
-  //int pdoIndex;
-  //int pdoTargetVoltage;
-  //int pdoMaxCurrent;
-  // Board hardware info
-  byte Serial[8];
-  word Firmware;
-  // Miscellaneous
-  bool NeedsGUIUpdate;
-  bool NeedsStatusUpdate;
-  bool NeedsDataUpdate;
-} TBatteryBoard,*PBatteryBoard;
 
 static void ClearMeasurementData(PMeasurementData MAD)
 {
@@ -366,32 +343,6 @@ typedef struct TRunDatas {
 
 #pragma pack(pop)
 
-/*
-typedef struct
-{
-  // Cumulative datas
-  qword Capacity; // in nAh
-  qword Energy; // in nWh
-  qword Time;  // in ms
-  byte CurrentStageNumber;
-  TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
-  //Queue memory region at the bottom
-  #ifdef __cplusplus          // only compile the class when using a C++ compiler
-  CircularDataQueue<TMeasurementData, DATASIZE, false> NewerRotoPDDatas;
-  CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
-  #else
-  // The Pure C compiler reserves exactly 80/88 bytes here.
-  // This keeps subsequent memory fields from overlapping or mismatching offsets.
-  #ifdef ARDUINO_ARCH_RP2040
-  uint8_t _cpp_queue_padding[88];
-  #endif
-  #ifdef ARDUINO_ARCH_ESP32
-  uint8_t _cpp_queue_padding[80];
-  #endif
-  #endif
-} TRunDatas,*PRunDatas;
-*/
-
 typedef struct
 {
   TBatteryMode         Active;
@@ -401,7 +352,22 @@ typedef struct
   dword                ThresholdValue;
   byte                 DataTriggerCounter;
   TRunDatas            RunDatas;
-} TTestData;
+} TTestData, *PTestData;
+
+typedef struct
+{
+  // Actual board data
+  TMeasurementData RotoPDData;
+  TMeasurementData IT2704Data;
+  // Status data
+  TTestData TD;
+  // PDO stuff
+  AP33772S_PDO PDO;
+  // Miscellaneous GUI things
+  bool NeedsGUIUpdate;
+  bool NeedsStatusUpdate;
+  bool NeedsDataUpdate;
+} TBatteryBoard,*PBatteryBoard;
 
 typedef struct
 {
@@ -411,7 +377,6 @@ typedef struct
   #ifdef STANDALONE  
   TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
   #endif
-  TTestData TestData;
 } TBatterySetting,*PBatterySetting;
 
 extern TwoWire WireBattery;

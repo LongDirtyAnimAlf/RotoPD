@@ -335,7 +335,7 @@ static void main_event_handler(lv_event_t * e)
   bool GotSettings = false;
 
   PBatterySetting SET = Battery;
-  PRunDatas RDS = &SET->TestData.RunDatas;
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas;
   PStageData SD = NULL;  
 
   lv_event_code_t code = lv_event_get_code(e);
@@ -379,11 +379,11 @@ static void main_event_handler(lv_event_t * e)
           #endif
 
           // We will always start with being idle
-          SET->TestData.Active = bmIdle;
+          CurrentBoard->TD.Active = bmIdle;
 
           // Reset all trigger settings
-          SET->TestData.ThresholdMode = tmNONE;
-          SET->TestData.ThresholdValue = 0;
+          CurrentBoard->TD.ThresholdMode = tmNONE;
+          CurrentBoard->TD.ThresholdValue = 0;
           for(i = (tmNONE+1); i < tmLast; i++)
           {
             Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
@@ -392,8 +392,8 @@ static void main_event_handler(lv_event_t * e)
 
           if (!buttondown)
           {
-            SET->TestData.SetStageMode = smDisabled;
-            SET->TestData.SetStageValue = 0;
+            CurrentBoard->TD.SetStageMode = smDisabled;
+            CurrentBoard->TD.SetStageValue = 0;
           }
           else
           {
@@ -406,8 +406,8 @@ static void main_event_handler(lv_event_t * e)
               SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
             }
 
-            SET->TestData.SetStageValue = SD->SetValue;  
-            SET->TestData.SetStageMode = SD->Status;
+            CurrentBoard->TD.SetStageValue = SD->SetValue;  
+            CurrentBoard->TD.SetStageMode = SD->Status;
             
             if ((event_object == startdischargebutton) || (event_object == startchargebutton))          
             {
@@ -417,7 +417,7 @@ static void main_event_handler(lv_event_t * e)
                 Screen1SetThresholdLedEnabled((TThresholdModes)i, SD->ThresholdSettings[i].Enabled);
               }
               // We are active !!
-              SET->TestData.Active = bmActive;
+              CurrentBoard->TD.Active = bmActive;
 
               // Force a very early data measurement to get a start value
               flagProcessMeasurementData = true;
@@ -434,9 +434,9 @@ static void main_event_handler(lv_event_t * e)
           SendCommand[COMMANDPOSITION] = CMD_set_value;
           SendCommand[BOARDPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 5U; // length
-          SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
+          SendCommand[DATASTART] = (byte)CurrentBoard->TD.SetStageMode;
           DWORD_VAL valuedata;
-          valuedata.Val = SET->TestData.SetStageValue;
+          valuedata.Val = CurrentBoard->TD.SetStageValue;
           SendCommand[DATASTART+1] = valuedata.v[0];
           SendCommand[DATASTART+2] = valuedata.v[1];
           SendCommand[DATASTART+3] = valuedata.v[2];
@@ -686,11 +686,11 @@ void ClearStageData(PStageData SD)
 static void datastartcb(byte index)
 {
   PBatterySetting SET = &Batteries[index];  
-  PRunDatas RDS = &SET->TestData.RunDatas;
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas;
   // Clear the rundatas again, this is the real start !!  
   ClearRunData(RDS); 
   // We are active !!
-  SET->TestData.Active = bmActive;
+  CurrentBoard->TD.Active = bmActive;
   // Force a very early data measurement to get a start value
   flagProcessMeasurementData = true;
 }
@@ -955,13 +955,13 @@ void setup()
   {
     SET = &Batteries[index];
 
-    RDS = &SET->TestData.RunDatas;
+    RDS = &CurrentBoard->TD.RunDatas;
     ClearRunData(RDS);
   
-    SET->TestData.Active = bmIdle;
-    SET->TestData.SetStageMode = smDisabled;
-    SET->TestData.SetStageValue = 0;
-    SET->TestData.DataTriggerCounter = 0;
+    CurrentBoard->TD.Active = bmIdle;
+    CurrentBoard->TD.SetStageMode = smDisabled;
+    CurrentBoard->TD.SetStageValue = 0;
+    CurrentBoard->TD.DataTriggerCounter = 0;
   }
 
   #ifdef STANDALONE
@@ -1124,7 +1124,7 @@ void loop()
   QWORD_VAL qw_data;
 
   PBatterySetting SET = Battery;
-  PRunDatas RDS = &SET->TestData.RunDatas; 
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas; 
 
   int8_t PDOCount = 0;
   static AP33772S_PDO PDO;
@@ -1151,7 +1151,14 @@ void loop()
     pending_screen_index = 0;
     switch(target)
     {
-      case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
+      case 1:
+      {
+        Setup_Screen1(BoardInfo.IT2704Channel);
+        Screen1SetData(SET);
+        Screen1SetTestData(&CurrentBoard->TD);
+        //Screen1SetStageData(&SET->Stages[IDDLESTAGENUMBER]);
+        break;
+      }
       case 2:
         {
           TMeasurementData LastData;
@@ -1483,7 +1490,7 @@ void loop()
       {
         // Unfortunately, we have to set the batterymode by ourselves !!
         BM = (TBatteryMode)INData[counter++];
-        SET->TestData.Active = BM;
+        CurrentBoard->TD.Active = BM;
 
         // Set trigger indicators
         for(j = (tmNONE+1); j < tmLast; j++)
@@ -1513,13 +1520,11 @@ void loop()
         break;
       }
 
+      Mode = tmNONE;
+
       case CMD_set_value:
       {
-        SET->TestData.SetStageMode = (TStageMode)INData[counter++];
-        for ( j=0; j<4; j++ ) {dw_data.v[j] = INData[counter++];}        
-        SET->TestData.SetStageValue = dw_data.Val;
-
-        switch (SET->TestData.SetStageMode)
+        switch (CurrentBoard->TD.SetStageMode)
         {
           case smResistor:
           case smCurrent:
@@ -1527,6 +1532,7 @@ void loop()
           case smVoltage:
           {
             SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+            Mode = tmMINV;
             break;
           }
           case smCharge:
@@ -1535,6 +1541,7 @@ void loop()
           case smTrickle:
           {
             SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
+            Mode = tmTIME;
             break;
           }
           case smZero:
@@ -1547,9 +1554,13 @@ void loop()
 
         if (SD != NULL)
         {
-          SD->Status = SET->TestData.SetStageMode;
-          SD->SetValue = SET->TestData.SetStageValue;
-
+          SD->Status = CurrentBoard->TD.SetStageMode;
+          SD->SetValue = CurrentBoard->TD.SetStageValue;
+          if (Mode != tmNONE)
+          {
+            PThresholdDataItem TS = &SD->ThresholdSettings[Mode];
+            TS->Enabled = true;
+          }
           Screen1SetStageData(SD);
         }
 
@@ -1668,39 +1679,39 @@ void loop()
   {
     flagProcessMeasurementData = false;
 
-    switch(SET->TestData.Active)
+    switch(CurrentBoard->TD.Active)
     {
       case bmActive:
         // Battery is active. Slowdown the data acquisition to get accurate data into a datastore
-        if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
+        if (CurrentBoard->TD.DataTriggerCounter > 0) CurrentBoard->TD.DataTriggerCounter--;
         // Do not engage the screensaver when active
         reset_screensaver_idle_timer();
         break;
       case bmReady:
         // We might decide not to send data anymore
-        //SET->TestData.DataTriggerCounter = 1;
+        //CurrentBoard->TD.DataTriggerCounter = 1;
         // We might decide to send data slowly
-        //SET->TestData.DataTriggerCounter = 0;
-        if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;        
+        //CurrentBoard->TD.DataTriggerCounter = 0;
+        if (CurrentBoard->TD.DataTriggerCounter > 0) CurrentBoard->TD.DataTriggerCounter--;        
         break;
       case bmPause:
       case bmWaiting:
       case bmOff:
       case bmIdle:
-        SET->TestData.DataTriggerCounter = 0;
+        CurrentBoard->TD.DataTriggerCounter = 0;
         // Do not engage the screensaver when idle
         //reset_screensaver_idle_timer();
         break;
       default:
         // We might decide not to send data anymore
-        SET->TestData.DataTriggerCounter = 1;
+        CurrentBoard->TD.DataTriggerCounter = 1;
         #ifdef DEBUG  
-        Serial.printf("Invalid battery mode !! Number: %d\n",SET->TestData.Active);
+        Serial.printf("Invalid battery mode !! Number: %d\n",CurrentBoard->TD.Active);
         #endif
         break;
     }
 
-    if (SET->TestData.DataTriggerCounter == 0)
+    if (CurrentBoard->TD.DataTriggerCounter == 0)
     {
       // Request the measurement data
       memset(INData,0,COMMAND_SIZE);  
@@ -1792,10 +1803,10 @@ void loop()
       #endif      
       #endif
 
-      if ( (SET->TestData.Active == bmActive) || (SET->TestData.Active == bmReady) )
+      if ( (CurrentBoard->TD.Active == bmActive) || (CurrentBoard->TD.Active == bmReady) )
       {
         // Battery is active or ready. Slowdown the data acquisition (also to get accurate data into a small datastore during active)
-        SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
+        CurrentBoard->TD.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }
     }
   }
@@ -1808,10 +1819,10 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    if (SET->TestData.SetStageMode != smDisabled)
+    if (CurrentBoard->TD.SetStageMode != smDisabled)
     {
       // CALCULATIONTIME = 100, so every tick [increase] is 100ms
-      if (SET->TestData.Active != bmReady)
+      if (CurrentBoard->TD.Active != bmReady)
       {
         //RDS->Time++;
         RDS->Time += CALCULATIONTIME;

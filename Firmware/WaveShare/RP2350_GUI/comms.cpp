@@ -646,19 +646,19 @@ bool process_command(void const *data, void *result)
 
   if (cCmd == CMD_set_value)
   {
-    CurrentBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
+    CurrentBoard->TD.SetStageMode=TStageMode(databuffer[dataindexer++]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    CurrentBoard->BM.SetValue=dw_data.Val;
+    CurrentBoard->TD.SetStageValue=dw_data.Val;
 
-    Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",CurrentBoard->BM.SetValue);
+    Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",CurrentBoard->TD.SetStageValue);
 
     StatusUpdateNeeded = true;
     Engage = false;
 
     // When off or zero, alsways first switch-off output.
-    if ( (CurrentBoard->BM.Status == smUnknown) || (CurrentBoard->BM.Status == smZero) || (CurrentBoard->BM.Status == smDisabled) || (CurrentBoard->BM.SetValue == 0) )
+    if ( (CurrentBoard->TD.SetStageMode == smUnknown) || (CurrentBoard->TD.SetStageMode == smZero) || (CurrentBoard->TD.SetStageMode == smDisabled) || (CurrentBoard->TD.SetStageValue == 0) )
     {
-      if (CurrentBoard->BM.SetValue == 0)
+      if (CurrentBoard->TD.SetStageValue == 0)
       {
         Info_Add("Comms. SetValue 0. Output off !");      
       } 
@@ -670,26 +670,26 @@ bool process_command(void const *data, void *result)
       //pd.setOutput(false);
     }
 
-    switch(CurrentBoard->BM.Status)
+    switch(CurrentBoard->TD.SetStageMode)
     {
       case smCurrent :
       {
         Info_Add("Comms. SetValue current.");
-        load.setCurrent(CurrentBoard->BM.SetValue);
+        load.setCurrent(CurrentBoard->TD.SetStageValue);
         Engage = true;
         break;
       }
       case smPower :
       {
         Info_Add("Comms. SetValue power.");
-        load.setPower(CurrentBoard->BM.SetValue);
+        load.setPower(CurrentBoard->TD.SetStageValue);
         Engage = true;
         break;
       }
       case smResistor : 
       {
         Info_Add("Comms. SetValue resistor.");
-        load.setResistance(CurrentBoard->BM.SetValue);
+        load.setResistance(CurrentBoard->TD.SetStageValue);
         Engage = true;
         break;
       }
@@ -703,7 +703,7 @@ bool process_command(void const *data, void *result)
       }
     }
 
-    if (Engage) Engage = (CurrentBoard->BM.SetValue != 0);
+    if (Engage) Engage = (CurrentBoard->TD.SetStageValue != 0);
     if (Engage)
     {
       Info_Add("Comms. SetValue active. Output on !");
@@ -778,8 +778,8 @@ bool process_command(void const *data, void *result)
 
   if (cCmd == CMD_set_value)
   {
-    resultbuffer[dataindexer++]=(byte)CurrentBoard->BM.Status;
-    dw_data.Val = CurrentBoard->BM.SetValue;
+    resultbuffer[dataindexer++]=(byte)CurrentBoard->TD.SetStageMode;
+    dw_data.Val = CurrentBoard->TD.SetStageValue;
     for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
   }  
 

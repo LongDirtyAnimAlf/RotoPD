@@ -630,6 +630,58 @@ void Screen1SetStageData(PStageData SD)
 
 }
 
+void Screen1SetTestData(PTestData TD)
+{
+    //chargedisabled   = (SET->Stages[FIXEDCHARGESTAGENUMBER].Status == smDisabled);
+    //dischargedisabled = (SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status == smDisabled);
+
+    chargedisabled   = ( TD->SetStageMode == smCurrent);
+    dischargedisabled   = ( TD->SetStageMode == smCharge);
+
+    ChargeStatus(chargedisabled);
+    DischargeStatus(dischargedisabled);
+
+    PRunDatas RDS = &TD->RunDatas;
+    TMeasurementData Last = RDS->NewerRotoPDDatas.getLastData();
+    Screen1AddVIData(Last.V, Last.I);
+    Screen1AddEPData(Last.E / 1000, Last.P);
+    Screen1AddTData(RDS->Time);
+
+    if (TD->Active == bmActive) {
+        if (TD->SetStageMode == smCurrent) setbuttons(startdischargebutton, true);
+        if (TD->SetStageMode == smCharge)  setbuttons(startchargebutton, true);
+    } else {
+        if (TD->SetStageMode == smCurrent) setbuttons(testdischargebutton, true);
+        if (TD->SetStageMode == smCharge)  setbuttons(testchargebutton, true);
+    }
+
+    Screen1SetOutput((TD->SetStageMode != smUnknown) &&
+                     (TD->SetStageMode != smZero) &&
+                     (TD->SetStageMode != smDisabled));
+
+    dword Value;
+
+    Value = 0;
+    if (TD->SetStageMode == smCurrent) Value = TD->SetStageValue;
+    Screen1SetDischargeCurrent(Value);
+
+    Value = 0;
+    if (TD->SetStageMode == smCharge) Value = TD->SetStageValue;
+    Screen1SetChargeCurrent(Value);
+
+    for (byte i = (tmNONE + 1); i < tmLast; i++) {
+        Screen1SetThresholdLed((TThresholdModes)i,
+                               TD->RunDatas.ThresholdResult[i].Triggered);
+#ifdef STANDALONEEEE
+        bool Enabled = false;
+        Enabled |= (TD->SetStageMode == smCurrent &&
+                    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[i].Enabled);
+        Enabled |= (TD->SetStageMode == smCharge &&
+                    SET->Stages[FIXEDCHARGESTAGENUMBER].ThresholdSettings[i].Enabled);
+        Screen1SetThresholdLedEnabled((TThresholdModes)i, Enabled);
+#endif
+    }
+}
 
 void Screen1SetData(PBatterySetting SET)
 {
@@ -654,62 +706,14 @@ void Screen1SetData(PBatterySetting SET)
     ChargeStatus(chargedisabled);
     DischargeStatus(dischargedisabled);
 
-    PRunDatas RDS = &SET->TestData.RunDatas;
-    TMeasurementData Last = RDS->NewerRotoPDDatas.getLastData();
-    Screen1AddVIData(Last.V, Last.I);
-    Screen1AddEPData(Last.E / 1000, Last.P);
-    Screen1AddTData(RDS->Time);
-
-    if (SET->TestData.Active == bmActive) {
-        if (SET->TestData.SetStageMode == smCurrent) setbuttons(startdischargebutton, true);
-        if (SET->TestData.SetStageMode == smCharge)  setbuttons(startchargebutton, true);
-    } else {
-        if (SET->TestData.SetStageMode == smCurrent) setbuttons(testdischargebutton, true);
-        if (SET->TestData.SetStageMode == smCharge)  setbuttons(testchargebutton, true);
-    }
-
-    Screen1SetOutput(SET->TestData.SetStageMode != smUnknown &&
-                     SET->TestData.SetStageMode != smZero &&
-                     SET->TestData.SetStageMode != smDisabled);
 #endif
-
-    //char str[30];
     dword Value;
 
-    Value = 0;
-#ifdef STANDALONE
     Value = SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue;
-#else
-    if (SET->TestData.SetStageMode == smCurrent)
-        Value = SET->TestData.SetStageValue;
-#endif
     Screen1SetDischargeCurrent(Value);
-    //sprintf(str, "%lu", (unsigned long)Value);
-    //lv_label_set_text(ta1, str);
 
-    Value = 0;
-#ifdef STANDALONE
     Value = SET->Stages[FIXEDCHARGESTAGENUMBER].SetValue;
-#else
-    if (SET->TestData.SetStageMode == smCharge)
-        Value = SET->TestData.SetStageValue;
-#endif
     Screen1SetChargeCurrent(Value);
-    //sprintf(str, "%lu", (unsigned long)Value);
-    //lv_label_set_text(ta2, str);
-
-    for (byte i = (tmNONE + 1); i < tmLast; i++) {
-        Screen1SetThresholdLed((TThresholdModes)i,
-                               SET->TestData.RunDatas.ThresholdResult[i].Triggered);
-#ifdef STANDALONE
-        bool Enabled = false;
-        Enabled |= (SET->TestData.SetStageMode == smCurrent &&
-                    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[i].Enabled);
-        Enabled |= (SET->TestData.SetStageMode == smCharge &&
-                    SET->Stages[FIXEDCHARGESTAGENUMBER].ThresholdSettings[i].Enabled);
-        Screen1SetThresholdLedEnabled((TThresholdModes)i, Enabled);
-#endif
-    }
 }
 
 void Screen1SetDischargeCurrent(word I)
