@@ -656,10 +656,16 @@ bool process_command(void const *data, void *result)
     Engage = false;
 
     // When off or zero, alsways first switch-off output.
-    if ((CurrentBoard->BM.Status == smOff) || (CurrentBoard->BM.SetValue == 0))
+    if ( (CurrentBoard->BM.Status == smUnknown) || (CurrentBoard->BM.Status == smZero) || (CurrentBoard->BM.Status == smDisabled) || (CurrentBoard->BM.SetValue == 0) )
     {
-      if (CurrentBoard->BM.Status == smOff) Info_Add("Comms. SetValue Off. Output off !");
-      if (CurrentBoard->BM.SetValue == 0) Info_Add("Comms. SetValue 0. Output off !");      
+      if (CurrentBoard->BM.SetValue == 0)
+      {
+        Info_Add("Comms. SetValue 0. Output off !");      
+      } 
+      else
+      {
+        Info_Add("Comms. Status Off. Output off !");
+      }
       load.setOutput(false);        
       //pd.setOutput(false);
     }

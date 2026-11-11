@@ -392,7 +392,7 @@ static void main_event_handler(lv_event_t * e)
 
           if (!buttondown)
           {
-            SET->TestData.SetStageMode = smOff;
+            SET->TestData.SetStageMode = smDisabled;
             SET->TestData.SetStageValue = 0;
           }
           else
@@ -557,7 +557,7 @@ static void main_event_handler(lv_event_t * e)
       Serial.println("Event: keyboard/checkbox value event");
       #endif
 
-      TStageMode SM = smOff;
+      TStageMode SM = smDisabled;
       TThresholdModes Mode = tmNONE;
       SD = NULL;  
 
@@ -670,7 +670,7 @@ void ClearRunData(PRunDatas RDS)
 
 void ClearStageData(PStageData SD)
 {
-  SD->Status = smOff;
+  SD->Status = smDisabled;
   SD->SetValue = 0;
   for(byte i=tmNONE; i<tmLast; i++)
   {
@@ -959,7 +959,7 @@ void setup()
     ClearRunData(RDS);
   
     SET->TestData.Active = bmIdle;
-    SET->TestData.SetStageMode = smOff;
+    SET->TestData.SetStageMode = smDisabled;
     SET->TestData.SetStageValue = 0;
     SET->TestData.DataTriggerCounter = 0;
   }
@@ -1454,6 +1454,11 @@ void loop()
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
 
+    TBatteryMode BM = bmUnknown;
+    //TStageMode SM = smDisabled;
+    TThresholdModes Mode = tmNONE;
+    PStageData SD = NULL;    
+
     if (BoardNumber != BoardInfo.getBoardNumber())
     {
       // Should never happen !!
@@ -1477,25 +1482,77 @@ void loop()
       case CMD_set_batterymode:
       {
         // Unfortunately, we have to set the batterymode by ourselves !!
-        SET->TestData.Active = (TBatteryMode)INData[counter++];
+        BM = (TBatteryMode)INData[counter++];
+        SET->TestData.Active = BM;
+
         // Set trigger indicators
         for(j = (tmNONE+1); j < tmLast; j++)
         {
           Screen1SetThresholdLedEnabled((TThresholdModes)j, false);
           Screen1SetThresholdLed((TThresholdModes)j, false);
         }
-        if ((SET->TestData.Active == bmActive) || (SET->TestData.Active == bmReady))
+        if ((BM == bmActive) || (BM == bmReady))
         {
           Screen1SetThresholdLedEnabled(tmMINV, true);
-          if (SET->TestData.Active == bmReady) Screen1SetThresholdLed(tmMINV, true);
+          if (BM == bmReady) Screen1SetThresholdLed(tmMINV, true);
         }  
+
+        break;
+      }
+
+      case CMD_set_threshold:
+      {
+        // To be done !!
+        Mode = tmNONE;
+        SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+        SD->ThresholdSettings[Mode].Enabled = true;
+        SD->ThresholdSettings[Mode].Triggered = false;
+        SD->ThresholdSettings[Mode].SetValue = 1234;
+        SD->ThresholdSettings[Mode].GetValue = 1234;
 
         break;
       }
 
       case CMD_set_value:
       {
-        Screen1SetStageData(&CurrentBoard->BM);
+        SET->TestData.SetStageMode = (TStageMode)INData[counter++];
+        for ( j=0; j<4; j++ ) {dw_data.v[j] = INData[counter++];}        
+        SET->TestData.SetStageValue = dw_data.Val;
+
+        switch (SET->TestData.SetStageMode)
+        {
+          case smResistor:
+          case smCurrent:
+          case smPower:
+          case smVoltage:
+          {
+            SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+            break;
+          }
+          case smCharge:
+          case smPulse:
+          case smTopOff:
+          case smTrickle:
+          {
+            SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
+            break;
+          }
+          case smZero:
+          case smDisabled:
+          {
+            SD = &SET->Stages[IDDLESTAGENUMBER];
+            break;
+          }
+        }
+
+        if (SD != NULL)
+        {
+          SD->Status = SET->TestData.SetStageMode;
+          SD->SetValue = SET->TestData.SetStageValue;
+
+          Screen1SetStageData(SD);
+        }
+
         break;
       }
 
@@ -1751,7 +1808,7 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    if (SET->TestData.SetStageMode != smOff)
+    if (SET->TestData.SetStageMode != smDisabled)
     {
       // CALCULATIONTIME = 100, so every tick [increase] is 100ms
       if (SET->TestData.Active != bmReady)

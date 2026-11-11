@@ -167,6 +167,7 @@ typedef enum {
     CMD_set_MAXPDO,
     CMD_set_output,
     CMD_set_batterymode,
+    CMD_set_threshold,
     CMD_set_local,
     CMD_get_curcal,
     CMD_set_curcal,
@@ -175,14 +176,19 @@ typedef enum {
 
 typedef enum 
 {
-  smOff = 0,
+  smUnknown = 0,
+  smResistor,
   smCurrent,
   smPower,
-  smResistor,
-  smReserve,
+  smVoltage,
   smCharge,
+  smPulse,
+  smTopOff,
+  smTrickle,
   smZero,
-  smDisabled
+  smDisabled,
+  smIndicator,
+  smIRTask
 } TStageMode;
 
 typedef enum

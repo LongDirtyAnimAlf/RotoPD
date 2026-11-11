@@ -1325,8 +1325,8 @@ begin
       DD.SetOutput(PCurrentMachineSet^.MachineNumber, false);
 
       // Set mode to easy and enable some GUI indications
-      //DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmIdle);
-      DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmReady);
+      DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmIdle);
+      //DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmReady);
 
       // Enable all buttons that can control the device
       DD.SetLocal(PCurrentMachineSet^.MachineNumber, true);

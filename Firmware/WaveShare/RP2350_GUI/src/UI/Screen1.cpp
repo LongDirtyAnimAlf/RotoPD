@@ -596,7 +596,7 @@ void Screen1SetStageData(PStageData SD)
             Screen1SetChargeCurrent(SD->SetValue);  
             break;
         }
-        case smOff :
+        case smUnknown :
         case smZero :
         case smDisabled :
         {
@@ -668,7 +668,7 @@ void Screen1SetData(PBatterySetting SET)
         if (SET->TestData.SetStageMode == smCharge)  setbuttons(testchargebutton, true);
     }
 
-    Screen1SetOutput(SET->TestData.SetStageMode != smOff &&
+    Screen1SetOutput(SET->TestData.SetStageMode != smUnknown &&
                      SET->TestData.SetStageMode != smZero &&
                      SET->TestData.SetStageMode != smDisabled);
 #endif

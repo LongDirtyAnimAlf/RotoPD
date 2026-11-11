@@ -48,6 +48,7 @@ type
     CMD_set_MAXPDO,
     CMD_set_output,
     CMD_set_batterymode,
+    CMD_set_threshold,
     CMD_set_local,
     CMD_get_curcal,
     CMD_set_curcal,

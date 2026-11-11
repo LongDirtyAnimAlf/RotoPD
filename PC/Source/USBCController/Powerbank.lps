@@ -23,8 +23,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1306"/>
-        <CursorPos X="9" Y="1328"/>
+        <TopLine Value="1307"/>
+        <CursorPos X="9" Y="1329"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -3746,8 +3746,8 @@
         <Loaded Value="True"/>
         <UsageCount Value="62"/>
         <EditorIndex Value="6"/>
-        <TopLine Value="114"/>
-        <CursorPos X="52" Y="138"/>
+        <TopLine Value="34"/>
+        <CursorPos X="16" Y="36"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
