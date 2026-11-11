@@ -105,19 +105,19 @@ Adafruit_USBD_HID HID;
 unsigned long loopStartTime = 0;
 
 // Must be a global variable !!!
-char mySerial[30];
-char myFirmware[30];
+static char mySerial[30];
+static char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
 
 CanOpenNode node(/*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
-TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
+static TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 PBatteryBoard const CurrentBoard = BatteryBoards;
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-static PBatterySetting const CurrentSettings = Batteries;
+PBatterySetting const CurrentSettings = Batteries;
 
 static volatile bool flagSoundButton = false;
 
@@ -419,6 +419,7 @@ static void main_event_handler(lv_event_t * e)
               for(i = (tmNONE+1); i < tmLast; i++)
               {
                 TM = (TThresholdModes)i;
+                SD->ThresholdSettings[TM].Triggered = false;
                 Screen1SetThresholdLedEnabled(TM, SD->ThresholdSettings[TM].Enabled);
               }
               // We are active !!
@@ -650,7 +651,6 @@ void ClearRunData(PRunDatas RDS)
     TM =(TThresholdModes)i;
     RDS->ThresholdResult[TM].Enabled = false;
     RDS->ThresholdResult[TM].Triggered = false;      
-    //RDS->ThresholdResult[TM].Mode = tmNONE;
     RDS->ThresholdResult[TM].SetValue = 0;
   }
 
@@ -668,7 +668,6 @@ void ClearStageData(PStageData SD)
     TM =(TThresholdModes)i;
     SD->ThresholdSettings[TM].Enabled = false;
     SD->ThresholdSettings[TM].Triggered = false;      
-    //SD->ThresholdSettings[TM].Mode = tmNONE;
     SD->ThresholdSettings[TM].SetValue = 0;
   }
 }
@@ -1484,6 +1483,7 @@ void loop()
 
         // Set default trigger indicators
         // To be investigated if needed
+        /*
         for(j = (tmNONE+1); j < tmLast; j++)
         {
           TM = (TThresholdModes)j;
@@ -1495,6 +1495,7 @@ void loop()
           Screen1SetThresholdLedEnabled(tmMINV, true);
           if (BM == bmReady) Screen1SetThresholdLed(tmMINV, true);
         }  
+        */
 
         break;
       }
@@ -1506,41 +1507,25 @@ void loop()
         SD = GetCorrectStageSettings(SET, SM);
         if (SD != NULL)
         {
-          // Get the thresholdmode to be used
-          TM = (TThresholdModes)INData[counter++];
-          if (TM >= tmLast) TM = tmNONE;
-          if (TM != tmNONE)
-          {
-            // Now get the data to set the correct threshold
-            TS = &SD->ThresholdSettings[TM];
-            TS->Enabled = (INData[counter++] != 0);
-            for ( j=0; j<2; j++ ) {dw_data.v[j] = INData[counter++];}
-            TS->SetValue = dw_data.Val;
-            TS->Triggered = (INData[counter++] != 0);
-          }
+          Screen1SetStageData(SD);
         }
+
         break;
       }
 
       case CMD_set_value:
       {
         SD = GetCorrectStageSettings(SET, CurrentBoard->TD.SetStageMode);
-
         if (SD != NULL)
         {
-          // Adjust the settings with the correct values
-          SD->Status = CurrentBoard->TD.SetStageMode;
-          SD->SetValue = CurrentBoard->TD.SetStageValue;
-
           // Set all trigger indicators
           for(j = (tmNONE+1); j < tmLast; j++)
           {
             TM = (TThresholdModes)j;
             TS = &SD->ThresholdSettings[TM];
             Screen1SetThresholdLedEnabled(TM, TS->Enabled);
-            Screen1SetThresholdLed(TM, false);
+            Screen1SetThresholdLed(TM, TS->Triggered);
           }
-
           Screen1SetStageData(SD);
         }
 

@@ -412,8 +412,8 @@ extern AP33772S pd;
 extern IT2704 load;
 extern CanOpenNode node;
 
-extern TBatteryBoard BatteryBoards[];
 extern PBatteryBoard const CurrentBoard;
+extern PBatterySetting const CurrentSettings;
 
 #ifdef __cplusplus          // only compile the class when using a C++ compiler
 

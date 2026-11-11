@@ -519,6 +519,28 @@ bool process_command(void const *data, void *result)
     CurrentBoard->TD.Active = (TBatteryMode)databuffer[dataindexer++];
   }
 
+  if (cCmd == CMD_set_threshold)
+  {
+    // Get the stagemode to be used
+    TStageMode SM = (TStageMode)databuffer[dataindexer++];
+    PStageData SD = GetCorrectStageSettings(CurrentSettings, SM);
+    if (SD != NULL)
+    {
+      // Get the thresholdmode to be used
+      TThresholdModes TM = (TThresholdModes)databuffer[dataindexer++];
+      if (TM >= tmLast) TM = tmNONE;
+      if (TM != tmNONE)
+      {
+        // Now get the data to set the correct threshold
+        PThresholdDataItem TS = &SD->ThresholdSettings[TM];
+        TS->Enabled = (databuffer[dataindexer++] != 0);
+        for ( j=0; j<2; j++ ) {dw_data.v[j] = databuffer[dataindexer++];}
+        TS->SetValue = dw_data.Val;
+        //TS->Triggered = (databuffer[dataindexer++] != 0);
+      }
+    }
+  }
+
   if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
     // We got a SetPDO command
@@ -655,6 +677,22 @@ bool process_command(void const *data, void *result)
     CurrentBoard->TD.SetStageMode=TStageMode(databuffer[dataindexer++]);
     for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
     CurrentBoard->TD.SetStageValue=dw_data.Val;
+
+    PStageData SD = GetCorrectStageSettings(CurrentSettings, CurrentBoard->TD.SetStageMode);
+    if (SD != NULL)
+    {
+      // Adjust the settings with the correct values
+      SD->Status = CurrentBoard->TD.SetStageMode;
+      SD->SetValue = CurrentBoard->TD.SetStageValue;
+
+      // Reset all triggers
+      for(j = (tmNONE+1); j < tmLast; j++)
+      {
+        TThresholdModes TM = (TThresholdModes)j;
+        PThresholdDataItem TS = &SD->ThresholdSettings[TM];
+        TS->Triggered = false;
+      }
+    }
 
     Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",CurrentBoard->TD.SetStageValue);
 
