@@ -3747,7 +3747,7 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="6"/>
         <TopLine Value="73"/>
-        <CursorPos X="10" Y="88"/>
+        <CursorPos Y="89"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>

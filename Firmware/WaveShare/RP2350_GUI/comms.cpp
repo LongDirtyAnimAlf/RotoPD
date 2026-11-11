@@ -513,6 +513,12 @@ bool process_command(void const *data, void *result)
   // 3.. = Data
   dataindexer = DATASTART;
 
+  if (cCmd == CMD_set_batterymode)
+  {
+    // Unfortunately, we have to set the batterymode by ourselves !!
+    CurrentBoard->TD.Active = (TBatteryMode)databuffer[dataindexer++];
+  }
+
   if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
   {
     // We got a SetPDO command

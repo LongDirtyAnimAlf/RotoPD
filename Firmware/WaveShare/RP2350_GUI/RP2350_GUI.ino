@@ -117,7 +117,7 @@ TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
 PBatteryBoard const CurrentBoard = BatteryBoards;
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-static PBatterySetting const Battery = Batteries;
+static PBatterySetting const CurrentSettings = Batteries;
 
 static volatile bool flagSoundButton = false;
 
@@ -334,9 +334,11 @@ static void main_event_handler(lv_event_t * e)
 
   bool GotSettings = false;
 
-  PBatterySetting SET = Battery;
+  PBatterySetting SET = CurrentSettings;
   PRunDatas RDS = &CurrentBoard->TD.RunDatas;
   PStageData SD = NULL;  
+  TThresholdModes TM;
+  TStageMode SM;
 
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
@@ -384,10 +386,12 @@ static void main_event_handler(lv_event_t * e)
           // Reset all trigger settings
           CurrentBoard->TD.ThresholdMode = tmNONE;
           CurrentBoard->TD.ThresholdValue = 0;
+
           for(i = (tmNONE+1); i < tmLast; i++)
           {
-            Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
-            Screen1SetThresholdLed((TThresholdModes)i, false);
+            TM = (TThresholdModes)i;
+            Screen1SetThresholdLedEnabled(TM, false);
+            Screen1SetThresholdLed(TM, false);
           }
 
           if (!buttondown)
@@ -414,7 +418,8 @@ static void main_event_handler(lv_event_t * e)
               // Set trigger indicators
               for(i = (tmNONE+1); i < tmLast; i++)
               {
-                Screen1SetThresholdLedEnabled((TThresholdModes)i, SD->ThresholdSettings[i].Enabled);
+                TM = (TThresholdModes)i;
+                Screen1SetThresholdLedEnabled(TM, SD->ThresholdSettings[TM].Enabled);
               }
               // We are active !!
               CurrentBoard->TD.Active = bmActive;
@@ -557,8 +562,8 @@ static void main_event_handler(lv_event_t * e)
       Serial.println("Event: keyboard/checkbox value event");
       #endif
 
-      TStageMode SM = smDisabled;
-      TThresholdModes Mode = tmNONE;
+      SM = smDisabled;
+      TM = tmNONE;
       SD = NULL;  
 
       if (lv_obj_check_type(event_object, &lv_keyboard_class))
@@ -577,32 +582,11 @@ static void main_event_handler(lv_event_t * e)
         {
           // Only valid for checkbox data
           SM = (TStageMode)highByte((word)(uintptr_t)object_user_data);      
-          Mode = (TThresholdModes)lowByte((word)(uintptr_t)object_user_data);
+          TM = (TThresholdModes)lowByte((word)(uintptr_t)object_user_data);
         }
       }
 
-      if (SM == smCurrent)
-      {
-        SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
-        #ifdef DEBUG          
-        Serial.println("We got a discharge setting !!");
-        #endif
-      }
-      else
-      if (SM == smCharge)
-      {
-        SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
-        #ifdef DEBUG          
-        Serial.println("We got a charge setting !!");
-        #endif
-      }
-      else
-      {
-        #ifdef DEBUG          
-        Serial.println("Unknown stagemode. Should never happen !!");
-        #endif
-      }
-
+      SD = GetCorrectStageSettings(SET, SM);
       if (SD != NULL)
       {
         if (lv_obj_check_type(event_object, &lv_checkbox_class))
@@ -610,7 +594,7 @@ static void main_event_handler(lv_event_t * e)
           #ifdef DEBUG          
           Serial.println("Enable or disable a threshold !!");
           #endif
-          SD->ThresholdSettings[Mode].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED); 
+          SD->ThresholdSettings[TM].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED); 
           GotSettings = true;
         }
  
@@ -628,7 +612,12 @@ static void main_event_handler(lv_event_t * e)
           }
         }
       }
-
+      else
+      {
+        #ifdef DEBUG          
+        Serial.println("SD == NULL. Unknown StageMode. Should never happen !!");
+        #endif
+      }
     }
     #endif //STANDALONE
 
@@ -655,13 +644,14 @@ void ClearRunData(PRunDatas RDS)
   RDS->Energy = 0;
   RDS->Time = 0;
 
+  TThresholdModes TM;
   for(byte i=tmNONE; i<tmLast; i++)
   {
-    RDS->ThresholdResult[i].Enabled = false;
-    RDS->ThresholdResult[i].Triggered = false;      
-    RDS->ThresholdResult[i].Mode = tmNONE;
-    RDS->ThresholdResult[i].SetValue = 0;
-    RDS->ThresholdResult[i].GetValue = 0;      
+    TM =(TThresholdModes)i;
+    RDS->ThresholdResult[TM].Enabled = false;
+    RDS->ThresholdResult[TM].Triggered = false;      
+    //RDS->ThresholdResult[TM].Mode = tmNONE;
+    RDS->ThresholdResult[TM].SetValue = 0;
   }
 
   RDS->NewerRotoPDDatas.clear();  
@@ -672,13 +662,14 @@ void ClearStageData(PStageData SD)
 {
   SD->Status = smDisabled;
   SD->SetValue = 0;
+  TThresholdModes TM;
   for(byte i=tmNONE; i<tmLast; i++)
   {
-    SD->ThresholdSettings[i].Enabled = false;
-    SD->ThresholdSettings[i].Triggered = false;      
-    SD->ThresholdSettings[i].Mode = tmNONE;
-    SD->ThresholdSettings[i].SetValue = 0;
-    SD->ThresholdSettings[i].GetValue = 0;      
+    TM =(TThresholdModes)i;
+    SD->ThresholdSettings[TM].Enabled = false;
+    SD->ThresholdSettings[TM].Triggered = false;      
+    //SD->ThresholdSettings[TM].Mode = tmNONE;
+    SD->ThresholdSettings[TM].SetValue = 0;
   }
 }
 
@@ -992,7 +983,6 @@ void setup()
     ClearStageData(SD);
 
     SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Enabled = true;
-    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Mode = tmMINV;
 
     if (storeGetBatteryDischargeSetting(index, &SET->Stages[FIXEDDISCHARGESTAGENUMBER])) Info_Add("GUI. Reading discharge settings success.");
     if (storeGetBatteryChargeSetting(index, &SET->Stages[FIXEDCHARGESTAGENUMBER])) Info_Add("GUI. Reading charge settings success.");
@@ -1003,7 +993,7 @@ void setup()
   #endif
 
   // Fill startscreen with presets, if any
-  SET = Battery;
+  SET = CurrentSettings;
   Screen1SetData(SET);
 
     // INA238 setup
@@ -1123,7 +1113,7 @@ void loop()
   DWORD_VAL dw_data;
   QWORD_VAL qw_data;
 
-  PBatterySetting SET = Battery;
+  PBatterySetting SET = CurrentSettings;
   PRunDatas RDS = &CurrentBoard->TD.RunDatas; 
 
   int8_t PDOCount = 0;
@@ -1451,6 +1441,12 @@ void loop()
   {
     DataOk = false;
 
+    TBatteryMode BM = bmUnknown;
+    TStageMode SM = smDisabled;
+    TThresholdModes TM = tmNONE;
+    PStageData SD = NULL;
+    PThresholdDataItem TS = NULL;    
+
     // We have received a command from the screen or through USB-HID or the standalone measurement timer.
     // The command has been processed.
     // Now we can or might use the results of this processed command.
@@ -1460,11 +1456,6 @@ void loop()
     byte BoardNumber = INData[BOARDPOSITION];
     byte Length = INData[LENGTHPOSITION];
     byte counter = DATASTART;
-
-    TBatteryMode BM = bmUnknown;
-    //TStageMode SM = smDisabled;
-    TThresholdModes Mode = tmNONE;
-    PStageData SD = NULL;    
 
     if (BoardNumber != BoardInfo.getBoardNumber())
     {
@@ -1479,6 +1470,7 @@ void loop()
       {
         #ifdef USE_LCD
         bool Local = (INData[counter++] != 0);
+        // if LOCAL, disable the buttons on these screens
         Screen1SetLocal(Local);
         ScreenPDOSetLocal(Local);
         ScreenSettingsSetLocal(Local);
@@ -1488,15 +1480,15 @@ void loop()
 
       case CMD_set_batterymode:
       {
-        // Unfortunately, we have to set the batterymode by ourselves !!
-        BM = (TBatteryMode)INData[counter++];
-        CurrentBoard->TD.Active = BM;
+        BM = CurrentBoard->TD.Active;
 
-        // Set trigger indicators
+        // Set default trigger indicators
+        // To be investigated if needed
         for(j = (tmNONE+1); j < tmLast; j++)
         {
-          Screen1SetThresholdLedEnabled((TThresholdModes)j, false);
-          Screen1SetThresholdLed((TThresholdModes)j, false);
+          TM = (TThresholdModes)j;
+          Screen1SetThresholdLedEnabled(TM, false);
+          Screen1SetThresholdLed(TM, false);
         }
         if ((BM == bmActive) || (BM == bmReady))
         {
@@ -1509,58 +1501,46 @@ void loop()
 
       case CMD_set_threshold:
       {
-        // To be done !!
-        Mode = tmNONE;
-        SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
-        SD->ThresholdSettings[Mode].Enabled = true;
-        SD->ThresholdSettings[Mode].Triggered = false;
-        SD->ThresholdSettings[Mode].SetValue = 1234;
-        SD->ThresholdSettings[Mode].GetValue = 1234;
-
+        // Get the stagemode to be used
+        SM = (TStageMode)INData[counter++];
+        SD = GetCorrectStageSettings(SET, SM);
+        if (SD != NULL)
+        {
+          // Get the thresholdmode to be used
+          TM = (TThresholdModes)INData[counter++];
+          if (TM >= tmLast) TM = tmNONE;
+          if (TM != tmNONE)
+          {
+            // Now get the data to set the correct threshold
+            TS = &SD->ThresholdSettings[TM];
+            TS->Enabled = (INData[counter++] != 0);
+            for ( j=0; j<2; j++ ) {dw_data.v[j] = INData[counter++];}
+            TS->SetValue = dw_data.Val;
+            TS->Triggered = (INData[counter++] != 0);
+          }
+        }
         break;
       }
 
-      Mode = tmNONE;
-
       case CMD_set_value:
       {
-        switch (CurrentBoard->TD.SetStageMode)
-        {
-          case smResistor:
-          case smCurrent:
-          case smPower:
-          case smVoltage:
-          {
-            SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
-            Mode = tmMINV;
-            break;
-          }
-          case smCharge:
-          case smPulse:
-          case smTopOff:
-          case smTrickle:
-          {
-            SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
-            Mode = tmTIME;
-            break;
-          }
-          case smZero:
-          case smDisabled:
-          {
-            SD = &SET->Stages[IDDLESTAGENUMBER];
-            break;
-          }
-        }
+        SD = GetCorrectStageSettings(SET, CurrentBoard->TD.SetStageMode);
 
         if (SD != NULL)
         {
+          // Adjust the settings with the correct values
           SD->Status = CurrentBoard->TD.SetStageMode;
           SD->SetValue = CurrentBoard->TD.SetStageValue;
-          if (Mode != tmNONE)
+
+          // Set all trigger indicators
+          for(j = (tmNONE+1); j < tmLast; j++)
           {
-            PThresholdDataItem TS = &SD->ThresholdSettings[Mode];
-            TS->Enabled = true;
+            TM = (TThresholdModes)j;
+            TS = &SD->ThresholdSettings[TM];
+            Screen1SetThresholdLedEnabled(TM, TS->Enabled);
+            Screen1SetThresholdLed(TM, false);
           }
+
           Screen1SetStageData(SD);
         }
 
@@ -1615,10 +1595,11 @@ void loop()
       {
         // Do we need to do someting with the new PDO ?
         // Yes, we might set the discharge current stage values with it !
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = CurrentBoard->PDO.maxCurrent_mA;
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status = smCurrent;
+        SD = GetCorrectStageSettings(SET, smCurrent);
+        SD->SetValue = CurrentBoard->PDO.maxCurrent_mA;
+        SD->Status = smCurrent;
         // Update the GUI also to reflect this change
-        Screen1SetStageData(&SET->Stages[FIXEDDISCHARGESTAGENUMBER]);        
+        Screen1SetStageData(SD);
 
         break;
       }

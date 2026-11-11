@@ -85,7 +85,8 @@ type
     function CheckCRCError(aReport:TReport):boolean;
     function HandleDataRequest(Ctrl: TUSBController; Final:boolean=false):boolean;
   type
-    BoardMode    = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,smDisabled,smIndicator,smIRTask);
+    BoardMode       = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,smDisabled,smIndicator,smIRTask);
+    TThresholdMode  = (tmNONE,tmMAXV,tmMINV,tmDELTAV,tmPLATEAUV,tmABST,tmDELTAT,tmDVT,tmTIME,tmMAXC);
   private
     NumTypes         : word;
 

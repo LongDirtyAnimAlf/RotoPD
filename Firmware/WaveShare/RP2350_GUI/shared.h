@@ -231,11 +231,9 @@ typedef enum
 
 typedef struct
 {
-  TThresholdModes Mode;
   word SetValue;
   bool Enabled;
   bool Triggered;
-  word GetValue;
 } TThresholdDataItem, *PThresholdDataItem;
 
 typedef enum
@@ -378,6 +376,36 @@ typedef struct
   TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
   #endif
 } TBatterySetting,*PBatterySetting;
+
+static PStageData GetCorrectStageSettings(PBatterySetting SET, TStageMode SM)
+{
+  switch (SM)
+  {
+    case smResistor:
+    case smCurrent:
+    case smPower:
+    case smVoltage:
+    {
+      return &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+      break;
+    }
+    case smCharge:
+    case smPulse:
+    case smTopOff:
+    case smTrickle:
+    {
+      return &SET->Stages[FIXEDCHARGESTAGENUMBER];
+      break;
+    }
+    case smZero:
+    case smDisabled:
+    {
+      return &SET->Stages[IDDLESTAGENUMBER];
+      break;
+    }
+    default: return NULL;
+  }
+}
 
 extern TwoWire WireBattery;
 extern AP33772S pd;
