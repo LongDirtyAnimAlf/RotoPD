@@ -231,7 +231,7 @@ static void Setup_Screen(lv_obj_t * cont)
     //lv_obj_set_style_margin_top(btn, 14, 0);
     //lv_obj_set_style_margin_bottom(btn, 14, 0);
 
-    //lv_obj_set_style_pad_ver(infolabel, 8, 0);
+    lv_obj_set_style_pad_ver(btn, 0, 0);
     //lv_obj_set_style_margin_ver(infolabel, 14, 0);
 
     lv_obj_t * label = lv_label_create(btn);

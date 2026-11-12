@@ -913,7 +913,9 @@ void setup()
   CreateBaseScreen(main_event_handler);
   Setup_ScreenLogger(BoardInfo.IT2704Channel,false);
 
-  Info_Add("GUI. Init GUI.");      
+  Info_Add("GUI. Init GUI.");   
+  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  Info_Add(LVGL_Arduino.c_str());
 
   Setup_ScreenSettings(BoardInfo.IT2704Channel,false);
   Setup_ScreenPDO(BoardInfo.IT2704Channel,false);
@@ -1026,18 +1028,16 @@ void setup()
   lv_indev_set_read_cb(indev, my_touchpad_read);
   #endif // STANDALONE
 
-  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Info_Add(LVGL_Arduino.c_str());
-
   #ifdef ARDUINO_ARCH_RP2040
   
-  Info_Add_Fmt("CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
+  Info_Add_Fmt("GUI. CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
 
   Info_Add("GUI. RP2350 SRAM memory info.");
   // Internal SRAM heap
-  Info_Add_Fmt("SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
-  Info_Add_Fmt("SRAM buffer: %u KB.", (lv_port_get_buffer_heap_usage() / 1024));
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB.", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1024) );
+  Info_Add_Fmt("    SRAM size  : %u KB.", 520u);
+  Info_Add_Fmt("    SRAM total  : %u KB.", (rp2040.getTotalHeap() / 1024));
+  Info_Add_Fmt("    SRAM used  : %u KB.", (rp2040.getUsedHeap() / 1024));
+  Info_Add_Fmt("    SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
 
   lv_mem_monitor_t mon;
   lv_mem_monitor(&mon);
@@ -1046,13 +1046,14 @@ void setup()
        mon.free_size / 1024,
        mon.free_biggest_size / 1024);
   Info_Add_Fmt("LVGL heap fragmentation: %u%%.", mon.frag_pct);
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1024) );
+  //Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - mon.total_size) / 1024) );
 
   Info_Add("GUI. RP2350 PSRAM memory info.");
   // PSRAM heap
-  Info_Add_Fmt("PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
-  Info_Add_Fmt("PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
-  Info_Add_Fmt("PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
+  Info_Add_Fmt("    PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
+  Info_Add_Fmt("    PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
+  Info_Add_Fmt("    PSRAM used : %u KB.", rp2040.getUsedPSRAMHeap() / 1024);
+  Info_Add_Fmt("    PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
 
   /*
   for (int i = 0; i < 16; i++) {

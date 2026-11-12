@@ -186,14 +186,9 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
       <Libraries Value="..\Common\static\$(TargetCPU)-$(TargetOS)"/>
-      <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
+      <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows;..\Common\bgracontrols;..\Common\bgrabitmap"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
-    <Parsing>
-      <SyntaxOptions>
-        <IncludeAssertionCode Value="True"/>
-      </SyntaxOptions>
-    </Parsing>
     <CodeGeneration>
       <Checks>
         <IOChecks Value="True"/>
@@ -201,7 +196,6 @@
         <OverflowChecks Value="True"/>
         <StackChecks Value="True"/>
       </Checks>
-      <VerifyObjMethodCallValidity Value="True"/>
       <Optimizations>
         <OptimizationLevel Value="0"/>
       </Optimizations>

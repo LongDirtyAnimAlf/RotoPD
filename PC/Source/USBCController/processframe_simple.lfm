@@ -1,10 +1,10 @@
 object FrameSimple: TFrameSimple
   Left = 0
-  Height = 416
+  Height = 238
   Top = 0
-  Width = 456
-  ClientHeight = 416
-  ClientWidth = 456
+  Width = 212
+  ClientHeight = 238
+  ClientWidth = 212
   Color = clDefault
   LCLVersion = '4.99.0.0'
   ParentBackground = False
@@ -15,8 +15,8 @@ object FrameSimple: TFrameSimple
   object Panel1: TPanel
     Left = 0
     Height = 68
-    Top = 348
-    Width = 456
+    Top = 170
+    Width = 212
     Align = alBottom
     Anchors = []
     BevelInner = bvLowered
@@ -28,7 +28,7 @@ object FrameSimple: TFrameSimple
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 2
     ClientHeight = 68
-    ClientWidth = 456
+    ClientWidth = 212
     ParentBackground = False
     TabOrder = 0
     OnResize = Panel1Resize
@@ -36,22 +36,22 @@ object FrameSimple: TFrameSimple
       Left = 8
       Height = 52
       Top = 8
-      Width = 220
+      Width = 98
       TabOrder = 0
     end
     object panelCurrent: TPanel
-      Left = 228
+      Left = 106
       Height = 52
       Top = 8
-      Width = 220
+      Width = 98
       TabOrder = 1
     end
   end
   object Panel2: TPanel
     Left = 0
-    Height = 348
+    Height = 170
     Top = 0
-    Width = 456
+    Width = 212
     Align = alClient
     BevelInner = bvLowered
     BevelWidth = 4

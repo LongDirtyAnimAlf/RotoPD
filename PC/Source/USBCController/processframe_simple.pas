@@ -8,6 +8,7 @@ uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Graphics,
   TAGraph, TASeries, TATransformations, TAIntervalSources,
   Gauge,
+  SpinEx, BGRAKnob, BGRAShape, BGRAImageList, SuperGaugeCommon, SuperGauge,
   dlLEDCtrl;
 
 type
@@ -38,8 +39,11 @@ type
     fEnabled                  : boolean;
     fNewVoltageDisplay        : TLEDDisplay;
     fNewCurrentDisplay        : TLEDDisplay;
-    fPowerGauge               : TGauge;
+    //fPowerGauge               : TGauge;
     fNewEnergyDisplay         : TLEDDisplay;
+
+    fPowerGauge            : TSuperGauge;
+
     procedure OnGaugeText(Sender: TObject; value: double; var labeltext: string);
     procedure SetVoltage(AValue: single);
     procedure SetCurrent(AValue: single);
@@ -101,6 +105,153 @@ begin
   Tag:=-1;
   fEnabled:=false;
 
+  fPowerGauge:=TSuperGauge.Create(Panel2);
+  fPowerGauge.Parent:=Panel2;
+  with fPowerGauge do
+  begin
+    Align := alClient;
+    MinValue := 0;
+    MaxValue := 240;
+
+    AutoScale := True;
+
+    ScaleSettings.MainTickCount:=12;
+    ScaleSettings.Step:=20;
+
+    BandSettings1.Enabled := True;
+    BandSettings1.EndValue := round(100*60/MaxValue);
+    BandSettings1.EnableText := True;
+    BandSettings1.Text := 'BASIC';
+    BandSettings1.TextFont := 'default';
+    BandSettings1.TextStyle := [fsBold];
+    BandSettings1.TextColor := clWhite;
+    BandSettings2.Enabled := True;
+    BandSettings2.StartValue := round(100*60/MaxValue);
+    BandSettings2.EndValue := round(100*100/MaxValue);
+    BandSettings2.EnableText := True;
+    BandSettings2.Text := 'PD';
+    BandSettings2.TextFont := 'default';
+    BandSettings2.TextStyle := [fsBold];
+    BandSettings2.TextColor := clBlack;
+    BandSettings2.BandColor := clYellow;
+    BandSettings3.Enabled := True;
+    BandSettings3.StartValue := round(100*100/MaxValue);
+    BandSettings3.EnableText := True;
+    BandSettings3.Text := 'EPR';
+    BandSettings3.TextFont := 'default';
+    BandSettings3.TextStyle := [fsBold];
+    BandSettings3.TextColor := clWhite;
+    BandSettings3.BandColor := clRed;
+    BandSettings4.Text := 'Band 4';
+    BandSettings4.TextSize := 18;
+    BandSettings4.TextFont := 'default';
+    BandSettings4.TextStyle := [fsBold];
+    BandSettings4.TextRadius := 100;
+    BandSettings4.TextColor := clBlack;
+    BandSettings4.BandRadius := 90;
+    TextSettings1.Enabled := True;
+    TextSettings1.FontEx.Color := clWhite;
+    //TextSettings1.FontEx.FontQuality := fqSystemClearType;
+    TextSettings1.FontEx.Height := 24;
+    TextSettings1.FontEx.Shadow := False;
+    TextSettings1.FontEx.ShadowRadius := 5;
+    TextSettings1.FontEx.ShadowOffsetX := 5;
+    TextSettings1.FontEx.ShadowOffsetY := 5;
+    TextSettings1.FontEx.Style := [fsBold];
+    TextSettings1.Text := 'Watt';
+    TextSettings1.OffsetX := 0;
+    TextSettings1.OffsetY := -35;
+    TextSettings2.Enabled := True;
+    TextSettings2.FontEx.Color := 4227327;
+    //TextSettings2.FontEx.FontQuality := fqSystemClearType;
+    TextSettings2.FontEx.Height := 24;
+    TextSettings2.FontEx.Shadow := False;
+    TextSettings2.FontEx.ShadowRadius := 5;
+    TextSettings2.FontEx.ShadowOffsetX := 5;
+    TextSettings2.FontEx.ShadowOffsetY := 5;
+    TextSettings2.FontEx.Style := [fsBold];
+    TextSettings2.Text := '--';
+    TextSettings2.OffsetX := 0;
+    TextSettings2.OffsetY := 40;
+    TextSettings3.FontEx.Color := clWhite;
+    //TextSettings3.FontEx.FontQuality := fqSystemClearType;
+    TextSettings3.FontEx.Height := 16;
+    TextSettings3.FontEx.Shadow := False;
+    TextSettings3.FontEx.ShadowRadius := 5;
+    TextSettings3.FontEx.ShadowOffsetX := 5;
+    TextSettings3.FontEx.ShadowOffsetY := 5;
+    TextSettings3.FontEx.Style := [fsBold];
+    TextSettings3.Text := 'x100';
+    TextSettings3.OffsetX := 0;
+    TextSettings3.OffsetY := 60;
+    FrameSettings.OuterFrameColor := clGray;
+    FrameSettings.MiddleFrameColor := clSilver;
+    FrameSettings.InnerFrameColor := clMedGray;
+    FrameSettings.OuterFrameThickness := 5;
+    FrameSettings.MiddleFrameThickness := 5;
+    FrameSettings.InnerFrameThickness := 5;
+    ScaleSettings.TickColor := 8242399;
+    ScaleSettings.TextColor := clSkyBlue;
+    ScaleSettings.TextSize := 20;
+    ScaleSettings.TextFont := 'default';
+    ScaleSettings.TickArcColor := 8242399;
+    ScaleSettings.Enabled := True;
+    AuxScaleSettings.TickColor := 8242399;
+    AuxScaleSettings.TextColor := 13881484;
+    AuxScaleSettings.TextSize := 20;
+    AuxScaleSettings.TextFont := 'default';
+    AuxScaleSettings.TickArcColor := 8242399;
+    AuxScaleSettings.Enabled := False;
+    RangeLEDSettings.ActiveColor := clRed;
+    RangeLEDSettings.InactiveColor := clBlack;
+    RangeLEDSettings.BorderColor := clGray;
+    RangeLEDSettings.Style := lsShaded;
+    RangeLEDSettings.RangeStartValue := 55;
+    RangeLEDSettings.RangeType := rcGreaterStart;
+    MarkerSettings1.Enabled := True;
+    MarkerSettings1.Color := clLime;
+    MarkerSettings1.Style := msRight;
+    MarkerSettings2.Enabled := True;
+    MarkerSettings2.Color := clRed;
+    MarkerSettings2.Style := msLeft;
+    MarkerSettings3.Enabled := True;
+    MarkerSettings3.Color := clYellow;
+    MarkerSettings3.Height := 15;
+    MarkerSettings3.Radius := 135;
+    MarkerSettings3.Width := 5;
+    PointerSettings.Color := 4227327;
+    PointerSettings.Enabled := True;
+    AuxPointerSettings.Color := clRed;
+    AuxPointerSettings.Length := 100;
+    AuxPointerSettings.ExtensionLength := 5;
+    AuxPointerSettings.Width := 7;
+    AuxPointerSettings.Enabled := False;
+    PointerCapSettings.Radius := 20;
+    //OverloadTriggered := SuperGaugeOverloadTriggered;
+    //OverloadRecovered := SuperGaugeOverloadRecovered;
+    //AuxOverloadTriggered := SuperGaugeAuxOverloadTriggered;
+    //AuxOverloadRecovered := SuperGaugeAuxOverloadRecovered;
+    //RangeLEDActive := SuperGaugeRangeLEDActive;
+    //RangeLEDInactive := SuperGaugeRangeLEDInactive;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  end;
+
+  (*
   fPowerGauge:=TGauge.Create(Panel2);
   fPowerGauge.Parent:=Panel2;
   fPowerGauge.OnGetText:=@OnGaugeText;
@@ -147,7 +298,7 @@ begin
     FromValue := 140;
     ToValue := 240;
   end;
-
+  *)
   fNewVoltageDisplay := TLEDDisplay.Create(panelVoltage);
   with fNewVoltageDisplay do begin
     Parent := panelVoltage;
@@ -282,7 +433,6 @@ begin
   P:=TPanel(Sender);
   fNewEnergyDisplay.Top:=P.Height- fNewEnergyDisplay.Height - (P.BevelWidth*2) - 10;
   fNewEnergyDisplay.Left:=((P.Width - (P.BevelWidth*4)) DIV 2)-((fNewEnergyDisplay.Width + 2) DIV 2);
-
 end;
 
 procedure TFrameSimple.SetEnable(value:boolean);
