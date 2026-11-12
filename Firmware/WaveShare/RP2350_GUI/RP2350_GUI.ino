@@ -794,7 +794,8 @@ void setup()
   storeGetBoardInfo(&BoardInfo);
 
   index = 0;
-  mySerial[0] = '\0';  
+  mySerial[0] = '\0';
+  //memset(mySerial, 0, sizeof(mySerial)); 
   while (index<12)
   {
     tempintcalc=(BoardInfo.BoardSerial[index]+(BoardInfo.BoardSerial[index+1]*256));
@@ -1476,6 +1477,20 @@ void loop()
         ScreenPDOSetLocal(Local);
         ScreenSettingsSetLocal(Local);
         #endif
+        break;
+      }
+
+      case CMD_set_code:
+      case CMD_set_brand:
+      case CMD_set_model:
+      {
+        char Info[100] = {0};
+        strcat(Info,CurrentSettings->code); 
+        strcat(Info," : "); 
+        strcat(Info,CurrentSettings->brand); 
+        strcat(Info," "); 
+        strcat(Info,CurrentSettings->model); 
+        ScreenPDOSetInfo(Info);
         break;
       }
 

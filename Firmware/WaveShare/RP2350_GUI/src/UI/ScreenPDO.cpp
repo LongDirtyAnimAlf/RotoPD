@@ -15,6 +15,8 @@
 lv_obj_t * screenpdo = NULL;
 lv_obj_t * getpdolistbutton = NULL;
 
+static lv_obj_t * infolabel = NULL;
+
 static lv_obj_t * pdo_list_cont = NULL;
 static lv_obj_t * PDOCells[MAX_PDO_ENTRIES] = {NULL};
 
@@ -188,18 +190,49 @@ static void Setup_Screen(lv_obj_t * cont)
 
     init_styles_once();
 
+
+    lv_obj_t * main_container = lv_obj_create(cont);
+    lv_obj_remove_style_all(main_container);
+    lv_obj_set_size(main_container, lv_pct(100), lv_pct(100));
+    lv_obj_align(main_container, LV_ALIGN_TOP_MID, 0, 0);
+    //lv_obj_set_layout(main_container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(main_container, LV_FLEX_FLOW_COLUMN );
+    lv_obj_set_flex_align(main_container, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER );
+    lv_obj_set_style_pad_row(main_container, 8, LV_PART_MAIN);
+    //lv_style_set_pad_column(&row_container_style,0)
+
+
+    /* ── Info ─────────────────────────────────────────── */
+    infolabel = lv_label_create(main_container);
+    //lv_obj_set_size(infolabel, lv_pct(100), lv_pct(10));
+    lv_obj_set_size(infolabel, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+
+    lv_obj_set_style_pad_ver(infolabel, 4, 0);
+    lv_obj_set_style_margin_ver(infolabel, 4, 0);
+
+    //lv_obj_align(infolabel, LV_ALIGN_TOP_MID, 0, 10);
+    //lv_obj_align_to(infolabel, btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+    lv_obj_set_style_text_font(infolabel, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_align(infolabel, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(infolabel, "INFO !!!");
+
     /* ── Refresh button ─────────────────────────────────────────────── */
-    lv_obj_t * btn = lv_button_create(cont);
+    lv_obj_t * btn = lv_button_create(main_container);
     getpdolistbutton = btn;
-    lv_obj_set_size(btn, LV_SIZE_CONTENT, lv_pct(15));
-    lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 10);
+    //lv_obj_set_size(btn, LV_SIZE_CONTENT, lv_pct(15));
+    lv_obj_set_size(btn, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    //lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 10);
+    //lv_obj_align_to(btn, infolabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
     lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, NULL);
     //lv_obj_set_style_bg_color(btn, lv_palette_darken(LV_PALETTE_RED, 3), 0);
     lv_obj_set_style_bg_color(btn, lv_theme_get_color_secondary(btn), 0);
-    lv_obj_set_style_pad_top(btn, 14, 0);
-    lv_obj_set_style_pad_bottom(btn, 14, 0);
-    lv_obj_set_style_margin_top(btn, 14, 0);
-    lv_obj_set_style_margin_bottom(btn, 14, 0);
+    //lv_obj_set_style_pad_top(btn, 14, 0);
+    //lv_obj_set_style_pad_bottom(btn, 14, 0);
+    //lv_obj_set_style_margin_top(btn, 14, 0);
+    //lv_obj_set_style_margin_bottom(btn, 14, 0);
+
+    //lv_obj_set_style_pad_ver(infolabel, 8, 0);
+    //lv_obj_set_style_margin_ver(infolabel, 14, 0);
 
     lv_obj_t * label = lv_label_create(btn);
     lv_obj_set_style_text_font(label, &lv_font_montserrat_24, 0);
@@ -207,9 +240,13 @@ static void Setup_Screen(lv_obj_t * cont)
     lv_obj_center(label);
 
     /* ── PDO list container ─────────────────────────────────────────── */
-    pdo_list_cont = lv_obj_create(cont);
-    lv_obj_set_size(pdo_list_cont, lv_pct(100), lv_pct(80));
-    lv_obj_align_to(pdo_list_cont, btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+    pdo_list_cont = lv_obj_create(main_container);
+    //lv_obj_set_size(pdo_list_cont, lv_pct(100), lv_pct(75));
+    //lv_obj_set_size(infolabel, lv_pct(100), LV_SIZE_CONTENT);
+    lv_obj_set_width(pdo_list_cont, lv_pct(100));    
+    lv_obj_set_flex_grow(pdo_list_cont, 1);   // <-- this is the key    
+
+    //lv_obj_align_to(pdo_list_cont, btn, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
     lv_obj_set_scrollbar_mode(pdo_list_cont, LV_SCROLLBAR_MODE_ON);
     lv_obj_set_scroll_dir(pdo_list_cont, LV_DIR_VER);
     lv_obj_set_flex_flow(pdo_list_cont, LV_FLEX_FLOW_COLUMN);
@@ -370,3 +407,8 @@ void ScreenPDOSetLocal(bool Local)
         }
     }
 }
+
+void ScreenPDOSetInfo(char * Info)
+{
+    if (infolabel != NULL) lv_label_set_text(infolabel, Info);
+}  

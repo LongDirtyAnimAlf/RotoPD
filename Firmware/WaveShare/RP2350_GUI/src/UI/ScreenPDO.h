@@ -21,6 +21,7 @@ void ScreenPDOSetPDO(
   uint16_t maxVoltage_mV,
   uint16_t maxCurrent_mA);  // Approximate upper bound of current range
 void ScreenPDOSetLocal(bool Local);  
+void ScreenPDOSetInfo(char * Info);  
 
 #ifdef __cplusplus
 } /*extern "C"*/
