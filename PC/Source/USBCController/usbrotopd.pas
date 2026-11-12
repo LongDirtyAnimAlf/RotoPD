@@ -48,6 +48,9 @@ type
     CMD_set_PPSPDO,
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
+    CMD_set_code,
+    CMD_set_brand,
+    CMD_set_model,
     CMD_set_output,
     CMD_set_batterymode,
     CMD_set_threshold,
@@ -56,6 +59,12 @@ type
     CMD_set_curcal,
     CMD_controller_reset = $B0
   );
+
+  //TInfoCommands = TCommands.CMD_set_code .. TCommands.CMD_set_model;
+
+const
+  //TInfoCommands  = [TCommands.CMD_set_code,TCommands.CMD_set_brand,TCommands.CMD_set_model];
+  InfoCommands : set of TCommands = [TCommands.CMD_set_code,TCommands.CMD_set_brand,TCommands.CMD_set_model];
 
 type
   TDeviceEvent    = procedure(Sender: TObject;datacarrier:integer) of object;
@@ -106,6 +115,8 @@ type
 
     function  SetValueFine(board:word;whattoset:TStageMode;value:dword;fine:word; out realvalue:UInt64):boolean;overload;
     function  SetPDO(board,PDOIndex,PDOType:byte;MaxCurrent_mA:dword=0;Voltage_mV:dword=0):boolean;
+
+    function  SetInfo(board:word;cmd:TCommands; Info:ansistring):boolean;
   public
     MaxErrors:word;
 
@@ -154,6 +165,7 @@ type
 
     function  SetThreshold(board:word; SM:TStageMode; TM: TThresholdMode; Enabled:boolean; Value:word):boolean;
 
+    function  SetProductInfo(board:word;Code,Brand,Model:ansistring):boolean;
   end;
 
 implementation
@@ -1202,6 +1214,61 @@ end;
 function  TDataDevice.SetChargeCurrent(board:word;value:dword;fine:word; out realvalue:UInt64):boolean;
 begin
   result:=SetValueFine(board,TStageMode.smCharge,value,fine,realvalue);
+end;
+
+function  TDataDevice.SetInfo(board:word;cmd:TCommands; Info:ansistring):boolean;
+var
+  error:boolean;
+  PLocalData:PReport;
+  datalength:word;
+  Ctrl:TUSBController;
+begin
+  result:=false;
+
+  if (NOT (cmd in InfoCommands)) then exit;
+
+  if CheckParameters(board) then
+  begin
+    exit;
+  end;
+
+
+  ErrorCounter:=1;
+
+  Ctrl:=DataSource.FindBoard(board);
+
+  datalength := Length(Info);
+  if (datalength>(Length(Ctrl.LocalData.Data)-DATASTART-1)) then datalength:=(Length(Ctrl.LocalData.Data)-DATASTART-1);
+
+  with TControllerData(Ctrl.ControllerData) do
+  begin
+    PLocalData:=@Ctrl.LocalData;
+
+    repeat
+      PLocalData^:=Default(TReport);
+      PLocalData^.Data[COMMANDPOSITION] := byte(cmd);
+      PLocalData^.Data[INDEXPOSITION] := board;
+      PLocalData^.Data[LENGTHPOSITION] := datalength;
+      Move(Info[1], PLocalData^.Data[DATASTART], datalength);
+      PLocalData^.Data[DATASTART+datalength] := 0;
+
+      error := HandleDataRequest(Ctrl,True);
+
+      if (NOT error) then with PLocalData^ do
+      begin
+      end;
+
+    until ((NOT error) OR (ErrorCounter>MaxErrors));
+  end;
+
+  result:=error;
+end;
+
+function  TDataDevice.SetProductInfo(board:word;Code,Brand,Model:ansistring):boolean;
+begin
+  result:=SetInfo(board,TCommands.CMD_set_code,Code);
+  result:=SetInfo(board,TCommands.CMD_set_brand,Brand);
+  result:=SetInfo(board,TCommands.CMD_set_model,Model);
 end;
 
 end.

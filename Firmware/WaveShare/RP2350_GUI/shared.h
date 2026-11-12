@@ -90,17 +90,10 @@
 
 #define    USB_CMD_error              0xFF
 
-typedef struct
-{
-  byte HIDEPOUTData[HID_INT_OUT_EP_SIZE];
-  byte HIDEPINData[HID_INT_IN_EP_SIZE];
-  bool DataReceived;
-} THIDData;
-
 struct HidReportFrame {
   uint8_t report_id;
-  uint8_t data[HID_INT_OUT_EP_SIZE];
   uint16_t len;
+  alignas(4) uint8_t data[HID_INT_OUT_EP_SIZE];
 };
 
 //typedef uint16_t word;
@@ -188,6 +181,9 @@ typedef enum {
     CMD_set_PPSPDO,
     CMD_set_AVSPDO,
     CMD_set_MAXPDO,
+    CMD_set_code,
+    CMD_set_brand,
+    CMD_set_model,
     CMD_set_output,
     CMD_set_batterymode,
     CMD_set_threshold,
@@ -369,9 +365,9 @@ typedef struct
 
 typedef struct
 {
-  char code[10];
+  char code[20];
   char brand[30];
-  char type[30];
+  char model[40];
   #ifdef STANDALONE  
   TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
   #endif

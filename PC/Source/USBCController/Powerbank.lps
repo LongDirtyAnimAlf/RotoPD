@@ -23,8 +23,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1291"/>
-        <CursorPos X="110" Y="1302"/>
+        <TopLine Value="1891"/>
+        <CursorPos Y="1912"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -36,21 +36,21 @@
       <Unit>
         <Filename Value="text.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="118"/>
+        <UsageCount Value="119"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="15"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\ap33772s.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="116"/>
+        <UsageCount Value="117"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="3" Y="13"/>
       </Unit>
       <Unit>
         <Filename Value="text1.txt"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="114"/>
+        <UsageCount Value="115"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
         <CursorPos Y="107"/>
@@ -3299,7 +3299,7 @@
         <Filename Value="..\Common\usbcpd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="100"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="1026"/>
         <CursorPos X="3" Y="1001"/>
       </Unit>
@@ -3335,8 +3335,8 @@
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\graphics.pp"/>
         <UnitName Value="Graphics"/>
         <Loaded Value="True"/>
-        <UsageCount Value="11"/>
-        <EditorIndex Value="3"/>
+        <UsageCount Value="12"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="258"/>
         <CursorPos X="11" Y="272"/>
       </Unit>
@@ -3632,10 +3632,10 @@
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <UnitName Value="usb"/>
         <Loaded Value="True"/>
-        <UsageCount Value="49"/>
-        <EditorIndex Value="8"/>
-        <TopLine Value="559"/>
-        <CursorPos Y="579"/>
+        <UsageCount Value="50"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="45"/>
+        <CursorPos X="27" Y="63"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\jedi\jvcl\jvcl\run\JvHidControllerClass.pas"/>
@@ -3674,10 +3674,11 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\rtl-objpas\src\inc\strutils.pp"/>
         <UnitName Value="StrUtils"/>
-        <UsageCount Value="4"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="98"/>
-        <CursorPos X="47" Y="112"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="2228"/>
+        <CursorPos X="30" Y="2235"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\inc\ctypes.pp"/>
@@ -3744,16 +3745,16 @@
       <Unit>
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="62"/>
-        <EditorIndex Value="6"/>
-        <TopLine Value="11"/>
-        <CursorPos Y="32"/>
+        <UsageCount Value="63"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="1242"/>
+        <CursorPos X="86" Y="1267"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="62"/>
-        <EditorIndex Value="7"/>
+        <UsageCount Value="63"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="24"/>
         <CursorPos Y="29"/>
       </Unit>
@@ -3803,8 +3804,8 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\defines.inc"/>
         <Loaded Value="True"/>
-        <UsageCount Value="16"/>
-        <EditorIndex Value="9"/>
+        <UsageCount Value="17"/>
+        <EditorIndex Value="10"/>
         <TopLine Value="5892"/>
         <CursorPos X="6" Y="5901"/>
       </Unit>
@@ -3888,8 +3889,8 @@
         <ResourceBaseClass Value="Frame"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
-        <UsageCount Value="20"/>
-        <EditorIndex Value="1"/>
+        <UsageCount Value="21"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="76"/>
         <CursorPos X="34" Y="95"/>
       </Unit>
@@ -3911,8 +3912,8 @@
         <Filename Value="..\Common\gauge.pas"/>
         <UnitName Value="Gauge"/>
         <Loaded Value="True"/>
-        <UsageCount Value="11"/>
-        <EditorIndex Value="2"/>
+        <UsageCount Value="12"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="574"/>
         <CursorPos Y="598"/>
       </Unit>
@@ -4039,8 +4040,8 @@
         <Filename Value="C:\fpcupsystems\stable324\lazarus\components\lazutils\graphtype.pp"/>
         <UnitName Value="GraphType"/>
         <Loaded Value="True"/>
-        <UsageCount Value="11"/>
-        <EditorIndex Value="4"/>
+        <UsageCount Value="12"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="62"/>
         <CursorPos X="3" Y="44"/>
       </Unit>
@@ -4048,102 +4049,126 @@
     <Debugger>
       <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
     </Debugger>
-    <JumpHistory HistoryIndex="23">
+    <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="10" Column="6"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="963" Column="34" TopLine="960"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="41" Column="8" TopLine="26"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1248" Column="21" TopLine="1228"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\gauge.pas"/>
-        <Caret Line="580" Column="41" TopLine="569"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1244" Column="25" TopLine="1228"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\gauge.pas"/>
-        <Caret Line="87" Column="23" TopLine="71"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1266" Column="67" TopLine="1241"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="43" Column="20" TopLine="28"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="168" Column="15" TopLine="145"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="95" Column="25" TopLine="92"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1219" Column="50" TopLine="1218"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="106" Column="27" TopLine="91"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="33" Column="12" TopLine="18"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\gauge.pas"/>
-        <Caret Line="62" Column="45" TopLine="50"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="1267" Column="37" TopLine="1242"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\gauge.pas"/>
-        <Caret Line="595" Column="49" TopLine="574"/>
+        <Filename Value="usbrotopd.pas"/>
+        <Caret Line="169" TopLine="145"/>
       </Position>
       <Position>
         <Filename Value="main.pas"/>
-        <Caret Line="1327" Column="13" TopLine="1308"/>
+        <Caret Line="1302" Column="110" TopLine="1292"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="145" Column="19" TopLine="132"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1735" Column="6" TopLine="1732"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="1127" Column="47" TopLine="1121"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1822" Column="66" TopLine="1806"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="88" TopLine="73"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="2354" Column="28" TopLine="2329"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="1132" TopLine="1112"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="2418" Column="15" TopLine="2394"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="1155" Column="46" TopLine="1128"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="122" Column="17" TopLine="108"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="88" Column="14" TopLine="73"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1508" Column="23" TopLine="1489"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="154" Column="19" TopLine="138"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1581" Column="19" TopLine="1557"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="156" Column="10" TopLine="145"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1730" Column="15" TopLine="1705"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="694" Column="55" TopLine="692"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1735" Column="15" TopLine="1710"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="88" Column="15" TopLine="73"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1874" Column="27" TopLine="1866"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="156" Column="21" TopLine="141"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1972" Column="38" TopLine="1955"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="753" Column="26" TopLine="749"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1973" Column="48" TopLine="1955"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="738" Column="69" TopLine="730"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1974" Column="121" TopLine="1955"/>
       </Position>
       <Position>
-        <Filename Value="usbrotopd.pas"/>
-        <Caret Line="86" TopLine="76"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="1742" TopLine="1726"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1741" Column="18" TopLine="1725"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <Caret Line="203" Column="16" TopLine="188"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\fpcupsystems\stable324\fpcsrc\packages\rtl-objpas\src\inc\strutils.pp"/>
+        <Caret Line="2277" Column="12" TopLine="2275"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1735" Column="7" TopLine="1724"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1739" Column="5" TopLine="1724"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="1741" Column="60" TopLine="1724"/>
       </Position>
     </JumpHistory>
     <RunParams>

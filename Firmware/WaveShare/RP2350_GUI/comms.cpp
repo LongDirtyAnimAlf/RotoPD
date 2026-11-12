@@ -481,7 +481,7 @@ bool process_command(void const *data, void *result)
   CommandType_t cCmd = CMD_unknown;
   byte BN = 0;
 
-  byte dataindexer,j,databyte;
+  byte dataindexer,j,databyte,datalength;
 
   DWORD_VAL dw_data;
   WORD_VAL  w_data;
@@ -502,19 +502,35 @@ bool process_command(void const *data, void *result)
   bool DEBUGONSCREEN = false;
   #endif
 
-	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
-  BN    = databuffer[BOARDPOSITION];
-  // datalength = databuffer[LENGTHPOSITION];
-
   // Data start at position 3 !!
   // 0   = Command
   // 1   = BoardNumber
   // 2   = Length
   // 3.. = Data
+	cCmd        = (CommandType_t)databuffer[COMMANDPOSITION];
+  BN          = databuffer[BOARDPOSITION];
+  datalength  = databuffer[LENGTHPOSITION];
   dataindexer = DATASTART;
 
   switch (cCmd)
   {
+    case CMD_set_code:
+    {
+      strcpy(CurrentSettings->code,reinterpret_cast<const char*>(&databuffer[dataindexer]));
+      //memcpy(CurrentSettings->code, &databuffer[dataindexer], datalength);
+      //CurrentSettings->code[datalength] = '\0';
+      break;
+    }
+    case CMD_set_brand:
+    {
+      strcpy(CurrentSettings->brand,reinterpret_cast<const char*>(&databuffer[dataindexer]));
+      break;
+    }
+    case CMD_set_model:
+    {
+      strcpy(CurrentSettings->model,reinterpret_cast<const char*>(&databuffer[dataindexer]));
+      break;
+    }
     case CMD_set_batterymode:
     {
       // Unfortunately, we have to set the batterymode by ourselves !!
@@ -1018,7 +1034,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
      // This delay seems necessary for communication with PC host
      // I do not know why ... :-()
     #ifdef ARDUINO_ARCH_ESP32
-    delayMicroseconds(1000U);
+    //delayMicroseconds(1000U);
     #endif
 
     // Send report back to host

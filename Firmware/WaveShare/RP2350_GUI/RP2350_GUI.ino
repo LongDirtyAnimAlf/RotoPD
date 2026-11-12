@@ -113,10 +113,12 @@ AP33772S pd((TwoWire*)&WireBattery);
 CanOpenNode node(/*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
-static TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
+static TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT];
+// As we have only a single board, this is a global var
 PBatteryBoard const CurrentBoard = BatteryBoards;
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
+// As we have only a single battery, this is a global var
 PBatterySetting const CurrentSettings = Batteries;
 
 static volatile bool flagSoundButton = false;

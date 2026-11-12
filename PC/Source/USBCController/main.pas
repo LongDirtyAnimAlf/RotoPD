@@ -1731,8 +1731,14 @@ begin
 end;
 
 procedure TPowerbankMainForm.TypesBoxSelect(Sender: TObject);
+var
+  PC,PB,PS:string;
 begin
   Product_edit.Text:=TypesBox.Text;
+  PC:=ExtractWord(1,Product_edit.Text,[' ']);
+  PB:=ExtractWord(2,Product_edit.Text,[' ']);
+  PS:=ExtractWord(3,Product_edit.Text,[' ']);
+  DD.SetProductInfo(PCurrentMachineSet^.MachineNumber,PC,PB,PS);
 end;
 
 procedure TPowerbankMainForm.UpdateTimerTimer(Sender: TObject);
@@ -1900,12 +1906,9 @@ begin
        then Append(F)
        else
        begin
-         i:=pos(' ',LocalPMS^.Product);
-         PC:=Copy(LocalPMS^.Product,1,i-1);
-         PB:=Copy(LocalPMS^.Product,i+1,MaxInt);
-         i:=pos(' ',PB);
-         PS:=Copy(PB,i+1,MaxInt);
-         PB:=Copy(PB,1,i-1);
+         PC:=ExtractWord(1,LocalPMS^.Product,[' ']);
+         PB:=ExtractWord(2,LocalPMS^.Product,[' ']);
+         PS:=ExtractWord(3,LocalPMS^.Product,[' ']);
 
          Rewrite(F);
          Write(F, #$EF#$BB#$BF);
