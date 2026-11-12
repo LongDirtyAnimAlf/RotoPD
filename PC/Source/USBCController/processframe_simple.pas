@@ -26,6 +26,7 @@ type
     EnergySeries: TLineSeries;
     panelVoltage: TPanel;
     panelCurrent: TPanel;
+    Timer1: TTimer;
     WaterSeries1: TLineSeries;
     WaterSeries2: TLineSeries;
     TemperatureSeries: TLineSeries;
@@ -35,6 +36,7 @@ type
       const ARect: TRect; var ADoDefaultDrawing: Boolean);
     procedure Panel1Resize(Sender: TObject);
     procedure Panel2Resize(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
     fEnabled                  : boolean;
     fNewVoltageDisplay        : TLEDDisplay;
@@ -44,7 +46,14 @@ type
 
     fPowerGauge            : TSuperGauge;
 
+    TimerState: boolean;
+    GaugeRangeError : boolean;
+
     procedure OnGaugeText(Sender: TObject; value: double; var labeltext: string);
+
+    procedure SuperGaugeOverloadRecovered(Sender: TObject; RangeValue: single);
+    procedure SuperGaugeOverloadTriggered(Sender: TObject; OutOfRangeValue: single);
+
     procedure SetVoltage(AValue: single);
     procedure SetCurrent(AValue: single);
     procedure SetPower(AValue: single);
@@ -72,6 +81,7 @@ implementation
 {$R *.lfm}
 
 uses
+  LCLType,
   FPimage,
   FPReadBMP, FPReadJPEG, FPReadPNG, FPReadGif, FPReadTiff,
   FPWriteBMP, FPWriteJPEG,
@@ -100,6 +110,8 @@ begin
 end;
 
 constructor TFrameSimple.Create(TheOwner: TComponent);
+var
+  ResStream: TResourceStream;
 begin
   inherited Create(TheOwner);
   Tag:=-1;
@@ -117,6 +129,8 @@ begin
 
     ScaleSettings.MainTickCount:=12;
     ScaleSettings.Step:=20;
+    ScaleSettings.SubTickCount:=4;
+
 
     BandSettings1.Enabled := True;
     BandSettings1.EndValue := round(100*60/MaxValue);
@@ -142,13 +156,13 @@ begin
     BandSettings3.TextStyle := [fsBold];
     BandSettings3.TextColor := clWhite;
     BandSettings3.BandColor := clRed;
-    BandSettings4.Text := 'Band 4';
-    BandSettings4.TextSize := 18;
-    BandSettings4.TextFont := 'default';
-    BandSettings4.TextStyle := [fsBold];
-    BandSettings4.TextRadius := 100;
-    BandSettings4.TextColor := clBlack;
-    BandSettings4.BandRadius := 90;
+    //BandSettings4.Text := 'Band 4';
+    //BandSettings4.TextSize := 18;
+    //BandSettings4.TextFont := 'default';
+    //BandSettings4.TextStyle := [fsBold];
+    //BandSettings4.TextRadius := 100;
+    //BandSettings4.TextColor := clBlack;
+    //BandSettings4.BandRadius := 90;
     TextSettings1.Enabled := True;
     TextSettings1.FontEx.Color := clWhite;
     //TextSettings1.FontEx.FontQuality := fqSystemClearType;
@@ -196,59 +210,49 @@ begin
     ScaleSettings.TextFont := 'default';
     ScaleSettings.TickArcColor := 8242399;
     ScaleSettings.Enabled := True;
-    AuxScaleSettings.TickColor := 8242399;
-    AuxScaleSettings.TextColor := 13881484;
-    AuxScaleSettings.TextSize := 20;
-    AuxScaleSettings.TextFont := 'default';
-    AuxScaleSettings.TickArcColor := 8242399;
-    AuxScaleSettings.Enabled := False;
     RangeLEDSettings.ActiveColor := clRed;
     RangeLEDSettings.InactiveColor := clBlack;
     RangeLEDSettings.BorderColor := clGray;
     RangeLEDSettings.Style := lsShaded;
-    RangeLEDSettings.RangeStartValue := 55;
+    RangeLEDSettings.RangeStartValue := round(100*200/MaxValue);
     RangeLEDSettings.RangeType := rcGreaterStart;
-    MarkerSettings1.Enabled := True;
-    MarkerSettings1.Color := clLime;
-    MarkerSettings1.Style := msRight;
-    MarkerSettings2.Enabled := True;
-    MarkerSettings2.Color := clRed;
-    MarkerSettings2.Style := msLeft;
-    MarkerSettings3.Enabled := True;
-    MarkerSettings3.Color := clYellow;
-    MarkerSettings3.Height := 15;
-    MarkerSettings3.Radius := 135;
-    MarkerSettings3.Width := 5;
+    //MarkerSettings1.Enabled := True;
+    //MarkerSettings1.Color := clLime;
+    //MarkerSettings1.Style := msRight;
+    //MarkerSettings2.Enabled := True;
+    //MarkerSettings2.Color := clRed;
+    //MarkerSettings2.Style := msLeft;
+    //MarkerSettings3.Enabled := True;
+    //MarkerSettings3.Color := clYellow;
+    //MarkerSettings3.Height := 15;
+    //MarkerSettings3.Radius := 135;
+    //MarkerSettings3.Width := 5;
     PointerSettings.Color := 4227327;
     PointerSettings.Enabled := True;
-    AuxPointerSettings.Color := clRed;
-    AuxPointerSettings.Length := 100;
-    AuxPointerSettings.ExtensionLength := 5;
-    AuxPointerSettings.Width := 7;
-    AuxPointerSettings.Enabled := False;
+    PointerSettings.Width:= 8;
+    PointerSettings.HighlightLine:=true;
+    PointerSettings.HighlightColor:=clBlack;
+    //AuxPointerSettings.Color := clRed;
+    //AuxPointerSettings.Length := 100;
+    //AuxPointerSettings.ExtensionLength := 5;
+    //AuxPointerSettings.Width := 7;
+    //AuxPointerSettings.Enabled := False;
     PointerCapSettings.Radius := 20;
-    //OverloadTriggered := SuperGaugeOverloadTriggered;
-    //OverloadRecovered := SuperGaugeOverloadRecovered;
+    OverloadTriggered := @SuperGaugeOverloadTriggered;
+    OverloadRecovered := @SuperGaugeOverloadRecovered;
     //AuxOverloadTriggered := SuperGaugeAuxOverloadTriggered;
     //AuxOverloadRecovered := SuperGaugeAuxOverloadRecovered;
     //RangeLEDActive := SuperGaugeRangeLEDActive;
     //RangeLEDInactive := SuperGaugeRangeLEDInactive;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    ResStream := TResourceStream.Create(HInstance, 'FLAME', RT_RCDATA);
+    try
+      FaceSettings.Picture.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    FaceSettings.PictureEnabled := False;
+    FaceSettings.PictureOffsetX := -16;
+    FaceSettings.PictureOffsetY := 56;
   end;
 
   (*
@@ -512,6 +516,63 @@ begin
   fPowerGauge.OnClick := Handler;
   fNewVoltageDisplay.OnClick := Handler;
   fNewCurrentDisplay.OnClick := Handler;
+end;
+
+procedure TFrameSimple.SuperGaugeOverloadRecovered(Sender: TObject;
+  RangeValue: single);
+begin
+  // ONLY calLED once when the previous state of the Value if the gauge was Overload.
+  // This is done to eliminate calling this on every change of the gauge value
+
+  //OutOfRangeLbl.Caption := FloatToStr(RangeValue) + ' Recovered' ;
+  fPowerGauge.BandSettings3.TextColor := clWhite;
+  GaugeRangeError := False;
+  Timer1.EnabLED:=False;
+  TimerState := True;
+  Timer1Timer(self);
+end;
+
+procedure TFrameSimple.SuperGaugeOverloadTriggered(Sender: TObject;
+  OutOfRangeValue: single);
+begin
+  // Called any time the guage value is Overloaded MinValue/MaxValue is the Range.
+  // Will only be reset once the value is in range, and that is handled by the
+  // OverloadRecovered event. This is called only once until the gauge Recovers
+  //
+  // NOTE : this is typically called when the Min/Max value is exceeded on the
+  // Main Pointer (Value).
+
+  //OutOfRangeLbl.Caption := FloatToStr(OutOfRangeValue) + ' Overload';
+  GaugeRangeError := True;
+  TimerState := False;
+  Timer1.EnabLED := True;
+  TimerState := False; // force call to always set, next tic will be turning off
+  Timer1Timer(self);
+end;
+
+procedure TFrameSimple.Timer1Timer(Sender: TObject);
+begin
+  TimerState := not TimerState;
+  //SuperLED2.Active := TimerState;
+
+  if TimerState then
+    begin
+      fPowerGauge.ScaleSettings.TickColor := clRed;
+      fPowerGauge.ScaleSettings.TickArcColor := clRed;
+      fPowerGauge.PointerCapSettings.FillColor := clRed;
+      fPowerGauge.BandSettings3.TextColor := clBlack;
+      fPowerGauge.FrameSettings.OuterFrameColor := clRed;
+      fPowerGauge.FaceSettings.PictureEnabled := True;
+    end
+  else
+    begin
+      fPowerGauge.ScaleSettings.TickColor := $007DC4DF;
+      fPowerGauge.ScaleSettings.TickArcColor := $007DC4DF;
+      fPowerGauge.PointerCapSettings.FillColor := clBlack;
+      fPowerGauge.BandSettings3.TextColor := clWhite;
+      fPowerGauge.FrameSettings.OuterFrameColor := clGray;
+      fPowerGauge.FaceSettings.PictureEnabled := False;
+  end;
 end;
 
 end.

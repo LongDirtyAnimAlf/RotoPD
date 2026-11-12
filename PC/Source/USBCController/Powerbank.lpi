@@ -13,10 +13,11 @@
         <DpiAware Value="True"/>
       </XPManifest>
       <Icon Value="0"/>
-      <Resources Count="3">
+      <Resources Count="4">
         <Resource_0 FileName="icons\Delete_01_32.png" Type="RCDATA" ResourceName="DELETE_01_32"/>
         <Resource_1 FileName="icons\Ok_02_32.png" Type="RCDATA" ResourceName="OK_02_32"/>
         <Resource_2 FileName="icons\Running_05_32.png" Type="RCDATA" ResourceName="RUNNING_05_32"/>
+        <Resource_3 FileName="icons\flame.png" Type="RCDATA" ResourceName="FLAME"/>
       </Resources>
     </General>
     <BuildModes>

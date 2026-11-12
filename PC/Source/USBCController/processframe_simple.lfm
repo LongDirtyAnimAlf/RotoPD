@@ -80,4 +80,10 @@ object FrameSimple: TFrameSimple
     Left = 224
     Top = 176
   end
+  object Timer1: TTimer
+    Enabled = False
+    OnTimer = Timer1Timer
+    Left = 37
+    Top = 29
+  end
 end
