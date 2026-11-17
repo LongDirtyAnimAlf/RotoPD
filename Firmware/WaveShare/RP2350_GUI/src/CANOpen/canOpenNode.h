@@ -31,10 +31,9 @@ public:
     // Run core communication loop
     bool run();
 
-    const Message& getMessage() const { return recv; }
-    Message& getMessage() { return recv; }
+    const Message getMessage(bool clearMessage = true);
     
-    void clearMessage() { recv.clearMsg(); }
+    //void clearMessage() { recv.clearMsg(); }
 
     #ifdef ARDUINO_ARCH_RP2040
     const MCP2515& getMCP2515() const { return can.getMCP2515(); }

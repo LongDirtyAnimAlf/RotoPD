@@ -921,11 +921,8 @@ bool process_command(void const *data, void *result)
     }
   }
 
-    // echo back length
+  // echo back length
   resultbuffer[LENGTHPOSITION]=(dataindexer-DATASTART);
-
-  CurrentBoard->NeedsGUIUpdate |= GUIUpdateNeeded;
-  CurrentBoard->NeedsStatusUpdate |= StatusUpdateNeeded;
 
   // Trivial: return true to indicate we have data to return.
   // Should always be true with this firmware !!
@@ -1011,7 +1008,9 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       {
         SendData = false;
 
-        if (report_type == HID_REPORT_TYPE_OUTPUT)
+        #ifndef ARDUINO_ARCH_ESP32
+        //if (report_type == HID_REPORT_TYPE_OUTPUT)
+        #endif
         {
           HidReportFrame frame;
           frame.report_id = report_id;

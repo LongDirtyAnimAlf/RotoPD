@@ -34,6 +34,7 @@ class Message {
   void setID(uint16_t ID);
   void setSubID(uint8_t sID);
   void setData(uint32_t payload);
+  bool  messageInValid() const;
   uint8_t getCommand() const;
   uint16_t getID() const;
   uint8_t getSubID() const;

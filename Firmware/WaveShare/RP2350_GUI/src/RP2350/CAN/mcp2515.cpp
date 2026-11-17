@@ -31,36 +31,52 @@ MCP2515::MCP2515(const uint32_t _SPI_CLOCK)
 void MCP2515::begin()
 {
     spi_init(BSP_XL2515_SPI_PORT, SPI_CLOCK);
+
+    // Explicitly configure SPI Mode 0 (CPOL = 0, CPHA = 0), 8 bits, MSB first
+    spi_set_format(
+        BSP_XL2515_SPI_PORT,
+        8,              // data_bits: 8-bit transfers
+        SPI_CPOL_0,     // cpol: Clock idle low (0)
+        SPI_CPHA_0,     // cpha: Sample on rising/first edge (0)
+        SPI_MSB_FIRST   // order: MCP2515 is MSB-first
+    );
+
     gpio_set_function(BSP_XL2515_SCLK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(BSP_XL2515_MOSI_PIN, GPIO_FUNC_SPI);
     gpio_set_function(BSP_XL2515_MISO_PIN, GPIO_FUNC_SPI);
 
     gpio_init(BSP_XL2515_CS_PIN);
-    gpio_init(BSP_XL2515_INT_PIN);
-
     gpio_set_dir(BSP_XL2515_CS_PIN, GPIO_OUT);
     gpio_put(BSP_XL2515_CS_PIN, 1);
 
-    gpio_set_dir(BSP_XL2515_INT_PIN, GPIO_IN);
-    gpio_pull_up(BSP_XL2515_INT_PIN);
+    // Optional: Enable pull-up on MISO so floating lines read 0xFF predictably if disconnected
+    //gpio_pull_up(BSP_XL2515_MISO_PIN);
 
+    // Set INT pin
+    //gpio_init(BSP_XL2515_INT_PIN);
+    //gpio_set_dir(BSP_XL2515_INT_PIN, GPIO_IN);
+    //gpio_pull_up(BSP_XL2515_INT_PIN);
 
     // We apply this to the outputs: SCK, MOSI, and CS
+    /*
     uint spi_outputs[] = {BSP_XL2515_SCLK_PIN, BSP_XL2515_MOSI_PIN, BSP_XL2515_CS_PIN};
-    
     for (int i = 0; i < 3; i++) {
         gpio_set_slew_rate(spi_outputs[i], GPIO_SLEW_RATE_FAST);
         gpio_set_drive_strength(spi_outputs[i], GPIO_DRIVE_STRENGTH_8MA);
-    }    
-
+    }
+    */    
 }
 
 void MCP2515_ISR_ATTR MCP2515::startSPI() const {
+    busy_wait_at_least_cycles(20);
     gpio_put(BSP_XL2515_CS_PIN, 0);    
+    busy_wait_at_least_cycles(20);
 }
 
 void MCP2515_ISR_ATTR MCP2515::endSPI() const {
+    busy_wait_at_least_cycles(20);
     gpio_put(BSP_XL2515_CS_PIN, 1);
+    busy_wait_at_least_cycles(20);
 }
 
 MCP2515::ERROR MCP2515::reset(void)
@@ -131,13 +147,18 @@ void MCP2515::disableInterrupt(void)
 {
     if (_intPin >= 0)
     {
+        _intPin = -1;
         //detachInterrupt(digitalPinToInterrupt(_intPin)); 
         pinMode(_intPin, INPUT_PULLDOWN);       
-        _intPin = -1;
     }
 }
 
-bool __not_in_flash_func(MCP2515::checkInterrupt)(void)
+bool __not_in_flash_func(MCP2515::checkIntPin)(void)
+{
+    return ((_intPin >= 0) && (digitalRead(_intPin) == LOW));
+}
+
+bool MCP2515::checkInterrupt(void)
 {
     bool result = false;
 
@@ -893,6 +914,16 @@ uint8_t MCP2515::getErrorFlags(void)
 uint8_t MCP2515::getControlRegister(void) 
 {
     return readRegister(MCP_CANCTRL);
+}
+
+void MCP2515::clearRX0OVRFlag(void)
+{
+	modifyRegister(MCP_EFLG, EFLG_RX0OVR, 0);
+}
+
+void MCP2515::clearRX1OVRFlag(void)
+{
+	modifyRegister(MCP_EFLG, EFLG_RX1OVR, 0);
 }
 
 void MCP2515::clearRXnOVRFlags(void)

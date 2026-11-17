@@ -32,6 +32,11 @@ void Message::setData(uint32_t payload)
   data[SDO::DATA_7] = ((payload >> 24) & 0xFF);
 }
 
+bool Message::messageInValid() const
+{
+  return ((id == 0) && (dlc == 0));
+}
+
 uint8_t Message::getCommand() const
 {
   return (data[SDO::COMMAND]);

@@ -3,6 +3,8 @@
 
 #include "Arduino.h"
 
+//#include <atomic>
+
 #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
 
 #include "pico/critical_section.h"
@@ -62,13 +64,15 @@ public:
         }
 
         if (CIRCULARBUFFERSIZE < 100) {
-            frames = (T*)malloc(CIRCULARBUFFERSIZE * sizeof(T));
+            //frames = (T*)memalign(sizeof(void*),(CIRCULARBUFFERSIZE * sizeof(T)));
+            frames = (T*)malloc((CIRCULARBUFFERSIZE * sizeof(T)));
         }
         if (frames == nullptr) {
             frames = (T*)pmalloc(CIRCULARBUFFERSIZE * sizeof(T));
         }
         if (frames == nullptr) {
-            frames = (T*)malloc(CIRCULARBUFFERSIZE * sizeof(T)); // Final fallback
+            //frames = (T*)memalign(sizeof(void*),(CIRCULARBUFFERSIZE * sizeof(T))); // Final fallback
+            frames = (T*)malloc((CIRCULARBUFFERSIZE * sizeof(T))); // Final fallback
         }
     }
 

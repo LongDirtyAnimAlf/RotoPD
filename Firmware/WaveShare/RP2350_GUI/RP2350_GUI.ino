@@ -27,6 +27,8 @@
 
 bool core1_separate_stack = true;
 
+#define STARTUP_READY_TOKEN 0xCAFEBABE
+
 #endif
 
 
@@ -63,13 +65,16 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     46 /* R0 */, 3 /* R1 */, 8 /* R2 */, 18 /* R3 */, 17 /* R4 */,
     14 /* G0 */, 13 /* G1 */, 12 /* G2 */, 11 /* G3 */, 10 /* G4 */, 9 /* G5 */,
     5 /* B0 */, 45 /* B1 */, 48 /* B2 */, 47 /* B3 */, 21 /* B4 */,
+    #ifdef ALTERNATIVE
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
     1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
-    #ifndef ALTERNATIVE
     ,0 /* pclk_active_neg */, 16000000 /* prefer_speed */, false /* useBigEndian  */,
     0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
     #else
-    );
+    1 /* hsync_polarity */, 50 /* hsync_front_porch */, 2 /* hsync_pulse_width */, 44 /* hsync_back_porch */,
+    1 /* vsync_polarity */, 12 /* vsync_front_porch */, 2 /* vsync_pulse_width */, 18 /* vsync_back_porch */
+    ,0 /* pclk_active_neg */, 10000000 /* prefer_speed */, false /* useBigEndian  */,
+    0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 10 /* bounce_buffer_size_px */);    
     #endif
 
 Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
@@ -102,8 +107,6 @@ Adafruit_USBD_HID HID;
 #endif
 #endif
 
-unsigned long loopStartTime = 0;
-
 // Must be a global variable !!!
 static char mySerial[30];
 static char myFirmware[30];
@@ -121,15 +124,12 @@ static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings a
 // As we have only a single battery, this is a global var
 PBatterySetting const CurrentSettings = Batteries;
 
-static volatile bool flagSoundButton = false;
+static bool flagSoundButton = false;
+static bool flagProcessMeasurementData = false;
+static bool StoreBoardInfo = false;
+static byte pending_screen_index = 0;
 
-static volatile bool flagProcessMeasurementData = false;
-
-// Flag flash dirty for storing board info
-static volatile bool StoreBoardInfo = false;
-static volatile byte pending_screen_index = 0;
-
-std::atomic<uint32_t> counterCore1 = 0;
+//std::atomic<uint32_t> counterCore1 = 0;
 
 //GT911_Lite tp; // touchscreen through TwoWire
 
@@ -152,10 +152,11 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 #include "hardware/sync.h"
 #include "hardware/structs/qmi.h"
 
-void set_psram_timing_auto(void)
+void set_psram_timing_autooo(void)
 {
   // Maximum target SCK frequency for PSRAM (Hz)
   const uint32_t MAX_PSRAM_SCK_HZ = 133000000;
+  //const uint32_t MAX_PSRAM_SCK_HZ = 125000000;
 
   // PSRAM Datasheet Parameters
   const uint32_t MAX_SELECT_NS   = 8000; // Max CS assertion (~8 µs)
@@ -218,7 +219,7 @@ void set_psram_timing_auto(void)
   restore_interrupts(irq);
 }
 
-void set_psram_timing_autooo()
+void set_psram_timing_auto()
 {
     // Maximum safe SCK frequency for most common PSRAM chips (Hz)
     const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
@@ -693,9 +694,18 @@ static void datastartcb(byte index)
 // Running on core1
 void setup1()
 {
-  mutex_enter_blocking(&can_mutex);
-  node.getCAN().taskCAN();
-  mutex_exit(&can_mutex);  
+  uint32_t token = 0;
+  while (token != STARTUP_READY_TOKEN)
+  {
+    delay(1);
+    token = rp2040.fifo.pop();
+  }
+  //initCANopen();
+  //Info_Add("GUI. Setting up CANOpen ready.");
+  //Serial.println("GUI. Setting up CANOpen ready.");
+  //mutex_enter_blocking(&can_mutex);
+  //node.getCAN().taskCAN();
+  //mutex_exit(&can_mutex);  
 }
 
 void loop1() {
@@ -704,31 +714,32 @@ void loop1() {
   static uint32_t loop1counter = 0;
   static int32_t datacounter = 0;
 
-  counterCore1++;
+  //counterCore1++;
   //counterCore1.fetch_add(1);
 
-  if ((millis() - startTimeLoop1) >= 100000)
+  while ((millis() - startTimeLoop1) >= 1000)
   {
 
     // This runs every second !!
-    startTimeLoop1 = millis();
+    startTimeLoop1 += 1000;
+
+    //Serial.printf("Loop 1: %d.\n",loop1counter++);
 
     //Serial.printf("Loop1: %d\n",loop1counter++);
-    Serial.printf("Loop1 net datacounter: %d\n",datacounter);
-    datacounter = node.getCAN().getCANRxQueueDepth();    
-    Serial.printf("Loop1 abs datacounter: %d\n",datacounter);
+    //Serial.printf("Loop1 net datacounter: %d\n",datacounter);
+    //datacounter = node.getCAN().getCANRxQueueDepth();    
+    //Serial.printf("Loop1 abs datacounter: %d\n",datacounter);
 
-    datacounter = 0;
+    //datacounter = 0;
   }
-
   //mutex_enter_blocking(&can_mutex);
-  int32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
+  //int32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
   node.getCAN().taskCAN();
-  rxdatacount = node.getCAN().getCANRxQueueDepth() - rxdatacount;
-  datacounter += rxdatacount;
+  //rxdatacount = node.getCAN().getCANRxQueueDepth() - rxdatacount;
+  //datacounter += rxdatacount;
   //mutex_exit(&can_mutex);  
   //yield();
-  //sleep_us(10);
+  //sleep_us(1);
   //delay(1);
   //delayMicroseconds(10);
 }
@@ -741,16 +752,11 @@ void setup()
   char myHex[10] = "";
   
   // If this throws an error during compilation, you know you need to adjust your padding array size!
-  #ifdef ARDUINO_ARCH_RP2040
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) == kOneQueueSize, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+  #ifdef ARDUINO_ARCH_RP2040
   static_assert(std::is_trivially_copyable<can_frame>::value,
               "can_frame must be trivially copyable for [multicore] safety!");
-  #endif
-
-  #ifdef ARDUINO_ARCH_ESP32
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
-              "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
   #endif
 
   // If it compiles, your memory footprint is perfectly optimized!
@@ -760,7 +766,7 @@ void setup()
 
   // Start by blocking all CAN activity
   mutex_init(&can_mutex);
-  mutex_enter_blocking(&can_mutex);
+  //mutex_enter_blocking(&can_mutex);
 
   // 1. STEP THE VOLTAGE UP INCREMENTALLY
   // Stepping avoids sudden current spikes that trip brownout resets.
@@ -928,6 +934,7 @@ void setup()
   SetIT2704Adress(BoardInfo.IT2704NodeID);
   SetIT2704Channel(BoardInfo.IT2704Channel);
 
+
   #ifdef ARDUINO_ARCH_RP2040
   Info_Add("GUI. Starting RP2350 hardware init.");
   bsp_buzzer_init();
@@ -1012,12 +1019,11 @@ void setup()
     Info_Add("GUI. RotoPD not connected or not found.");
 
   initCANopen();
-
+  
+  #ifdef ARDUINO_ARCH_RP2040
+  rp2040.fifo.push(STARTUP_READY_TOKEN);
+  #endif
   Info_Add("GUI. Setting up CANOpen ready.");
-
-  Info_Add("GUI. Init timers.");      
-
-  #ifdef STANDALONE
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
@@ -1026,7 +1032,6 @@ void setup()
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
   lv_indev_set_read_cb(indev, my_touchpad_read);
-  #endif // STANDALONE
 
   #ifdef ARDUINO_ARCH_RP2040
   
@@ -1055,17 +1060,17 @@ void setup()
   Info_Add_Fmt("    PSRAM used : %u KB.", rp2040.getUsedPSRAMHeap() / 1024);
   Info_Add_Fmt("    PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
 
-  /*
+/*
   for (int i = 0; i < 16; i++) {
-      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_12MA); // or 12MA
+      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_8MA); // or 12MA
       gpio_set_slew_rate(BSP_LCD_DATA0_PIN + i, GPIO_SLEW_RATE_SLOW);
   }
-  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
+  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_8MA);
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
-  */
+*/
 
   // Release the CAN activity
-  mutex_exit(&can_mutex);  
+  //mutex_exit(&can_mutex);  
 
   #endif
 
@@ -1084,16 +1089,16 @@ void setup()
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
   Info_Add("GUI. Init RP2350 ready.");
+
+  //#endif
 }
 
 void loop()
 {
   uint8_t j;
 
-  loopStartTime = millis();
-
   static unsigned long startTime = millis();
-  static unsigned long buzzerTime = millis();
+  static unsigned long buzzerTime = 0;
   static uint32_t loopcounter = 0;
 
   static bool CalcBatteryData = false;
@@ -1110,7 +1115,7 @@ void loop()
   static byte INData[COMMAND_SIZE] = {0};
   static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
 
-  byte dataindexer = 0;
+  byte dataindexer;
 
   WORD_VAL w_data;
   DWORD_VAL dw_data;
@@ -1120,7 +1125,7 @@ void loop()
   PRunDatas RDS = &CurrentBoard->TD.RunDatas; 
 
   int8_t PDOCount = 0;
-  static AP33772S_PDO PDO;
+  AP33772S_PDO PDO;
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
@@ -1167,7 +1172,19 @@ void loop()
     }
   }
 
-  Message rxmsg;
+  if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
+  {
+    buzzerTime = 0;
+    #ifdef ARDUINO_ARCH_RP2040
+    bsp_buzzer_enable(false);
+    #endif
+  }
+
+  //bool data_available2 = node.run();
+
+  //#ifndef YOLO
+
+  //const Message rxmsg;
   unsigned long maxCANTime = millis();
   bool data_available;
   do
@@ -1177,18 +1194,11 @@ void loop()
     //bool mutexOk = mutex_enter_timeout_ms(&can_mutex, 10 /*ms*/);
     //mutex_enter_blocking(&can_mutex);
     data_available = node.run();
-    // We did receive a message that was not handled by ourselves ?
-    if (data_available)
-    {
-      //const Message& rxmsg = node.getMessage();
-      //const Message rxmsg = node.getMessage();
-      rxmsg = node.getMessage();
-      node.clearMessage();
-    }
-    //mutex_exit(&can_mutex); 
 
     if (data_available)
     {
+      const Message rxmsg = node.getMessage();
+
       // ---- process the message ----
       if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
       {
@@ -1251,13 +1261,7 @@ void loop()
     }
   } while (data_available);
 
-  if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
-  {
-    buzzerTime = 0;
-    #ifdef ARDUINO_ARCH_RP2040
-    bsp_buzzer_enable(false);
-    #endif
-  }
+  #ifndef YOLO
 
   while ( (millis() - startTime) >= TICKERTIME )
   {
@@ -1273,11 +1277,19 @@ void loop()
       loopcounter = 0; 
     }
 
+    // Every second
+    if ((loopcounter % (1000u / TICKERTIME)) == 0)
+    {
+      //#ifdef DEBUG
+      Serial.printf("Loop 0: %d.\n",loopcounter);
+      //#endif
+    }
+
     #ifdef ARDUINO_ARCH_RP2040
     // Every 100s
     if ((loopcounter % (100000u / TICKERTIME)) == 0)
     {
-      Serial.printf("Loop: %d\n",counterCore1.load());
+      //Serial.printf("Loop 0: %d\n",counterCore1.load());
     }
     #endif
     
@@ -1308,11 +1320,6 @@ void loop()
     // Every second
     if ((loopcounter % (1000u / TICKERTIME)) == 0)
     {
-      #ifdef DEBUG                      
-      //static uint32_t loopcounter = 0;
-      //Serial.printf("Loop: %d\n",loopcounter / 20);
-      #endif
-
       if (!load.isConnected())
       {
         #ifdef DEBUG
@@ -1328,6 +1335,8 @@ void loop()
       //mutex_exit(&can_mutex); 
 
       //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
+
+      PDOCount = -1;
 
       PDOCount = taskRotoPDInit();
 
@@ -1485,7 +1494,7 @@ void loop()
       case CMD_set_brand:
       case CMD_set_model:
       {
-        char Info[100] = {0};
+        char Info[80] = {0};
         strcat(Info,CurrentSettings->code); 
         strcat(Info," : "); 
         strcat(Info,CurrentSettings->brand); 
@@ -1838,10 +1847,12 @@ void loop()
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
   }
 
-  check_screensaver_timeout();
+  #endif
+
+  //check_screensaver_timeout();
   
   lv_timer_periodic_handler();
-  
+
   //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);  
 
   #ifdef STANDALONE

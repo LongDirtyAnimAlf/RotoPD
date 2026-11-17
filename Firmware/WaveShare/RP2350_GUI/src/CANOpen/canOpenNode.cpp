@@ -217,67 +217,99 @@ void CanOpenNode::begin() {
 }
 
 // Run function to handle the core communication loop with NMT handling
-#ifdef ARDUINO_ARCH_RP2040
-bool __not_in_flash_func(CanOpenNode::run)() {
-#endif
-#ifdef ARDUINO_ARCH_ESP32
-bool CanOpenNode::run() {
-#endif
+bool CanOpenNode::run()
+{
     bool messageavailable = recv.run();
 
-    if (nmtOn) {
+    if (nmtOn)
+    {
 
-        if (messageavailable) nmtController();
+        if (messageavailable)
+        {
+            nmtController();
+            //messageavailable = !recv.messageInValid();
+        }
 
-        switch (nmtState) {
+        switch (nmtState)
+        {
             case NMT::Mode::BOOT:
+            {
                 sendMsg(nmt);                       // Boot-up message
                 nmtState = NMT::Mode::PRE_OPERATIONAL;
                 nmt.changeMode(nmtState);
                 pdoMapped = false;                 // Trigger re-map on boot transition
                 break;
-
+            }
             case NMT::Mode::PRE_OPERATIONAL:
+            {
                 if (mappingOn && !pdoMapped) {
                     mapPDOs();
                 }
                 // Handle SDO Read (Upload Request)
-                if (messageavailable) sdoHandler();
+                if (messageavailable)
+                {
+                    sdoHandler();
+                    //messageavailable = !recv.messageInValid();
+                }
                 // Heartbeat is allowed in Pre-Operational (CiA 301)
                 heartBeat();
                 break;
-
+            }
             case NMT::Mode::OPERATIONAL:
+            {
                 if (mappingOn && !pdoMapped) {
                     mapPDOs();
                 }
                 heartBeat();
                 for (int i = 0; i < 4; ++i) {
                     sendPDO(txPdo[i]);
-                    if (messageavailable) receivePDO(rxPdo[i]);
+                    if (messageavailable)
+                    {
+                        receivePDO(rxPdo[i]);
+                        //messageavailable = !recv.messageInValid();
+                    }
                 }
                 // Handle SDO Read (Upload Request)
-                if (messageavailable) sdoHandler();
+                if (messageavailable)
+                {
+                    sdoHandler();
+                    //messageavailable = !recv.messageInValid();
+                }
                 break;
-
+            }
             case NMT::Mode::STOPPED:
+            {
                 // Only NMT + Heartbeat are active in Stopped state
                 heartBeat();
                 break;
+            }
         }
-    } else {
+    }
+    else
+    {
         // NMT handling disabled - force Operational behaviour
-        if (mappingOn && !pdoMapped) {
+        if (mappingOn && !pdoMapped)
+        {
             mapPDOs();
         }
         nmt.changeMode(NMT::Mode::OPERATIONAL);
         heartBeat();
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 4; ++i) 
+        {
             sendPDO(txPdo[i]);
-            if (messageavailable) receivePDO(rxPdo[i]);
+            if (messageavailable)
+            {
+                receivePDO(rxPdo[i]);
+                //messageavailable = !recv.messageInValid();
+            }
         }
         // Handle SDO Read (Upload Request)
-        if (messageavailable) sdoHandler();
+        if (messageavailable)
+        {
+            sdoHandler();
+            //messageavailable = !recv.messageInValid();
+        } 
+
     }
 
     if (messageavailable) 
@@ -749,4 +781,15 @@ void CanOpenNode::sdoHandler() {
             recv.clearMsg();
         }
     }
+}
+
+const Message CanOpenNode::getMessage(bool clearMessage)
+{
+    Message localmessage;
+    localmessage.id = recv.id; 
+    localmessage.dlc = recv.dlc;
+    memcpy(localmessage.data, recv.data, 8);
+    //if (clearMessage) clearMessage();
+    if (clearMessage) recv.clearMsg();
+    return localmessage;
 }

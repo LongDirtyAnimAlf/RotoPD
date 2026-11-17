@@ -53,7 +53,7 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   16384u
+#define    DATASIZE                   8192u
 
 #define INA238_ADDRESS                0x40
 
@@ -273,8 +273,6 @@ static void ClearMeasurementData(PMeasurementData MAD)
   MAD->S = 0;
 }
 
-#pragma pack(push, 4) // Ensure consistent 4-byte or 8-byte member alignment
-
 #ifdef __cplusplus
 
 // C++ Layout
@@ -283,17 +281,16 @@ typedef struct TRunDatas {
     qword Capacity;             // in nAh
     qword Energy;               // in nWh
     qword Time;                 // in ms
-    byte  CurrentStageNumber;
     TThresholdDataItem ThresholdResult[tmLast];
-
-    // C++ Queues
+    byte  CurrentStageNumber;
+    // C++ Queues (Set ThreadSafe = true for Core 0 + Core 1 safety!)
     CircularDataQueue<TMeasurementData, DATASIZE, false> NewerRotoPDDatas;
     CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
 } TRunDatas, *PRunDatas;
 
 // Exact size of one queue (evaluated by the C++ compiler)
 static constexpr size_t kOneQueueSize =
-    sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>);
+    sizeof(CircularDataQueue<TMeasurementData, DATASIZE, true>);
 
 // Safety checks
 static_assert(sizeof(TMeasurementData) == 24, "TMeasurementData size unexpected");
@@ -302,40 +299,36 @@ static_assert(sizeof(TRunDatas) > 0, "TRunDatas must have a valid non-zero size"
 
 #else  // pure C
 
-// Fallback calculation that stays as close as possible to the real layout.
-// ESP: (pointer + lastItem + 3×uint16_t + bool + portMUX_TYPE + small padding)
-// RP2350: (pointer + lastItem + 3×uint16_t + critical_section_t + small padding)
+#ifdef ARDUINO_ARCH_ESP32
+#define QUEUE_LOCK_SIZE (sizeof(bool) + sizeof(portMUX_TYPE))
+#elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+#include "pico/critical_section.h"
+#define QUEUE_LOCK_SIZE sizeof(critical_section_t)
+#else
+#define QUEUE_LOCK_SIZE 8
+#endif
+
 #ifndef kOneQueueSize
 #define kOneQueueSize  ( sizeof(void*)                + \
                          sizeof(TMeasurementData)     + \
                          3 * sizeof(uint16_t)         + \
-#ifdef ARDUINO_ARCH_ESP32
-                         sizeof(bool)                 + \
-                         sizeof(portMUX_TYPE)         + \
-#endif
-#ifdef ARDUINO_ARCH_RP2040
-                         sizeof(critical_section_t)   + \
-#endif
-                         4 /* padding / alignment margin */ )
+                         QUEUE_LOCK_SIZE              + \
+                         8 /* padding / alignment margin */ )
 #endif // kOneQueueSize
-
-#endif //  __cplusplus
 
 typedef struct TRunDatas {
     // Cumulative data (must match C++ exactly)
     qword Capacity;             // in nAh
     qword Energy;               // in nWh
     qword Time;                 // in ms
-    byte  CurrentStageNumber;
     TThresholdDataItem ThresholdResult[tmLast];
-
+    byte  CurrentStageNumber;
     // Opaque storage for *both* C++ queues
-    alignas(uintptr_t) uint8_t _cpp_queue_opaque_storage[ 2 * kOneQueueSize ];
+    uintptr_t _cpp_queue_opaque_storage_roto[kOneQueueSize / sizeof(uintptr_t)];
+    uintptr_t _cpp_queue_opaque_storage_it2704[kOneQueueSize / sizeof(uintptr_t)];
 } TRunDatas, *PRunDatas;
 
-#endif
-
-#pragma pack(pop)
+#endif // __cplusplus
 
 typedef struct
 {
@@ -350,24 +343,20 @@ typedef struct
 
 typedef struct
 {
+  // PDO stuff
+  AP33772S_PDO PDO;
   // Actual board data
   TMeasurementData RotoPDData;
   TMeasurementData IT2704Data;
   // Status data
   TTestData TD;
-  // PDO stuff
-  AP33772S_PDO PDO;
-  // Miscellaneous GUI things
-  bool NeedsGUIUpdate;
-  bool NeedsStatusUpdate;
-  bool NeedsDataUpdate;
 } TBatteryBoard,*PBatteryBoard;
 
 typedef struct
 {
   char code[20];
   char brand[30];
-  char model[40];
+  char model[30];
   #ifdef STANDALONE  
   TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
   #endif
