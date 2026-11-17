@@ -19,7 +19,6 @@
 
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
-#include <pico/mutex.h>
 
 #include "./src/RP2350/bsp/bsp_i2c.h"
 #include "./src/RP2350/bsp/bsp_st7701.h"
@@ -98,7 +97,6 @@ USBCDC USBSerial;
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-mutex_t can_mutex;
 #ifdef ENABLEUSB
 #ifdef USE_TINYUSB
 // USB HID object
@@ -694,54 +692,18 @@ static void datastartcb(byte index)
 // Running on core1
 void setup1()
 {
+  // Loop until signalled by normal setup
   uint32_t token = 0;
   while (token != STARTUP_READY_TOKEN)
   {
     delay(1);
     token = rp2040.fifo.pop();
   }
-  //initCANopen();
-  //Info_Add("GUI. Setting up CANOpen ready.");
-  //Serial.println("GUI. Setting up CANOpen ready.");
-  //mutex_enter_blocking(&can_mutex);
-  //node.getCAN().taskCAN();
-  //mutex_exit(&can_mutex);  
 }
 
-void loop1() {
-
-  static unsigned long startTimeLoop1 = millis();
-  static uint32_t loop1counter = 0;
-  static int32_t datacounter = 0;
-
-  //counterCore1++;
-  //counterCore1.fetch_add(1);
-
-  while ((millis() - startTimeLoop1) >= 1000)
-  {
-
-    // This runs every second !!
-    startTimeLoop1 += 1000;
-
-    //Serial.printf("Loop 1: %d.\n",loop1counter++);
-
-    //Serial.printf("Loop1: %d\n",loop1counter++);
-    //Serial.printf("Loop1 net datacounter: %d\n",datacounter);
-    //datacounter = node.getCAN().getCANRxQueueDepth();    
-    //Serial.printf("Loop1 abs datacounter: %d\n",datacounter);
-
-    //datacounter = 0;
-  }
-  //mutex_enter_blocking(&can_mutex);
-  //int32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
+void loop1()
+{
   node.getCAN().taskCAN();
-  //rxdatacount = node.getCAN().getCANRxQueueDepth() - rxdatacount;
-  //datacounter += rxdatacount;
-  //mutex_exit(&can_mutex);  
-  //yield();
-  //sleep_us(1);
-  //delay(1);
-  //delayMicroseconds(10);
 }
 #endif
 
@@ -763,10 +725,6 @@ void setup()
   static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
   
   #ifdef ARDUINO_ARCH_RP2040
-
-  // Start by blocking all CAN activity
-  mutex_init(&can_mutex);
-  //mutex_enter_blocking(&can_mutex);
 
   // 1. STEP THE VOLTAGE UP INCREMENTALLY
   // Stepping avoids sudden current spikes that trip brownout resets.
@@ -1069,12 +1027,7 @@ void setup()
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
 */
 
-  // Release the CAN activity
-  //mutex_exit(&can_mutex);  
-
   #endif
-
-  //delay(2000);
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
@@ -1180,19 +1133,10 @@ void loop()
     #endif
   }
 
-  //bool data_available2 = node.run();
-
-  //#ifndef YOLO
-
-  //const Message rxmsg;
   unsigned long maxCANTime = millis();
   bool data_available;
   do
   {
-    data_available = false;
-
-    //bool mutexOk = mutex_enter_timeout_ms(&can_mutex, 10 /*ms*/);
-    //mutex_enter_blocking(&can_mutex);
     data_available = node.run();
 
     if (data_available)
@@ -1261,8 +1205,6 @@ void loop()
     }
   } while (data_available);
 
-  #ifndef YOLO
-
   while ( (millis() - startTime) >= TICKERTIME )
   {
     startTime += TICKERTIME;
@@ -1330,9 +1272,7 @@ void loop()
       //Serial.printf("CAN queue depth at loop %d. Rx: %d. Tx: %d. TxPrio: %d\n", loopcounter++, node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
 
       // Test connection with load IT2704
-      //mutex_enter_blocking(&can_mutex);
       load.queryConnection();
-      //mutex_exit(&can_mutex); 
 
       //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
 
@@ -1847,9 +1787,7 @@ void loop()
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
   }
 
-  #endif
-
-  //check_screensaver_timeout();
+  check_screensaver_timeout();
   
   lv_timer_periodic_handler();
 
