@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -10,10 +12,13 @@ extern "C" {
 /* Initialize low level display driver */
 void lv_port_disp_init(void);
 void lv_screen_init(uint16_t W, uint16_t H);
+void lv_screen_brightness(uint8_t b);
 uint32_t lv_port_get_buffer_heap_usage(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif /*LV_PORT_DISP_TEMPL_H*/

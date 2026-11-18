@@ -49,6 +49,8 @@ typedef struct
 extern "C" {
 #endif 
 
+void pio_rgb_sync_area_from_front(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
+
 void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin);
 
 /**

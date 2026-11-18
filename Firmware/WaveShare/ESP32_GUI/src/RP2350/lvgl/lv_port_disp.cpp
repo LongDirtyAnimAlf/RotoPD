@@ -12,6 +12,10 @@
 //#define RENDER_MODE_DIRECT
 #define USE_PSRAM
 
+#ifdef RENDER_MODE_DIRECT
+//#undef DOUBLE_BUFFER
+#endif
+
 #define MY_DISP_HOR_RES (480)
 #define MY_DISP_VER_RES (480)
 #define BYTE_PER_PIXEL (LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) /*will be 2 for RGB565 */
@@ -21,9 +25,9 @@
 #define PINGPONG_BUF_LINES  4  // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #else
-#define RENDER_MODE_DIRECT
-#define PINGPONG_BUF_LINES  120 // number of display lines in each transfer buffer in SRAM
-#define LVGL_DRAW_BUF_LINES  0 // number of display lines in each draw buffer in partial mode
+//#define RENDER_MODE_DIRECT
+#define PINGPONG_BUF_LINES  40 // number of display lines in each RP2350 transfer buffer in SRAM
+#define LVGL_DRAW_BUF_LINES  24 // number of display lines in each LVGL draw buffer in partial mode
 #endif
 
 static uint32_t usedheapbytes = 0;
@@ -36,84 +40,24 @@ static bsp_display_interface_t *display_if = NULL;
 
 static lv_display_t *disp_drv = NULL;                         /*Descriptor of a display driver*/
 
-/*
-void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
+#if defined(DOUBLE_BUFFER) && !defined(RENDER_MODE_DIRECT)
+static void __not_in_flash_func(on_display_sync)(lv_display_t * disp, const lv_area_t * area)
 {
-    bsp_display_interface_t *display_if = (bsp_display_interface_t *)lv_display_get_user_data(disp);
-
-    int32_t disp_hres = lv_display_get_horizontal_resolution(disp);
-    int32_t disp_vres = lv_display_get_vertical_resolution(disp);
-    lv_color_format_t cf = lv_display_get_color_format(disp);
-    uint32_t px_size = lv_color_format_get_size(cf);
-
-
-
-    //Calculate the position of the rotated area
-    lv_area_t rotated_area = *area;
-    lv_display_rotate_area(disp, &rotated_area);
-
-    //Calculate the source stride (bytes in a line) from the width of the area
-    uint32_t src_stride = lv_draw_buf_width_to_stride(disp_hres, cf);
-
-    //Calculate the stride of the destination (rotated) area too
-    uint32_t fb_stride = lv_draw_buf_width_to_stride(disp_hres, cf);
-
-    uint8_t * fb_start = (uint8_t *)pio_rgb_get_free_framebuffer();
-    fb_start += rotated_area.y1 * fb_stride + rotated_area.x1 * px_size;
-
-    px_map += area->y1 * src_stride + area->x1 * px_size;
-
-    lv_display_rotation_t rotation = lv_display_get_rotation(disp);
-    if(rotation == LV_DISPLAY_ROTATION_0)
-    {
-      // Direct copy !!
-      if (src_stride == fb_stride)
-      {
-        int32_t src_h = lv_area_get_height(area);
-        memcpy(fb_start, px_map, (src_stride * src_h));
-      }
-      else
-      {
-        int32_t y;
-        for(y = area->y1; y <= area->y2; y++)
-        {
-          lv_memcpy(fb_start, px_map, src_stride);
-          px_map += src_stride;
-          fb_start += fb_stride;
-        }
-      }
-    }
-    else
-    {
-      //Calculate the properties of the source buffer
-      int32_t src_w = lv_area_get_width(area);
-      int32_t src_h = lv_area_get_height(area);
-      // Rotate
-      lv_draw_sw_rotate(px_map, fb_start, src_w, src_h, src_stride, fb_stride, rotation, cf);
-    }
-
-    if (lv_display_flush_is_last(disp))
-    {
-        #ifdef DOUBLE_BUFFER
-        // We are ready with this framebuffer
-        // Tell the hardware and switch framebuffer
-        display_if->flush_dma(NULL, NULL); 
-        #endif
-        #ifndef USE_PSRAM
-        lv_disp_flush_ready(disp);
-        #endif
-    }
-    else
-    {
-        lv_disp_flush_ready(disp);
-    }
+    (void)disp;
+    pio_rgb_sync_area_from_front(
+        (uint16_t)area->x1,
+        (uint16_t)area->y1,
+        (uint16_t)area->x2,
+        (uint16_t)area->y2
+    );
+    /* Tell LVGL this area is done */
+    lv_display_sync_ready(disp);
 }
-*/
+#endif
 
 void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
 {
     #ifndef RENDER_MODE_DIRECT
-
     bsp_display_interface_t *display_if = (bsp_display_interface_t *)lv_display_get_user_data(disp);
 
     bsp_display_area_t display_area = {
@@ -123,18 +67,15 @@ void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area
         .y2 = (uint16_t)area->y2
     };
 
-    display_if->flush_dma(&display_area, (uint16_t *)px_map); // Let's say it's a 16 bit (RGB565) display
-
+    display_if->flush_dma(&display_area, (uint16_t *)px_map);
     #endif
 
     if (lv_display_flush_is_last(disp))
     {
         #ifdef DOUBLE_BUFFER
-        // We are ready with this framebuffer
-        // Tell the hardware and switch framebuffer
-        display_if->flush_dma(NULL, NULL); 
-        #endif
-        #ifndef USE_PSRAM
+        // Request framebuffer swap at end of current LCD scanout
+        display_if->flush_dma(NULL, NULL);
+        #else
         lv_disp_flush_ready(disp);
         #endif
     }
@@ -183,8 +124,12 @@ void lv_screen_init(uint16_t W, uint16_t H)
 
     rgb_info.transfer_size = (W * PINGPONG_BUF_LINES);
     rgb_info.mode.enabled_transfer = true;
-    
+
+    #ifdef DOUBLE_BUFFER
     rgb_info.dma_flush_done_cb = disp_flush_done;
+    #else
+    rgb_info.dma_flush_done_cb = NULL;
+    #endif
    
     #else //USE_PSRAM
 
@@ -238,8 +183,8 @@ void lv_screen_init(uint16_t W, uint16_t H)
     buf_data_1 = (uint8_t *)rgb_info.framebuffer1;
     #endif
     #else
-    // Only single buffer needed
     buf_data_1 = (uint8_t *)memalign(sizeof(void*), W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
+    buf_data_2 = (uint8_t *)memalign(sizeof(void*), W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     usedheapbytes += (W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     #endif
 
@@ -252,6 +197,9 @@ void lv_screen_init(uint16_t W, uint16_t H)
 
     lv_display_set_color_format(disp_drv, LV_COLOR_FORMAT_RGB565);
     lv_display_set_flush_cb(disp_drv, disp_flush);
+    #if defined(DOUBLE_BUFFER) && !defined(RENDER_MODE_DIRECT)
+    lv_display_set_sync_cb(disp_drv, on_display_sync);
+    #endif
     lv_display_set_user_data(disp_drv, display_if);
 }
 

@@ -277,6 +277,20 @@ class MCP2515
             EFLG_EWARN  = (1<<0)
         };
 
+        enum /*class*/ STAT : uint8_t {
+            STAT_RX0IF   =     (1 << 0),  // 0x01: CANINTF.RX0IF
+            STAT_RX1IF   =     (1 << 1),  // 0x02: CANINTF.RX1IF
+            STAT_TX0REQ  =     (1 << 2),  // 0x04: TXB0CTRL.TXREQ
+            STAT_TX0IF   =     (1 << 3),  // 0x08: CANINTF.TX0IF
+            STAT_TX1REQ  =     (1 << 4),  // 0x10: TXB1CTRL.TXREQ
+            STAT_TX1IF   =     (1 << 5),  // 0x20: CANINTF.TX1IF
+            STAT_TX2REQ  =     (1 << 6),  // 0x40: TXB2CTRL.TXREQ
+            STAT_TX2IF   =     (1 << 7)   // 0x80: CANINTF.TX2IF
+        };
+
+        static const uint8_t STAT_RXIF_MASK = (STAT_RX0IF | STAT_RX1IF);
+        static const uint8_t STAT_TXIF_MASK = (STAT_TX0IF | STAT_TX1IF | STAT_TX2IF);
+
     private:
         static const uint8_t CANCTRL_REQOP = 0xE0;
         static const uint8_t CANCTRL_ABAT = 0x10;
@@ -320,13 +334,6 @@ class MCP2515
         static const uint8_t MCP_EID0 = 3;
         static const uint8_t MCP_DLC  = 4;
         static const uint8_t MCP_DATA = 5;
-
-        enum /*class*/ STAT : uint8_t {
-            STAT_RX0IF = (1<<0),
-            STAT_RX1IF = (1<<1)
-        };
-
-        static const uint8_t STAT_RXIF_MASK = STAT_RX0IF | STAT_RX1IF;
 
         enum /*class*/ TXBnCTRL : uint8_t {
             TXB_ABTF   = 0x40,
@@ -509,6 +516,8 @@ class MCP2515
         bool checkError(void);
         uint8_t getErrorFlags(void);
         uint8_t getControlRegister(void);
+        void clearRX0OVRFlag(void);
+        void clearRX1OVRFlag(void);
         void clearRXnOVRFlags(void);
         uint8_t getInterrupts(void);
         uint8_t getInterruptMask(void);
@@ -527,6 +536,7 @@ class MCP2515
         void enableInterrupt(int intPin, void (*callback)(void));
         void disableInterrupt(void);
         bool checkInterrupt(void);
+        bool checkIntPin(void);
 };
 
 #endif

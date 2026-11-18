@@ -1,5 +1,8 @@
 #ifndef __BSP_CST820_H__
 #define __BSP_CST820_H__
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,5 +36,6 @@ bsp_touch_interface_t *bsp_cst820_get_touch_interface(void);
 } /*extern "C"*/
 #endif
 
+#endif
 
 #endif

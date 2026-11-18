@@ -89,14 +89,30 @@ uses
   printform;
 
 const
+  clOrange                     = TColor($00A5FF);
+  clDarkAqua                   = TColor($C0F000);
+  clFluorGreen                 = TColor($0014FF39); // Electric / Neon Green
+  clFluorPink                  = TColor($009314FF); // Hot / Neon Pink
+  clFluorCyan                  = TColor($00FFFF00); // Electric Cyan (same as clAqua)
+  clFluorYellow                = TColor($0000FFFF); // Neon Yellow (same as clYellow)
+  clFluorOrange                = TColor($00005FFF); // Bright Neon Orange
+  clFluorBg                    = TColor($00120A0A); // Very dark blue-black background
+
   //IBUSCOLOR                    = TColor($4040FF);
   //VBUSCOLOR                    = TColor($80FF80);
   //ENERGYCOLOR                  = clYellow;
   //POWERCOLOR                   = clFuchsia;
-  IBUSCOLOR                    = clRed;
-  VBUSCOLOR                    = clRed;
-  ENERGYCOLOR                  = clRed;
-  POWERCOLOR                   = clRed;
+
+  //IBUSCOLOR                    = clRed;
+  //VBUSCOLOR                    = clRed;
+  //ENERGYCOLOR                  = clRed;
+  //POWERCOLOR                   = clRed;
+
+  IBUSCOLOR                    = clFluorCyan;
+  VBUSCOLOR                    = clFluorCyan;
+  ENERGYCOLOR                  = clFluorCyan;
+  POWERCOLOR                   = clFluorCyan;
+
   ACTIVECOLOR                  = TColor($E0F0FF); // clMenuHighlight
   //INACTIVECOLOR                = TColor($404040); // clDefault
   INACTIVECOLOR                = clLtGray;

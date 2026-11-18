@@ -21,6 +21,7 @@ extern "C" {
 
 void Setup_Screen1(byte index);
 void Screen1SetData(PBatterySetting SET);
+void Screen1SetTestData(PTestData TD);
 void Screen1SetStageData(PStageData SD);
 void Screen1AddVIData(word V, word I);
 void Screen1AddEPData(dword E, dword P);
@@ -37,6 +38,8 @@ void Screen1SetDischargeCurrent(word I);
 word Screen1GetDischargeCurrent(void);
 void Screen1SetChargeCurrent(word I);
 word Screen1GetChargeCurrent(void);
+
+void Screen1SetLocal(bool Local);
 
 #ifdef __cplusplus
 } /*extern "C"*/

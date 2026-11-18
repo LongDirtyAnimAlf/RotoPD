@@ -1,6 +1,8 @@
 #ifndef __PIO_RGB_H__
 #define __PIO_RGB_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "pico/stdlib.h"
 #include <stdio.h>
 #include "pico/stdlib.h"
@@ -72,6 +74,8 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

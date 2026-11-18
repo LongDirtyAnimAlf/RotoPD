@@ -1,6 +1,6 @@
 #include "CANRP2350.h"
 
-//#ifdef ARDUINO_ARCH_RP2040
+#ifdef ARDUINO_ARCH_RP2040
 
 #include <string.h>
 
@@ -406,4 +406,4 @@ bool CBUSDevice::processTxQueue(void)
     return (result == MCP2515::ERROR_OK);
 }
 
-//#endif
+#endif

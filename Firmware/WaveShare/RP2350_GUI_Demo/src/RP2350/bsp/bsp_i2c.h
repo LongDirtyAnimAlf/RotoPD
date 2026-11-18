@@ -1,6 +1,8 @@
 #ifndef __BSP_I2C_H__
 #define __BSP_I2C_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,3 +32,4 @@ void bsp_i2c_init(void);
 
 #endif
 
+#endif

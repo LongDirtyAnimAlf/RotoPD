@@ -1,5 +1,8 @@
 #include "Arduino.h"
 #include "pio_rgb.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "pio_rgb.pio.h"
 
 #include "hardware/pio.h"
@@ -22,13 +25,80 @@ static int rgb_dma_chan;
 static pio_rgb_info_t *g_pio_rgb_info;
 static uint16_t *buffer;
 
+static void __not_in_flash_func(sram_copy_u16)(uint16_t *dst, const uint16_t *src, size_t count)
+{
+    uint32_t *d = (uint32_t *)dst;
+    const uint32_t *s = (const uint32_t *)src;
+    size_t words = count >> 1;
+    for (size_t i = 0; i < words; i++) {
+        d[i] = s[i];
+    }
+    if (count & 1) {
+        dst[count - 1] = src[count - 1];
+    }
+}
+
+static inline void fast_copy_u16(uint16_t *dst, const uint16_t *src, size_t count)
+{
+    // Treat the buffers as 32-bit words
+    uint32_t *d = (uint32_t *)dst;
+    const uint32_t *s = (const uint32_t *)src;
+
+    size_t words = count / 2;          // two pixels per 32-bit word
+
+    // Unroll by 4 words = 8 pixels
+    while (words >= 4) {
+        d[0] = s[0];
+        d[1] = s[1];
+        d[2] = s[2];
+        d[3] = s[3];
+        d += 4;
+        s += 4;
+        words -= 4;
+    }
+
+    // Remaining 32-bit words
+    while (words--) {
+        *d++ = *s++;
+    }
+
+    // Odd pixel left over? (should not happen if count is even)
+    if (count & 1) {
+        dst[count - 1] = src[count - 1];
+    }
+}
+
+
 void __no_inline_not_in_flash_func(dma_complete_handler)(void)
 {
+    static bool bufferswap = true;
+
     if (g_pio_rgb_info->mode.enabled_transfer)
     {
         // Advance to the next chunk
         g_pio_rgb_info->transfer_index =
             (g_pio_rgb_info->transfer_index + 1) % g_pio_rgb_info->transfer_index_max;
+
+        /*
+        // Starting with a new frame ?
+        if (g_pio_rgb_info->transfer_index == 0)
+        {
+            if (g_pio_rgb_info->change_framebuffer_flag || !g_pio_rgb_info->mode.double_buffer)
+            {
+
+                if (g_pio_rgb_info->change_framebuffer_flag)
+                {
+                    g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
+                    g_pio_rgb_info->change_framebuffer_flag = false;
+                }
+
+                if (g_pio_rgb_info->dma_flush_done_cb)
+                {
+                    g_pio_rgb_info->dma_flush_done_cb();
+                }
+            }
+        }
+        */
 
         // Pointer to the chunk we need from the (possibly PSRAM) framebuffer
         uint16_t *next_chunk = &g_pio_rgb_info->_framebuffer[
@@ -42,7 +112,8 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
             uint16_t *ready_buffer;
             uint16_t *fill_buffer;
 
-            if (g_pio_rgb_info->transfer_index % 2 == 0)
+            if (bufferswap)
+            //if (g_pio_rgb_info->transfer_index % 2 == 0)
             {
                 ready_buffer = g_pio_rgb_info->transfer_buffer1;
                 fill_buffer  = g_pio_rgb_info->transfer_buffer2;
@@ -52,14 +123,16 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
                 ready_buffer = g_pio_rgb_info->transfer_buffer2;
                 fill_buffer  = g_pio_rgb_info->transfer_buffer1;
             }
+            bufferswap = !bufferswap;            
 
             // 1. Start DMA from the buffer that already contains valid data
             //    (SRAM → never stalls the DMA engine)
             dma_channel_set_read_addr(rgb_dma_chan, ready_buffer, true);
 
             // 2. Copy next chunk from PSRAM → SRAM bounce buffer.
-            memcpy(fill_buffer, next_chunk,
-                    g_pio_rgb_info->transfer_size * sizeof(uint16_t));
+            sram_copy_u16(fill_buffer, next_chunk, g_pio_rgb_info->transfer_size);
+            //memcpy(fill_buffer, next_chunk,
+            //        g_pio_rgb_info->transfer_size * sizeof(uint16_t));
         }
         else
         {
@@ -67,21 +140,24 @@ void __no_inline_not_in_flash_func(dma_complete_handler)(void)
         }
 
         // Full frame finished ?
-        if ((g_pio_rgb_info->change_framebuffer_flag || (!g_pio_rgb_info->mode.double_buffer)) &&
-            (g_pio_rgb_info->transfer_index == g_pio_rgb_info->transfer_index_max - 1))
+        if (g_pio_rgb_info->transfer_index == (g_pio_rgb_info->transfer_index_max - 1))
         {
-
-            if (g_pio_rgb_info->change_framebuffer_flag)
+            if (g_pio_rgb_info->change_framebuffer_flag || !g_pio_rgb_info->mode.double_buffer)
             {
-                g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
-                g_pio_rgb_info->change_framebuffer_flag = false;
-            }
 
-            if (g_pio_rgb_info->dma_flush_done_cb)
-            {
-                g_pio_rgb_info->dma_flush_done_cb();
+                if (g_pio_rgb_info->change_framebuffer_flag)
+                {
+                    g_pio_rgb_info->_framebuffer = pio_rgb_get_free_framebuffer();
+                    g_pio_rgb_info->change_framebuffer_flag = false;
+                }
+
+                if (g_pio_rgb_info->dma_flush_done_cb)
+                {
+                    g_pio_rgb_info->dma_flush_done_cb();
+                }
             }
         }
+
     }
     else
     //if (!g_pio_rgb_info->mode.enabled_psram)
@@ -139,10 +215,25 @@ void pio_rgb_update_framebuffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t 
 
     uint16_t *freeframebuffer = pio_rgb_get_free_framebuffer();
 
+    uint16_t *dst = &freeframebuffer[y1 * g_pio_rgb_info->width + x1];
+    for (size_t i = 0; i < color_height; i++)
+    {
+        sram_copy_u16(dst, color_p, color_width);
+        dst     += g_pio_rgb_info->width;   // next line in framebuffer
+        color_p += color_width;             // next line in source
+    }
+
+
+    //memcpy(&freeframebuffer[(y1) * g_pio_rgb_info->width + x1], color_p, color_width * color_height * sizeof(uint16_t));    
+
+    /*
     for (size_t i = 0; i < color_height; i++)
     {
         memcpy(&freeframebuffer[(i + y1) * g_pio_rgb_info->width + x1], &color_p[i * color_width], color_width * sizeof(uint16_t));    
+        //rp2040.memcpyDMA(&freeframebuffer[(i + y1) * g_pio_rgb_info->width + x1], &color_p[i * color_width], color_width * sizeof(uint16_t));    
+
     }
+    */
 }
 
 static inline void hsync_program_init(PIO pio, uint sm, uint offset, uint pin, float div)
@@ -282,6 +373,8 @@ static inline void rgb_program_init(PIO pio, uint sm, uint offset, uint pin, flo
 
 void pio_rgb_dma_init(pio_rgb_info_t *info)
 {
+    rgb_dma_chan = dma_claim_unused_channel(true);
+
     dma_channel_config c0 = dma_channel_get_default_config(rgb_dma_chan);
     channel_config_set_transfer_data_size(&c0, DMA_SIZE_16); // 16-bit transfers
     channel_config_set_read_increment(&c0, true);
@@ -358,7 +451,7 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
     // 中文：初始化pio 程序
     // English: Initialize pio program
     hsync_program_init(RGB_SYNC_PIO, hsync_sm, hsync_offset, pin->hsync_pin, pio_freq);
-    vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, pio_freq);
+    vsync_program_init(RGB_SYNC_PIO, vsync_sm, vsync_offset, pin->vsync_pin, 1.0f);
     rgb_de_program_init(RGB_COLOR_DATA_PIO, rgb_de_sm, rgb_de_offset, pin->de_pin, 1.0f);
     rgb_program_init(RGB_COLOR_DATA_PIO, rgb_sm, rgb_offset, pin->data0_pin, 1.0f);
 
@@ -375,3 +468,5 @@ void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin)
 
     dma_complete_handler();
 }
+
+#endif

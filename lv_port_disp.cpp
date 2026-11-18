@@ -1,9 +1,27 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include "lv_port_disp.h"
 #include <lvgl.h>
 #include <stdbool.h>
-#include "./../../bsp/pio_rgb.h"
-#include "./../../bsp/bsp_st7701.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
+#include "hardware/regs/addressmap.h"
+#include "hardware/sync.h"
+
+#ifndef XIP_BASE
+#define XIP_BASE 0x10000000u
+#endif
+
+#ifndef XIP_NOCACHE_NOALLOC_BASE
+#define XIP_NOCACHE_NOALLOC_BASE 0x14000000u
+#endif
+
+#ifndef XIP_MAINTENANCE_BASE
+#define XIP_MAINTENANCE_BASE 0x18000000u
+#endif
+
+#include "./../bsp/pio_rgb.h"
+#include "./../bsp/bsp_st7701.h"
 
 #define DOUBLE_BUFFER
 //#define RENDER_MODE_DIRECT
@@ -19,7 +37,7 @@
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #else
 #define RENDER_MODE_DIRECT
-#define PINGPONG_BUF_LINES  20 // number of display lines in each transfer buffer in SRAM
+#define PINGPONG_BUF_LINES  80 // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  0 // number of display lines in each draw buffer in partial mode
 #endif
 
@@ -32,6 +50,98 @@ static uint8_t *buf_data_2 = NULL;
 static bsp_display_interface_t *display_if = NULL;
 
 static lv_display_t *disp_drv = NULL;                         /*Descriptor of a display driver*/
+
+/*
+void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
+{
+    bsp_display_interface_t *display_if = (bsp_display_interface_t *)lv_display_get_user_data(disp);
+
+    int32_t disp_hres = lv_display_get_horizontal_resolution(disp);
+    int32_t disp_vres = lv_display_get_vertical_resolution(disp);
+    lv_color_format_t cf = lv_display_get_color_format(disp);
+    uint32_t px_size = lv_color_format_get_size(cf);
+
+
+
+    //Calculate the position of the rotated area
+    lv_area_t rotated_area = *area;
+    lv_display_rotate_area(disp, &rotated_area);
+
+    //Calculate the source stride (bytes in a line) from the width of the area
+    uint32_t src_stride = lv_draw_buf_width_to_stride(disp_hres, cf);
+
+    //Calculate the stride of the destination (rotated) area too
+    uint32_t fb_stride = lv_draw_buf_width_to_stride(disp_hres, cf);
+
+    uint8_t * fb_start = (uint8_t *)pio_rgb_get_free_framebuffer();
+    fb_start += rotated_area.y1 * fb_stride + rotated_area.x1 * px_size;
+
+    px_map += area->y1 * src_stride + area->x1 * px_size;
+
+    lv_display_rotation_t rotation = lv_display_get_rotation(disp);
+    if(rotation == LV_DISPLAY_ROTATION_0)
+    {
+      // Direct copy !!
+      if (src_stride == fb_stride)
+      {
+        int32_t src_h = lv_area_get_height(area);
+        memcpy(fb_start, px_map, (src_stride * src_h));
+      }
+      else
+      {
+        int32_t y;
+        for(y = area->y1; y <= area->y2; y++)
+        {
+          lv_memcpy(fb_start, px_map, src_stride);
+          px_map += src_stride;
+          fb_start += fb_stride;
+        }
+      }
+    }
+    else
+    {
+      //Calculate the properties of the source buffer
+      int32_t src_w = lv_area_get_width(area);
+      int32_t src_h = lv_area_get_height(area);
+      // Rotate
+      lv_draw_sw_rotate(px_map, fb_start, src_w, src_h, src_stride, fb_stride, rotation, cf);
+    }
+
+    if (lv_display_flush_is_last(disp))
+    {
+        #ifdef DOUBLE_BUFFER
+        // We are ready with this framebuffer
+        // Tell the hardware and switch framebuffer
+        display_if->flush_dma(NULL, NULL); 
+        #endif
+        #ifndef USE_PSRAM
+        lv_disp_flush_ready(disp);
+        #endif
+    }
+    else
+    {
+        lv_disp_flush_ready(disp);
+    }
+}
+*/
+
+// Clean (flush) dirty XIP cache lines covering a PSRAM buffer before DMA reads it
+/*
+static inline void __not_in_flash_func(xip_clean_psram_range)(const void *addr, size_t bytes)
+{
+    uintptr_t start = reinterpret_cast<uintptr_t>(addr);
+    // Clean only if pointer is in the cached XIP window (0x10000000..0x13FFFFFF)
+    if (start >= XIP_BASE && start < XIP_NOCACHE_NOALLOC_BASE) {
+        uintptr_t offset = (start - XIP_BASE) & ~0x7u;
+        uintptr_t end    = ((start - XIP_BASE) + bytes + 7u) & ~0x7u;
+        for (uintptr_t off = offset; off < end; off += 8) {
+            // Offset bit 0 = 1 cleans (writes back) the 8-byte cache line to PSRAM without evicting Flash code
+            *(volatile uint8_t *)(XIP_MAINTENANCE_BASE + off + 1u) = 0;
+        }
+        __dsb();
+    }
+}
+*/
 
 void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map)
 {
@@ -55,6 +165,9 @@ void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area
         #ifdef DOUBLE_BUFFER
         // We are ready with this framebuffer
         // Tell the hardware and switch framebuffer
+        // Flush dirty LVGL pixels from XIP cache into physical PSRAM before DMA reads them
+        //void *active_buf = lv_display_get_buf_active(disp)->data;
+        //xip_clean_psram_range(active_buf, MY_DISP_HOR_RES * MY_DISP_VER_RES * BYTE_PER_PIXEL);        
         display_if->flush_dma(NULL, NULL); 
         #endif
         #ifndef USE_PSRAM
@@ -178,7 +291,14 @@ void lv_screen_init(uint16_t W, uint16_t H)
     lv_display_set_user_data(disp_drv, display_if);
 }
 
+void lv_screen_brightness(uint8_t b)
+{
+    display_if->set_brightness(b);
+}
+
 uint32_t lv_port_get_buffer_heap_usage(void)
 {
     return (usedheapbytes);
 }
+
+#endif

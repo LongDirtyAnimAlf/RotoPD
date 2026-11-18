@@ -22,7 +22,7 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <TopLine Value="265"/>
+        <TopLine Value="253"/>
         <CursorPos X="20" Y="285"/>
       </Unit>
       <Unit>
@@ -3338,7 +3338,7 @@
         <UsageCount Value="14"/>
         <EditorIndex Value="7"/>
         <TopLine Value="258"/>
-        <CursorPos X="11" Y="272"/>
+        <CursorPos X="3" Y="273"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\stdctrls.pp"/>
@@ -3891,8 +3891,8 @@
         <UsageCount Value="23"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="236"/>
-        <CursorPos Y="247"/>
+        <TopLine Value="87"/>
+        <CursorPos X="45" Y="114"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\pagecontrol.inc"/>
@@ -3913,8 +3913,8 @@
         <UnitName Value="Gauge"/>
         <UsageCount Value="12"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="57"/>
-        <CursorPos X="32" Y="75"/>
+        <TopLine Value="573"/>
+        <CursorPos X="53" Y="597"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\controlpaint.pas"/>
@@ -4094,25 +4094,6 @@
     </Debugger>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="..\Common\bgracontrols\supergaugecommon.pas"/>
-        <Caret Line="1832" Column="38" TopLine="1807"/>
-      </Position>
-      <Position>
-        <Filename Value="..\Common\bgracontrols\supergaugecommon.pas"/>
-        <Caret Line="1834" Column="13" TopLine="1809"/>
-      </Position>
-      <Position>
-        <Filename Value="..\Common\bgracontrols\supergaugecommon.pas"/>
-      </Position>
-      <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="1555" Column="38" TopLine="1552"/>
-      </Position>
-      <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="110" Column="37" TopLine="95"/>
-      </Position>
-      <Position>
         <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
         <Caret Line="170" Column="56" TopLine="146"/>
       </Position>
@@ -4211,6 +4192,26 @@
       <Position>
         <Filename Value="processframe_simple.pas"/>
         <Caret Line="250" TopLine="235"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="10" Column="5"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="329" Column="19" TopLine="317"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="105" Column="40" TopLine="80"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="98" Column="38" TopLine="84"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="100" Column="39" TopLine="84"/>
       </Position>
     </JumpHistory>
     <RunParams>

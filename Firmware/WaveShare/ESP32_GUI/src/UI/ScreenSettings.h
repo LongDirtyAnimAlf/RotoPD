@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 void Setup_ScreenSettings(byte index, bool show);
+void ScreenSettingsSetLocal(bool Local);
 
 void switch_to_dark(bool use_dark_mode);
 

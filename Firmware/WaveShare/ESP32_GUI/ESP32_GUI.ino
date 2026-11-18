@@ -17,9 +17,13 @@
 #include "hardware/clocks.h"
 #include "hardware/timer.h"
 
+#include "hardware/regs/xip.h"
+#include "hardware/structs/xip.h"
+#include "hardware/regs/qmi.h"
+#include "hardware/structs/qmi.h"
+
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
-#include <pico/mutex.h>
 
 #include "./src/RP2350/bsp/bsp_i2c.h"
 #include "./src/RP2350/bsp/bsp_st7701.h"
@@ -27,8 +31,9 @@
 
 bool core1_separate_stack = true;
 
-#endif
+#define STARTUP_READY_TOKEN 0xCAFEBABE
 
+#endif
 
 #include "shared.h"
 #include "comms.h"
@@ -63,13 +68,16 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     46 /* R0 */, 3 /* R1 */, 8 /* R2 */, 18 /* R3 */, 17 /* R4 */,
     14 /* G0 */, 13 /* G1 */, 12 /* G2 */, 11 /* G3 */, 10 /* G4 */, 9 /* G5 */,
     5 /* B0 */, 45 /* B1 */, 48 /* B2 */, 47 /* B3 */, 21 /* B4 */,
+    #ifdef ALTERNATIVE
     1 /* hsync_polarity */, 10 /* hsync_front_porch */, 8 /* hsync_pulse_width */, 50 /* hsync_back_porch */,
     1 /* vsync_polarity */, 10 /* vsync_front_porch */, 8 /* vsync_pulse_width */, 20 /* vsync_back_porch */
-    #ifndef ALTERNATIVE
     ,0 /* pclk_active_neg */, 16000000 /* prefer_speed */, false /* useBigEndian  */,
     0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 20 /* bounce_buffer_size_px */);    
     #else
-    );
+    1 /* hsync_polarity */, 50 /* hsync_front_porch */, 2 /* hsync_pulse_width */, 44 /* hsync_back_porch */,
+    1 /* vsync_polarity */, 12 /* vsync_front_porch */, 2 /* vsync_pulse_width */, 18 /* vsync_back_porch */
+    ,0 /* pclk_active_neg */, 10000000 /* prefer_speed */, false /* useBigEndian  */,
+    0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 10 /* bounce_buffer_size_px */);    
     #endif
 
 Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
@@ -93,7 +101,6 @@ USBCDC USBSerial;
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-mutex_t can_mutex;
 #ifdef ENABLEUSB
 #ifdef USE_TINYUSB
 // USB HID object
@@ -102,32 +109,28 @@ Adafruit_USBD_HID HID;
 #endif
 #endif
 
-unsigned long loopStartTime = 0;
-
 // Must be a global variable !!!
-char mySerial[30];
-char myFirmware[30];
+static char mySerial[30];
+static char myFirmware[30];
 
 AP33772S pd((TwoWire*)&WireBattery);
 
 CanOpenNode node(/*NodeID=*/ DEFAULT_LOCAL_NODEID);
 IT2704 load(&node, DEFAULT_IT2704_NODEID, DEFAULT_IT2704_CHANNEL);
 
-TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT] = {0};
+static TBatteryBoard BatteryBoards[DAUGHTERBOARDCOUNT];
+// As we have only a single board, this is a global var
 PBatteryBoard const CurrentBoard = BatteryBoards;
 
 static TBatterySetting Batteries[DAUGHTERBOARDCOUNT]; // Battery data settings and results
-static PBatterySetting const Battery = Batteries;
+// As we have only a single battery, this is a global var
+PBatterySetting const CurrentSettings = Batteries;
 
-static volatile bool flagSoundButton = false;
+static bool flagSoundButton = false;
+static bool flagProcessMeasurementData = false;
+static byte pending_screen_index = 0;
 
-static volatile bool flagProcessMeasurementData = false;
-
-// Flag flash dirty for storing board info
-static volatile bool StoreBoardInfo = false;
-static volatile byte pending_screen_index = 0;
-
-std::atomic<uint32_t> counterCore1 = 0;
+//std::atomic<uint32_t> counterCore1 = 0;
 
 //GT911_Lite tp; // touchscreen through TwoWire
 
@@ -150,10 +153,11 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 #include "hardware/sync.h"
 #include "hardware/structs/qmi.h"
 
-void set_psram_timing_auto(void)
+void __not_in_flash_func(set_psram_timing_autooo)(void)
 {
   // Maximum target SCK frequency for PSRAM (Hz)
   const uint32_t MAX_PSRAM_SCK_HZ = 133000000;
+  //const uint32_t MAX_PSRAM_SCK_HZ = 125000000;
 
   // PSRAM Datasheet Parameters
   const uint32_t MAX_SELECT_NS   = 8000; // Max CS assertion (~8 µs)
@@ -216,7 +220,7 @@ void set_psram_timing_auto(void)
   restore_interrupts(irq);
 }
 
-void set_psram_timing_autooo()
+void __not_in_flash_func(set_psram_timing_auto)()
 {
     // Maximum safe SCK frequency for most common PSRAM chips (Hz)
     const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
@@ -281,6 +285,38 @@ void set_psram_timing_autooo()
     // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
     //               timing, clkdiv, rxdelay, max_select, min_deselect);
 }
+
+/*
+void __not_in_flash_func(enable_xip_psram_cache)(void)
+{
+    uint32_t irq = save_and_disable_interrupts();
+
+    // RP2350 XIP_CTRL bits:
+    // Bit 0 (0x001): EN_M0 (Enable XIP cache for CS0 Flash)
+    // Bit 1 (0x002): EN_M1 (Enable XIP cache for CS1 PSRAM)
+    // Bit 11 (0x800): WRITABLE_M1 (Allow XIP cache to cache writes to CS1 PSRAM)
+    #ifdef XIP_CTRL_WRITABLE_M1_BITS
+    constexpr uint32_t kXipCacheMask = 0x00000001u | 0x00000002u | XIP_CTRL_WRITABLE_M1_BITS;
+    #else
+    constexpr uint32_t kXipCacheMask = 0x00000001u | 0x00000002u | 0x00000800u;
+    #endif
+
+    hw_set_bits(&xip_ctrl_hw->ctrl, kXipCacheMask);
+
+    // Ensure QMI M1 (PSRAM) uses Quad-SPI width (2 = 4-bit) for read and write bursts
+    uint32_t rfmt = qmi_hw->m[1].rfmt;
+    uint32_t wfmt = qmi_hw->m[1].wfmt;
+    rfmt = (rfmt & ~QMI_M1_RFMT_DATA_WIDTH_BITS) | (2u << QMI_M1_RFMT_DATA_WIDTH_LSB);
+    wfmt = (wfmt & ~QMI_M1_WFMT_DATA_WIDTH_BITS) | (2u << QMI_M1_WFMT_DATA_WIDTH_LSB);
+    qmi_hw->m[1].rfmt = rfmt;
+    qmi_hw->m[1].wfmt = wfmt;
+
+    __dsb();
+    __isb();
+    restore_interrupts(irq);
+}
+*/
+
 #endif // ARDUINO_ARCH_RP2040
 
 #ifdef STANDALONE
@@ -311,6 +347,8 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
       /*Set the coordinates*/
       data->point.x = touch_last_x;
       data->point.y = touch_last_y;
+
+      reset_screensaver_idle_timer();
     }
     else if (touch_released())
     {
@@ -334,9 +372,13 @@ static void main_event_handler(lv_event_t * e)
 
   bool GotSettings = false;
 
-  PBatterySetting SET = Battery;
-  PRunDatas RDS = &SET->TestData.RunDatas;
+  PBatterySetting SET = CurrentSettings;
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas;
   PStageData SD = NULL;  
+  TThresholdModes TM;
+  TStageMode SM;
+
+  //reset_screensaver_idle_timer();
 
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
@@ -349,7 +391,6 @@ static void main_event_handler(lv_event_t * e)
   {
     object_user_data = (lv_obj_t *)lv_obj_get_user_data(event_object);
 
-    #ifdef STANDALONE
     if ( (lv_obj_check_type(event_object, &lv_button_class)) || (lv_obj_check_type(event_object, &lv_list_button_class)) )
     {
       if(code == LV_EVENT_VALUE_CHANGED)
@@ -358,6 +399,8 @@ static void main_event_handler(lv_event_t * e)
 
         //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
         bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
+
+        #ifdef STANDALONE
 
         if (event_object == outputbutton)
         {
@@ -379,20 +422,23 @@ static void main_event_handler(lv_event_t * e)
           #endif
 
           // We will always start with being idle
-          SET->TestData.Active = bmIdle;
+          CurrentBoard->TD.Active = bmIdle;
 
           // Reset all trigger settings
-          SET->TestData.ThresholdMode = tmNONE;
-          SET->TestData.ThresholdValue = 0;
+          CurrentBoard->TD.ThresholdMode = tmNONE;
+          CurrentBoard->TD.ThresholdValue = 0;
+
           for(i = (tmNONE+1); i < tmLast; i++)
           {
-            Screen1SetThresholdLedEnabled((TThresholdModes)i, false);
+            TM = (TThresholdModes)i;
+            Screen1SetThresholdLedEnabled(TM, false);
+            Screen1SetThresholdLed(TM, false);
           }
 
           if (!buttondown)
           {
-            SET->TestData.SetStageMode = smOff;
-            SET->TestData.SetStageValue = 0;
+            CurrentBoard->TD.SetStageMode = smDisabled;
+            CurrentBoard->TD.SetStageValue = 0;
           }
           else
           {
@@ -405,18 +451,20 @@ static void main_event_handler(lv_event_t * e)
               SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
             }
 
-            SET->TestData.SetStageValue = SD->SetValue;  
-            SET->TestData.SetStageMode = SD->Status;
+            CurrentBoard->TD.SetStageValue = SD->SetValue;  
+            CurrentBoard->TD.SetStageMode = SD->Status;
             
             if ((event_object == startdischargebutton) || (event_object == startchargebutton))          
             {
               // Set trigger indicators
               for(i = (tmNONE+1); i < tmLast; i++)
               {
-                Screen1SetThresholdLedEnabled((TThresholdModes)i, SD->ThresholdSettings[i].Enabled);
+                TM = (TThresholdModes)i;
+                SD->ThresholdSettings[TM].Triggered = false;
+                Screen1SetThresholdLedEnabled(TM, SD->ThresholdSettings[TM].Enabled);
               }
               // We are active !!
-              SET->TestData.Active = bmActive;
+              CurrentBoard->TD.Active = bmActive;
 
               // Force a very early data measurement to get a start value
               flagProcessMeasurementData = true;
@@ -433,9 +481,9 @@ static void main_event_handler(lv_event_t * e)
           SendCommand[COMMANDPOSITION] = CMD_set_value;
           SendCommand[BOARDPOSITION] = BoardInfo.getBoardNumber();
           SendCommand[LENGTHPOSITION] = 5U; // length
-          SendCommand[DATASTART] = (byte)SET->TestData.SetStageMode;
+          SendCommand[DATASTART] = (byte)CurrentBoard->TD.SetStageMode;
           DWORD_VAL valuedata;
-          valuedata.Val = SET->TestData.SetStageValue;
+          valuedata.Val = CurrentBoard->TD.SetStageValue;
           SendCommand[DATASTART+1] = valuedata.v[0];
           SendCommand[DATASTART+2] = valuedata.v[1];
           SendCommand[DATASTART+3] = valuedata.v[2];
@@ -446,7 +494,8 @@ static void main_event_handler(lv_event_t * e)
           #ifdef DEBUG                      
           Serial.println("Event unhandled: button value changed");
           #endif
-       }
+        }
+        #endif // STANDALONE
       }
       else
       if(code == LV_EVENT_LONG_PRESSED)
@@ -478,6 +527,7 @@ static void main_event_handler(lv_event_t * e)
           if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
           pending_screen_index = screenindex; // Defer screen change
         }
+        #ifdef STANDALONE
         else
         // Zero buttons
         if ((event_object == zerocapacitybutton) || (event_object == zeroenergybutton) || (event_object == zerotimebutton))
@@ -489,8 +539,12 @@ static void main_event_handler(lv_event_t * e)
           {
             if (event_object == zerocapacitybutton) RDS->Capacity = 0;
             if (event_object == zeroenergybutton) RDS->Energy = 0;
-            // Not the best place to do this !!
-            load.clearEnergy();
+            // Prepare the command to clear the energy
+            memset(SendCommand, 0, COMMAND_SIZE); 
+            SendCommand[COMMANDPOSITION]   = CMD_set_energy;
+            SendCommand[BOARDPOSITION]     = BoardInfo.getBoardNumber();
+            SendCommand[LENGTHPOSITION]    = 4U; // length
+            // Keep rest of data default == 0 !!
           }
           if (event_object == zerotimebutton) RDS->Time = 0;          
           Screen1AddEPData(RDS->Energy,0);        
@@ -540,7 +594,7 @@ static void main_event_handler(lv_event_t * e)
             }
           }
         }
-
+        #endif //STANDALONE
       }
     }
 
@@ -552,8 +606,8 @@ static void main_event_handler(lv_event_t * e)
       Serial.println("Event: keyboard/checkbox value event");
       #endif
 
-      TStageMode SM = smOff;
-      TThresholdModes Mode = tmNONE;
+      SM = smDisabled;
+      TM = tmNONE;
       SD = NULL;  
 
       if (lv_obj_check_type(event_object, &lv_keyboard_class))
@@ -572,32 +626,11 @@ static void main_event_handler(lv_event_t * e)
         {
           // Only valid for checkbox data
           SM = (TStageMode)highByte((word)(uintptr_t)object_user_data);      
-          Mode = (TThresholdModes)lowByte((word)(uintptr_t)object_user_data);
+          TM = (TThresholdModes)lowByte((word)(uintptr_t)object_user_data);
         }
       }
 
-      if (SM == smCurrent)
-      {
-        SD = &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
-        #ifdef DEBUG          
-        Serial.println("We got a discharge setting !!");
-        #endif
-      }
-      else
-      if (SM == smCharge)
-      {
-        SD = &SET->Stages[FIXEDCHARGESTAGENUMBER];
-        #ifdef DEBUG          
-        Serial.println("We got a charge setting !!");
-        #endif
-      }
-      else
-      {
-        #ifdef DEBUG          
-        Serial.println("Unknown stagemode. Should never happen !!");
-        #endif
-      }
-
+      SD = GetCorrectStageSettings(SET, SM);
       if (SD != NULL)
       {
         if (lv_obj_check_type(event_object, &lv_checkbox_class))
@@ -605,7 +638,7 @@ static void main_event_handler(lv_event_t * e)
           #ifdef DEBUG          
           Serial.println("Enable or disable a threshold !!");
           #endif
-          SD->ThresholdSettings[Mode].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED); 
+          SD->ThresholdSettings[TM].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED); 
           GotSettings = true;
         }
  
@@ -623,9 +656,13 @@ static void main_event_handler(lv_event_t * e)
           }
         }
       }
-
+      else
+      {
+        #ifdef DEBUG          
+        Serial.println("SD == NULL. Unknown StageMode. Should never happen !!");
+        #endif
+      }
     }
-    #endif //STANDALONE
 
 
     #ifdef STANDALONE
@@ -650,13 +687,13 @@ void ClearRunData(PRunDatas RDS)
   RDS->Energy = 0;
   RDS->Time = 0;
 
+  TThresholdModes TM;
   for(byte i=tmNONE; i<tmLast; i++)
   {
-    RDS->ThresholdResult[i].Enabled = false;
-    RDS->ThresholdResult[i].Triggered = false;      
-    RDS->ThresholdResult[i].Mode = tmNONE;
-    RDS->ThresholdResult[i].SetValue = 0;
-    RDS->ThresholdResult[i].GetValue = 0;      
+    TM =(TThresholdModes)i;
+    RDS->ThresholdResult[TM].Enabled = false;
+    RDS->ThresholdResult[TM].Triggered = false;      
+    RDS->ThresholdResult[TM].SetValue = 0;
   }
 
   RDS->NewerRotoPDDatas.clear();  
@@ -665,15 +702,15 @@ void ClearRunData(PRunDatas RDS)
 
 void ClearStageData(PStageData SD)
 {
-  SD->Status = smOff;
+  SD->Status = smDisabled;
   SD->SetValue = 0;
+  TThresholdModes TM;
   for(byte i=tmNONE; i<tmLast; i++)
   {
-    SD->ThresholdSettings[i].Enabled = false;
-    SD->ThresholdSettings[i].Triggered = false;      
-    SD->ThresholdSettings[i].Mode = tmNONE;
-    SD->ThresholdSettings[i].SetValue = 0;
-    SD->ThresholdSettings[i].GetValue = 0;      
+    TM =(TThresholdModes)i;
+    SD->ThresholdSettings[TM].Enabled = false;
+    SD->ThresholdSettings[TM].Triggered = false;      
+    SD->ThresholdSettings[TM].SetValue = 0;
   }
 }
 
@@ -681,11 +718,11 @@ void ClearStageData(PStageData SD)
 static void datastartcb(byte index)
 {
   PBatterySetting SET = &Batteries[index];  
-  PRunDatas RDS = &SET->TestData.RunDatas;
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas;
   // Clear the rundatas again, this is the real start !!  
   ClearRunData(RDS); 
   // We are active !!
-  SET->TestData.Active = bmActive;
+  CurrentBoard->TD.Active = bmActive;
   // Force a very early data measurement to get a start value
   flagProcessMeasurementData = true;
 }
@@ -696,45 +733,27 @@ static void datastartcb(byte index)
 // Running on core1
 void setup1()
 {
-  mutex_enter_blocking(&can_mutex);
-  node.getCAN().taskCAN();
-  mutex_exit(&can_mutex);  
-}
-
-void loop1() {
-
-  static unsigned long startTimeLoop1 = millis();
-  static uint32_t loop1counter = 0;
-  static int32_t datacounter = 0;
-
-  counterCore1++;
-  //counterCore1.fetch_add(1);
-
-  if ((millis() - startTimeLoop1) >= 100000)
+  // Loop until signalled by normal setup
+  uint32_t token = 0;
+  while (token != STARTUP_READY_TOKEN)
   {
-
-    // This runs every second !!
-    startTimeLoop1 = millis();
-
-    //Serial.printf("Loop1: %d\n",loop1counter++);
-    Serial.printf("Loop1 net datacounter: %d\n",datacounter);
-    datacounter = node.getCAN().getCANRxQueueDepth();    
-    Serial.printf("Loop1 abs datacounter: %d\n",datacounter);
-
-    datacounter = 0;
+    delay(1);
+    token = rp2040.fifo.pop();
   }
-
-  //mutex_enter_blocking(&can_mutex);
-  int32_t rxdatacount = node.getCAN().getCANRxQueueDepth();
-  node.getCAN().taskCAN();
-  rxdatacount = node.getCAN().getCANRxQueueDepth() - rxdatacount;
-  datacounter += rxdatacount;
-  //mutex_exit(&can_mutex);  
-  //yield();
-  sleep_us(100);
-  //delay(1);
-  //delayMicroseconds(10);
 }
+
+void loop1()
+{
+  //node.getCAN().taskCAN();
+  if (node.getCAN().taskCAN())
+  {
+    // No activity on the bus
+    // So, sleep a small bit
+    sleep_us(100U);
+    //busy_wait_us_32(10U);
+  }
+}
+
 #endif
 
 void setup()
@@ -744,39 +763,23 @@ void setup()
   char myHex[10] = "";
   
   // If this throws an error during compilation, you know you need to adjust your padding array size!
-  #ifdef ARDUINO_ARCH_RP2040
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
+  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) == kOneQueueSize, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
+  #ifdef ARDUINO_ARCH_RP2040
   static_assert(std::is_trivially_copyable<can_frame>::value,
               "can_frame must be trivially copyable for [multicore] safety!");
-  #endif
-
-  #ifdef ARDUINO_ARCH_ESP32
-  static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) * 2 == 88, 
-              "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
   #endif
 
   // If it compiles, your memory footprint is perfectly optimized!
   static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
   
   #ifdef ARDUINO_ARCH_RP2040
-
-  // Start by blocking all CAN activity
-  mutex_init(&can_mutex);
-  mutex_enter_blocking(&can_mutex);
-
-  // 1. STEP THE VOLTAGE UP INCREMENTALLY
-  // Stepping avoids sudden current spikes that trip brownout resets.
-  //vreg_set_voltage(VREG_VOLTAGE_1_20);
-  //delay(20);
+  // Increase the voltage to accomodate for higher clock and PSRAM
+  vreg_set_voltage(VREG_VOLTAGE_1_20);
+  delay(20);
   //vreg_set_voltage(VREG_VOLTAGE_1_25);
   //delay(20);
-  //vreg_set_voltage(VREG_VOLTAGE_1_30); // Max recommended safe internal voltage
-  //delay(20); // Allow LDO rail stabilization
-
-  //set_sys_clock_khz(400000, false);  
-  //delay(10);
-
+  
   // Change system clock to exactly match the PSRAM clock (133MHz) by an integer factor
   // This results in best LCD performance without glitches and noise
   set_sys_clock_khz(266000, true);  
@@ -786,6 +789,9 @@ void setup()
   // This results in best LCD performance without glitches and noise
   set_psram_timing_auto();
   delay(10);
+
+  //enable_xip_psram_cache();
+  //delay(10);
   #endif
 
   for (index=0; index<12;index++)
@@ -797,7 +803,8 @@ void setup()
   storeGetBoardInfo(&BoardInfo);
 
   index = 0;
-  mySerial[0] = '\0';  
+  mySerial[0] = '\0';
+  //memset(mySerial, 0, sizeof(mySerial)); 
   while (index<12)
   {
     tempintcalc=(BoardInfo.BoardSerial[index]+(BoardInfo.BoardSerial[index+1]*256));
@@ -828,7 +835,7 @@ void setup()
   USBDevice.setSerialDescriptor(mySerial);  
   HID.setReportCallback(NULL, set_report_callback);
   HID.enableOutEndpoint(true);
-  HID.setPollInterval(1);
+  HID.setPollInterval(10);
   HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
   USBDevice.addStringDescriptor(myFirmware);  
 
@@ -915,7 +922,9 @@ void setup()
   CreateBaseScreen(main_event_handler);
   Setup_ScreenLogger(BoardInfo.IT2704Channel,false);
 
-  Info_Add("GUI. Init GUI.");      
+  Info_Add("GUI. Init GUI.");   
+  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  Info_Add(LVGL_Arduino.c_str());
 
   Setup_ScreenSettings(BoardInfo.IT2704Channel,false);
   Setup_ScreenPDO(BoardInfo.IT2704Channel,false);
@@ -927,6 +936,7 @@ void setup()
   SetMasterAdress(BoardInfo.MasterNodeID);
   SetIT2704Adress(BoardInfo.IT2704NodeID);
   SetIT2704Channel(BoardInfo.IT2704Channel);
+
 
   #ifdef ARDUINO_ARCH_RP2040
   Info_Add("GUI. Starting RP2350 hardware init.");
@@ -950,13 +960,13 @@ void setup()
   {
     SET = &Batteries[index];
 
-    RDS = &SET->TestData.RunDatas;
+    RDS = &CurrentBoard->TD.RunDatas;
     ClearRunData(RDS);
   
-    SET->TestData.Active = bmIdle;
-    SET->TestData.SetStageMode = smOff;
-    SET->TestData.SetStageValue = 0;
-    SET->TestData.DataTriggerCounter = 0;
+    CurrentBoard->TD.Active = bmIdle;
+    CurrentBoard->TD.SetStageMode = smDisabled;
+    CurrentBoard->TD.SetStageValue = 0;
+    CurrentBoard->TD.DataTriggerCounter = 0;
   }
 
   #ifdef STANDALONE
@@ -987,7 +997,6 @@ void setup()
     ClearStageData(SD);
 
     SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Enabled = true;
-    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[tmMINV].Mode = tmMINV;
 
     if (storeGetBatteryDischargeSetting(index, &SET->Stages[FIXEDDISCHARGESTAGENUMBER])) Info_Add("GUI. Reading discharge settings success.");
     if (storeGetBatteryChargeSetting(index, &SET->Stages[FIXEDCHARGESTAGENUMBER])) Info_Add("GUI. Reading charge settings success.");
@@ -998,7 +1007,7 @@ void setup()
   #endif
 
   // Fill startscreen with presets, if any
-  SET = Battery;
+  SET = CurrentSettings;
   Screen1SetData(SET);
 
     // INA238 setup
@@ -1013,12 +1022,11 @@ void setup()
     Info_Add("GUI. RotoPD not connected or not found.");
 
   initCANopen();
-
+  
+  #ifdef ARDUINO_ARCH_RP2040
+  rp2040.fifo.push(STARTUP_READY_TOKEN);
+  #endif
   Info_Add("GUI. Setting up CANOpen ready.");
-
-  Info_Add("GUI. Init timers.");      
-
-  #ifdef STANDALONE
 
   // Init touch device
   Info_Add("GUI. Init touch screen.");      
@@ -1027,20 +1035,17 @@ void setup()
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
   lv_indev_set_read_cb(indev, my_touchpad_read);
-  #endif // STANDALONE
-
-  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Info_Add(LVGL_Arduino.c_str());
 
   #ifdef ARDUINO_ARCH_RP2040
   
-  Info_Add_Fmt("CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
+  Info_Add_Fmt("GUI. CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
 
   Info_Add("GUI. RP2350 SRAM memory info.");
   // Internal SRAM heap
-  Info_Add_Fmt("SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
-  Info_Add_Fmt("SRAM buffer: %u KB.", (lv_port_get_buffer_heap_usage() / 1024));
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB.", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage()) / 1024) );
+  Info_Add_Fmt("    SRAM size  : %u KB.", 520u);
+  Info_Add_Fmt("    SRAM total  : %u KB.", (rp2040.getTotalHeap() / 1024));
+  Info_Add_Fmt("    SRAM used  : %u KB.", (rp2040.getUsedHeap() / 1024));
+  Info_Add_Fmt("    SRAM free  : %u KB.", (rp2040.getFreeHeap() / 1024));
 
   lv_mem_monitor_t mon;
   lv_mem_monitor(&mon);
@@ -1049,29 +1054,25 @@ void setup()
        mon.free_size / 1024,
        mon.free_biggest_size / 1024);
   Info_Add_Fmt("LVGL heap fragmentation: %u%%.", mon.frag_pct);
-  Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - lv_port_get_buffer_heap_usage() - mon.total_size) / 1024) );
+  //Info_Add_Fmt("SRAM free after lvgl buffer malloc : %u KB", ( (rp2040.getFreeHeap() - mon.total_size) / 1024) );
 
   Info_Add("GUI. RP2350 PSRAM memory info.");
   // PSRAM heap
-  Info_Add_Fmt("PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
-  Info_Add_Fmt("PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
-  Info_Add_Fmt("PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
+  Info_Add_Fmt("    PSRAM size  : %u KB.", rp2040.getPSRAMSize() / 1024);
+  Info_Add_Fmt("    PSRAM total : %u KB.", rp2040.getTotalPSRAMHeap() / 1024);
+  Info_Add_Fmt("    PSRAM used : %u KB.", rp2040.getUsedPSRAMHeap() / 1024);
+  Info_Add_Fmt("    PSRAM free  : %u KB.", rp2040.getFreePSRAMHeap() / 1024);
 
-  /*
+/*
   for (int i = 0; i < 16; i++) {
-      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_12MA); // or 12MA
+      gpio_set_drive_strength(BSP_LCD_DATA0_PIN + i, GPIO_DRIVE_STRENGTH_8MA); // or 12MA
       gpio_set_slew_rate(BSP_LCD_DATA0_PIN + i, GPIO_SLEW_RATE_SLOW);
   }
-  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_12MA);
+  gpio_set_drive_strength(BSP_LCD_PLCK_PIN, GPIO_DRIVE_STRENGTH_8MA);
   gpio_set_slew_rate(BSP_LCD_PLCK_PIN, GPIO_SLEW_RATE_SLOW);
-  */
-
-  // Release the CAN activity
-  mutex_exit(&can_mutex);  
+*/
 
   #endif
-
-  //delay(2000);
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
@@ -1086,16 +1087,16 @@ void setup()
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
   Info_Add("GUI. Init RP2350 ready.");
+
+  //#endif
 }
 
 void loop()
 {
   uint8_t j;
 
-  loopStartTime = millis();
-
   static unsigned long startTime = millis();
-  static unsigned long buzzerTime = millis();
+  static unsigned long buzzerTime = 0;
   static uint32_t loopcounter = 0;
 
   static bool CalcBatteryData = false;
@@ -1112,17 +1113,17 @@ void loop()
   static byte INData[COMMAND_SIZE] = {0};
   static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
 
-  byte dataindexer = 0;
+  byte dataindexer;
 
   WORD_VAL w_data;
   DWORD_VAL dw_data;
   QWORD_VAL qw_data;
 
-  PBatterySetting SET = Battery;
-  PRunDatas RDS = &SET->TestData.RunDatas; 
+  PBatterySetting SET = CurrentSettings;
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas; 
 
   int8_t PDOCount = 0;
-  static AP33772S_PDO PDO;
+  AP33772S_PDO PDO;
 
   #ifdef TINYUSB_NEED_POLLING_TASK
   // Manual call tud_task since it isn't called by Core's background
@@ -1146,7 +1147,14 @@ void loop()
     pending_screen_index = 0;
     switch(target)
     {
-      case 1: {Setup_Screen1(BoardInfo.IT2704Channel);Screen1SetData(SET);break;}
+      case 1:
+      {
+        Setup_Screen1(BoardInfo.IT2704Channel);
+        Screen1SetData(SET);
+        Screen1SetTestData(&CurrentBoard->TD);
+        //Screen1SetStageData(&SET->Stages[IDDLESTAGENUMBER]);
+        break;
+      }
       case 2:
         {
           TMeasurementData LastData;
@@ -1162,28 +1170,24 @@ void loop()
     }
   }
 
-  Message rxmsg;
+  if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
+  {
+    buzzerTime = 0;
+    #ifdef ARDUINO_ARCH_RP2040
+    bsp_buzzer_enable(false);
+    #endif
+  }
+
   unsigned long maxCANTime = millis();
   bool data_available;
   do
   {
-    data_available = false;
-
-    //bool mutexOk = mutex_enter_timeout_ms(&can_mutex, 10 /*ms*/);
-    //mutex_enter_blocking(&can_mutex);
     data_available = node.run();
-    // We did receive a message that was not handled by ourselves ?
-    if (data_available)
-    {
-      //const Message& rxmsg = node.getMessage();
-      //const Message rxmsg = node.getMessage();
-      rxmsg = node.getMessage();
-      node.clearMessage();
-    }
-    //mutex_exit(&can_mutex); 
 
     if (data_available)
     {
+      const Message rxmsg = node.getMessage();
+
       // ---- process the message ----
       if (load.checkConnection(&rxmsg)) // check if we are connected with the IT2704
       {
@@ -1207,7 +1211,7 @@ void loop()
             if ( rxmsg.getID() == ((IT2704_METER + (load.getChannel() * 0x100))) )
             {
               // Get the correct IT2704 data in the correct datastore
-              load.getData(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
+              load.processDataMessage(&rxmsg, &LatestIT2704Data.I, &LatestIT2704Data.V, &LatestIT2704Data.P, &LatestIT2704Data.C, &LatestIT2704Data.E);
 
               switch(rxmsg.getSubID())
               {
@@ -1246,14 +1250,6 @@ void loop()
     }
   } while (data_available);
 
-  if ((buzzerTime != 0) && (millis() - buzzerTime > 100))
-  {
-    buzzerTime = 0;
-    #ifdef ARDUINO_ARCH_RP2040
-    bsp_buzzer_enable(false);
-    #endif
-  }
-
   while ( (millis() - startTime) >= TICKERTIME )
   {
     startTime += TICKERTIME;
@@ -1268,45 +1264,49 @@ void loop()
       loopcounter = 0; 
     }
 
-    #ifdef ARDUINO_ARCH_RP2040
-    if ((loopcounter % 2000) == 0)
+    // Every second
+    if ((loopcounter % (1000u / TICKERTIME)) == 0)
     {
-      Serial.printf("Loop: %d\n",counterCore1.load());
+      //#ifdef DEBUG
+      //Serial.printf("Loop 0: %d.\n",loopcounter);
+      //#endif
+    }
+
+    #ifdef ARDUINO_ARCH_RP2040
+    // Every 100s
+    if ((loopcounter % (100000u / TICKERTIME)) == 0)
+    {
+      //Serial.printf("Loop 0: %d\n",counterCore1.load());
     }
     #endif
     
     // Get RotoPD measurement results for later averaging
-    // Every 50ms
+    // Every 50ms (== TICKERTIME)
     collectRotoPDData();
 
     // Every 250ms
-    if ((loopcounter % 5) == 0)
+    if ((loopcounter % (250u / TICKERTIME)) == 0)
     {
-    // Ask load IT2704 to send measurement results
-    // Result (when available) will be collected later by node.run()
+      // Ask load IT2704 to send measurement results
+      // Result (when available) will be collected later by node.run()
       load.collectData();
     }
 
     // Every 100ms
-    if ((loopcounter % 2) == 0)
+    if ((loopcounter % (100u / TICKERTIME)) == 0)
     {
       CalcBatteryData = true;
     }
 
     // Every 500ms
-    if ((loopcounter % 10) == 0)
+    if ((loopcounter % (DATACOLLECTTIMEFAST / TICKERTIME)) == 0)
     {
       flagProcessMeasurementData = true;
     }
 
     // Every second
-    if ((loopcounter % 20) == 0)
+    if ((loopcounter % (1000u / TICKERTIME)) == 0)
     {
-      #ifdef DEBUG                      
-      //static uint32_t loopcounter = 0;
-      //Serial.printf("Loop: %d\n",loopcounter / 20);
-      #endif
-
       if (!load.isConnected())
       {
         #ifdef DEBUG
@@ -1317,12 +1317,11 @@ void loop()
       //Serial.printf("CAN queue depth at loop %d. Rx: %d. Tx: %d. TxPrio: %d\n", loopcounter++, node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
 
       // Test connection with load IT2704
-      //mutex_enter_blocking(&can_mutex);
       load.queryConnection();
-      //mutex_exit(&can_mutex); 
 
       //Serial.printf("CAN queue depth. Rx: %d. Tx: %d. TxPrio: %d\n", node.getCAN().getCANRxQueueDepth(), node.getCAN().getCANTxQueueDepth(), node.getCAN().getCANTxPrioQueueDepth());
 
+      PDOCount = -1;
 
       PDOCount = taskRotoPDInit();
 
@@ -1378,7 +1377,7 @@ void loop()
           #ifdef ARDUINO_ESP32S3_DEV
           HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
           #else
-          HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+          if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
           #endif      
           #endif
 
@@ -1387,9 +1386,6 @@ void loop()
     } // every second
   } // while Ticksbetween 
 
-  THIDData* PLocalHD;
-  THIDData LocalHDCopy;
-
   memset(INData,0,COMMAND_SIZE);  
 
   // Do we have a valid command ?
@@ -1397,40 +1393,26 @@ void loop()
   // Most likely, this command originates from a desktop PC
   if (!DataOk)
   {
-    if (HIDData[ActiveBatteryIndex].DataReceived)
+    HidReportFrame frame;
+    if (hidQueue.pop(frame))
     {
-      #ifndef TINYUSB_NEED_POLLING_TASK
-      // Make a local copy of the data 
-      // This is needed due to the fact that the USB HID interrupt may update the data when in this loop 
-      noInterrupts();
-      for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) LocalHDCopy.HIDEPOUTData[j] = HIDData[ActiveBatteryIndex].HIDEPOUTData[j];
-      LocalHDCopy.DataReceived = HIDData[ActiveBatteryIndex].DataReceived;
-      HIDData[ActiveBatteryIndex].DataReceived = false;
-      interrupts();
-      PLocalHD = &LocalHDCopy; 
-      #else
-      PLocalHD = (THIDData*)&HIDData[ActiveBatteryIndex];
-      PLocalHD->DataReceived = false;
-      #endif
+      memset(hid_report_in, 0, HID_INT_IN_EP_SIZE);
 
       //Now perform the Data update  
-      DataOk |= process_command(&PLocalHD->HIDEPOUTData,&PLocalHD->HIDEPINData);
+      DataOk |= process_command(frame.data,hid_report_in);
       if (DataOk)
       {
-        //ARDUINO_GENERIC_RP2350
-        //ARDUINO_ARCH_RP2040
-
         // Send report back to host
         #ifdef ENABLEUSB
         #ifdef ARDUINO_ESP32S3_DEV
-        HID.SendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
+        HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
         #else
-        HID.sendReport(0, &PLocalHD->HIDEPINData, HID_INT_IN_EP_SIZE);
+        if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
         #endif
         #endif
 
-        // Copy the result into the INData buffer for later processing !
-        for (j=0; j<HID_INT_IN_EP_SIZE; j++) INData[j] = PLocalHD->HIDEPINData[j];
+        // Copy data into INDATA for later use
+        memcpy(INData,hid_report_in,COMMAND_SIZE);
       }
     }  
   }
@@ -1451,10 +1433,15 @@ void loop()
   }
   #endif //STANDALONE
 
-
   if (DataOk)
   {
     DataOk = false;
+
+    TBatteryMode BM = bmUnknown;
+    TStageMode SM = smDisabled;
+    TThresholdModes TM = tmNONE;
+    PStageData SD = NULL;
+    PThresholdDataItem TS = NULL;    
 
     // We have received a command from the screen or through USB-HID or the standalone measurement timer.
     // The command has been processed.
@@ -1475,10 +1462,84 @@ void loop()
 
     switch(cCmd)
     {
+      case CMD_set_local:
+      {
+        #ifdef USE_LCD
+        bool Local = (INData[counter++] != 0);
+        // if LOCAL, disable the buttons on these screens
+        Screen1SetLocal(Local);
+        ScreenPDOSetLocal(Local);
+        ScreenSettingsSetLocal(Local);
+        #endif
+        break;
+      }
+
+      case CMD_set_code:
+      case CMD_set_brand:
+      case CMD_set_model:
+      {
+        char Info[80] = {0};
+        strcat(Info,CurrentSettings->code); 
+        strcat(Info," : "); 
+        strcat(Info,CurrentSettings->brand); 
+        strcat(Info," "); 
+        strcat(Info,CurrentSettings->model); 
+        ScreenPDOSetInfo(Info);
+        break;
+      }
+
+      case CMD_set_batterymode:
+      {
+        BM = CurrentBoard->TD.Active;
+
+        // Set default trigger indicators
+        // To be investigated if needed
+        /*
+        for(j = (tmNONE+1); j < tmLast; j++)
+        {
+          TM = (TThresholdModes)j;
+          Screen1SetThresholdLedEnabled(TM, false);
+          Screen1SetThresholdLed(TM, false);
+        }
+        if ((BM == bmActive) || (BM == bmReady))
+        {
+          Screen1SetThresholdLedEnabled(tmMINV, true);
+          if (BM == bmReady) Screen1SetThresholdLed(tmMINV, true);
+        }  
+        */
+
+        break;
+      }
+
+      case CMD_set_threshold:
+      {
+        // Get the stagemode to be used
+        SM = (TStageMode)INData[counter++];
+        SD = GetCorrectStageSettings(SET, SM);
+        if (SD != NULL)
+        {
+          Screen1SetStageData(SD);
+        }
+
+        break;
+      }
 
       case CMD_set_value:
       {
-        Screen1SetStageData(&CurrentBoard->BM);
+        SD = GetCorrectStageSettings(SET, CurrentBoard->TD.SetStageMode);
+        if (SD != NULL)
+        {
+          // Set all trigger indicators
+          for(j = (tmNONE+1); j < tmLast; j++)
+          {
+            TM = (TThresholdModes)j;
+            TS = &SD->ThresholdSettings[TM];
+            Screen1SetThresholdLedEnabled(TM, TS->Enabled);
+            Screen1SetThresholdLed(TM, TS->Triggered);
+          }
+          Screen1SetStageData(SD);
+        }
+
         break;
       }
 
@@ -1502,6 +1563,7 @@ void loop()
           if (RDS->Energy == 0)
           {
             load.clearEnergy();
+            Info_Add("GUI. Load clear energy");
             ClearRunData(RDS); 
             ClearMeasurementData(&LatestRotoPDData);
             ClearMeasurementData(&LatestIT2704Data);
@@ -1529,10 +1591,11 @@ void loop()
       {
         // Do we need to do someting with the new PDO ?
         // Yes, we might set the discharge current stage values with it !
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue = CurrentBoard->PDO.maxCurrent_mA;
-        SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status = smCurrent;
+        SD = GetCorrectStageSettings(SET, smCurrent);
+        SD->SetValue = CurrentBoard->PDO.maxCurrent_mA;
+        SD->Status = smCurrent;
         // Update the GUI also to reflect this change
-        Screen1SetStageData(&SET->Stages[FIXEDDISCHARGESTAGENUMBER]);        
+        Screen1SetStageData(SD);
 
         break;
       }
@@ -1587,38 +1650,44 @@ void loop()
       }
     }
   }
-
   
-  #ifdef STANDALONE
   if (flagProcessMeasurementData)
   {
     flagProcessMeasurementData = false;
 
-    switch(SET->TestData.Active)
+    switch(CurrentBoard->TD.Active)
     {
       case bmActive:
         // Battery is active. Slowdown the data acquisition to get accurate data into a datastore
-        if (SET->TestData.DataTriggerCounter > 0) SET->TestData.DataTriggerCounter--;
+        if (CurrentBoard->TD.DataTriggerCounter > 0) CurrentBoard->TD.DataTriggerCounter--;
         // Do not engage the screensaver when active
         reset_screensaver_idle_timer();
         break;
       case bmReady:
-        SET->TestData.DataTriggerCounter = 0;
+        // We might decide not to send data anymore
+        //CurrentBoard->TD.DataTriggerCounter = 1;
+        // We might decide to send data slowly
+        //CurrentBoard->TD.DataTriggerCounter = 0;
+        if (CurrentBoard->TD.DataTriggerCounter > 0) CurrentBoard->TD.DataTriggerCounter--;        
         break;
+      case bmPause:
+      case bmWaiting:
+      case bmOff:
       case bmIdle:
-        SET->TestData.DataTriggerCounter = 0;
+        CurrentBoard->TD.DataTriggerCounter = 0;
         // Do not engage the screensaver when idle
         //reset_screensaver_idle_timer();
         break;
       default:
+        // We might decide not to send data anymore
+        CurrentBoard->TD.DataTriggerCounter = 1;
         #ifdef DEBUG  
-        Serial.print("Invalid battery mode !! Number: ");
-        Serial.println(SET->TestData.Active);          
+        Serial.printf("Invalid battery mode !! Number: %d\n",CurrentBoard->TD.Active);
         #endif
         break;
     }
 
-    if (SET->TestData.DataTriggerCounter == 0)
+    if (CurrentBoard->TD.DataTriggerCounter == 0)
     {
       // Request the measurement data
       memset(INData,0,COMMAND_SIZE);  
@@ -1644,8 +1713,8 @@ void loop()
       //Append the data in RotoPD buffer
       RDS->NewerRotoPDDatas.push(LatestRotoPDData);
 
-      telemetry_screensaver_update_box5(node.getCAN().getCANRxQueueDepth()*10);
-      telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
+      //telemetry_screensaver_update_box5(node.getCAN().getCANRxQueueDepth()*10);
+      //telemetry_screensaver_update_box6(RDS->NewerRotoPDDatas.getCount()*10);      
 
       if (load.isConnected())
       {
@@ -1667,6 +1736,8 @@ void loop()
       
       // Show data on screen 1
       Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
+
+      // Now prepare the data to be send back to the PC host
 
       dataindexer = DATASTART;
 
@@ -1704,18 +1775,17 @@ void loop()
       #ifdef ARDUINO_ESP32S3_DEV
       HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
       #else
-      HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+      if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
       #endif      
       #endif
 
-      if (SET->TestData.Active == bmActive)
+      if ( (CurrentBoard->TD.Active == bmActive) || (CurrentBoard->TD.Active == bmReady) )
       {
-        // Battery is active. Slowdown the data acquisition to get accurate data into a small datastore
-        SET->TestData.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
+        // Battery is active or ready. Slowdown the data acquisition (also to get accurate data into a small datastore during active)
+        CurrentBoard->TD.DataTriggerCounter = (DATACOLLECTTIMENORMAL / DATACOLLECTTIMEFAST);
       }
     }
   }
-  #endif
 
   if (CalcBatteryData)
   {
@@ -1724,10 +1794,10 @@ void loop()
     dword dcalc;
     qword qcalc;
 
-    if (SET->TestData.SetStageMode != smOff)
+    if (CurrentBoard->TD.SetStageMode != smDisabled)
     {
       // CALCULATIONTIME = 100, so every tick [increase] is 100ms
-      if (SET->TestData.Active != bmReady)
+      if (CurrentBoard->TD.Active != bmReady)
       {
         //RDS->Time++;
         RDS->Time += CALCULATIONTIME;
@@ -1762,7 +1832,7 @@ void loop()
   check_screensaver_timeout();
   
   lv_timer_periodic_handler();
-  
+
   //uint32_t task_delay_ms = lv_timer_handler_run_in_period(5);  
 
   #ifdef STANDALONE

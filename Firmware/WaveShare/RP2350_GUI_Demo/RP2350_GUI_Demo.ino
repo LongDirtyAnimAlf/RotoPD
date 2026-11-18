@@ -10,11 +10,11 @@
 
 #include "Wire.h"
 
-//#include "Adafruit_TinyUSB.h"
+#include "Adafruit_TinyUSB.h"
 
 #include <lvgl.h>
-#include "./src/lvgl/lv_port/lv_port_disp.h"
-#include "./src/bsp/bsp_i2c.h"
+#include "./src/RP2350/lvgl/lv_port_disp.h"
+#include "./src/RP2350/bsp/bsp_i2c.h"
 #include "./src/touch/gt911_lite.h"
 
 GT911_Lite tp;
@@ -147,8 +147,11 @@ void setup()
   //sleep_ms(5);
 
   set_sys_clock_khz(266000, true);  
+  delay(10);
+  set_psram_timing_auto();
+  delay(10);
 
-  Serial.begin();
+  Serial.begin(115200u);
   int cnt = 1500;     // Will wait for up to ~5 second for Serial to connect.
   while (!Serial && cnt--) {delay(1);}
   Serial.println("Starting RP2350 init.");
@@ -253,8 +256,6 @@ void setup()
   Serial.printf("PSRAM free  : %u KB.\r\n", rp2040.getFreePSRAMHeap() / 1024);
   Serial.printf("PSRAM total : %u KB.\r\n", rp2040.getTotalPSRAMHeap() / 1024);
   Serial.printf("PSRAM size  : %u KB.\r\n", rp2040.getPSRAMSize() / 1024);
-
-  set_psram_timing_auto();
 
   Serial.println("RP2350. Init ready.");
 }

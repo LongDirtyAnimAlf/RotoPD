@@ -1,6 +1,8 @@
 #ifndef LV_BASESCREEN_H
 #define LV_BASESCREEN_H
 
+#define USE_LCD
+
 #include <Arduino.h>
 #include <lvgl.h>
 //#include <core/lv_obj_private.h>

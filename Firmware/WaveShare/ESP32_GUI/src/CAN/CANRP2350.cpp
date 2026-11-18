@@ -6,7 +6,7 @@
 
 // Define constructor implementation here
 CBUSDevice::CBUSDevice() :
-  caninterface(),
+  caninterface(/*SPI_CLOCK = */4*1000*1000), // Slow clock on XL2515  
   _intPin(BSP_XL2515_INT_PIN)
 {
   HandleTxMessages = false;
@@ -22,9 +22,9 @@ void CBUSDevice::begin(void)
       caninterface.setNormalMode();
       //caninterface.enableInterrupt(_intPin, ISRhandler);
       caninterface.enableInterrupt(_intPin, NULL);
-      Serial.println("MCP2515 Initialized Successfully.");
+      //Serial.println("MCP2515 Initialized Successfully.");
     } else {
-      Serial.println("MCP2515 Initialize Failure !!!");
+      //Serial.println("MCP2515 Initialize Failure !!!");
     }
 }
 
@@ -56,9 +56,9 @@ void CBUSDevice::begin(uint8_t MasterID, uint8_t IT2704ID)
         caninterface.setNormalMode();
         //caninterface.enableInterrupt(_intPin, ISRhandler);
         caninterface.enableInterrupt(_intPin, NULL);
-        Serial.println("MCP2515 Initialized Successfully.");
+        //Serial.println("MCP2515 Initialized Successfully.");
     } else {
-        Serial.println("MCP2515 Initialize Failure !!!");
+        //Serial.println("MCP2515 Initialize Failure !!!");
     }
 }
 
@@ -71,8 +71,8 @@ CBUSbase::CANERROR CBUSDevice::abortCANAllPending(bool withqueues)
 {
   if (withqueues)
   {
-    this->CanTxBuffer.clear();
-    this->CanTxPrioBuffer.clear();
+    CanTxBuffer.clear();
+    CanTxPrioBuffer.clear();
   }
   return ERROR_OK;
 }
@@ -88,46 +88,141 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
   // Pushed receved messages into the Rx buffer
   // Pops Tx messages from Tx buffer to send 
 
-  if (caninterface.checkInterrupt())
+  uint8_t canintf;
+  uint8_t eflg;
+  uint8_t status;
+  can_frame frame;
+
+  bool noData = true;
+
+  #ifndef NEWEST
+
+  if  (caninterface.checkIntPin())
+  //if (false)
   {
+    noData = false;
+
+    unsigned long taskCANTimer = millis();  
+
+    while (caninterface.checkIntPin())
+    {
+
+      if ((millis() - taskCANTimer) > 10)
+      {
+        //Serial.println("Looping to long (>10ms). Breaking !!!!!!!!!!!!!!!!");
+        break;
+      }
+
+      status = caninterface.getStatus();
+
+      if (status & MCP2515::STAT_RX0IF)
+      {
+        if (caninterface.readMessage(MCP2515::RXB0, &frame) == MCP2515::ERROR_OK)
+        {
+          CanRxBuffer.push(frame);
+        }
+      }
+
+      if (status & MCP2515::STAT_RX1IF)
+      {
+        if (caninterface.readMessage(MCP2515::RXB1, &frame) == MCP2515::ERROR_OK)
+        {
+          CanRxBuffer.push(frame);
+        }
+      }
+
+      if ( status & MCP2515::STAT_TXIF_MASK )
+      {
+        // First, clear the interrupts
+        caninterface.clearTXInterrupts();
+
+        HandleTxMessages = true;
+      }
+
+      // Only touch CANINTF (0x2C) and EFLG (0x2D) if NO RX/TX
+      // flags were set in 0xA0 (meaning ERRIF, MERRF, or WAKIF is holding INT low).
+
+      if ((status & (MCP2515::STAT_RXIF_MASK | MCP2515::STAT_TXIF_MASK)) == 0)
+      {
+          uint8_t intf = caninterface.getInterrupts();
+
+          // Handle Error Interrupt (EFLG 0x2D)
+          if (intf & MCP2515::CANINTF_ERRIF)
+          {
+              uint8_t eflg = caninterface.getErrorFlags();
+
+              if (eflg & (MCP2515::EFLG_RX0OVR | MCP2515::EFLG_RX1OVR))
+              {
+                caninterface.clearRXnOVRFlags();
+              }
+              else
+              if (eflg & MCP2515::EFLG_RX0OVR)
+              {
+                caninterface.clearRX0OVRFlag();
+              }
+              else
+              if (eflg & MCP2515::EFLG_RX1OVR)
+              {
+                caninterface.clearRX1OVRFlag();
+              }
+
+              // Clear ERRIF
+              caninterface.clearERRIF();
+
+              //app_on_can_error(eflg);
+          }
+
+          // Handle Message Error (MERRF)
+          if (intf & MCP2515::CANINTF_MERRF)
+          {
+              caninterface.clearMERR();
+          }
+      }
+    }
+  }
+  #endif
+
+  #ifdef OLDEST
+
     // Some interrupt has happended on the MCP2515
     // First handle read, if any
-    uint8_t canintf = caninterface.getInterrupts();
-    uint8_t eflg = 0;
+  if (caninterface.checkInterrupt())
+  {
+    noData = false;
+
+    canintf = caninterface.getInterrupts();
+    //eflg = caninterface.getErrorFlags();
 
     if (canintf & (MCP2515::CANINTF_ERRIF | MCP2515::CANINTF_MERRF))
     {
         if (canintf & MCP2515::CANINTF_MERRF)
         {
-            Serial.println("Message error interrupt.");
+            //Serial.println("Message error interrupt.");
         }
 
         if (canintf & MCP2515::CANINTF_ERRIF)
         {
-            Serial.println("General Error interrupt.");
+            //Serial.println("General Error interrupt.");
         }
 
         eflg = caninterface.getErrorFlags();
 
         if (eflg & MCP2515::EFLG_RX0OVR)
         {
-            Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+            //Serial.println("RX0OVR: receive buffer 0 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
             canintf |= (MCP2515::CANINTF_RX0IF); // force a read action
         }
 
         if (eflg & MCP2515::EFLG_RX1OVR)
         {
-            Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
+            //Serial.println("RX1OVR: receive buffer 1 overflow interrupt !!!!!!!!!!!!!!!!!!!!!!!!!");
             canintf |= (MCP2515::CANINTF_RX1IF); // force a read action
         }
     }
 
-
     unsigned long taskCANTimer = millis();  
     while (canintf & (MCP2515::CANINTF_RX0IF | MCP2515::CANINTF_RX1IF))
     {
-        can_frame frame;
-
         if (canintf & MCP2515::CANINTF_RX0IF)
         {
             //Serial.println("RX0 interrupt.");
@@ -151,7 +246,7 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
 
         if ((millis() - taskCANTimer) > 10)
         {
-          Serial.println("Looping to long (>10ms). Breaking !!!!!!!!!!!!!!!!");
+          //Serial.println("Looping to long (>10ms). Breaking !!!!!!!!!!!!!!!!");
           break;
         }
 
@@ -173,9 +268,7 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
       caninterface.clearMERR();
     }
 
-
     // Second, handle write, if any
-
     if (canintf & (MCP2515::CANINTF_TX0IF | MCP2515::CANINTF_TX1IF | MCP2515::CANINTF_TX2IF))
     {
         //if (canintf & CANINTF_TX0IF) Serial.println("TX0 interrupt.");
@@ -191,24 +284,21 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
         //processTxQueue();
     }
   }
+  #endif
 
+  //if (false)
   if (HandleTxMessages)
   {
     HandleTxMessages = false;
     if ((!CanTxPrioBuffer.isEmpty()) || (!CanTxBuffer.isEmpty()))
     {
+      noData = false;  
       // Process the message queue
       processTxQueue();
     }
-    /*
-    else
-    {
-      HandleTxMessages = false;
-    }
-    */
   }
 
-  return (!CanRxBuffer.isEmpty());
+  return (noData);
 }
 
 CBUSbase::CANERROR CBUSDevice::sendCANMessage(const can_frame *frame)
@@ -255,17 +345,17 @@ CBUSbase::CANERROR CBUSDevice::readCANMessage(can_frame *frame)
 
 bool CBUSDevice::processTxQueue(void)
 {
-    struct can_frame frame;
+    can_frame frame;
 
-    MCP2515::ERROR result;
+    MCP2515::ERROR result = MCP2515::ERROR_OK;
 
     if (CanTxBuffer.getCount() > 20)
     {
-      Serial.println("MCP2515: Normal message buffer filling up.");
+      //Serial.println("MCP2515: Normal message buffer filling up.");
     }
     if (CanTxPrioBuffer.getCount() > 20)
     {
-      Serial.println("MCP2515: Prio message buffer filling up.");
+      //Serial.println("MCP2515: Prio message buffer filling up.");
     }
 
     if (CanTxPrioBuffer.peek(frame))
@@ -278,7 +368,7 @@ bool CBUSDevice::processTxQueue(void)
         }
         else
         {
-          Serial.println("MCP2515: Send prio message failure.");
+          //Serial.println("MCP2515: Send prio message failure.");
         }
     }
 
@@ -303,12 +393,12 @@ bool CBUSDevice::processTxQueue(void)
           }
           else
           {
-            Serial.println("MCP2515: Send normal -> prio message failure.");
+            //Serial.println("MCP2515: Send normal -> prio message failure.");
           }
         }
         else
         {
-          Serial.println("MCP2515: Send normal message failure.");
+          //Serial.println("MCP2515: Send normal message failure.");
         }
       }
     }

@@ -391,7 +391,6 @@ static void main_event_handler(lv_event_t * e)
   {
     object_user_data = (lv_obj_t *)lv_obj_get_user_data(event_object);
 
-    #ifdef STANDALONE
     if ( (lv_obj_check_type(event_object, &lv_button_class)) || (lv_obj_check_type(event_object, &lv_list_button_class)) )
     {
       if(code == LV_EVENT_VALUE_CHANGED)
@@ -400,6 +399,8 @@ static void main_event_handler(lv_event_t * e)
 
         //bool buttondown = (lv_obj_get_state(btn, LV_BTN_PART_MAIN) & LV_STATE_CHECKED);
         bool buttondown = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
+
+        #ifdef STANDALONE
 
         if (event_object == outputbutton)
         {
@@ -493,7 +494,8 @@ static void main_event_handler(lv_event_t * e)
           #ifdef DEBUG                      
           Serial.println("Event unhandled: button value changed");
           #endif
-       }
+        }
+        #endif // STANDALONE
       }
       else
       if(code == LV_EVENT_LONG_PRESSED)
@@ -525,6 +527,7 @@ static void main_event_handler(lv_event_t * e)
           if ( (event_object == morebutton) && (screenindex<6) ) screenindex++; // forwards button              
           pending_screen_index = screenindex; // Defer screen change
         }
+        #ifdef STANDALONE
         else
         // Zero buttons
         if ((event_object == zerocapacitybutton) || (event_object == zeroenergybutton) || (event_object == zerotimebutton))
@@ -591,7 +594,7 @@ static void main_event_handler(lv_event_t * e)
             }
           }
         }
-
+        #endif //STANDALONE
       }
     }
 
@@ -660,7 +663,6 @@ static void main_event_handler(lv_event_t * e)
         #endif
       }
     }
-    #endif //STANDALONE
 
 
     #ifdef STANDALONE
@@ -744,15 +746,12 @@ void loop1()
 {
   //node.getCAN().taskCAN();
   if (node.getCAN().taskCAN())
-  //if (false)
-  //while (true)
   {
     // No activity on the bus
     // So, sleep a small bit
     sleep_us(100U);
     //busy_wait_us_32(10U);
   }
-  //tight_loop_contents();
 }
 
 #endif
@@ -1434,7 +1433,6 @@ void loop()
   }
   #endif //STANDALONE
 
-
   if (DataOk)
   {
     DataOk = false;
@@ -1653,7 +1651,6 @@ void loop()
     }
   }
   
-  #ifdef STANDALONE
   if (flagProcessMeasurementData)
   {
     flagProcessMeasurementData = false;
@@ -1789,7 +1786,6 @@ void loop()
       }
     }
   }
-  #endif
 
   if (CalcBatteryData)
   {

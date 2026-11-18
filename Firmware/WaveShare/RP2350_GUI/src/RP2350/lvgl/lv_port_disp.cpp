@@ -2,14 +2,14 @@
 #include "lv_port_disp.h"
 #include <lvgl.h>
 
-//#ifdef ARDUINO_ARCH_RP2040
+#ifdef ARDUINO_ARCH_RP2040
 
 #include <stdbool.h>
 #include "./../bsp/pio_rgb.h"
 #include "./../bsp/bsp_st7701.h"
 
 #define DOUBLE_BUFFER
-#define RENDER_MODE_DIRECT
+//#define RENDER_MODE_DIRECT
 #define USE_PSRAM
 
 #ifdef RENDER_MODE_DIRECT
@@ -213,4 +213,4 @@ uint32_t lv_port_get_buffer_heap_usage(void)
     return (usedheapbytes);
 }
 
-//#endif
+#endif

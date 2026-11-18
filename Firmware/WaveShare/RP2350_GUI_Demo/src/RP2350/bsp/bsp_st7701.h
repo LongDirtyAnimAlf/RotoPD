@@ -1,5 +1,8 @@
 #ifndef __BSP_ST7701s_H__    
 #define __BSP_ST7701s_H__
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "bsp_display.h"
 
 #include "pico/stdlib.h"
@@ -25,6 +28,8 @@
 //#define BSP_LCD_PCLK_FREQ   (20 * 1000 * 1000) // working for LCD without psram
 //#define BSP_LCD_PCLK_FREQ   (16 * 1000 * 1000) // original setting
 #define BSP_LCD_PCLK_FREQ   (12 * 1000 * 1000)
+//#define BSP_LCD_PCLK_FREQ   (10 * 1000 * 1000)
+//#define BSP_LCD_PCLK_FREQ   (8 * 1000 * 1000)
 
 #define BSP_LCD_BL_PIN 40
 
@@ -47,6 +52,8 @@ bool bsp_display_new_st7701(bsp_display_interface_t **interface, bsp_display_inf
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

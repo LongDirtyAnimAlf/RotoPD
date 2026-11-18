@@ -3,9 +3,9 @@
 
 #ifdef ARDUINO_ARCH_RP2040
 
-#define    CANTXBUFFERSIZE            32u
-#define    CANRXBUFFERSIZE            64u
-#define    CANTXPRIOBUFFERSIZE        32u
+#define    CANTXBUFFERSIZE            16u
+#define    CANRXBUFFERSIZE            32u
+#define    CANTXPRIOBUFFERSIZE        16u
 
 #include <atomic>
 #include "./CBUS.h"
@@ -48,6 +48,7 @@ private:
 
   //volatile bool HandleTxMessages;
   std::atomic<bool> HandleTxMessages;
+  //bool HandleTxMessages;
 
   CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;
   CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxBuffer;

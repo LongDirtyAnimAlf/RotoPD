@@ -1,4 +1,7 @@
 #include "bsp_xl2515.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/spi.h"
 #include <string.h>
 
@@ -125,7 +128,7 @@ void bsp_xl2515_init(xl2515_rate_kbps_t rate_kbps)
     // #Set RX
     xl2515_write_reg_byte(RXB0SIDH, 0x00);
     xl2515_write_reg_byte(RXB0SIDL, 0x60);
-    xl2515_write_reg_byte(RXB0CTRL, 0x00); // To receive all IDs, change this to 0x60
+    xl2515_write_reg_byte(RXB0CTRL, 0x60); // To receive all IDs, change this to 0x60
     xl2515_write_reg_byte(RXB0DLC, DLC_8);
 
     xl2515_write_reg_byte(RXF0SIDH, (filter_id >> 3) & 0XFF);
@@ -141,7 +144,7 @@ void bsp_xl2515_init(xl2515_rate_kbps_t rate_kbps)
     uint8_t dummy = xl2515_read_reg_byte(CANSTAT);
     if ((dummy & 0xe0) != OPMODE_NORMAL)
     {
-        printf("OPMODE_NORMAL\r\n");
+        //printf("OPMODE_NORMAL\r\n");
         xl2515_write_reg_byte(CANCTRL, REQOP_NORMAL | CLKOUT_ENABLED); // #set normal mode
     }
 }
@@ -202,3 +205,5 @@ bool bsp_xl2515_recv(uint32_t *can_id, uint8_t *data, uint8_t *len)
     xl2515_write_reg_byte(RXB0SIDL, 0x60);
     return true;
 }
+
+#endif

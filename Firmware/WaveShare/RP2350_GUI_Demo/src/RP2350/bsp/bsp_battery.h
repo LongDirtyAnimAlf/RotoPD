@@ -1,6 +1,9 @@
 #ifndef __BSP_BATTERY_H__
 #define __BSP_BATTERY_H__
 
+#ifdef ARDUINO_ARCH_RP2040
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +23,8 @@ void bsp_battery_read(float *voltage, uint16_t *adc_raw);
 
 #ifdef __cplusplus
 } /*extern "C"*/
+#endif
+
 #endif
 
 #endif // __BSP_BATTERY_H__

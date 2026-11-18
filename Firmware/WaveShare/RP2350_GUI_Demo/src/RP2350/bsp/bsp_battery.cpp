@@ -1,4 +1,7 @@
 #include "bsp_battery.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "hardware/adc.h"
 #include "hardware/gpio.h"
 
@@ -70,3 +73,5 @@ void bsp_battery_init(void)
     gpio_pull_up(BSP_BAT_CHRG_PIN);
     gpio_pull_up(BSP_BAT_DONE_PIN);
 }
+
+#endif

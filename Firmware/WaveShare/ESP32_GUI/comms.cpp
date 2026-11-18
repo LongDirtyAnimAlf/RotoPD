@@ -33,18 +33,19 @@ extern COBSPacketSerial myPacketSerial; // for logging
 #define USBSerial Serial
 #endif
 #ifdef ARDUINO_ARCH_ESP32
-#include "./src/UI/screenlogger.h"
+#include "./src/UI/screenbase.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
 #ifdef ARDUINO_ARCH_RP2040
-#include "./src/UI/screenlogger.h"
+#include "./src/UI/screenbase.h"
 #define DELAYUS(_us) delayMicroseconds(_us)
 #endif
 
-INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
+static INA238 ina238(INA238_ADDRESS,(TwoWire*)&WireBattery);
 
-volatile THIDData HIDData[DAUGHTERBOARDCOUNT] = {0};
+CircularDataQueue<HidReportFrame, 8, true> hidQueue;
+
 //THIDData* const CurrentHIDData = HIDData;
 
 static float ina_mA_c       = 0;
@@ -56,6 +57,8 @@ static float ina_T_c        = 0;
 static int   ina_counter_c  = 0;
 
 TBoardInfo BoardInfo;
+
+bool StoreBoardInfo = false;
 
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
 {
@@ -480,7 +483,7 @@ bool process_command(void const *data, void *result)
   CommandType_t cCmd = CMD_unknown;
   byte BN = 0;
 
-  byte dataindexer,j,databyte;
+  byte dataindexer,j,databyte,datalength;
 
   DWORD_VAL dw_data;
   WORD_VAL  w_data;
@@ -501,210 +504,286 @@ bool process_command(void const *data, void *result)
   bool DEBUGONSCREEN = false;
   #endif
 
-  //PBatteryBoard LocalBatteryBoard = &BatteryBoards[0];
-  PBatteryBoard LocalBatteryBoard = CurrentBoard;
-
-	cCmd  = (CommandType_t)databuffer[COMMANDPOSITION];
-  BN    = databuffer[BOARDPOSITION];
-  // datalength = databuffer[LENGTHPOSITION];
-
   // Data start at position 3 !!
   // 0   = Command
   // 1   = BoardNumber
   // 2   = Length
   // 3.. = Data
+	cCmd        = (CommandType_t)databuffer[COMMANDPOSITION];
+  BN          = databuffer[BOARDPOSITION];
+  datalength  = databuffer[LENGTHPOSITION];
   dataindexer = DATASTART;
 
-  if ( (cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
+  switch (cCmd)
   {
-    // We got a SetPDO command
-    StatusUpdateNeeded = true;
-    // Process the settings !
-    // Settings start at index DATASTART
-    // PD Index
-    LocalBatteryBoard->PDO.index=(databuffer[dataindexer++]);
-    // maxCurrent
-    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->PDO.maxCurrent_mA=dw_data.Val;
-    // targetVoltage
-    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->PDO.targetVoltage_mV=dw_data.Val;    
-
-    Info_Add("Comms. Received SetPD command.");
-    Info_Add_Fmt("Comms. PDO index: #%d.", LocalBatteryBoard->PDO.index);
-    Info_Add_Fmt("Comms. PDO requested current: %dmA.", LocalBatteryBoard->PDO.maxCurrent_mA);
-    Info_Add_Fmt("Comms. PDO target voltage: %dmV.", LocalBatteryBoard->PDO.targetVoltage_mV);
-
-    // Always stop the load current before switching PDO's
-    // Just to be sure
-    load.setOutput(false);
-
-    switch (cCmd)
+    case CMD_set_code:
     {
-      case CMD_set_MAXPDO:
-      {
-        Info_Add("Comms. Set max PDO.");
-        
-        LocalBatteryBoard->PDO.type = PDO_TYPE_MAX; 
-        pd.setMaxPDO(LocalBatteryBoard->PDO.index);
-
-        j = AP33772S_OK;
-
-        break;
-      }
-
-      case CMD_set_FIXEDPDO:
-      {
-        Info_Add("Comms. Set fxed PDO.");
-
-        LocalBatteryBoard->PDO.type = PDO_TYPE_FIXED; 
-        j = pd.setFixPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.maxCurrent_mA);
-        if (AP33772S_OK != j)
-        {
-          Info_Add("Comms. Set max PDO returned an error.");
-        }
-
-        break;
-      }
-      case CMD_set_PPSPDO:
-      {
-        Info_Add("Comms. Set PPS PDO.");
-
-        LocalBatteryBoard->PDO.type = PDO_TYPE_PPS; 
-        j = pd.setPPSPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.targetVoltage_mV, LocalBatteryBoard->PDO.maxCurrent_mA);
-        if (AP33772S_OK != j)
-        {
-          Info_Add("Comms. Set PPS PDO returned an error.");
-        }
-
-        break;
-      }
-      case CMD_set_AVSPDO:
-      {
-        Info_Add("Comms. Set AVS PDO.");
-
-        LocalBatteryBoard->PDO.type = PDO_TYPE_AVS; 
-        j = pd.setAVSPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO.targetVoltage_mV, LocalBatteryBoard->PDO.maxCurrent_mA);
-        if (AP33772S_OK != j)
-        {
-          Info_Add("Comms. Set AVS PDO returned an error.");
-        }
-
-        break;
-      }
-      default:
-      {
-        j = AP33772S_ERR_I2C;
-      }
+      strcpy(CurrentSettings->code,reinterpret_cast<const char*>(&databuffer[dataindexer]));
+      //memcpy(CurrentSettings->code, &databuffer[dataindexer], datalength);
+      //CurrentSettings->code[datalength] = '\0';
+      break;
     }
-
-    if (j == AP33772S_OK)
+    case CMD_set_brand:
     {
-      if (pd.readPDO(LocalBatteryBoard->PDO.index, LocalBatteryBoard->PDO))
+      strcpy(CurrentSettings->brand,reinterpret_cast<const char*>(&databuffer[dataindexer]));
+      break;
+    }
+    case CMD_set_model:
+    {
+      strcpy(CurrentSettings->model,reinterpret_cast<const char*>(&databuffer[dataindexer]));
+      break;
+    }
+    case CMD_set_batterymode:
+    {
+      // Unfortunately, we have to set the batterymode by ourselves !!
+      CurrentBoard->TD.Active = (TBatteryMode)databuffer[dataindexer++];
+      break;
+    }
+    case CMD_set_threshold:
+    {
+      // Get the stagemode to be used
+      TStageMode SM = (TStageMode)databuffer[dataindexer++];
+      PStageData SD = GetCorrectStageSettings(CurrentSettings, SM);
+      if (SD != NULL)
       {
-        if (PDO.valid)
+        // Get the thresholdmode to be used
+        TThresholdModes TM = (TThresholdModes)databuffer[dataindexer++];
+        if (TM >= tmLast) TM = tmNONE;
+        if (TM != tmNONE)
         {
-          // Set the PDO with the real values
-          LocalBatteryBoard->PDO.maxCurrent_mA    = pd.getRequestedCurrent_mA();
-          LocalBatteryBoard->PDO.targetVoltage_mV = pd.getRequestedVoltage_mV();
+          // Now get the data to set the correct threshold
+          PThresholdDataItem TS = &SD->ThresholdSettings[TM];
+          TS->Enabled = (databuffer[dataindexer++] != 0);
+          for ( j=0; j<2; j++ ) {dw_data.v[j] = databuffer[dataindexer++];}
+          TS->SetValue = dw_data.Val;
+          //TS->Triggered = (databuffer[dataindexer++] != 0);
         }
       }
+      break;
     }
-
-  }
-
-  if (cCmd == CMD_get_PDOList)
-  {
-    PDOCount = pd.readAllPDOs();
-
-    Info_Add_Fmt("Comms. Received GetAllPDO command. PDOs: %d.",PDOCount);
-  }
-
-  if (cCmd == CMD_read_PDOList)
-  {
-    PDOCount = pd.getValidPDOCount();
-
-    Info_Add_Fmt("Comms. Received read PDO list. PDOs: %d.",PDOCount);
-  }
-
-  if (cCmd == CMD_set_output)
-  {
-    Engage = (databuffer[dataindexer++] != 0);
-    if (Engage)
+    case CMD_set_MAXPDO:
+    case CMD_set_FIXEDPDO:
+    case CMD_set_PPSPDO:
+    case CMD_set_AVSPDO:
     {
-      Info_Add("Comms. Output ON.");
+      // We got a SetPDO command
+      StatusUpdateNeeded = true;
+      // Process the settings !
+      // Settings start at index DATASTART
+      // PD Index
+      CurrentBoard->PDO.index=(databuffer[dataindexer++]);
+      // maxCurrent
+      for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+      CurrentBoard->PDO.maxCurrent_mA=dw_data.Val;
+      // targetVoltage
+      for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+      CurrentBoard->PDO.targetVoltage_mV=dw_data.Val;    
+
+      Info_Add("Comms. Received SetPD command.");
+      Info_Add_Fmt("Comms. PDO requested index: #%d.", CurrentBoard->PDO.index);
+      if (cCmd != CMD_set_MAXPDO)
+      {
+        Info_Add_Fmt("Comms. PDO requested current: %dmA.", CurrentBoard->PDO.maxCurrent_mA);
+        Info_Add_Fmt("Comms. PDO target voltage: %dmV.", CurrentBoard->PDO.targetVoltage_mV);
+      }
+
+      // Always stop the load current before switching PDO's
+      // Just to be sure
+      load.setOutput(false);
+
+      switch (cCmd)
+      {
+        case CMD_set_MAXPDO:
+        {
+          Info_Add("Comms. Set max PDO.");
+          
+          CurrentBoard->PDO.type = PDO_TYPE_MAX; 
+          pd.setMaxPDO(CurrentBoard->PDO.index);
+
+          j = AP33772S_OK;
+
+          break;
+        }
+        case CMD_set_FIXEDPDO:
+        {
+          Info_Add("Comms. Set fxed PDO.");
+
+          CurrentBoard->PDO.type = PDO_TYPE_FIXED; 
+          j = pd.setFixPDO(CurrentBoard->PDO.index, CurrentBoard->PDO.maxCurrent_mA);
+          if (AP33772S_OK != j)
+          {
+            Info_Add("Comms. Set max PDO returned an error.");
+          }
+
+          break;
+        }
+        case CMD_set_PPSPDO:
+        {
+          Info_Add("Comms. Set PPS PDO.");
+
+          CurrentBoard->PDO.type = PDO_TYPE_PPS; 
+          j = pd.setPPSPDO(CurrentBoard->PDO.index, CurrentBoard->PDO.targetVoltage_mV, CurrentBoard->PDO.maxCurrent_mA);
+          if (AP33772S_OK != j)
+          {
+            Info_Add("Comms. Set PPS PDO returned an error.");
+          }
+
+          break;
+        }
+        case CMD_set_AVSPDO:
+        {
+          Info_Add("Comms. Set AVS PDO.");
+
+          CurrentBoard->PDO.type = PDO_TYPE_AVS; 
+          j = pd.setAVSPDO(CurrentBoard->PDO.index, CurrentBoard->PDO.targetVoltage_mV, CurrentBoard->PDO.maxCurrent_mA);
+          if (AP33772S_OK != j)
+          {
+            Info_Add("Comms. Set AVS PDO returned an error.");
+          }
+
+          break;
+        }
+        default:
+        {
+          j = AP33772S_ERR_I2C;
+        }
+      }
+
+      if (j == AP33772S_OK)
+      {
+        if (pd.readPDO(CurrentBoard->PDO.index, CurrentBoard->PDO))
+        {
+          if (PDO.valid)
+          {
+            // Set the PDO with the real values
+            CurrentBoard->PDO.maxCurrent_mA    = pd.getRequestedCurrent_mA();
+            CurrentBoard->PDO.targetVoltage_mV = pd.getRequestedVoltage_mV();
+          }
+        }
+      }
+      break;
     }
-    else
+    case CMD_get_PDOList:
     {
-      Info_Add("Comms. Output OFF.");
+      PDOCount = pd.readAllPDOs();
+      Info_Add_Fmt("Comms. Received GetAllPDO command. PDOs: %d.",PDOCount);
+      break;
     }
-    if (!Engage) load.setOutput(Engage);
-    //pd.setOutput(Engage);
-    if (Engage) load.setOutput(Engage);
-  }
-
-  if (cCmd == CMD_set_value)
-  {
-    LocalBatteryBoard->BM.Status=TStageMode(databuffer[dataindexer++]);
-    for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
-    LocalBatteryBoard->BM.SetValue=dw_data.Val;
-
-    Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",LocalBatteryBoard->BM.SetValue);
-
-    StatusUpdateNeeded = true;
-    Engage = false;
-
-    switch(LocalBatteryBoard->BM.Status)
+    case CMD_read_PDOList:
     {
-      case smCurrent :
-      {
-        Info_Add("Comms. SetValue current.");
-        load.setCurrent(LocalBatteryBoard->BM.SetValue);
-        Engage = true;
-        break;
-      }
-      case smPower :
-      {
-        Info_Add("Comms. SetValue power.");
-        Engage = true;
-        break;
-      }
-      case smResistor : 
-      {
-        Info_Add("Comms. SetValue resistor.");
-        Engage = true;
-        break;
-      }
-      case smCharge :
-      {
-        break;
-      }
-      default :
-      {
-        break;
-      }
-    }
-
-    if (Engage)
+      PDOCount = pd.getValidPDOCount();
+      Info_Add_Fmt("Comms. Received read PDO list. PDOs: %d.",PDOCount);
+      break;
+    } 
+    case CMD_set_output:
     {
-      Info_Add("Comms. Output ON.");
+      Engage = (databuffer[dataindexer++] != 0);
+      if (Engage)
+      {
+        Info_Add("Comms. Output ON.");
+      }
+      else
+      {
+        Info_Add("Comms. Output OFF.");
+      }
+      if (!Engage) load.setOutput(Engage);
+      //pd.setOutput(Engage);
+      if (Engage) load.setOutput(Engage);
+      break;
     }
-    else
+    case CMD_set_value:
     {
-      Info_Add("Comms. Output OFF.");
+      CurrentBoard->TD.SetStageMode=TStageMode(databuffer[dataindexer++]);
+      for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
+      CurrentBoard->TD.SetStageValue=dw_data.Val;
+
+      PStageData SD = GetCorrectStageSettings(CurrentSettings, CurrentBoard->TD.SetStageMode);
+      if (SD != NULL)
+      {
+        // Adjust the settings with the correct values
+        SD->Status = CurrentBoard->TD.SetStageMode;
+        SD->SetValue = CurrentBoard->TD.SetStageValue;
+
+        // Reset all triggers
+        for(j = (tmNONE+1); j < tmLast; j++)
+        {
+          TThresholdModes TM = (TThresholdModes)j;
+          PThresholdDataItem TS = &SD->ThresholdSettings[TM];
+          TS->Triggered = false;
+        }
+      }
+
+      Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",CurrentBoard->TD.SetStageValue);
+
+      StatusUpdateNeeded = true;
+      Engage = false;
+
+      // When off or zero, alsways first switch-off output.
+      if ( (CurrentBoard->TD.SetStageMode == smUnknown) || (CurrentBoard->TD.SetStageMode == smZero) || (CurrentBoard->TD.SetStageMode == smDisabled) || (CurrentBoard->TD.SetStageValue == 0) )
+      {
+        if (CurrentBoard->TD.SetStageValue == 0)
+        {
+          Info_Add("Comms. SetValue 0. Output off !");      
+        } 
+        else
+        {
+          Info_Add("Comms. Status Off. Output off !");
+        }
+        load.setOutput(false);        
+        //pd.setOutput(false);
+      }
+
+      switch(CurrentBoard->TD.SetStageMode)
+      {
+        case smCurrent :
+        {
+          Info_Add("Comms. SetValue current.");
+          load.setCurrent(CurrentBoard->TD.SetStageValue);
+          Engage = true;
+          break;
+        }
+        case smPower :
+        {
+          Info_Add("Comms. SetValue power.");
+          load.setPower(CurrentBoard->TD.SetStageValue);
+          Engage = true;
+          break;
+        }
+        case smResistor : 
+        {
+          Info_Add("Comms. SetValue resistor.");
+          load.setResistance(CurrentBoard->TD.SetStageValue);
+          Engage = true;
+          break;
+        }
+        case smCharge :
+        {
+          break;
+        }
+        default :
+        {
+          break;
+        }
+      }
+
+      if (Engage) Engage = (CurrentBoard->TD.SetStageValue != 0);
+      if (Engage)
+      {
+        Info_Add("Comms. SetValue active. Output on !");
+        //pd.setOutput(true);
+        load.setOutput(true);
+      } 
+
+      break;
     }
-    if (!Engage) load.setOutput(Engage);
-    //pd.setOutput(Engage);
-    if (Engage) load.setOutput(Engage);
-  }
-
-  if (cCmd == CMD_get_data)
-  {
-    //Info_Add("Comms. Received GetData command.");
-
-    getRotoPDData(&LocalBatteryBoard->RotoPDData.I,&LocalBatteryBoard->RotoPDData.V,&LocalBatteryBoard->RotoPDData.P,&LocalBatteryBoard->RotoPDData.T);
-
-    GUIUpdateNeeded = true;
+    case CMD_get_data:
+    {
+      //Info_Add("Comms. Received GetData command.");
+      // Collect RotoPD data from hardware
+      getRotoPDData(&CurrentBoard->RotoPDData.I,&CurrentBoard->RotoPDData.V,&CurrentBoard->RotoPDData.P,&CurrentBoard->RotoPDData.T);
+      GUIUpdateNeeded = true;
+      break;
+    } 
   }
 
   // Start processing the collected data !!
@@ -731,84 +810,106 @@ bool process_command(void const *data, void *result)
   // Will be set in a later stage
   dataindexer = DATASTART;
 
-  // Return data
-  if (cCmd == CMD_get_data)
-  {
-    //memcpy(&resultbuffer[i],&LocalBatteryBoard->Voltage, 2);
-    //i += 2;
-    w_data.Val = LocalBatteryBoard->RotoPDData.V;
-    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    w_data.Val = LocalBatteryBoard->RotoPDData.I;
-    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-    dw_data.Val = LocalBatteryBoard->RotoPDData.P;
-    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-    w_data.Val = LocalBatteryBoard->RotoPDData.T;
-    for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
-  }
+  // Return data, if any
 
-  if (cCmd == CMD_set_value)
+  switch (cCmd)
   {
-    resultbuffer[dataindexer++]=(byte)LocalBatteryBoard->BM.Status;
-    dw_data.Val = LocalBatteryBoard->BM.SetValue;
-    for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
-  }  
-
-  if ( (cCmd == CMD_get_PDOList) || (cCmd == CMD_read_PDOList) )
-  {
-    Info_Add_Fmt("Comms. Processing available [#%d] PDOs.",PDOCount);
-
-    if  ((PDOCount>=0) && (PDOCount<=MAX_PDO_ENTRIES))
+    case CMD_get_data:
     {
-      resultbuffer[dataindexer++] = PDOCount;
+      //memcpy(&resultbuffer[i],&CurrentBoard->Voltage, 2);
+      //i += 2;
+      // RotoPD data
+      w_data.Val = CurrentBoard->RotoPDData.V;
+      for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+      w_data.Val = CurrentBoard->RotoPDData.I;
+      for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+      dw_data.Val = CurrentBoard->RotoPDData.P;
+      for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+      w_data.Val = CurrentBoard->RotoPDData.T;
+      for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
 
-      if  (PDOCount>0)
+      if (load.isConnected())
       {
-        for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
-        {
-          if (pd.readPDO(j, PDO))
-          {
-            if (PDO.valid)
-            {
-              Info_Add_Fmt("Comms. Sending PDO #%d.",PDO.index);
+        load.getData(&CurrentBoard->IT2704Data.I, &CurrentBoard->IT2704Data.V, &CurrentBoard->IT2704Data.P, &CurrentBoard->IT2704Data.C, &CurrentBoard->IT2704Data.E);
+        // IT2704 data
+        w_data.Val  = CurrentBoard->IT2704Data.V;
+        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+        w_data.Val  = CurrentBoard->IT2704Data.I;
+        for ( j=0; j<2; j++ ) {resultbuffer[dataindexer++] = w_data.v[j];}
+        dw_data.Val = CurrentBoard->IT2704Data.P;
+        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+        dw_data.Val = CurrentBoard->IT2704Data.C;
+        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+        dw_data.Val = CurrentBoard->IT2704Data.E;
+        for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+      }
+      break;
+    }
+    case CMD_set_value:
+    {
+      resultbuffer[dataindexer++]=(byte)CurrentBoard->TD.SetStageMode;
+      dw_data.Val = CurrentBoard->TD.SetStageValue;
+      for ( j=0; j<4; j++ ) {resultbuffer[dataindexer++] = dw_data.v[j];}
+      break;
+    }
+    case CMD_get_PDOList:
+    case CMD_read_PDOList:
+    {
+      Info_Add_Fmt("Comms. Processing available [#%d] PDOs.",PDOCount);
 
-              resultbuffer[dataindexer++] = PDO.index;
-              w_data.Val = PDO.raw;
-              resultbuffer[dataindexer++] = w_data.bytes.LB;
-              resultbuffer[dataindexer++] = w_data.bytes.HB;
-            }  
+      if  ((PDOCount>=0) && (PDOCount<=MAX_PDO_ENTRIES))
+      {
+        resultbuffer[dataindexer++] = PDOCount;
+
+        if  (PDOCount>0)
+        {
+          for ( j=1; j<=MAX_PDO_ENTRIES; j++ )
+          {
+            if (pd.readPDO(j, PDO))
+            {
+              if (PDO.valid)
+              {
+                Info_Add_Fmt("Comms. Sending PDO #%d.",PDO.index);
+
+                resultbuffer[dataindexer++] = PDO.index;
+                w_data.Val = PDO.raw;
+                resultbuffer[dataindexer++] = w_data.bytes.LB;
+                resultbuffer[dataindexer++] = w_data.bytes.HB;
+              }  
+            }
           }
         }
+
+      }
+      else
+      {
+        Info_Add("Comms. Invalid PDO count.");
+        resultbuffer[dataindexer++] = 0;
       }
 
+      break;
     }
-    else
+    case CMD_set_MAXPDO:
+    case CMD_set_FIXEDPDO:
+    case CMD_set_PPSPDO:
+    case CMD_set_AVSPDO:
     {
-      Info_Add("Comms. Invalid PDO count.");
-      resultbuffer[dataindexer++] = 0;
+      resultbuffer[dataindexer++] = CurrentBoard->PDO.index;
+      
+      w_data.Val = CurrentBoard->PDO.maxCurrent_mA;
+      resultbuffer[dataindexer++] = w_data.v[0];
+      resultbuffer[dataindexer++] = w_data.v[1];
+
+      w_data.Val = CurrentBoard->PDO.targetVoltage_mV;
+      resultbuffer[dataindexer++] = w_data.v[0];
+      resultbuffer[dataindexer++] = w_data.v[1];
+
+      w_data.Val = CurrentBoard->PDO.raw;
+      resultbuffer[dataindexer++] = w_data.v[0];
+      resultbuffer[dataindexer++] = w_data.v[1];
+
+      break;
     }
-  }
-
-  if ((cCmd == CMD_set_MAXPDO) ||  (cCmd == CMD_set_FIXEDPDO) || (cCmd == CMD_set_PPSPDO) || (cCmd == CMD_set_AVSPDO) )
-  {
-
-    resultbuffer[dataindexer++] = LocalBatteryBoard->PDO.index;
-    
-    w_data.Val = LocalBatteryBoard->PDO.maxCurrent_mA;
-    resultbuffer[dataindexer++] = w_data.v[0];
-    resultbuffer[dataindexer++] = w_data.v[1];
-
-    w_data.Val = LocalBatteryBoard->PDO.targetVoltage_mV;
-    resultbuffer[dataindexer++] = w_data.v[0];
-    resultbuffer[dataindexer++] = w_data.v[1];
-
-    w_data.Val = LocalBatteryBoard->PDO.raw;
-    resultbuffer[dataindexer++] = w_data.v[0];
-    resultbuffer[dataindexer++] = w_data.v[1];
-  }
-
-  if (cCmd == CMD_get_firmware)
-  {
-    //LocalBatteryBoard->NeedsDataUpdate;
   }
 
   if (dataindexer == DATASTART)
@@ -822,11 +923,8 @@ bool process_command(void const *data, void *result)
     }
   }
 
-    // echo back length
+  // echo back length
   resultbuffer[LENGTHPOSITION]=(dataindexer-DATASTART);
-
-  LocalBatteryBoard->NeedsGUIUpdate |= GUIUpdateNeeded;
-  LocalBatteryBoard->NeedsStatusUpdate |= StatusUpdateNeeded;
 
   // Trivial: return true to indicate we have data to return.
   // Should always be true with this firmware !!
@@ -842,12 +940,6 @@ void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint1
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize)
 #endif
 {
-  (void) report_id;
-  #ifndef ARDUINO_ARCH_ESP32
-  (void) report_type;
-  #endif
-  (void) bufsize;
-
   byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
   byte j;
 
@@ -881,7 +973,8 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         hid_report_in[j+1] = BoardInfo.BoardSerial[j];
       }
       BoardInfo.setValid(true);
-      storePutBoardInfo(&BoardInfo);
+      StoreBoardInfo = true;
+      //storePutBoardInfo(&BoardInfo);
 			break;
 		}
 
@@ -904,8 +997,10 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       // Do not allow setting of board-number !!
       // This will be done through GUI by setting IT2704 channel !!
       /*
+      BoardInfo.setBoardNumber(hid_report_out[1]);
       BoardInfo.setValid(true);
-      storePutBoardInfo(&BoardInfo);
+      StoreBoardInfo = true;
+      //storePutBoardInfo(&BoardInfo);
       */      
       break;
     }
@@ -917,8 +1012,18 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       if (cBat<DAUGHTERBOARDCOUNT)
       {
         SendData = false;
-        for ( j=0; j<HID_INT_OUT_EP_SIZE; j++ ) HIDData[cBat].HIDEPOUTData[j] = hid_report_out[j];
-        HIDData[cBat].DataReceived = true;
+
+        #ifndef ARDUINO_ARCH_ESP32
+        //if (report_type == HID_REPORT_TYPE_OUTPUT)
+        #endif
+        {
+          HidReportFrame frame;
+          frame.report_id = report_id;
+          frame.len = (bufsize > HID_INT_OUT_EP_SIZE) ? HID_INT_OUT_EP_SIZE : bufsize;
+          memcpy(frame.data, hid_report_out, frame.len);
+          // Push into queue non-blockingly (tryPush returns false if queue is full)
+          hidQueue.tryPush(frame);
+        }
       }
       else
       {
@@ -933,14 +1038,14 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
      // This delay seems necessary for communication with PC host
      // I do not know why ... :-()
     #ifdef ARDUINO_ARCH_ESP32
-    delayMicroseconds(1000U);
+    //delayMicroseconds(1000U);
     #endif
 
     // Send report back to host
     #ifdef ARDUINO_ARCH_ESP32
     HID.SendReport(0, hid_report_in, HID_INT_IN_EP_SIZE, /* timeout [ms] = */ 100 );
     #else
-    HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
+    if (HID.ready()) HID.sendReport(0, hid_report_in, HID_INT_IN_EP_SIZE);
     #endif
 
   }

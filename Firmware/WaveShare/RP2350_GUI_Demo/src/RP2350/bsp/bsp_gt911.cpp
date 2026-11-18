@@ -1,4 +1,7 @@
 #include "bsp_gt911.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "bsp_i2c.h"
 
 static bsp_touch_info_t *g_touch_info;
@@ -188,3 +191,5 @@ bool bsp_touch_new_gt911(bsp_touch_interface_t **interface, bsp_touch_info_t *in
     g_touch_info = &touch_info;
     return true;
 }
+
+#endif

@@ -398,7 +398,59 @@ void IT2704::setCurrent(uint16_t current) // in mA
     data.f /= 1000.0f; // current is set in float A !!
     Msg.setData(data.Val);
 
-    _node->sendMsg(Msg);
+    _node->sendMsg(Msg,true); // Setting output levels always with priority !!
+  }
+}
+
+void IT2704::setPower(uint32_t setValue) // in mW
+{
+  Message Msg;
+  DWORD_FLOAT data;
+
+  if (_connected)
+  {
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+
+    // Set current
+
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_POWER + (_channel * 0x100));
+    Msg.setSubID(IT2704_SOURCE_POWER_POWER_LEVEL);
+
+    data.f = setValue; // power is given in mW !!
+    data.f /= 1000.0f; // power is set in float W !!
+    Msg.setData(data.Val);
+
+    _node->sendMsg(Msg,true); // Setting output levels always with priority !!
+  }
+}
+
+void IT2704::setResistance(uint32_t setValue) // in mOhm
+{
+  Message Msg;
+  DWORD_FLOAT data;
+
+  if (_connected)
+  {
+    Msg.clearMsg();
+
+    Msg.id        = (CO_CAN_ID_SDO_CLI + _id);
+    Msg.dlc       = 8;
+
+    // Set current
+
+    Msg.setCommand(WRITE_REQ_4BYTE_CMD);
+    Msg.setID(IT2704_SOURCE_RESISTANCE + (_channel * 0x100));
+    Msg.setSubID(IT2704_SOURCE_RESISTANCE_RESISTANCE_LEVEL);
+
+    data.f = setValue; // resistance is given in mOhm !!
+    data.f /= 1000.0f; // resistance is set in float Ohm !!
+    Msg.setData(data.Val);
+
+    _node->sendMsg(Msg,true); // Setting output levels always with priority !!
   }
 }
 
@@ -459,9 +511,10 @@ void IT2704::collectData(void)
 
       Msg.setSubID(IT2704_METER_AHOUR);
       _node->sendMsg(Msg);
+
+      Msg.setSubID(IT2704_METER_WHOUR);
+      _node->sendMsg(Msg);
     }
-    //Msg.setSubID(IT2704_METER_WHOUR);
-    //_node->sendMsg(Msg);
   }
 }
 
@@ -483,22 +536,31 @@ void IT2704::collectDataEnergyOnly(void)
 }
 
 
-void IT2704::getData(const Message* Msg, uint16_t* I, uint16_t* V, uint32_t* P, uint32_t* A, uint32_t* E)
+void IT2704::processDataMessage(const Message* Msg, uint16_t* pI, uint16_t* pV, uint32_t* pP, uint32_t* pC, uint32_t* pE)
 {
     DWORD_FLOAT data; 
     data.Val = Msg->getData();
     data.f *= 1000; 
     switch(Msg->getSubID())
     {
-      case IT2704_METER_VOLTAGE   : {*V = round(data.f); break;}
-      case IT2704_METER_CURRENT   : {*I = round(data.f); break;}      
-      case IT2704_METER_POWER     : {*P = round(data.f); break;}
-      case IT2704_METER_AHOUR     : {*A = round(data.f); break;}      
-      case IT2704_METER_WHOUR     : {*E = round(data.f); break;}
+      case IT2704_METER_VOLTAGE   : {V = round(data.f); *pV = V; break;}
+      case IT2704_METER_CURRENT   : {I = round(data.f); *pI = I; break;}      
+      case IT2704_METER_POWER     : {P = round(data.f); *pP = P; break;}
+      case IT2704_METER_AHOUR     : {C = round(data.f); *pC = C; break;}      
+      case IT2704_METER_WHOUR     : {E = round(data.f); *pE = E; break;}
     }
 }
 
-bool IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* E)
+void IT2704::getData(uint16_t* pI, uint16_t* pV, uint32_t* pP, uint32_t* pC, uint32_t* pE)
+{
+    *pV = V;
+    *pI = I;
+    *pP = P;
+    *pC = C;
+    *pE = E;
+}
+
+bool IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* pE)
 {
 
   if (Msg->id == (TPO_COB_ID[_channel / 2] + _id)) // We received a correct TPDO message from the IT2704
@@ -514,7 +576,8 @@ bool IT2704::getTPDOEnergyData(const Message* Msg, uint32_t* E)
       memcpy(&data.v[4], &Msg->data[4], 4);
     }
 
-    *E = round(data.f * 1000);
+    E = round(data.f * 1000);
+    *pE = E;
 
     return true;
   }

@@ -1,4 +1,7 @@
 #include "bsp_cst820.h"
+
+#ifdef ARDUINO_ARCH_RP2040
+
 #include "bsp_i2c.h"
 
 static bsp_touch_info_t *g_touch_info;
@@ -175,3 +178,5 @@ bool bsp_touch_new_cst820(bsp_touch_interface_t **interface, bsp_touch_info_t *i
     g_touch_info = &touch_info;
     return true;
 }
+
+#endif

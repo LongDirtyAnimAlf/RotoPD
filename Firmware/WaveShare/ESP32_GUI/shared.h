@@ -31,12 +31,12 @@
 #define    STANDALONE
 #endif
 
-#define TICKERTIME                    50 // ms
-#define DATACOLLECTTIMEFAST           500 // ms
+#define TICKERTIME                    50u // ms
+#define DATACOLLECTTIMEFAST           500u // ms
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
-#define CALCULATIONTIME               100 // ms
+#define CALCULATIONTIME               100u // ms
 
-#define SAVERTIME                     (1000u * 60u * 1u) // 10 minutes in ms
+#define SAVERTIME                     (1000u * 60u * 10u) // 10 minutes in ms
 #define DVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 #define PVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 
@@ -90,12 +90,11 @@
 
 #define    USB_CMD_error              0xFF
 
-typedef struct
-{
-  byte HIDEPOUTData[HID_INT_OUT_EP_SIZE];
-  byte HIDEPINData[HID_INT_IN_EP_SIZE];
-  bool DataReceived;
-} THIDData;
+struct HidReportFrame {
+  uint8_t report_id;
+  uint16_t len;
+  alignas(4) uint8_t data[HID_INT_OUT_EP_SIZE];
+};
 
 //typedef uint16_t word;
 typedef uint32_t dword;
@@ -135,70 +134,6 @@ typedef union
     uint32_t dw[2];// __PACKED;
 } QWORD_VAL, QWORD_BITS;
 
-#define IDDLESTAGENUMBER              0
-#define FIXEDDISCHARGESTAGENUMBER     1
-#define FIXEDCHARGESTAGENUMBER        2
-
-typedef enum {
-    CMD_unknown          = 0x00,
-    CMD_logdata          = 0x30,
-    CMD_error            = 0x40,
-    CMD_get_data         = 0x50,
-    CMD_get_status,
-    CMD_get_hardware,
-    CMD_get_firmware,
-    CMD_set_value,
-    CMD_set_energy,
-    CMD_set_capacity,
-    CMD_set_time,
-    CMD_get_PDOList,
-    CMD_read_PDOList,
-    CMD_set_FIXEDPDO,
-    CMD_set_PPSPDO,
-    CMD_set_AVSPDO,
-    CMD_set_MAXPDO,
-    CMD_set_output,
-    CMD_get_curcal,
-    CMD_set_curcal,
-    CMD_controller_reset = 0xB0
-} CommandType_t;
-
-typedef enum 
-{
-  smOff = 0,
-  smCurrent,
-  smPower,
-  smResistor,
-  smReserve,
-  smCharge,
-  smZero,
-  smDisabled
-} TStageMode;
-
-typedef enum
-{
-  tmNONE=0,
-  tmMAXV,
-  tmMINV,
-  tmDELTAV,
-  tmPLATEAUV,
-  tmABST,
-  tmDELTAT,
-  tmDVT,
-  tmTIME,
-  tmMAXC,
-  tmLast
-} TThresholdModes;
-
-typedef struct
-{
-  TThresholdModes Mode;
-  word SetValue;
-  bool Enabled;
-  bool Triggered;
-  word GetValue;
-} TThresholdDataItem;
-
 typedef enum
 {
   ieOk = 0,
@@ -224,13 +159,89 @@ typedef struct
   byte I2CAddress;
 } TI2CStatus,*PI2CStatus;
 
+#define IDDLESTAGENUMBER              0
+#define FIXEDDISCHARGESTAGENUMBER     1
+#define FIXEDCHARGESTAGENUMBER        2
+
+typedef enum {
+    CMD_unknown          = 0x00,
+    CMD_logdata          = 0x30,
+    CMD_error            = 0x40,
+    CMD_get_data         = 0x50,
+    CMD_get_status,
+    CMD_get_hardware,
+    CMD_get_firmware,
+    CMD_set_value,
+    CMD_set_energy,
+    CMD_set_capacity,
+    CMD_set_time,
+    CMD_get_PDOList,
+    CMD_read_PDOList,
+    CMD_set_FIXEDPDO,
+    CMD_set_PPSPDO,
+    CMD_set_AVSPDO,
+    CMD_set_MAXPDO,
+    CMD_set_code,
+    CMD_set_brand,
+    CMD_set_model,
+    CMD_set_output,
+    CMD_set_batterymode,
+    CMD_set_threshold,
+    CMD_set_local,
+    CMD_get_curcal,
+    CMD_set_curcal,
+    CMD_controller_reset = 0xB0
+} CommandType_t;
+
+typedef enum 
+{
+  smUnknown = 0,
+  smResistor,
+  smCurrent,
+  smPower,
+  smVoltage,
+  smCharge,
+  smPulse,
+  smTopOff,
+  smTrickle,
+  smZero,
+  smDisabled,
+  smIndicator,
+  smIRTask
+} TStageMode;
+
 typedef enum
 {
-  bmIdle = 0,
+  tmNONE=0,
+  tmMAXV,
+  tmMINV,
+  tmDELTAV,
+  tmPLATEAUV,
+  tmABST,
+  tmDELTAT,
+  tmDVT,
+  tmTIME,
+  tmMAXC,
+  tmLast
+} TThresholdModes;
+
+typedef struct
+{
+  word SetValue;
+  bool Enabled;
+  bool Triggered;
+} TThresholdDataItem, *PThresholdDataItem;
+
+typedef enum
+{
+  bmUnknown = 0,
+  bmIdle,
   bmActive,
+  bmPause,
+  bmWaiting,
   bmOff,
   bmReady,
-  bmError
+  bmError  
 } TBatteryMode;
 
 typedef struct
@@ -251,27 +262,6 @@ typedef struct
   uint16_t T;   // temperature
 } TMeasurementData,*PMeasurementData;
 
-typedef struct
-{
-  // Actual board data
-  TMeasurementData RotoPDData;
-  TMeasurementData IT2704Data;
-  TStageData BM;
-  // PDO stuff
-  AP33772S_PDO PDO;
-  //TPDOMode pdoMode;
-  //int pdoIndex;
-  //int pdoTargetVoltage;
-  //int pdoMaxCurrent;
-  // Board hardware info
-  byte Serial[8];
-  word Firmware;
-  // Miscellaneous
-  bool NeedsGUIUpdate;
-  bool NeedsStatusUpdate;
-  bool NeedsDataUpdate;
-} TBatteryBoard,*PBatteryBoard;
-
 static void ClearMeasurementData(PMeasurementData MAD)
 {
   MAD->V = 0;
@@ -283,8 +273,6 @@ static void ClearMeasurementData(PMeasurementData MAD)
   MAD->S = 0;
 }
 
-#pragma pack(push, 4) // Ensure consistent 4-byte or 8-byte member alignment
-
 #ifdef __cplusplus
 
 // C++ Layout
@@ -293,10 +281,9 @@ typedef struct TRunDatas {
     qword Capacity;             // in nAh
     qword Energy;               // in nWh
     qword Time;                 // in ms
-    byte  CurrentStageNumber;
     TThresholdDataItem ThresholdResult[tmLast];
-
-    // C++ Queues
+    byte  CurrentStageNumber;
+    // C++ Queues (Set ThreadSafe = true for Core 0 + Core 1 safety!)
     CircularDataQueue<TMeasurementData, DATASIZE, false> NewerRotoPDDatas;
     CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
 } TRunDatas, *PRunDatas;
@@ -312,66 +299,36 @@ static_assert(sizeof(TRunDatas) > 0, "TRunDatas must have a valid non-zero size"
 
 #else  // pure C
 
-// Fallback calculation that stays as close as possible to the real layout.
-// ESP: (pointer + lastItem + 3×uint16_t + bool + portMUX_TYPE + small padding)
-// RP2350: (pointer + lastItem + 3×uint16_t + critical_section_t + small padding)
+#ifdef ARDUINO_ARCH_ESP32
+#define QUEUE_LOCK_SIZE (sizeof(bool) + sizeof(portMUX_TYPE))
+#elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
+#include "pico/critical_section.h"
+#define QUEUE_LOCK_SIZE sizeof(critical_section_t)
+#else
+#define QUEUE_LOCK_SIZE 8
+#endif
+
 #ifndef kOneQueueSize
 #define kOneQueueSize  ( sizeof(void*)                + \
                          sizeof(TMeasurementData)     + \
                          3 * sizeof(uint16_t)         + \
-#ifdef ARDUINO_ARCH_ESP32
-                         sizeof(bool)                 + \
-                         sizeof(portMUX_TYPE)         + \
-#endif
-#ifdef ARDUINO_ARCH_RP2040
-                         sizeof(critical_section_t)   + \
-#endif
-                         4 /* padding / alignment margin */ )
+                         QUEUE_LOCK_SIZE              + \
+                         8 /* padding / alignment margin */ )
 #endif // kOneQueueSize
-
-#endif //  __cplusplus
 
 typedef struct TRunDatas {
     // Cumulative data (must match C++ exactly)
     qword Capacity;             // in nAh
     qword Energy;               // in nWh
     qword Time;                 // in ms
-    byte  CurrentStageNumber;
     TThresholdDataItem ThresholdResult[tmLast];
-
+    byte  CurrentStageNumber;
     // Opaque storage for *both* C++ queues
-    alignas(uintptr_t) uint8_t _cpp_queue_opaque_storage[ 2 * kOneQueueSize ];
+    uintptr_t _cpp_queue_opaque_storage_roto[kOneQueueSize / sizeof(uintptr_t)];
+    uintptr_t _cpp_queue_opaque_storage_it2704[kOneQueueSize / sizeof(uintptr_t)];
 } TRunDatas, *PRunDatas;
 
-#endif
-
-#pragma pack(pop)
-
-/*
-typedef struct
-{
-  // Cumulative datas
-  qword Capacity; // in nAh
-  qword Energy; // in nWh
-  qword Time;  // in ms
-  byte CurrentStageNumber;
-  TThresholdDataItem ThresholdResult[tmLast]; // all threshold possibilities
-  //Queue memory region at the bottom
-  #ifdef __cplusplus          // only compile the class when using a C++ compiler
-  CircularDataQueue<TMeasurementData, DATASIZE, false> NewerRotoPDDatas;
-  CircularDataQueue<TMeasurementData, DATASIZE, false> NewerIT2704Datas;
-  #else
-  // The Pure C compiler reserves exactly 80/88 bytes here.
-  // This keeps subsequent memory fields from overlapping or mismatching offsets.
-  #ifdef ARDUINO_ARCH_RP2040
-  uint8_t _cpp_queue_padding[88];
-  #endif
-  #ifdef ARDUINO_ARCH_ESP32
-  uint8_t _cpp_queue_padding[80];
-  #endif
-  #endif
-} TRunDatas,*PRunDatas;
-*/
+#endif // __cplusplus
 
 typedef struct
 {
@@ -382,26 +339,66 @@ typedef struct
   dword                ThresholdValue;
   byte                 DataTriggerCounter;
   TRunDatas            RunDatas;
-} TTestData;
+} TTestData, *PTestData;
 
 typedef struct
 {
-  char code[10];
+  // PDO stuff
+  AP33772S_PDO PDO;
+  // Actual board data
+  TMeasurementData RotoPDData;
+  TMeasurementData IT2704Data;
+  // Status data
+  TTestData TD;
+} TBatteryBoard,*PBatteryBoard;
+
+typedef struct
+{
+  char code[20];
   char brand[30];
-  char type[30];
+  char model[30];
   #ifdef STANDALONE  
   TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
   #endif
-  TTestData TestData;
 } TBatterySetting,*PBatterySetting;
+
+static PStageData GetCorrectStageSettings(PBatterySetting SET, TStageMode SM)
+{
+  switch (SM)
+  {
+    case smResistor:
+    case smCurrent:
+    case smPower:
+    case smVoltage:
+    {
+      return &SET->Stages[FIXEDDISCHARGESTAGENUMBER];
+      break;
+    }
+    case smCharge:
+    case smPulse:
+    case smTopOff:
+    case smTrickle:
+    {
+      return &SET->Stages[FIXEDCHARGESTAGENUMBER];
+      break;
+    }
+    case smZero:
+    case smDisabled:
+    {
+      return &SET->Stages[IDDLESTAGENUMBER];
+      break;
+    }
+    default: return NULL;
+  }
+}
 
 extern TwoWire WireBattery;
 extern AP33772S pd;
 extern IT2704 load;
 extern CanOpenNode node;
 
-extern TBatteryBoard BatteryBoards[];
 extern PBatteryBoard const CurrentBoard;
+extern PBatterySetting const CurrentSettings;
 
 #ifdef __cplusplus          // only compile the class when using a C++ compiler
 
