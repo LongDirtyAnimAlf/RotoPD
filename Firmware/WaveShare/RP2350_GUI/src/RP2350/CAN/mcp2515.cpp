@@ -68,7 +68,7 @@ void MCP2515::begin()
 }
 
 void MCP2515_ISR_ATTR MCP2515::startSPI() const {
-    busy_wait_at_least_cycles(20);
+    //busy_wait_at_least_cycles(20);
     gpio_put(BSP_XL2515_CS_PIN, 0);    
     busy_wait_at_least_cycles(20);
 }
@@ -221,10 +221,10 @@ void MCP2515::setRegister(const REGISTER reg, const uint8_t value)
 
 void MCP2515::setRegisters(const REGISTER reg, const uint8_t values[], const uint8_t n)
 {
-    uint8_t buf[n + 2];
+    uint8_t buf[n + 2] = {0};
     buf[0] = INSTRUCTION_WRITE;
     buf[1] = reg;
-    memcpy(buf + 2, values, n);
+    if ((n > 0) && (values != NULL)) memcpy(buf + 2, values, n);
     startSPI();
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, n + 2);
     endSPI();
@@ -232,9 +232,9 @@ void MCP2515::setRegisters(const REGISTER reg, const uint8_t values[], const uin
 
 void MCP2515::setRegisters(const INSTRUCTION inst, const uint8_t values[], const uint8_t n)
 {
-    uint8_t buf[n + 1];
+    uint8_t buf[n + 1] = {0};
     buf[0] = (const uint8_t)inst;
-    if (n > 0) memcpy(buf + 1, values, n);
+    if ((n > 0) && (values != NULL)) memcpy(buf + 1, values, n);
     startSPI();
     spi_write_blocking(BSP_XL2515_SPI_PORT, buf, n + 1);
     endSPI();

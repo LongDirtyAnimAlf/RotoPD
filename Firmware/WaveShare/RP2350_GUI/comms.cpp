@@ -58,6 +58,8 @@ static int   ina_counter_c  = 0;
 
 TBoardInfo BoardInfo;
 
+bool StoreBoardInfo = false;
+
 uint16_t UpdateCrc(uint16_t crc, const uint8_t* data_p, uint8_t length)
 {
   uint8_t x;
@@ -971,7 +973,8 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
         hid_report_in[j+1] = BoardInfo.BoardSerial[j];
       }
       BoardInfo.setValid(true);
-      storePutBoardInfo(&BoardInfo);
+      StoreBoardInfo = true;
+      //storePutBoardInfo(&BoardInfo);
 			break;
 		}
 
@@ -994,8 +997,10 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
       // Do not allow setting of board-number !!
       // This will be done through GUI by setting IT2704 channel !!
       /*
+      BoardInfo.setBoardNumber(hid_report_out[1]);
       BoardInfo.setValid(true);
-      storePutBoardInfo(&BoardInfo);
+      StoreBoardInfo = true;
+      //storePutBoardInfo(&BoardInfo);
       */      
       break;
     }

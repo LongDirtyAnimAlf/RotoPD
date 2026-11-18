@@ -237,6 +237,11 @@ static void bsp_st7701_init(void)
             //Serial.printf("Error: Framebuffer2 is NULL\r\n");
             return;
         }
+
+        for (size_t i = 0; i < rgb_info->width * rgb_info->height; i++)
+        {
+            rgb_info->framebuffer2[i] = 0xffff;
+        }
     }
 
     // psram mode

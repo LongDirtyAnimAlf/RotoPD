@@ -93,10 +93,15 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
   uint8_t status;
   can_frame frame;
 
+  bool noData = true;
+
   #ifndef NEWEST
 
   if  (caninterface.checkIntPin())
+  //if (false)
   {
+    noData = false;
+
     unsigned long taskCANTimer = millis();  
 
     while (caninterface.checkIntPin())
@@ -183,6 +188,8 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
     // First handle read, if any
   if (caninterface.checkInterrupt())
   {
+    noData = false;
+
     canintf = caninterface.getInterrupts();
     //eflg = caninterface.getErrorFlags();
 
@@ -277,26 +284,21 @@ bool __not_in_flash_func(CBUSDevice::taskCAN)(bool single)
         //processTxQueue();
     }
   }
-
   #endif
 
+  //if (false)
   if (HandleTxMessages)
   {
     HandleTxMessages = false;
     if ((!CanTxPrioBuffer.isEmpty()) || (!CanTxBuffer.isEmpty()))
     {
+      noData = false;  
       // Process the message queue
       processTxQueue();
     }
-    /*
-    else
-    {
-      HandleTxMessages = false;
-    }
-    */
   }
 
-  return (!CanRxBuffer.isEmpty());
+  return (noData);
 }
 
 CBUSbase::CANERROR CBUSDevice::sendCANMessage(const can_frame *frame)
@@ -345,7 +347,7 @@ bool CBUSDevice::processTxQueue(void)
 {
     can_frame frame;
 
-    MCP2515::ERROR result;
+    MCP2515::ERROR result = MCP2515::ERROR_OK;
 
     if (CanTxBuffer.getCount() > 20)
     {

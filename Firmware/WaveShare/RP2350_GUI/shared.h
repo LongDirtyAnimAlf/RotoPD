@@ -36,7 +36,7 @@
 #define DATACOLLECTTIMENORMAL         (1000u * 10u) // 10 seconds in ms
 #define CALCULATIONTIME               100u // ms
 
-#define SAVERTIME                     (1000u * 60u * 10u) // 10 minutes in ms
+#define SAVERTIME                     (1000u * 60u * 1u) // 10 minutes in ms
 #define DVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 #define PVTIME                        (1000u * 60u * 10u) // 10 minutes in ms
 
@@ -53,7 +53,7 @@
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
 
-#define    DATASIZE                   8192u
+#define    DATASIZE                   16384u
 
 #define INA238_ADDRESS                0x40
 
@@ -290,7 +290,7 @@ typedef struct TRunDatas {
 
 // Exact size of one queue (evaluated by the C++ compiler)
 static constexpr size_t kOneQueueSize =
-    sizeof(CircularDataQueue<TMeasurementData, DATASIZE, true>);
+    sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>);
 
 // Safety checks
 static_assert(sizeof(TMeasurementData) == 24, "TMeasurementData size unexpected");

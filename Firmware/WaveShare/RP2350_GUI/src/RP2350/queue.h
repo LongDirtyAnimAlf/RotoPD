@@ -64,15 +64,15 @@ public:
         }
 
         if (CIRCULARBUFFERSIZE < 100) {
-            //frames = (T*)memalign(sizeof(void*),(CIRCULARBUFFERSIZE * sizeof(T)));
-            frames = (T*)malloc((CIRCULARBUFFERSIZE * sizeof(T)));
+            frames = (T*)memalign(sizeof(void*),(CIRCULARBUFFERSIZE * sizeof(T)));
+            //frames = (T*)malloc((CIRCULARBUFFERSIZE * sizeof(T)));
         }
         if (frames == nullptr) {
             frames = (T*)pmalloc(CIRCULARBUFFERSIZE * sizeof(T));
         }
         if (frames == nullptr) {
-            //frames = (T*)memalign(sizeof(void*),(CIRCULARBUFFERSIZE * sizeof(T))); // Final fallback
-            frames = (T*)malloc((CIRCULARBUFFERSIZE * sizeof(T))); // Final fallback
+            frames = (T*)memalign(sizeof(void*),(CIRCULARBUFFERSIZE * sizeof(T))); // Final fallback
+            //frames = (T*)malloc((CIRCULARBUFFERSIZE * sizeof(T))); // Final fallback
         }
     }
 

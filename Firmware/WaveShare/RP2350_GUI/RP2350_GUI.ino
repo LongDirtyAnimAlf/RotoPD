@@ -17,6 +17,11 @@
 #include "hardware/clocks.h"
 #include "hardware/timer.h"
 
+#include "hardware/regs/xip.h"
+#include "hardware/structs/xip.h"
+#include "hardware/regs/qmi.h"
+#include "hardware/structs/qmi.h"
+
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
 
@@ -29,7 +34,6 @@ bool core1_separate_stack = true;
 #define STARTUP_READY_TOKEN 0xCAFEBABE
 
 #endif
-
 
 #include "shared.h"
 #include "comms.h"
@@ -124,7 +128,6 @@ PBatterySetting const CurrentSettings = Batteries;
 
 static bool flagSoundButton = false;
 static bool flagProcessMeasurementData = false;
-static bool StoreBoardInfo = false;
 static byte pending_screen_index = 0;
 
 //std::atomic<uint32_t> counterCore1 = 0;
@@ -150,7 +153,7 @@ static byte SendCommand[COMMAND_SIZE] = {0};
 #include "hardware/sync.h"
 #include "hardware/structs/qmi.h"
 
-void set_psram_timing_autooo(void)
+void __not_in_flash_func(set_psram_timing_autooo)(void)
 {
   // Maximum target SCK frequency for PSRAM (Hz)
   const uint32_t MAX_PSRAM_SCK_HZ = 133000000;
@@ -217,7 +220,7 @@ void set_psram_timing_autooo(void)
   restore_interrupts(irq);
 }
 
-void set_psram_timing_auto()
+void __not_in_flash_func(set_psram_timing_auto)()
 {
     // Maximum safe SCK frequency for most common PSRAM chips (Hz)
     const uint32_t MAX_PSRAM_SCK_HZ = 133000000;   // conservative; some chips do 144–166 MHz
@@ -282,6 +285,38 @@ void set_psram_timing_auto()
     // Serial.printf("PSRAM timing: 0x%08X  (clkdiv=%u rxdelay=%u max_sel=%u min_desel=%u)\n",
     //               timing, clkdiv, rxdelay, max_select, min_deselect);
 }
+
+/*
+void __not_in_flash_func(enable_xip_psram_cache)(void)
+{
+    uint32_t irq = save_and_disable_interrupts();
+
+    // RP2350 XIP_CTRL bits:
+    // Bit 0 (0x001): EN_M0 (Enable XIP cache for CS0 Flash)
+    // Bit 1 (0x002): EN_M1 (Enable XIP cache for CS1 PSRAM)
+    // Bit 11 (0x800): WRITABLE_M1 (Allow XIP cache to cache writes to CS1 PSRAM)
+    #ifdef XIP_CTRL_WRITABLE_M1_BITS
+    constexpr uint32_t kXipCacheMask = 0x00000001u | 0x00000002u | XIP_CTRL_WRITABLE_M1_BITS;
+    #else
+    constexpr uint32_t kXipCacheMask = 0x00000001u | 0x00000002u | 0x00000800u;
+    #endif
+
+    hw_set_bits(&xip_ctrl_hw->ctrl, kXipCacheMask);
+
+    // Ensure QMI M1 (PSRAM) uses Quad-SPI width (2 = 4-bit) for read and write bursts
+    uint32_t rfmt = qmi_hw->m[1].rfmt;
+    uint32_t wfmt = qmi_hw->m[1].wfmt;
+    rfmt = (rfmt & ~QMI_M1_RFMT_DATA_WIDTH_BITS) | (2u << QMI_M1_RFMT_DATA_WIDTH_LSB);
+    wfmt = (wfmt & ~QMI_M1_WFMT_DATA_WIDTH_BITS) | (2u << QMI_M1_WFMT_DATA_WIDTH_LSB);
+    qmi_hw->m[1].rfmt = rfmt;
+    qmi_hw->m[1].wfmt = wfmt;
+
+    __dsb();
+    __isb();
+    restore_interrupts(irq);
+}
+*/
+
 #endif // ARDUINO_ARCH_RP2040
 
 #ifdef STANDALONE
@@ -312,6 +347,8 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
       /*Set the coordinates*/
       data->point.x = touch_last_x;
       data->point.y = touch_last_y;
+
+      reset_screensaver_idle_timer();
     }
     else if (touch_released())
     {
@@ -340,6 +377,8 @@ static void main_event_handler(lv_event_t * e)
   PStageData SD = NULL;  
   TThresholdModes TM;
   TStageMode SM;
+
+  //reset_screensaver_idle_timer();
 
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
@@ -703,8 +742,19 @@ void setup1()
 
 void loop1()
 {
-  node.getCAN().taskCAN();
+  //node.getCAN().taskCAN();
+  if (node.getCAN().taskCAN())
+  //if (false)
+  //while (true)
+  {
+    // No activity on the bus
+    // So, sleep a small bit
+    sleep_us(100U);
+    //busy_wait_us_32(10U);
+  }
+  //tight_loop_contents();
 }
+
 #endif
 
 void setup()
@@ -725,19 +775,12 @@ void setup()
   static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
   
   #ifdef ARDUINO_ARCH_RP2040
-
-  // 1. STEP THE VOLTAGE UP INCREMENTALLY
-  // Stepping avoids sudden current spikes that trip brownout resets.
-  //vreg_set_voltage(VREG_VOLTAGE_1_20);
-  //delay(20);
+  // Increase the voltage to accomodate for higher clock and PSRAM
+  vreg_set_voltage(VREG_VOLTAGE_1_20);
+  delay(20);
   //vreg_set_voltage(VREG_VOLTAGE_1_25);
   //delay(20);
-  //vreg_set_voltage(VREG_VOLTAGE_1_30); // Max recommended safe internal voltage
-  //delay(20); // Allow LDO rail stabilization
-
-  //set_sys_clock_khz(400000, false);  
-  //delay(10);
-
+  
   // Change system clock to exactly match the PSRAM clock (133MHz) by an integer factor
   // This results in best LCD performance without glitches and noise
   set_sys_clock_khz(266000, true);  
@@ -747,6 +790,9 @@ void setup()
   // This results in best LCD performance without glitches and noise
   set_psram_timing_auto();
   delay(10);
+
+  //enable_xip_psram_cache();
+  //delay(10);
   #endif
 
   for (index=0; index<12;index++)
@@ -1223,7 +1269,7 @@ void loop()
     if ((loopcounter % (1000u / TICKERTIME)) == 0)
     {
       //#ifdef DEBUG
-      Serial.printf("Loop 0: %d.\n",loopcounter);
+      //Serial.printf("Loop 0: %d.\n",loopcounter);
       //#endif
     }
 

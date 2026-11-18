@@ -94,6 +94,8 @@ const byte DefaultCalDate[4] = {20,26,01,01};
 
 extern TBoardInfo BoardInfo;
 
+extern bool StoreBoardInfo;
+
 extern CircularDataQueue<HidReportFrame, 8, true> hidQueue;
 
 void Info_Add(const char *txt);
