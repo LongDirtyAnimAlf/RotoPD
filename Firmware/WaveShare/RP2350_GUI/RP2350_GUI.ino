@@ -328,9 +328,15 @@ static void IRAM_ATTR storeSettings(byte BI)
 static void __not_in_flash_func(storeSettings)(byte BI)
 #endif
 {
+    #ifdef ARDUINO_ARCH_RP2040
+    //rp2040.idleOtherCore()
+    #endif
     PBatterySetting SET = &Batteries[BI];
     storePutBatteryDischargeSetting(BI, &SET->Stages[FIXEDDISCHARGESTAGENUMBER]);
     storePutBatteryChargeSetting(BI, &SET->Stages[FIXEDCHARGESTAGENUMBER]);
+    #ifdef ARDUINO_ARCH_RP2040
+    //rp2040.resumeOtherCore()
+    #endif
 }
 
 #endif // STANDALONE
@@ -808,7 +814,7 @@ void setup()
   while (index<12)
   {
     tempintcalc=(BoardInfo.BoardSerial[index]+(BoardInfo.BoardSerial[index+1]*256));
-    sprintf(myHex, "%04X", tempintcalc);    
+    sprintf_(myHex, "%04X", tempintcalc);    
     strcat(mySerial,myHex);    
     index += 2;
     if (index<12) strcat(mySerial,"-");
@@ -816,7 +822,7 @@ void setup()
   mySerial[29] = '\0';  
 
   myFirmware[0] = '\0';  
-  sprintf(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
+  sprintf_(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
   myFirmware[18] = '\0';   
 
   #ifdef ENABLEUSB
@@ -923,8 +929,7 @@ void setup()
   Setup_ScreenLogger(BoardInfo.IT2704Channel,false);
 
   Info_Add("GUI. Init GUI.");   
-  String LVGL_Arduino = "GUI. LVGL " + String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
-  Info_Add(LVGL_Arduino.c_str());
+  Info_Add_Fmt("GUI. LVGL V%d.%d.%d",lv_version_major(),lv_version_minor(),lv_version_patch());
 
   Setup_ScreenSettings(BoardInfo.IT2704Channel,false);
   Setup_ScreenPDO(BoardInfo.IT2704Channel,false);
@@ -1038,7 +1043,16 @@ void setup()
 
   #ifdef ARDUINO_ARCH_RP2040
   
-  Info_Add_Fmt("GUI. CPU Frequency: %d MHz.",rp2040.f_cpu() / 1000000);
+// Individual numeric components (useful for #if version checks)
+  Info_Add_Fmt("GUI. Arduino-Pico Version %d.%d.%d",
+                ARDUINO_PICO_MAJOR,
+                ARDUINO_PICO_MINOR,
+                ARDUINO_PICO_REVISION);
+
+  // Underlying Raspberry Pi Pico SDK version (e.g., "2.1.1")
+  Info_Add_Fmt("GUI. Pico SDK Version: %s.",PICO_SDK_VERSION_STRING);
+
+  Info_Add_Fmt("GUI. RP2350 CPU frequency: %d MHz.",rp2040.f_cpu() / 1000000);
 
   Info_Add("GUI. RP2350 SRAM memory info.");
   // Internal SRAM heap

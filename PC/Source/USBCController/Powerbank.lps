@@ -10,8 +10,7 @@
         <IsPartOfProject Value="True"/>
         <UsageCount Value="200"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="8"/>
-        <CursorPos Y="22"/>
+        <CursorPos X="7" Y="12"/>
       </Unit>
       <Unit>
         <Filename Value="main.pas"/>
@@ -22,8 +21,8 @@
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <TopLine Value="253"/>
-        <CursorPos X="20" Y="285"/>
+        <TopLine Value="2044"/>
+        <CursorPos X="44" Y="2049"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
@@ -33,22 +32,20 @@
         <CursorPos X="15" Y="14"/>
       </Unit>
       <Unit>
-        <Filename Value="text.txt"/>
+        <Filename Value="..\Common\ap33772s.pas"/>
         <IsPartOfProject Value="True"/>
+        <UsageCount Value="122"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="13"/>
+      </Unit>
+      <Unit>
+        <Filename Value="text.txt"/>
         <UsageCount Value="123"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="15"/>
       </Unit>
       <Unit>
-        <Filename Value="..\Common\ap33772s.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UsageCount Value="121"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="3" Y="13"/>
-      </Unit>
-      <Unit>
         <Filename Value="text1.txt"/>
-        <IsPartOfProject Value="True"/>
         <UsageCount Value="119"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="73"/>
@@ -2908,9 +2905,8 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\controls.pp"/>
         <UnitName Value="Controls"/>
-        <Loaded Value="True"/>
         <UsageCount Value="12"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1711"/>
         <CursorPos X="15" Y="1726"/>
       </Unit>
@@ -3299,7 +3295,7 @@
         <Filename Value="..\Common\usbcpd.pas"/>
         <Loaded Value="True"/>
         <UsageCount Value="100"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="1026"/>
         <CursorPos X="3" Y="1001"/>
       </Unit>
@@ -3334,9 +3330,8 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\graphics.pp"/>
         <UnitName Value="Graphics"/>
-        <Loaded Value="True"/>
         <UsageCount Value="14"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="258"/>
         <CursorPos X="3" Y="273"/>
       </Unit>
@@ -3632,9 +3627,9 @@
         <Filename Value="..\Common\usblibs\USB.pas"/>
         <UnitName Value="usb"/>
         <Loaded Value="True"/>
-        <UsageCount Value="52"/>
-        <EditorIndex Value="12"/>
-        <TopLine Value="45"/>
+        <UsageCount Value="53"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="47"/>
         <CursorPos X="27" Y="63"/>
       </Unit>
       <Unit>
@@ -3744,18 +3739,18 @@
       <Unit>
         <Filename Value="usbrotopd.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="65"/>
-        <EditorIndex Value="10"/>
-        <TopLine Value="1242"/>
-        <CursorPos X="86" Y="1267"/>
+        <UsageCount Value="66"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="9"/>
+        <CursorPos X="3" Y="33"/>
       </Unit>
       <Unit>
         <Filename Value="usbboard.pas"/>
         <Loaded Value="True"/>
-        <UsageCount Value="65"/>
-        <EditorIndex Value="11"/>
-        <TopLine Value="24"/>
-        <CursorPos Y="29"/>
+        <UsageCount Value="66"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="88"/>
+        <CursorPos Y="38"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\usblibs\windows\jvcl\jvcl\run\Hid.pas"/>
@@ -3802,9 +3797,8 @@
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\win\wininc\defines.inc"/>
-        <Loaded Value="True"/>
-        <UsageCount Value="19"/>
-        <EditorIndex Value="13"/>
+        <UsageCount Value="20"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="5892"/>
         <CursorPos X="6" Y="5901"/>
       </Unit>
@@ -3852,17 +3846,19 @@
       </Unit>
       <Unit>
         <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenLogger.cpp"/>
-        <UsageCount Value="6"/>
+        <UsageCount Value="10"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="83"/>
-        <CursorPos X="9" Y="97"/>
+        <TopLine Value="148"/>
+        <CursorPos X="28" Y="171"/>
       </Unit>
       <Unit>
         <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\powermeter.cpp"/>
-        <UsageCount Value="6"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="293"/>
-        <CursorPos X="7" Y="308"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="22"/>
+        <TopLine Value="46"/>
+        <CursorPos X="7" Y="61"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\fpcsrc\rtl\objpas\fgl.pp"/>
@@ -3888,11 +3884,10 @@
         <ResourceBaseClass Value="Frame"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
-        <UsageCount Value="23"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="87"/>
-        <CursorPos X="45" Y="114"/>
+        <UsageCount Value="24"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="105"/>
+        <CursorPos Y="120"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\pagecontrol.inc"/>
@@ -4038,18 +4033,16 @@
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\components\lazutils\graphtype.pp"/>
         <UnitName Value="GraphType"/>
-        <Loaded Value="True"/>
         <UsageCount Value="14"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="62"/>
         <CursorPos X="3" Y="44"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
         <UnitName Value="SuperGauge"/>
-        <Loaded Value="True"/>
         <UsageCount Value="12"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="339"/>
         <CursorPos X="3" Y="344"/>
       </Unit>
@@ -4064,29 +4057,174 @@
       <Unit>
         <Filename Value="..\Common\bgracontrols\supergaugecommon.pas"/>
         <UnitName Value="SuperGaugeCommon"/>
-        <Loaded Value="True"/>
         <UsageCount Value="11"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="343"/>
         <CursorPos X="31" Y="357"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\bgrabitmap\bgrapath.pas"/>
         <UnitName Value="BGRAPath"/>
-        <Loaded Value="True"/>
         <UsageCount Value="12"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="178"/>
         <CursorPos X="17" Y="192"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\lcltype.pp"/>
         <UnitName Value="LCLType"/>
-        <Loaded Value="True"/>
         <UsageCount Value="10"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="2270"/>
         <CursorPos X="3" Y="2285"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\AP33772SS\AP33772S.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="614"/>
+        <CursorPos X="22" Y="639"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="17"/>
+        <TopLine Value="478"/>
+        <CursorPos X="33" Y="494"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\RP2350_GUI.ino"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="1679"/>
+        <CursorPos X="16" Y="1694"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\comms.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="176"/>
+        <CursorPos Y="192"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\storage.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="299"/>
+        <CursorPos X="12" Y="316"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\Screen1.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="711"/>
+        <CursorPos X="14" Y="736"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenPDO.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="360"/>
+        <CursorPos X="18" Y="375"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\UI\ScreenSettings.cpp"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="369"/>
+        <CursorPos X="18" Y="384"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\CANOpen\object.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="10"/>
+        <TopLine Value="3"/>
+        <CursorPos X="14" Y="28"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\CANOpen\receiver.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="11"/>
+        <TopLine Value="18"/>
+        <CursorPos X="7" Y="43"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\ESP32\CAN\twai.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="12"/>
+        <TopLine Value="148"/>
+        <CursorPos X="20" Y="172"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_cst820.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="13"/>
+        <TopLine Value="133"/>
+        <CursorPos X="20" Y="152"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_dma_channel_irq.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="14"/>
+        <TopLine Value="21"/>
+        <CursorPos X="16" Y="36"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_gt911.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="15"/>
+        <TopLine Value="142"/>
+        <CursorPos X="22" Y="157"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_pcf85063.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="16"/>
+        <TopLine Value="4"/>
+        <CursorPos X="16" Y="29"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.h"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="18"/>
+        <CursorPos X="17" Y="15"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_st7701.cpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="19"/>
+        <TopLine Value="204"/>
+        <CursorPos X="14" Y="219"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\SensorLib.h"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="20"/>
+        <TopLine Value="142"/>
+        <CursorPos X="32" Y="157"/>
+      </Unit>
+      <Unit>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+        <EditorIndex Value="21"/>
+        <TopLine Value="481"/>
+        <CursorPos X="20" Y="498"/>
       </Unit>
     </Units>
     <Debugger>
@@ -4094,124 +4232,124 @@
     </Debugger>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="170" Column="56" TopLine="146"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\CANOpen\object.cpp"/>
+        <Caret Line="28" Column="14" TopLine="3"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="221" Column="88" TopLine="197"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\CANOpen\receiver.cpp"/>
+        <Caret Line="43" Column="7" TopLine="18"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="297" Column="27" TopLine="272"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\ESP32\CAN\twai.cpp"/>
+        <Caret Line="136" Column="16" TopLine="121"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="365" Column="21" TopLine="353"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\ESP32\CAN\twai.cpp"/>
+        <Caret Line="140" Column="16" TopLine="121"/>
       </Position>
       <Position>
-        <Filename Value="..\Common\bgracontrols\supergauge.pas"/>
-        <Caret Line="212" Column="26" TopLine="194"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\ESP32\CAN\twai.cpp"/>
+        <Caret Line="165" Column="16" TopLine="148"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="118" Column="22" TopLine="110"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\ESP32\CAN\twai.cpp"/>
+        <Caret Line="170" Column="24" TopLine="148"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="235" Column="19" TopLine="217"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\ESP32\CAN\twai.cpp"/>
+        <Caret Line="172" Column="20" TopLine="148"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="569" TopLine="540"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_cst820.cpp"/>
+        <Caret Line="148" Column="20" TopLine="133"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="576" TopLine="547"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_cst820.cpp"/>
+        <Caret Line="152" Column="20" TopLine="133"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="435" TopLine="430"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_dma_channel_irq.cpp"/>
+        <Caret Line="36" Column="16" TopLine="21"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="532" Column="31" TopLine="519"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_gt911.cpp"/>
+        <Caret Line="157" Column="22" TopLine="142"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="51" TopLine="38"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_pcf85063.cpp"/>
+        <Caret Line="27" Column="16" TopLine="2"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="533" TopLine="503"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_pcf85063.cpp"/>
+        <Caret Line="29" Column="16" TopLine="4"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="55" TopLine="43"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="361" Column="10" TopLine="345"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="236" Column="5" TopLine="224"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="454" Column="12" TopLine="439"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="234" Column="42" TopLine="220"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="212" Column="13" TopLine="197"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="246" TopLine="218"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="465" Column="11" TopLine="440"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="192" Column="10" TopLine="185"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="494" Column="6" TopLine="467"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="243" Column="64" TopLine="228"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="501" Column="5" TopLine="478"/>
       </Position>
       <Position>
-        <Filename Value="main.pas"/>
-        <Caret Line="285" Column="59" TopLine="265"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.cpp"/>
+        <Caret Line="494" Column="12" TopLine="478"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="243" Column="42" TopLine="228"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_qmi8658.h"/>
+        <Caret Line="15" Column="17"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="84" Column="11" TopLine="72"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\RP2350\bsp\bsp_st7701.cpp"/>
+        <Caret Line="219" Column="14" TopLine="204"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="244" Column="22" TopLine="229"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\SensorLib.h"/>
+        <Caret Line="157" Column="32" TopLine="142"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="253" Column="7" TopLine="235"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="453" Column="20" TopLine="438"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="250" TopLine="235"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="456" Column="28" TopLine="438"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="10" Column="5"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="458" Column="24" TopLine="438"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="329" Column="19" TopLine="317"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="460" Column="28" TopLine="438"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="105" Column="40" TopLine="80"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="463" Column="20" TopLine="438"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="98" Column="38" TopLine="84"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="496" Column="16" TopLine="481"/>
       </Position>
       <Position>
-        <Filename Value="processframe_simple.pas"/>
-        <Caret Line="100" Column="39" TopLine="84"/>
+        <Filename Value="..\..\..\Firmware\WaveShare\RP2350_GUI\src\sensors\TouchDrvGT911.hpp"/>
+        <Caret Line="498" Column="20" TopLine="481"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -5,6 +5,8 @@
 
 #include <Arduino.h>
 
+#include "./tinyprintf.h"
+
 #ifdef ARDUINO_ARCH_ESP32
 #include "./src/ESP32/queue.h"
 #endif
@@ -22,7 +24,7 @@
 
 #include "./src/IT2704/IT2704.h"
 
-#define    DEBUG
+//#define    DEBUG
 
 #define    ENABLEUSB
 

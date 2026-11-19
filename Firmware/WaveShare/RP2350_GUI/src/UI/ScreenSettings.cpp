@@ -381,7 +381,7 @@ void create_canopen_setup_screen(lv_obj_t * parent)
 
         lv_obj_t * lbl = lv_label_create(row);
         textlabel[0] = '\0';
-        snprintf(textlabel, sizeof(textlabel), "%s (%d-%d):", cfg->label, cfg->min, cfg->max);
+        snprintf_(textlabel, sizeof(textlabel), "%s (%d-%d):", cfg->label, cfg->min, cfg->max);
         lv_label_set_text(lbl, textlabel);
         //lv_obj_set_style_text_color(lbl, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
         create_node_address_spinbox(row, cfg);

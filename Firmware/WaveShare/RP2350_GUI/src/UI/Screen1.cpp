@@ -235,7 +235,7 @@ void Setup_Screen1(byte index)
     if (obj != NULL)
     {
         textlabel[0] = '\0';
-        snprintf(textlabel, sizeof(textlabel), "CHANNEL %d", index);
+        snprintf_(textlabel, sizeof(textlabel), "CHANNEL %d", index);
         lv_label_set_text(obj, textlabel);
     }
     obj = GetButtonLabelObject();
@@ -719,7 +719,7 @@ void Screen1SetData(PBatterySetting SET)
 void Screen1SetDischargeCurrent(word I)
 {
     textlabel[0] = '\0';
-    snprintf(textlabel, sizeof(textlabel), "%d", I);
+    snprintf_(textlabel, sizeof(textlabel), "%d", I);
     lv_label_set_text(ta1, textlabel);
 }
 
@@ -733,7 +733,7 @@ word Screen1GetDischargeCurrent(void)
 void Screen1SetChargeCurrent(word I)
 {
     textlabel[0] = '\0';
-    snprintf(textlabel, sizeof(textlabel), "%d", I);
+    snprintf_(textlabel, sizeof(textlabel), "%d", I);
     lv_label_set_text(ta2, textlabel);
 }
 

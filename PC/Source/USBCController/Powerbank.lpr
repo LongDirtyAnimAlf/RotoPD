@@ -9,7 +9,7 @@ uses
   Interfaces,
   Forms,
   tachartlazaruspkg,
-  main, ap33772s;
+  main;
 
 {$R *.res}
 

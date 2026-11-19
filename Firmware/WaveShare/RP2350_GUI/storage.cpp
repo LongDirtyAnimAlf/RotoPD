@@ -271,7 +271,7 @@ bool __not_in_flash_func(storeGetBoardInfo)(TBoardInfo *Info)
 void __not_in_flash_func(storePutBatteryDischargeSetting)(uint8_t Index, TStageData *SD)
 {
   char path[16];
-  snprintf(path, sizeof(path), STAGE_FILE_FMT, Index, 'D');
+  snprintf_(path, sizeof(path), STAGE_FILE_FMT, Index, 'D');
   struct {
     uint32_t magic;
     TStageData data;
@@ -284,7 +284,7 @@ void __not_in_flash_func(storePutBatteryDischargeSetting)(uint8_t Index, TStageD
 void __not_in_flash_func(storePutBatteryChargeSetting)(uint8_t Index, TStageData *SD)
 {
   char path[16];
-  snprintf(path, sizeof(path), STAGE_FILE_FMT, Index, 'C');
+  snprintf_(path, sizeof(path), STAGE_FILE_FMT, Index, 'C');
   struct {
     uint32_t magic;
     TStageData data;
@@ -297,7 +297,7 @@ void __not_in_flash_func(storePutBatteryChargeSetting)(uint8_t Index, TStageData
 bool __not_in_flash_func(storeGetBatteryDischargeSetting)(uint8_t Index, TStageData *SD)
 {
   char path[16];
-  snprintf(path, sizeof(path), STAGE_FILE_FMT, Index, 'D');
+  snprintf_(path, sizeof(path), STAGE_FILE_FMT, Index, 'D');
   struct {
     uint32_t magic;
     TStageData data;
@@ -313,7 +313,7 @@ bool __not_in_flash_func(storeGetBatteryDischargeSetting)(uint8_t Index, TStageD
 bool __not_in_flash_func(storeGetBatteryChargeSetting)(uint8_t Index, TStageData *SD)
 {
   char path[16];
-  snprintf(path, sizeof(path), STAGE_FILE_FMT, Index, 'C');
+  snprintf_(path, sizeof(path), STAGE_FILE_FMT, Index, 'C');
   struct {
     uint32_t magic;
     TStageData data;

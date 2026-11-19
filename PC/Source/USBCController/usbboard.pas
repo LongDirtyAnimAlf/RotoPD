@@ -31,24 +31,29 @@ type
     property MaxErrors:word write FMaxErrors;
   end;
 
-implementation
+  function IsValidBaseCommand(AValue: byte): Boolean;
 
-uses
-  {$ifdef USEREGISTRY}
-  {$ifndef FPC}
-  System.StrUtils,
-  System.Win.Registry,
-  {$else}
-  Registry,
-  {$endif}
-  {$else}
-  IniFiles,
-  {$endif}
-  DateUtils;
+implementation
 
 type
   TBaseCommands = (CMD_get_serial=$64,CMD_set_serial=$65,CMD_get_board=$CA,CMD_set_board=$CB,CMD_get_firmware=$C8,CMD_error=$FF); // Battery databoards
   //TBaseCommands = (CMD_get_serial=$43,CMD_set_serial=$44,CMD_get_board=$41,CMD_set_board=$42,CMD_get_firmware=$C8,CMD_error=$FF); // SOHIT databoards
+
+function IsValidBaseCommand(AValue: byte): Boolean;
+const
+  ValidBaseCommands: set of Byte = [
+    Ord(TBaseCommands.CMD_get_serial),
+    Ord(TBaseCommands.CMD_set_serial),
+    Ord(TBaseCommands.CMD_get_board),
+    Ord(TBaseCommands.CMD_set_board),
+    Ord(TBaseCommands.CMD_get_firmware),
+    Ord(TBaseCommands.CMD_error)
+  ];
+begin
+  if (AValue < Ord(Low(TBaseCommands))) or (AValue > Ord(High(TBaseCommands))) then
+    exit(False);
+  Result := (AValue in ValidBaseCommands);
+end;
 
 constructor TMyUSB.Create;
 begin

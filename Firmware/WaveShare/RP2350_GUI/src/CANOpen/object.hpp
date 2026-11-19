@@ -5,7 +5,8 @@
 #include <cstring>
 #include <cstdint>
 #include <stdint.h>
-#include "../../config.h"
+#include "./../../config.h"
+#include "./../../tinyprintf.h"
 //#include "config.h"
 
 // Data type and size definitions

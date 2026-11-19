@@ -348,13 +348,13 @@ void ScreenPDOSetPDO(
 
         textlabel[0] = '\0';
         if (type == PDO_TYPE_FIXED) {
-            snprintf(textlabel, sizeof(textlabel), "%d.%02d Volts", whole, hundredths);
+            snprintf_(textlabel, sizeof(textlabel), "%d.%02d Volts", whole, hundredths);
             lv_label_set_text(obj, textlabel);
         } else {
             int cv_min = (minVoltage_mV + 5) / 10;
             int min_whole = cv_min / 100;
             int min_hund  = cv_min % 100;
-            snprintf(textlabel, sizeof(textlabel), "%d.%02d - %d.%02d Volts",
+            snprintf_(textlabel, sizeof(textlabel), "%d.%02d - %d.%02d Volts",
                                   min_whole, min_hund, whole, hundredths);
             lv_label_set_text(obj, textlabel);
         }
@@ -372,7 +372,7 @@ void ScreenPDOSetPDO(
         int hundredths = cv % 100;
 
         textlabel[0] = '\0';
-        snprintf(textlabel, sizeof(textlabel), "%d.%02d Amps", whole, hundredths);
+        snprintf_(textlabel, sizeof(textlabel), "%d.%02d Amps", whole, hundredths);
         lv_label_set_text(obj, textlabel);
     }
 

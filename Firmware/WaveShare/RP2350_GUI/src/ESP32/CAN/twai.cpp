@@ -133,11 +133,11 @@ void can_write_Byte(twai_message_t message)
 {
     if (twai_transmit(&message, portMAX_DELAY) == ESP_OK)
     {
-        printf("Message queued for transmission\n"); // Log success
+        printf_("Message queued for transmission\n"); // Log success
     }
     else
     {
-        printf("Failed to queue message for transmission\n"); // Log failure
+        printf_("Failed to queue message for transmission\n"); // Log failure
     }
 }
 
@@ -162,14 +162,14 @@ twai_message_t can_read_Byte()
             ESP_LOGI(CAN_TAG, "Message is in Standard Format");
         }
 
-        printf("ID: %lx\nByte:", message.identifier);
+        printf_("ID: %lx\nByte:", message.identifier);
         if (!message.rtr)
         {
             for (int i = 0; i < message.data_length_code; i++)
             {
-                printf(" %d = %02x,", i, message.data[i]);
+                printf_(" %d = %02x,", i, message.data[i]);
             }
-            printf("\n");
+            printf_("\n");
         }
     }
     return message;

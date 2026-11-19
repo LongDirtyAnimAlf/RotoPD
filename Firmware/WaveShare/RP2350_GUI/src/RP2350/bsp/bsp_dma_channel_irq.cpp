@@ -33,7 +33,7 @@ void bsp_dma_channel_irq_add(uint8_t irq_num, uint dma_channel, channel_irq_call
 {
     if (NULL == callback)
     {
-        printf("callback is NULL!\r\n");
+        printf_("callback is NULL!\r\n");
         return;
     }
 

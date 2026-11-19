@@ -267,13 +267,50 @@ uses
   Clipbrd,
   SPLASH,
   Bits,
-  Tools;
+  Tools,
+  usbboard;
 
 Const
   IBUSCOLOR                    = TColor($4040FF);
   VBUSCOLOR                    = TColor($80FF80);
   ENERGYCOLOR                  = clYellow;
   POWERCOLOR                   = clFuchsia;
+
+{$ifdef MsWindows}
+procedure ProcessControlMessages(Ctrl: TWinControl);
+var
+  Msg: Windows.TMsg;
+begin
+  Msg := Default(Windows.TMsg);
+  while Windows.PeekMessage(Msg, 0, 0, 0, PM_REMOVE) do
+  begin
+    if Msg.message = WM_QUIT then
+    begin
+      Windows.PostQuitMessage(Msg.wParam);
+      break;
+    end
+    else
+    if (Msg.hwnd = Ctrl.Handle) or IsChild(Ctrl.Handle, Msg.hwnd) then
+    begin
+      //Windows.TranslateMessage(@Msg);
+      //Windows.DispatchMessageW(@Msg);
+      Windows.TranslateMessage(Msg);
+      Windows.DispatchMessage(Msg);
+    end
+    else
+    begin
+      // Put message back if not for this control
+      Windows.PostMessage(Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam);
+      break; // prevent starving other messages
+    end;
+  end;
+end;
+{$else}
+procedure ProcessControlMessages(Ctrl: TWinControl);
+begin
+  Application.ProcessMessages;
+end;
+{$endif MsWindows}
 
 procedure ReplaceImageFromResource(AImageList: TImageList; AIndex: Integer; const AResName: string);
 var
@@ -1298,12 +1335,13 @@ begin
           GUICapacity:=0;
         end;
 
-        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMINV,True,900);
-        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMAXV,True,19000);
-
         // Disable all buttons that can control the device
         // To prevent any disturbance of this running test
         DD.SetLocal(PCurrentMachineSet^.MachineNumber, false);
+
+        // Set thresholds
+        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMINV,True,900);
+        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMAXV,True,19000);
 
         // Set mode to easy and enable some GUI indications
         DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmActive);
@@ -1330,7 +1368,7 @@ begin
       DD.SetOff(PCurrentMachineSet^.MachineNumber);
 
       // Set mode to easy and enable some GUI indications
-      //DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmIdle);
+      DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmIdle);
       //DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmReady);
 
       // Enable all buttons that can control the device
@@ -1983,6 +2021,7 @@ end;
 
 procedure TPowerbankMainForm.UpdateData(Sender: TObject; ReportID: Byte; const Data: Pointer; {%H-}Size: Word);
 var
+  rawcmd               : byte;
   cmd                  : TCommands;
   boardnumber          : byte;
   length               : byte;
@@ -1998,258 +2037,267 @@ var
   aSourcePDO           : ^TSOURCEPDO;
   LocalPMS             : PMachineSet;
 begin
-  // The boardnumber is an absolute indicator !!
-  boardnumber:=PByteArray(data)^[INDEXPOSITION];
-  // Point towards the correct dataset
-  LocalPMS:=@MachineSet[boardnumber];
+  rawcmd:=PByteArray(data)^[COMMANDPOSITION];
+  if (NOT IsValidBaseCommand(rawcmd)) then
+  begin
+    // Get the command
+    cmd := TCommands(rawcmd);
 
-  cmd:=TCommands(PByteArray(data)^[COMMANDPOSITION]);
-  length:=PByteArray(data)^[LENGTHPOSITION];
+    // The boardnumber is an absolute indicator !!
+    boardnumber:=PByteArray(data)^[INDEXPOSITION];
 
-  //USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
-
-
-  case cmd of
-    TCommands.CMD_get_data:
+    if ((boardnumber>=Low(MachineSet)) AND (boardnumber<=High(MachineSet))) then
     begin
-      Counter:=DATASTART;
+      // Point towards the correct dataset
+      LocalPMS:=@MachineSet[boardnumber];
 
-      //RotoPD Voltage
-      wd.Bytes[0]:=PByteArray(data)^[counter];
-      wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      LocalPMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
+      length:=PByteArray(data)^[LENGTHPOSITION];
 
-      Inc(counter,2);
+      //USBDebugLog.Lines.Append('Received data from board #'+InttoStr(boardnumber));
 
-      //RotoPD Current
-      wd.Bytes[0]:=PByteArray(data)^[counter];
-      wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      LocalPMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
-
-      Inc(counter,2);
-
-      //RotoPD Power
-      dwd.Bytes[0]:=PByteArray(data)^[counter];
-      dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-      dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-      dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-      LocalPMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
-
-      Inc(counter,4);
-
-      //RotoPD PCB/chip temperature
-      wd.Bytes[0]:=PByteArray(data)^[counter];
-      wd.Bytes[1]:=PByteArray(data)^[counter+1];
-      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
-      begin
-        GUITemperature:=(wd.Raw/10);
-      end;
-
-      Inc(counter,2);
-
-      if (length>13) then
-      begin
-        //IT2704 Voltage
-        wd.Bytes[0]:=PByteArray(data)^[counter];
-        wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        LocalPMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
-
-        Inc(counter,2);
-
-        //IT2704 Current
-        wd.Bytes[0]:=PByteArray(data)^[counter];
-        wd.Bytes[1]:=PByteArray(data)^[counter+1];
-        LocalPMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
-
-        Inc(counter,2);
-
-        //IT2704 Power
-        dwd.Bytes[0]:=PByteArray(data)^[counter];
-        dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-        dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-        dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        LocalPMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
-
-        Inc(counter,4);
-
-        //IT2704 Capacity
-        dwd.Bytes[0]:=PByteArray(data)^[counter];
-        dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-        dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-        dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        LocalPMS^.LatestMeasurementData.Capacity:=(dwd.Raw/1000);
-
-        Inc(counter,4);
-
-        //IT2704 Energy
-        dwd.Bytes[0]:=PByteArray(data)^[counter];
-        dwd.Bytes[1]:=PByteArray(data)^[counter+1];
-        dwd.Bytes[2]:=PByteArray(data)^[counter+2];
-        dwd.Bytes[3]:=PByteArray(data)^[counter+3];
-        LocalPMS^.LatestMeasurementData.Energy:=(dwd.Raw/1000);
-
-        Inc(counter,4);
-      end;
-
-      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
-      begin
-        USBDebugLog.Lines.Append('Received data for current board #'+InttoStr(boardnumber));
-
-        // We got data addressed to our current visible machine
-        // So update the GUI also
-        GUIVoltage:=LocalPMS^.LatestMeasurementData.Voltage;
-        GUICurrent:=LocalPMS^.LatestMeasurementData.Current;
-        GUIPower:=LocalPMS^.LatestMeasurementData.Power;
-        GUIEnergy:=LocalPMS^.LatestMeasurementData.Energy;
-        GUICapacity:=LocalPMS^.LatestMeasurementData.Capacity;
-      end;
-
-      OverviewDrawGrid.InvalidateRow(boardnumber);
-
-      // Update the overview frames also
-      with MachineBox[boardnumber] do
-      begin
-        Voltage:=LocalPMS^.LatestMeasurementData.Voltage;
-        Current:=LocalPMS^.LatestMeasurementData.Current;
-        Power:=LocalPMS^.LatestMeasurementData.Power;
-        Energy:=LocalPMS^.LatestMeasurementData.Energy;
-      end;
-
-    end;
-    TCommands.CMD_get_PDOList:
-    begin
-      Counter:=DATASTART;
-      PDOCount := PByteArray(data)^[Counter];
-      Inc(Counter);
-
-      while (PDOCount>0) do
-      begin
-        Dec(PDOCount);
-        PDOIndex := PByteArray(data)^[Counter];
-        Inc(Counter);
-        RawPDO.bytes.byte0 := PByteArray(data)^[Counter];
-        Inc(Counter);
-        RawPDO.bytes.byte1 := PByteArray(data)^[Counter];
-        Inc(Counter);
-        DecodePDONew(PDOIndex,RawPDO,PDO);
-
-        if (PDOIndex=1) then
+      case cmd of
+        TCommands.CMD_get_data:
         begin
+          Counter:=DATASTART;
+
+          //RotoPD Voltage
+          wd.Bytes[0]:=PByteArray(data)^[counter];
+          wd.Bytes[1]:=PByteArray(data)^[counter+1];
+          LocalPMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
+
+          Inc(counter,2);
+
+          //RotoPD Current
+          wd.Bytes[0]:=PByteArray(data)^[counter];
+          wd.Bytes[1]:=PByteArray(data)^[counter+1];
+          LocalPMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
+
+          Inc(counter,2);
+
+          //RotoPD Power
+          dwd.Bytes[0]:=PByteArray(data)^[counter];
+          dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+          dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+          dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+          LocalPMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
+
+          Inc(counter,4);
+
+          //RotoPD PCB/chip temperature
+          wd.Bytes[0]:=PByteArray(data)^[counter];
+          wd.Bytes[1]:=PByteArray(data)^[counter+1];
+          if (boardnumber=PCurrentMachineSet^.MachineNumber) then
+          begin
+            GUITemperature:=(wd.Raw/10);
+          end;
+
+          Inc(counter,2);
+
+          if (length>13) then
+          begin
+            //IT2704 Voltage
+            wd.Bytes[0]:=PByteArray(data)^[counter];
+            wd.Bytes[1]:=PByteArray(data)^[counter+1];
+            LocalPMS^.LatestMeasurementData.Voltage:=(wd.Raw/1000);
+
+            Inc(counter,2);
+
+            //IT2704 Current
+            wd.Bytes[0]:=PByteArray(data)^[counter];
+            wd.Bytes[1]:=PByteArray(data)^[counter+1];
+            LocalPMS^.LatestMeasurementData.Current:=(wd.Raw/1000);
+
+            Inc(counter,2);
+
+            //IT2704 Power
+            dwd.Bytes[0]:=PByteArray(data)^[counter];
+            dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+            dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+            dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+            LocalPMS^.LatestMeasurementData.Power:=(dwd.Raw/1000);
+
+            Inc(counter,4);
+
+            //IT2704 Capacity
+            dwd.Bytes[0]:=PByteArray(data)^[counter];
+            dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+            dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+            dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+            LocalPMS^.LatestMeasurementData.Capacity:=(dwd.Raw/1000);
+
+            Inc(counter,4);
+
+            //IT2704 Energy
+            dwd.Bytes[0]:=PByteArray(data)^[counter];
+            dwd.Bytes[1]:=PByteArray(data)^[counter+1];
+            dwd.Bytes[2]:=PByteArray(data)^[counter+2];
+            dwd.Bytes[3]:=PByteArray(data)^[counter+3];
+            LocalPMS^.LatestMeasurementData.Energy:=(dwd.Raw/1000);
+
+            Inc(counter,4);
+          end;
+
+          if (boardnumber=PCurrentMachineSet^.MachineNumber) then
+          begin
+            USBDebugLog.Lines.Append('Received data for current board #'+InttoStr(boardnumber));
+
+            // We got data addressed to our current visible machine
+            // So update the GUI also
+            GUIVoltage:=LocalPMS^.LatestMeasurementData.Voltage;
+            GUICurrent:=LocalPMS^.LatestMeasurementData.Current;
+            GUIPower:=LocalPMS^.LatestMeasurementData.Power;
+            GUIEnergy:=LocalPMS^.LatestMeasurementData.Energy;
+            GUICapacity:=LocalPMS^.LatestMeasurementData.Capacity;
+          end;
+
+          OverviewDrawGrid.InvalidateRow(boardnumber);
+
+          // Update the overview frames also
+          with MachineBox[boardnumber] do
+          begin
+            Voltage:=LocalPMS^.LatestMeasurementData.Voltage;
+            Current:=LocalPMS^.LatestMeasurementData.Current;
+            Power:=LocalPMS^.LatestMeasurementData.Power;
+            Energy:=LocalPMS^.LatestMeasurementData.Energy;
+          end;
+
+        end;
+        TCommands.CMD_get_PDOList:
+        begin
+          Counter:=DATASTART;
+          PDOCount := PByteArray(data)^[Counter];
+          Inc(Counter);
+
+          while (PDOCount>0) do
+          begin
+            Dec(PDOCount);
+            PDOIndex := PByteArray(data)^[Counter];
+            Inc(Counter);
+            RawPDO.bytes.byte0 := PByteArray(data)^[Counter];
+            Inc(Counter);
+            RawPDO.bytes.byte1 := PByteArray(data)^[Counter];
+            Inc(Counter);
+            DecodePDONew(PDOIndex,RawPDO,PDO);
+
+            if (PDOIndex=1) then
+            begin
+              TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
+              TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
+              if (PCurrentMachineSet^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
+              begin
+                SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
+              end;
+            end;
+
+            if (PDO.isEPR) then
+              aSourcePDO := @PCurrentMachineSet^.DUT.SourceEPRPDOs[PDO.index-8]
+            else
+              aSourcePDO := @PCurrentMachineSet^.DUT.SourcePDOs[PDO.index-1];
+
+            if (PDO.ptype=PDO_TYPE_FIXED) then
+            begin
+              with aSourcePDO^.FixedSupplyPdo do
+              begin
+                MaximumCurrentIn10mA     := (PDO.maxCurrent_mA DIV 10);
+                VoltageIn50mV            := (PDO.maxVoltage_mV DIV 50);
+                PeakCurrent              := 0;
+                EPRModeCapable           := Ord(PDO.isEPR);
+                UnchunkedMessagesSupport := 0;
+                DataRoleSwap             := 0;
+                UsbCommunicationCapable  := 0;
+                UnconstrainedPower       := 0;
+                UsbSuspendSupported      := 0;
+                DualRolePower            := 0;
+                bd.Raw := 0;
+                FixedSupply              := bd.Raw; // 0x00
+              end;
+            end
+            else
+            if (PDO.ptype=PDO_TYPE_PPS) then
+            begin
+              with aSourcePDO^.VariableSupplyNonBatteryPdo do
+              begin
+                MaximumCurrentIn10mA      := (PDO.maxCurrent_mA DIV 10);
+                MinimumVoltageIn50mV      := (PDO.minVoltage_mV DIV 50);
+                MaximumVoltageIn50mV      := (PDO.maxVoltage_mV DIV 50);
+                bd.Raw := 0;
+                bd.Bits[1] := 1;
+                VariableSupportNonBattery := bd.Raw; //%10;  // 0x10
+              end;
+            end
+            else
+            if (PDO.ptype=PDO_TYPE_AVS) then
+            begin
+              with aSourcePDO^.EPRAVSPDO do
+              begin
+                //PDPInW                       : T8BITS;
+                MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);
+                MaximumVoltageIn100mV        := (PDO.maxVoltage_mV DIV 100);
+                //PeakCurrent                  := (PDO.maxCurrent_mA DIV 10);
+                bd.Raw := 0;
+                bd.Bits[0] := 1;
+                AugmentedPowerDataObjectType := bd.Raw; //%01;  // 0x01=EPRAVS Adjustable GUIVoltage Supply
+                bd.Raw := 0;
+                bd.Bits[0] := 1;
+                bd.Bits[1] := 1;
+                AugmentedPowerDataObject     := bd.Raw; //%11;  // 0x11
+              end;
+            end;
+          end;
+
+          if (boardnumber=PCurrentMachineSet^.MachineNumber) then
+          begin
+            SourcePDODrawGrid.Invalidate;
+            SourceEPRPDODrawGrid.Invalidate;
+          end;
+        end;
+
+        TCommands.CMD_set_MAXPDO,TCommands.CMD_set_FIXEDPDO,TCommands.CMD_set_PPSPDO,TCommands.CMD_set_AVSPDO:
+        begin
+          PDOIndex := PByteArray(data)^[DATASTART];
+
+          wd.Bytes[0]:=PByteArray(data)^[DATASTART+1];
+          wd.Bytes[1]:=PByteArray(data)^[DATASTART+2];
+          USBDebugLog.Lines.Append('Req: '+InttoStr(wd.Raw)+'mA');
+
+          wd.Bytes[0]:=PByteArray(data)^[DATASTART+3];
+          wd.Bytes[1]:=PByteArray(data)^[DATASTART+4];
+          USBDebugLog.Lines.Append('Req: '+InttoStr(wd.Raw)+'mV');
+
+          RawPDO.bytes.byte0 := PByteArray(data)^[DATASTART+5];
+          RawPDO.bytes.byte1 := PByteArray(data)^[DATASTART+6];
+          DecodePDONew(PDOIndex,RawPDO,PDO);
+
+          USBDebugLog.Lines.Append('AP33772S PDO index '+InttoStr(PDO.index));
+          USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxVoltage_mV)+'mV');
+          USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxCurrent_mA)+'mA');
+          if PDO.isEPR then USBDebugLog.Lines.Append('AP33772S '+'(EPR)');
+
+
+          LocalPMS^.DUT.ActiveSRCPDO:=PDOIndex;
+
+          LocalPMS^.DUT.RDOPosition:=PDOIndex;
+
           TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
           TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
+
           if (PCurrentMachineSet^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
           begin
             SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
           end;
-        end;
 
-        if (PDO.isEPR) then
-          aSourcePDO := @PCurrentMachineSet^.DUT.SourceEPRPDOs[PDO.index-8]
-        else
-          aSourcePDO := @PCurrentMachineSet^.DUT.SourcePDOs[PDO.index-1];
-
-        if (PDO.ptype=PDO_TYPE_FIXED) then
-        begin
-          with aSourcePDO^.FixedSupplyPdo do
+          if (boardnumber=PCurrentMachineSet^.MachineNumber) then
           begin
-            MaximumCurrentIn10mA     := (PDO.maxCurrent_mA DIV 10);
-            VoltageIn50mV            := (PDO.maxVoltage_mV DIV 50);
-            PeakCurrent              := 0;
-            EPRModeCapable           := Ord(PDO.isEPR);
-            UnchunkedMessagesSupport := 0;
-            DataRoleSwap             := 0;
-            UsbCommunicationCapable  := 0;
-            UnconstrainedPower       := 0;
-            UsbSuspendSupported      := 0;
-            DualRolePower            := 0;
-            bd.Raw := 0;
-            FixedSupply              := bd.Raw; // 0x00
-          end;
-        end
-        else
-        if (PDO.ptype=PDO_TYPE_PPS) then
-        begin
-          with aSourcePDO^.VariableSupplyNonBatteryPdo do
-          begin
-            MaximumCurrentIn10mA      := (PDO.maxCurrent_mA DIV 10);
-            MinimumVoltageIn50mV      := (PDO.minVoltage_mV DIV 50);
-            MaximumVoltageIn50mV      := (PDO.maxVoltage_mV DIV 50);
-            bd.Raw := 0;
-            bd.Bits[1] := 1;
-            VariableSupportNonBattery := bd.Raw; //%10;  // 0x10
-          end;
-        end
-        else
-        if (PDO.ptype=PDO_TYPE_AVS) then
-        begin
-          with aSourcePDO^.EPRAVSPDO do
-          begin
-            //PDPInW                       : T8BITS;
-            MinimumVoltageIn100mV        := (PDO.minVoltage_mV DIV 100);
-            MaximumVoltageIn100mV        := (PDO.maxVoltage_mV DIV 100);
-            //PeakCurrent                  := (PDO.maxCurrent_mA DIV 10);
-            bd.Raw := 0;
-            bd.Bits[0] := 1;
-            AugmentedPowerDataObjectType := bd.Raw; //%01;  // 0x01=EPRAVS Adjustable GUIVoltage Supply
-            bd.Raw := 0;
-            bd.Bits[0] := 1;
-            bd.Bits[1] := 1;
-            AugmentedPowerDataObject     := bd.Raw; //%11;  // 0x11
+            SourcePDODrawGrid.Invalidate;
+            SourceEPRPDODrawGrid.Invalidate;
           end;
         end;
+
+      else
+        begin
+          USBDebugLog.Lines.Append('Got other data !!!!');
+        end;
       end;
-
-      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
-      begin
-        SourcePDODrawGrid.Invalidate;
-        SourceEPRPDODrawGrid.Invalidate;
-      end;
-    end;
-
-    TCommands.CMD_set_MAXPDO,TCommands.CMD_set_FIXEDPDO,TCommands.CMD_set_PPSPDO,TCommands.CMD_set_AVSPDO:
-    begin
-      PDOIndex := PByteArray(data)^[DATASTART];
-
-      wd.Bytes[0]:=PByteArray(data)^[DATASTART+1];
-      wd.Bytes[1]:=PByteArray(data)^[DATASTART+2];
-      USBDebugLog.Lines.Append('Req: '+InttoStr(wd.Raw)+'mA');
-
-      wd.Bytes[0]:=PByteArray(data)^[DATASTART+3];
-      wd.Bytes[1]:=PByteArray(data)^[DATASTART+4];
-      USBDebugLog.Lines.Append('Req: '+InttoStr(wd.Raw)+'mV');
-
-      RawPDO.bytes.byte0 := PByteArray(data)^[DATASTART+5];
-      RawPDO.bytes.byte1 := PByteArray(data)^[DATASTART+6];
-      DecodePDONew(PDOIndex,RawPDO,PDO);
-
-      USBDebugLog.Lines.Append('AP33772S PDO index '+InttoStr(PDO.index));
-      USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxVoltage_mV)+'mV');
-      USBDebugLog.Lines.Append('AP33772S '+InttoStr(PDO.maxCurrent_mA)+'mA');
-      if PDO.isEPR then USBDebugLog.Lines.Append('AP33772S '+'(EPR)');
-
-
-      LocalPMS^.DUT.ActiveSRCPDO:=PDOIndex;
-
-      LocalPMS^.DUT.RDOPosition:=PDOIndex;
-
-      TestTypes[(Low(TestTypes)+1)].Current:=PDO.maxCurrent_mA;
-      TestTypes[(Low(TestTypes)+1)].Voltage:=PDO.maxVoltage_mV;
-
-      if (PCurrentMachineSet^.ActiveTestType.Name=TestTypes[(Low(TestTypes)+1)].Name) then
-      begin
-        SetActiveTestType(TestTypes[(Low(TestTypes)+1)]);
-      end;
-
-      if (boardnumber=PCurrentMachineSet^.MachineNumber) then
-      begin
-        SourcePDODrawGrid.Invalidate;
-        SourceEPRPDODrawGrid.Invalidate;
-      end;
-    end;
-
-  else
-    begin
-      USBDebugLog.Lines.Append('Got other data !!!!');
     end;
   end;
 end;
@@ -2286,7 +2334,8 @@ begin
     end;
     ImageList1.EndUpdate;
 
-    TabControl1.Invalidate;
+    TabControl1.Repaint;
+    ProcessControlMessages(TabControl1);
 
     USBDebugLog.Lines.Append(Info);
     Info:=DD.Errors;

@@ -22,110 +22,6 @@
     </General>
     <BuildModes>
       <Item Name="Debug" Default="True"/>
-      <Item Name="LinuxAMD64">
-        <CompilerOptions>
-          <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
-          </Target>
-          <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
-            <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\linux;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
-            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
-          </SearchPaths>
-          <CodeGeneration>
-            <TargetCPU Value="x86_64"/>
-            <TargetOS Value="linux"/>
-            <Optimizations>
-              <OptimizationLevel Value="2"/>
-            </Optimizations>
-          </CodeGeneration>
-          <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="False"/>
-              <RunWithoutDebug Value="True"/>
-              <DebugInfoType Value="dsDwarf3"/>
-              <UseLineInfoUnit Value="False"/>
-            </Debugging>
-            <Options>
-              <Win32>
-                <GraphicApplication Value="True"/>
-              </Win32>
-            </Options>
-          </Linking>
-        </CompilerOptions>
-      </Item>
-      <Item Name="win64">
-        <CompilerOptions>
-          <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
-          </Target>
-          <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
-            <Libraries Value="..\Common\static\$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
-            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
-          </SearchPaths>
-          <CodeGeneration>
-            <TargetCPU Value="x86_64"/>
-            <TargetOS Value="win64"/>
-            <Optimizations>
-              <OptimizationLevel Value="2"/>
-            </Optimizations>
-          </CodeGeneration>
-          <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="False"/>
-              <RunWithoutDebug Value="True"/>
-              <DebugInfoType Value="dsDwarf3"/>
-              <UseLineInfoUnit Value="False"/>
-            </Debugging>
-            <Options>
-              <Win32>
-                <GraphicApplication Value="True"/>
-              </Win32>
-            </Options>
-          </Linking>
-        </CompilerOptions>
-      </Item>
-      <Item Name="win32">
-        <CompilerOptions>
-          <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="bin\$NameOnly($(ProjFile))-$(TargetCPU)-$(TargetOS)"/>
-          </Target>
-          <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir);..\Common\synaser;..\Common\usblibs;..\Common\usblibs\windows\jvcl\jvcl\common;..\Common\usblibs\windows\jcl\jcl\source\include"/>
-            <Libraries Value="..\Common\static\$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="..\Common;..\Common\usblibs;..\Common\serial;..\Common\synaser;..\Common\usblibs\windows\jvcl\jvcl\run;..\Common\usblibs\windows\jcl\jcl\source\common;..\Common\usblibs\windows\jcl\jcl\source\windows"/>
-            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
-          </SearchPaths>
-          <CodeGeneration>
-            <TargetCPU Value="i386"/>
-            <TargetOS Value="win32"/>
-            <Optimizations>
-              <OptimizationLevel Value="2"/>
-            </Optimizations>
-          </CodeGeneration>
-          <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="False"/>
-              <RunWithoutDebug Value="True"/>
-              <DebugInfoType Value="dsDwarf3"/>
-              <UseLineInfoUnit Value="False"/>
-            </Debugging>
-            <Options>
-              <Win32>
-                <GraphicApplication Value="True"/>
-              </Win32>
-            </Options>
-          </Linking>
-        </CompilerOptions>
-      </Item>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -165,15 +61,7 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="text.txt"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
         <Filename Value="..\Common\ap33772s.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="text1.txt"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>

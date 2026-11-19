@@ -58,7 +58,7 @@ void gauge_set_power(int32_t P)
     lv_scale_set_line_needle_value(scale, needle_glow, NEEDLE_LENGTH + 4, P);
     lv_scale_set_line_needle_value(scale, needle_line, NEEDLE_LENGTH, P);
 
-    snprintf(power_label, sizeof(power_label), "%03d", P);
+    snprintf_(power_label, sizeof(power_label), "%03d", P);
     lv_obj_invalidate(label_value); 
 }
 
@@ -303,7 +303,7 @@ void create_3d_gauge(lv_obj_t * parent)
     lv_obj_align(label_value, LV_ALIGN_CENTER, 0, -50);
     lv_obj_set_style_text_color(label_value, lv_palette_main(LV_PALETTE_CYAN), LV_PART_MAIN);
     lv_obj_set_style_text_font(label_value, &lv_font_dseg7_32, LV_PART_MAIN);
-    snprintf(power_label, sizeof(power_label), "%03d", 0);
+    snprintf_(power_label, sizeof(power_label), "%03d", 0);
     lv_label_set_text_static(label_value, power_label); 
     lv_obj_invalidate(label_value); 
 

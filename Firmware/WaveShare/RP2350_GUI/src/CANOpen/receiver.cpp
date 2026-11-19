@@ -33,14 +33,14 @@ bool Receiver::run(void) {
 void Receiver::printBuf() {
   char msgString[128] = {0}; 
 
-  snprintf(msgString, sizeof(msgString), "Standard ID: 0x%.3lX       DLC: %1d  Data:", id, dlc);
+  snprintf_(msgString, sizeof(msgString), "Standard ID: 0x%.3lX       DLC: %1d  Data:", id, dlc);
 
   Serial.print(msgString);
 
   // Print buffer contents
   for (uint8_t i = 0; i <dlc; i++)
   {
-    snprintf(msgString, sizeof(msgString), " 0x%.2X", data[i]);
+    snprintf_(msgString, sizeof(msgString), " 0x%.2X", data[i]);
     Serial.print(msgString);
   }
 

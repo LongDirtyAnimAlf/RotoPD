@@ -7,8 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Graphics,
   TAGraph, TASeries, TATransformations, TAIntervalSources,
-  Gauge,
-  SpinEx, BGRAKnob, BGRAShape, BGRAImageList, SuperGaugeCommon, SuperGauge,
+  SpinEx, SuperGaugeCommon, SuperGauge,
   dlLEDCtrl;
 
 type
@@ -44,12 +43,10 @@ type
     //fPowerGauge               : TGauge;
     fNewEnergyDisplay         : TLEDDisplay;
 
-    fPowerGauge            : TSuperGauge;
+    fPowerGauge               : TSuperGauge;
 
     TimerState: boolean;
     GaugeRangeError : boolean;
-
-    procedure OnGaugeText(Sender: TObject; value: double; var labeltext: string);
 
     procedure SuperGaugeOverloadRecovered(Sender: TObject; RangeValue: single);
     procedure SuperGaugeOverloadTriggered(Sender: TObject; OutOfRangeValue: single);
@@ -119,11 +116,6 @@ const
 
 
 { TFrameSimple }
-
-procedure TFrameSimple.OnGaugeText(Sender: TObject; value: double; var labeltext: string);
-begin
-  labeltext := labeltext + ' Watt';
-end;
 
 constructor TFrameSimple.Create(TheOwner: TComponent);
 var
@@ -271,54 +263,6 @@ begin
     FaceSettings.PictureOffsetY := 56;
   end;
 
-  (*
-  fPowerGauge:=TGauge.Create(Panel2);
-  fPowerGauge.Parent:=Panel2;
-  fPowerGauge.OnGetText:=@OnGaugeText;
-
-  with fPowerGauge do
-  begin
-    Align := alClient;
-    Max := 240;
-    StartAngle := -140;
-    SweepAngle := 280;
-    MajorTicks := 13;
-    NeedleColor:=POWERCOLOR;
-    with Zones.Add do
-    begin
-      FromValue := 0;
-      ToValue := 60;
-      Color := clLime;
-    end;
-    with Zones.Add do
-    begin
-      FromValue := 61;
-      ToValue := 140;
-      Color := TColor($008CFF);
-    end;
-    with Zones.Add do
-    begin
-      FromValue := 141;
-      ToValue := 240;
-      Color := clRed;
-    end;
-
-    //Font.CharSet := ANSI_CHARSET;
-    Font.Height := -19;
-    Font.Pitch := fpVariable;
-    Font.Quality := fqDraft;
-    Font.Style := [fsBold];
-    ParentFont := False;
-
-    ValueFormat := '%.0f';
-    LabelFormat := '%.0f';
-  end;
-  with fPowerGauge.Zones.Add do
-  begin
-    FromValue := 140;
-    ToValue := 240;
-  end;
-  *)
   fNewVoltageDisplay := TLEDDisplay.Create(panelVoltage);
   with fNewVoltageDisplay do begin
     Parent := panelVoltage;
