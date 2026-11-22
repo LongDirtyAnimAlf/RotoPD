@@ -1,0 +1,10 @@
+{
+  "additionalFiles": "..\\..,..\\..,..\\..,..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..,..\\..\\..\\..\\..,..\\..\\..\\..\\..,..\\..\\..\\..\\..,..\\..\\..\\..\\..,..\\..,..\\..",
+  "builtInLibrariesFolders": "C:\\Users\\superdad\\AppData\\Local\\Arduino15\\libraries",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "",
+  "fqbn": "rp2040:rp2040:generic_rp2350:variantchip=RP2350B,flash=2097152_0,psramcs=GPIO47,psram=2mb,psramfreq=freq133,freq=250,arch=arm,opt=Fast,os=none,profile=Disabled,rtti=Disabled,stackprotect=Disabled,exceptions=Disabled,dbgport=Disabled,dbglvl=None,usbstack=picosdk,ipbtstack=ipv4only,uploadmethod=default",
+  "hardwareFolders": "C:\\Users\\superdad\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\6.0.0,C:\\Users\\superdad\\AppData\\Local\\Arduino15\\packages\\rp2040\\hardware\\rp2040\\6.0.0",
+  "otherLibrariesFolders": "c:\\Users\\superdad\\Documents\\Arduino\\libraries",
+  "sketchLocation": "C:\\Users\\superdad\\Documents\\GitHub\\RotoPD\\Firmware\\WaveShare\\RP2350_GUI"
+}
