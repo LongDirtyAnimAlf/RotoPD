@@ -155,7 +155,7 @@ void MCP2515::disableInterrupt(void)
 
 bool __not_in_flash_func(MCP2515::checkIntPin)(void)
 {
-    return ((_intPin >= 0) && (digitalRead(_intPin) == LOW));
+    return (_intPin >= 0) ? (digitalRead(_intPin) == LOW) : false;
 }
 
 bool MCP2515::checkInterrupt(void)

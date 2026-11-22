@@ -20,6 +20,8 @@ PBatterySetting Settings = NULL;
 
 void CreateSaveScreen(const char *text)
 {
+  // This will create some fragmentation every time this is used
+  // But acceptable !
   screensave = lv_obj_create(NULL);
 
   // Set the background color to black (0x000000)
@@ -37,12 +39,47 @@ void CreateSaveScreen(const char *text)
     lv_obj_set_style_text_color(obj, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_label_set_text(obj, text);
   }
-  else
-  {
-    lv_obj_t * img = lv_image_create(screensave);
-    lv_image_set_src(img, &usb_c_pd_tester);    
-  }
+
   //lv_screen_load_anim(screensave, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
+  lv_screen_load(screensave);
+  lv_obj_invalidate(screensave);
+  lv_refr_now(NULL); 
+}
+
+void CreateFlashScreen(const char *text)
+{
+  // This will create some fragmentation every time this is used
+  // But acceptable !
+  screensave = lv_obj_create(NULL);
+
+  // Set the background color to black (0x000000)
+  lv_obj_set_style_bg_color(screensave, lv_color_hex(0x000000), LV_PART_MAIN);
+
+  // Ensure the background is fully opaque
+  lv_obj_set_style_bg_opa(screensave, LV_OPA_COVER, LV_PART_MAIN);  
+
+  lv_obj_t * img = lv_image_create(screensave);
+  lv_image_set_src(img, &usb_c_pd_tester);    
+
+  if (text != NULL)
+  {
+    lv_obj_t * obj;
+    
+    obj = lv_label_create(screensave);
+    //lv_obj_align(obj, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(obj, LV_ALIGN_BOTTOM_LEFT, 0, 0);  
+    lv_obj_set_style_text_font(obj, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(obj, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_label_set_text(obj, "Firmware version");
+
+    obj = lv_label_create(screensave);
+    //lv_obj_align(obj, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(obj, LV_ALIGN_BOTTOM_RIGHT, 0, 0);  
+    lv_obj_set_style_text_font(obj, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(obj, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_label_set_text(obj, text);
+  }
+
   lv_screen_load(screensave);
   lv_obj_invalidate(screensave);
   lv_refr_now(NULL); 

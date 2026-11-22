@@ -2,7 +2,7 @@
 #include "lv_port_disp.h"
 #include <lvgl.h>
 
-#ifdef ARDUINO_ARCH_RP2040
+//#ifdef ARDUINO_ARCH_RP2040
 
 #include <stdbool.h>
 #include "./../bsp/pio_rgb.h"
@@ -11,10 +11,6 @@
 #define DOUBLE_BUFFER
 //#define RENDER_MODE_DIRECT
 #define USE_PSRAM
-
-#ifdef RENDER_MODE_DIRECT
-//#undef DOUBLE_BUFFER
-#endif
 
 #define MY_DISP_HOR_RES (480)
 #define MY_DISP_VER_RES (480)
@@ -25,8 +21,11 @@
 #define PINGPONG_BUF_LINES  4  // number of display lines in each transfer buffer in SRAM
 #define LVGL_DRAW_BUF_LINES  4 // number of display lines in each draw buffer in partial mode
 #else
-//#define RENDER_MODE_DIRECT
-#define PINGPONG_BUF_LINES  40 // number of display lines in each RP2350 transfer buffer in SRAM
+#ifdef RENDER_MODE_DIRECT
+#define PINGPONG_BUF_LINES  120 // number of display lines in each RP2350 transfer buffer in SRAM
+#else
+#define PINGPONG_BUF_LINES  120 // number of display lines in each RP2350 transfer buffer in SRAM
+#endif
 #define LVGL_DRAW_BUF_LINES  24 // number of display lines in each LVGL draw buffer in partial mode
 #endif
 
@@ -43,7 +42,6 @@ static lv_display_t *disp_drv = NULL;                         /*Descriptor of a 
 #if defined(DOUBLE_BUFFER) && !defined(RENDER_MODE_DIRECT)
 static void __not_in_flash_func(on_display_sync)(lv_display_t * disp, const lv_area_t * area)
 {
-    (void)disp;
     pio_rgb_sync_area_from_front(
         (uint16_t)area->x1,
         (uint16_t)area->y1,
@@ -76,6 +74,9 @@ void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area
         // Request framebuffer swap at end of current LCD scanout
         display_if->flush_dma(NULL, NULL);
         #else
+        //lv_disp_flush_ready(disp);
+        #endif
+        #ifndef USE_PSRAM
         lv_disp_flush_ready(disp);
         #endif
     }
@@ -89,6 +90,45 @@ void __not_in_flash_func(disp_flush_done)(void)
 {
     lv_display_flush_ready(disp_drv);
 }
+
+/* --------------------------------- statistics -------------------------------- */
+
+static volatile uint32_t s_refr_t0 = 0;
+static volatile uint32_t s_us_last = 0, s_us_max = 0, s_us_sum = 0, s_frames = 0;
+
+static void on_refr_start(lv_event_t *e)
+{
+    (void)e;
+    s_refr_t0 = micros();
+}
+
+static void on_refr_ready(lv_event_t *e)
+{
+    (void)e;
+    const uint32_t d = micros() - s_refr_t0;
+    s_us_last = d;
+    if (d > s_us_max) s_us_max = d;
+    s_us_sum += d;
+    s_frames++;
+}
+
+/*
+void lv_port_get_stats(lv_port_stats_t *out, bool reset)
+{
+    if (!out) return;
+    out->frame_us_last  = s_us_last;
+    out->frame_us_max   = s_us_max;
+    out->frame_us_avg   = s_frames ? (s_us_sum / s_frames) : 0;
+    out->frames_rendered = s_frames;
+    out->frames_dropped = pio_rgb_dropped_frames();
+    out->frames_shown   = pio_rgb_frame_count();
+    if (reset) {
+        s_us_max = 0;
+        s_us_sum = 0;
+        s_frames = 0;
+    }
+}
+*/
 
 void lv_port_disp_init(void)
 {
@@ -184,6 +224,7 @@ void lv_screen_init(uint16_t W, uint16_t H)
     #endif
     #else
     buf_data_1 = (uint8_t *)memalign(sizeof(void*), W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
+    usedheapbytes += (W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     buf_data_2 = (uint8_t *)memalign(sizeof(void*), W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     usedheapbytes += (W * LVGL_DRAW_BUF_LINES * BYTE_PER_PIXEL);
     #endif
@@ -201,6 +242,9 @@ void lv_screen_init(uint16_t W, uint16_t H)
     lv_display_set_sync_cb(disp_drv, on_display_sync);
     #endif
     lv_display_set_user_data(disp_drv, display_if);
+
+    //lv_display_add_event_cb(disp_drv, on_refr_start, LV_EVENT_REFR_START, NULL);
+    //lv_display_add_event_cb(disp_drv, on_refr_ready, LV_EVENT_REFR_READY, NULL);
 }
 
 void lv_screen_brightness(uint8_t b)
@@ -213,4 +257,4 @@ uint32_t lv_port_get_buffer_heap_usage(void)
     return (usedheapbytes);
 }
 
-#endif
+//#endif

@@ -54,6 +54,7 @@
 
 #define    FW_MAJOR                   56
 #define    FW_MINOR                   14
+#define    FW_PATCH                   1
 
 #define    DATASIZE                   16384u
 

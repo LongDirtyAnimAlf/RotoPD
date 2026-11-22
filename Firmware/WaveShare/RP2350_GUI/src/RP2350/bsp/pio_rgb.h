@@ -27,8 +27,8 @@ typedef struct  {
     } mode;
 // private
     uint16_t *_framebuffer;
-    bool change_framebuffer_flag;
-    uint16_t transfer_index;
+    volatile bool change_framebuffer_flag;
+    volatile uint16_t transfer_index;
     uint16_t transfer_index_max;
 
 } pio_rgb_info_t;
@@ -52,6 +52,8 @@ extern "C" {
 void pio_rgb_sync_area_from_front(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 
 void pio_rgb_init(pio_rgb_info_t *info, pio_rgb_pin_t *pin);
+
+bool pio_rgb_is_swap_pending(void);
 
 /**
  * @brief 切换帧缓冲区

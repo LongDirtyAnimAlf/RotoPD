@@ -41,6 +41,7 @@ extern "C" {
 
 void CreateBaseScreen(lv_event_cb_t event_cb_more);
 void CreateSaveScreen(const char *text);
+void CreateFlashScreen(const char *text);
 
 //lv_obj_t * GetContentObject(byte contentindexnumber);
 void SetContentObject(lv_obj_t * content, bool show);

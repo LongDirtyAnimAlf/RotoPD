@@ -249,6 +249,7 @@ static void telemetry_engine_timer_cb(lv_timer_t * timer)
 
     //lv_timer_periodic_handler();
     //lv_timer_handler();
+    lv_timer_ready(lv_display_get_refr_timer(NULL));
 }
 
 static void init_telemetry_screen_once(void)
@@ -318,6 +319,7 @@ static void init_telemetry_screen_once(void)
         lv_obj_set_style_border_color(b->container, colors[DT], 0);
         lv_obj_set_style_border_width(b->container, 2, 0);
         lv_obj_set_style_radius(b->container, 8, 0);
+        //lv_obj_set_style_radius(b->container, 0, 0);
         lv_obj_set_style_pad_all(b->container, 6, 0);
 
         b->label_title = lv_label_create(b->container);

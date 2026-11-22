@@ -33,7 +33,7 @@ bool core1_separate_stack = true;
 
 #define STARTUP_READY_TOKEN 0xCAFEBABE
 
-#endif
+#endif // ARDUINO_ARCH_RP2040
 
 #include "shared.h"
 #include "comms.h"
@@ -89,7 +89,7 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     bus, GFX_NOT_DEFINED /* RST */, st7701_type1_init_operations, sizeof(st7701_type1_init_operations));
     #endif
 
-#endif
+#endif // ARDUINO_ARCH_ESP32
 
 // Default placeholder due to re-use of existing software
 #define ActiveBatteryIndex 0
@@ -384,8 +384,6 @@ static void main_event_handler(lv_event_t * e)
   TThresholdModes TM;
   TStageMode SM;
 
-  //reset_screensaver_idle_timer();
-
   lv_event_code_t code = lv_event_get_code(e);
   lv_obj_t * event_user_data = (lv_obj_t *)lv_event_get_user_data(e);
   lv_obj_t * event_object = lv_event_get_target_obj(e);
@@ -497,7 +495,7 @@ static void main_event_handler(lv_event_t * e)
         }
         else
         {
-          #ifdef DEBUG                      
+          #ifdef DEBUG
           Serial.println("Event unhandled: button value changed");
           #endif
         }
@@ -506,7 +504,7 @@ static void main_event_handler(lv_event_t * e)
       else
       if(code == LV_EVENT_LONG_PRESSED)
       {
-        #ifdef DEBUG                      
+        #ifdef DEBUG
         Serial.println("Event unhandled: long pressed");
         #endif
       }
@@ -538,7 +536,7 @@ static void main_event_handler(lv_event_t * e)
         // Zero buttons
         if ((event_object == zerocapacitybutton) || (event_object == zeroenergybutton) || (event_object == zerotimebutton))
         {
-          #ifdef DEBUG                      
+          #ifdef DEBUG
           Serial.println("Zero button pressed");
           #endif
           if ((event_object == zeroenergybutton) || (event_object == zerocapacitybutton))
@@ -552,16 +550,15 @@ static void main_event_handler(lv_event_t * e)
             SendCommand[LENGTHPOSITION]    = 4U; // length
             // Keep rest of data default == 0 !!
           }
-          if (event_object == zerotimebutton) RDS->Time = 0;          
-          Screen1AddEPData(RDS->Energy,0);        
-          ScreenPowerAddEPData(RDS->Energy,0);        
-
+          if (event_object == zerotimebutton) RDS->Time = 0;
+          Screen1AddEPData(RDS->Energy,0);
+          ScreenPowerAddEPData(RDS->Energy,0);
         }
         else
         // PDO list requested
         if (event_object == getpdolistbutton)
         {
-          #ifdef DEBUG                      
+          #ifdef DEBUG
           Serial.println("Request PDO list");
           #endif
           // Prepare the command to engage the hardware
@@ -573,7 +570,7 @@ static void main_event_handler(lv_event_t * e)
         else
         {
           flagSoundButton = false;
-          #ifdef DEBUG                      
+          #ifdef DEBUG
           Serial.println("Unknown button pressed");
           #endif
           if (event_user_data == screenpdo)
@@ -608,13 +605,13 @@ static void main_event_handler(lv_event_t * e)
     {
       flagSoundButton = true;
 
-      #ifdef DEBUG                      
+      #ifdef DEBUG
       Serial.println("Event: keyboard/checkbox value event");
       #endif
 
       SM = smDisabled;
       TM = tmNONE;
-      SD = NULL;  
+      SD = NULL;
 
       if (lv_obj_check_type(event_object, &lv_keyboard_class))
       {
@@ -622,7 +619,7 @@ static void main_event_handler(lv_event_t * e)
         {
           // Only valid for keyboard data
           if (object_user_data == testdischargebutton) SM = smCurrent;
-          if (object_user_data == testchargebutton) SM = smCharge;            
+          if (object_user_data == testchargebutton) SM = smCharge;
         }
       }
 
@@ -641,10 +638,10 @@ static void main_event_handler(lv_event_t * e)
       {
         if (lv_obj_check_type(event_object, &lv_checkbox_class))
         {
-          #ifdef DEBUG          
+          #ifdef DEBUG
           Serial.println("Enable or disable a threshold !!");
           #endif
-          SD->ThresholdSettings[TM].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED); 
+          SD->ThresholdSettings[TM].Enabled = (lv_obj_get_state(event_object) & LV_STATE_CHECKED);
           GotSettings = true;
         }
  
@@ -652,19 +649,19 @@ static void main_event_handler(lv_event_t * e)
         {
           if (code == LV_EVENT_READY)
           {
-            #ifdef DEBUG                      
+            #ifdef DEBUG
             Serial.println("Event: keyboardready event");
             #endif
             const char * txt = lv_textarea_get_text(lv_keyboard_get_textarea(event_object));
             const unsigned long value = strtoul(txt, NULL, 10);
-            SD->SetValue = value;  
+            SD->SetValue = value;
             GotSettings = true;
           }
         }
       }
       else
       {
-        #ifdef DEBUG          
+        #ifdef DEBUG
         Serial.println("SD == NULL. Unknown StageMode. Should never happen !!");
         #endif
       }
@@ -679,7 +676,7 @@ static void main_event_handler(lv_event_t * e)
       //Serial.println("Perpare storing settings in NVM !");
       #endif
       //StoreSettings = true;
-    }   
+    }
     #endif
   }
 
@@ -698,12 +695,12 @@ void ClearRunData(PRunDatas RDS)
   {
     TM =(TThresholdModes)i;
     RDS->ThresholdResult[TM].Enabled = false;
-    RDS->ThresholdResult[TM].Triggered = false;      
+    RDS->ThresholdResult[TM].Triggered = false;
     RDS->ThresholdResult[TM].SetValue = 0;
   }
 
-  RDS->NewerRotoPDDatas.clear();  
-  RDS->NewerIT2704Datas.clear();  
+  RDS->NewerRotoPDDatas.clear();
+  RDS->NewerIT2704Datas.clear();
 }
 
 void ClearStageData(PStageData SD)
@@ -715,7 +712,7 @@ void ClearStageData(PStageData SD)
   {
     TM =(TThresholdModes)i;
     SD->ThresholdSettings[TM].Enabled = false;
-    SD->ThresholdSettings[TM].Triggered = false;      
+    SD->ThresholdSettings[TM].Triggered = false;
     SD->ThresholdSettings[TM].SetValue = 0;
   }
 }
@@ -819,11 +816,11 @@ void setup()
     index += 2;
     if (index<12) strcat(mySerial,"-");
   }
-  mySerial[29] = '\0';  
+  mySerial[29] = '\0';
 
-  myFirmware[0] = '\0';  
+  myFirmware[0] = '\0';
   sprintf_(myFirmware, "USB-PD-2026 V%02d-%02d", FW_MAJOR, FW_MINOR);
-  myFirmware[18] = '\0';   
+  myFirmware[18] = '\0';
 
   #ifdef ENABLEUSB
   
@@ -838,12 +835,12 @@ void setup()
   USBDevice.setManufacturerDescriptor("Consulab for pleasure");
   USBDevice.setProductDescriptor("USB-C PD controller");
 
-  USBDevice.setSerialDescriptor(mySerial);  
+  USBDevice.setSerialDescriptor(mySerial);
   HID.setReportCallback(NULL, set_report_callback);
   HID.enableOutEndpoint(true);
   HID.setPollInterval(10);
   HID.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
-  USBDevice.addStringDescriptor(myFirmware);  
+  USBDevice.addStringDescriptor(myFirmware);
 
   HID.begin();
 
@@ -862,9 +859,9 @@ void setup()
   USB.manufacturerName("Consulab for pleasure");
   USB.productName("USB PD controller with HID");
   USB.VID(0x04D8);
-  USB.PID(0x003E);  
+  USB.PID(0x003E);
   USB.usbVersion(0x0200);
-  USB.serialNumber(mySerial);  
+  USB.serialNumber(mySerial);
   tinyusb_add_string_descriptor(myFirmware);
 
   Device.begin();
@@ -889,7 +886,7 @@ void setup()
   //WireBattery.setClock(400000);   // or even 50000
   #endif
 
-  Info_Add("GUI. Init our LVGL display wonder.");    
+  Info_Add("GUI. Init our LVGL display wonder.");
   #ifdef ARDUINO_ARCH_ESP32
   // Init buf /  expander / i2c
   // This also runs initDisplayPower !!
@@ -919,7 +916,10 @@ void setup()
   #endif
 
   // Create and show flash-screen
-  CreateSaveScreen(NULL);
+  myHex[0] = '\0';
+  sprintf_(myHex, "V%02d.%02d.%02d", FW_MAJOR, FW_MINOR, FW_PATCH);
+  CreateFlashScreen(myHex);
+  //CreateFlashScreen("1.2.3");
   lv_timer_handler();
   lv_screen_brightness(100);
 
@@ -928,7 +928,7 @@ void setup()
   CreateBaseScreen(main_event_handler);
   Setup_ScreenLogger(BoardInfo.IT2704Channel,false);
 
-  Info_Add("GUI. Init GUI.");   
+  Info_Add("GUI. Init GUI.");
   Info_Add_Fmt("GUI. LVGL V%d.%d.%d",lv_version_major(),lv_version_minor(),lv_version_patch());
 
   Setup_ScreenSettings(BoardInfo.IT2704Channel,false);
@@ -957,7 +957,7 @@ void setup()
 
   PBatterySetting SET;
   PRunDatas RDS;
-  PStageData SD;  
+  PStageData SD;
 
   // Get memory for datastore
   // Set some defaults
@@ -976,7 +976,7 @@ void setup()
 
   #ifdef STANDALONE
 
-  memset(SendCommand, 0, COMMAND_SIZE); 
+  memset(SendCommand, 0, COMMAND_SIZE);
   SendCommand[COMMANDPOSITION] = CMD_unknown;
 
   // Set and get defaults;
@@ -1090,6 +1090,8 @@ void setup()
 
   init_screensaver_controller(SAVERTIME);
   switch_to_dark(BoardInfo.UIDarkEnabled);
+
+  // This will auto-delete the savescreen and load the basescreen
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
 
   Info_Add("GUI. Setting up CANOpen.");
@@ -1125,7 +1127,7 @@ void loop()
   bool DataOk = false;
 
   static byte INData[COMMAND_SIZE] = {0};
-  static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};  
+  static byte hid_report_in[HID_INT_IN_EP_SIZE] = {0};
 
   byte dataindexer;
 
@@ -1134,7 +1136,7 @@ void loop()
   QWORD_VAL qw_data;
 
   PBatterySetting SET = CurrentSettings;
-  PRunDatas RDS = &CurrentBoard->TD.RunDatas; 
+  PRunDatas RDS = &CurrentBoard->TD.RunDatas;
 
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
@@ -1257,7 +1259,7 @@ void loop()
     // Limit the amount of time inside this loop
     if (millis() - maxCANTime > 10)
     {
-      #ifdef DEBUG                      
+      #ifdef DEBUG
       Serial.println("GUI. CAN node.run() timeout.");
       #endif
       //break;
@@ -1381,7 +1383,7 @@ void loop()
                 w_data.Val = PDO.raw;
                 hid_report_in[dataindexer++] = w_data.bytes.LB;
                 hid_report_in[dataindexer++] = w_data.bytes.HB;
-              }  
+              }
             }
           }
           // Send PDO data to USB host
@@ -1400,7 +1402,7 @@ void loop()
     } // every second
   } // while Ticksbetween 
 
-  memset(INData,0,COMMAND_SIZE);  
+  memset(INData,0,COMMAND_SIZE);
 
   // Do we have a valid command ?
   // This is a command coming from the USB HID interface
@@ -1428,7 +1430,7 @@ void loop()
         // Copy data into INDATA for later use
         memcpy(INData,hid_report_in,COMMAND_SIZE);
       }
-    }  
+    }
   }
 
   #ifdef STANDALONE
@@ -1439,7 +1441,7 @@ void loop()
     if ( (SendCommand[COMMANDPOSITION] != CMD_unknown) && (SendCommand[COMMANDPOSITION] != USB_CMD_error) )
     {
       // Process the command and 
-      DataOk |= process_command(&SendCommand,&INData);
+      DataOk |= process_command(SendCommand,INData);
       // Reset the command
       SendCommand[COMMANDPOSITION] = CMD_unknown;
   
@@ -1493,11 +1495,11 @@ void loop()
       case CMD_set_model:
       {
         char Info[80] = {0};
-        strcat(Info,CurrentSettings->code); 
-        strcat(Info," : "); 
-        strcat(Info,CurrentSettings->brand); 
-        strcat(Info," "); 
-        strcat(Info,CurrentSettings->model); 
+        strcat(Info,CurrentSettings->code);
+        strcat(Info," : ");
+        strcat(Info,CurrentSettings->brand);
+        strcat(Info," ");
+        strcat(Info,CurrentSettings->model);
         ScreenPDOSetInfo(Info);
         break;
       }
@@ -1634,8 +1636,7 @@ void loop()
         {
           while ((PDOCount--)>0)
           {
-            memset(&PDO, 0, sizeof(PDO));      
-
+            memset(&PDO, 0, sizeof(PDO));
             j = INData[counter++];
 
             //Info_Add_Fmt("GUI. PDO received ! PDO index: #%d.", j);
@@ -1695,7 +1696,7 @@ void loop()
       default:
         // We might decide not to send data anymore
         CurrentBoard->TD.DataTriggerCounter = 1;
-        #ifdef DEBUG  
+        #ifdef DEBUG
         Serial.printf("Invalid battery mode !! Number: %d\n",CurrentBoard->TD.Active);
         #endif
         break;
@@ -1711,7 +1712,7 @@ void loop()
       hid_report_in[COMMANDPOSITION] = CMD_get_data;
       hid_report_in[BOARDPOSITION] = BoardInfo.getBoardNumber();
 
-      process_command(&hid_report_in,&INData);
+      process_command(hid_report_in,INData);
 
       // Get the measurement data results from the command above
       dataindexer = DATASTART;
@@ -1888,6 +1889,7 @@ void loop()
     delay(200);
     storePutBoardInfo(&BoardInfo);
     delay(200);
+    // Auto-delete savescreen and show basescreen again
     lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
     //lv_obj_delete();
     lv_timer_handler();
