@@ -2,6 +2,7 @@
 #define RECEIVER_H
 
 #include "message.hpp"
+#include "./../../tinyprintf.h"
 
 #ifdef ARDUINO_ARCH_RP2040
 #include "./../CAN/CANRP2350.h"

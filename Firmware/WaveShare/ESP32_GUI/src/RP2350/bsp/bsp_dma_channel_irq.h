@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "pico/stdlib.h"
+#include "./../../../tinyprintf.h"
 
 typedef void (*channel_irq_callback_t)(void);
 

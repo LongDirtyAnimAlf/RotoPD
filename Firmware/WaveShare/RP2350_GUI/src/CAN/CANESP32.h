@@ -15,6 +15,8 @@ public:
   void begin(void);
   void begin(uint8_t MasterID, uint8_t IT2704I);
 
+  void end(void);
+
   // Virtual overrides
 
   CANERROR abortCANAllPending(bool withqueues = false);

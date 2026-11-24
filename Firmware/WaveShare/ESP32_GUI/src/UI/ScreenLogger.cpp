@@ -168,7 +168,7 @@ int ScreenLogger_Add_Fmt(const char * format, ...)
 
     va_list args;
     va_start(args, format);
-    int result = vsnprintf(myString, sizeof(myString), format, args);
+    int result = vsnprintf_(myString, sizeof(myString), format, args);
     va_end(args);
 
     if (result < 0) return result;

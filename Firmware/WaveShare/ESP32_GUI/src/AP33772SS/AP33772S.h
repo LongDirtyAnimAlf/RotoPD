@@ -12,6 +12,8 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include "./../../tinyprintf.h"
+
 
 // ── I2C ──────────────────────────────────────────────────────────────────────
 #define AP33772S_ADDRESS     (0x52)

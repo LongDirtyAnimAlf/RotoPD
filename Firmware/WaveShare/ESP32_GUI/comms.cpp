@@ -97,12 +97,13 @@ void Info_Add(const char *txt)
   #endif
 }
 
+//__attribute__((format(printf, 1, 2)))
 void Info_Add_Fmt(const char *format, ...)
 {
   char myString[128];
   va_list args;
   va_start(args, format);
-  int result = vsnprintf(myString, sizeof(myString), format, args);
+  int result = vsnprintf_(myString, sizeof(myString), format, args);
   va_end(args);                    // Clean up
   if (result < 0) return;   // encoding error
   // Optional: detect truncation
@@ -225,12 +226,15 @@ void ResetWire(void)
 
 bool initCANopen(void)
 {
+  // De-init CANopen
+  node.end();
+
   // Init IT2704
   load.setID(BoardInfo.IT2704NodeID);
   load.setChannel(BoardInfo.IT2704Channel);
 
-  // Init CANOpen
-  node.setNodeId(BoardInfo.LocalNodeID);
+  // Init CANopen
+  node.setNodeId(BoardInfo.getLocalNodeID());
 
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
   ///node.disableNMT(true); 

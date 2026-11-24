@@ -15,7 +15,7 @@ void init_screensaver_controller(uint32_t timeout_ms) {
 void reset_screensaver_idle_timer(void) {
     last_activity_time = lv_tick_get();
 
-    Serial.println("Saver. I got reset !!");
+    //Serial.println("Saver. I got reset !!");
     
     // If the screensaver is running and a user touches it, wake up the UI
     if (screensaver_is_active) {
@@ -53,7 +53,7 @@ bool check_screensaver_timeout(void) {
         {
             screensaver_is_active = true;
 
-            Serial.println("Saver. I got active !!");
+            //Serial.println("Saver. I got active !!");
 
         
             // Load (or resume) the persistent matrix screen

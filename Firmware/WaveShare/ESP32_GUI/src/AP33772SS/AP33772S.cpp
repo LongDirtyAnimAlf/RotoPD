@@ -12,7 +12,7 @@
  *   - AVS VOLTAGE_SEL = target_mV / 200
  */
 
-#include "AP33772S.h"
+#include "./AP33772S.h"
 
 // ── Constructor ──────────────────────────────────────────────────────────────
 AP33772S::AP33772S(TwoWire *wire, int8_t intPin)
@@ -259,7 +259,7 @@ void AP33772S::printPDOs(Stream &s)
         const char *ts = (p.type == PDO_TYPE_FIXED) ? "Fixed" :
                          (p.type == PDO_TYPE_PPS)   ? "PPS"   : "AVS";
         char row[96];
-        snprintf(row, sizeof(row),
+        snprintf_(row, sizeof(row),
                  "│ %-3d │ %-8s │ %-10u │ %-10u │ %-10u │ 0x%04X │",
                  p.index, ts,
                  p.minVoltage_mV, p.maxVoltage_mV, p.maxCurrent_mA, p.raw);
@@ -632,11 +632,11 @@ void AP33772S::dumpRegisters(Stream &s)
     for (auto &r : regs) {
         if (r.b == 1) {
             int16_t v = readReg8(r.a);
-            snprintf(buf, sizeof(buf), "  0x%02X %-8s = 0x%02X (%d)",
+            snprintf_(buf, sizeof(buf), "  0x%02X %-8s = 0x%02X (%d)",
                      r.a, r.n, (uint8_t)(v<0?0xFF:v), (uint8_t)(v<0?0:v));
         } else {
             int32_t v = readReg16(r.a);
-            snprintf(buf, sizeof(buf), "  0x%02X %-8s = 0x%04X (%d)",
+            snprintf_(buf, sizeof(buf), "  0x%02X %-8s = 0x%04X (%d)",
                      r.a, r.n, (uint16_t)(v<0?0xFFFF:v), (uint16_t)(v<0?0:v));
         }
         s.println(buf);

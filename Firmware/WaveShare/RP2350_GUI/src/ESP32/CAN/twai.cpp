@@ -12,6 +12,7 @@
  ******************************************************************************/
 
 #include "./twai.h"  // Include header file for CAN driver functions
+#include "./../../../tinyprintf.h"
 
 #ifdef ARDUINO_ARCH_ESP32
 

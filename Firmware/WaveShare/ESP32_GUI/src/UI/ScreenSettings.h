@@ -11,27 +11,29 @@ extern "C" {
 #endif
 
 void Setup_ScreenSettings(byte index, bool show);
-void ScreenSettingsSetLocal(bool Local);
+void ScreenSettings_SetLocal(bool Local);
 
-void switch_to_dark(bool use_dark_mode);
+void ScreenSettings_SwitchToDark(bool use_dark_mode);
 
-bool GetDarkTheme(void);
-bool GetButtonBeep(void);
-bool GetHeartbeat(void);
+bool ScreenSettings_GetDarkTheme(void);
+bool ScreenSettings_GetButtonBeep(void);
+//bool GetHeartbeat(void);
 
-void SetDarkTheme(bool datavalue);
-void SetButtonBeep(bool datavalue);
-void SetHeartbeat(bool datavalue);
+void ScreenSettings_SetDarkTheme(bool datavalue);
+void ScreenSettings_SetButtonBeep(bool datavalue);
+//void SetHeartbeat(bool datavalue);
 
-int32_t GetNodeAdress(void);
-int32_t GetMasterAdress(void);
-int32_t GetIT2704Adress(void);
-int32_t GetIT2704Channel(void);
+int32_t ScreenSettings_GetBoardNumber(void);
+int32_t ScreenSettings_GetNodeAdress(void);
+int32_t ScreenSettings_GetMasterAdress(void);
+int32_t ScreenSettings_GetIT2704Adress(void);
+int32_t ScreenSettings_GetIT2704Channel(void);
 
-void SetNodeAdress(byte datavalue);
-void SetMasterAdress(byte datavalue);
-void SetIT2704Adress(byte datavalue);
-void SetIT2704Channel(byte datavalue);
+void ScreenSettings_SetBoardNumber(byte datavalue);
+void ScreenSettings_SetNodeAdress(byte datavalue);
+void ScreenSettings_SetMasterAdress(byte datavalue);
+void ScreenSettings_SetIT2704Adress(byte datavalue);
+void ScreenSettings_SetIT2704Channel(byte datavalue);
 
 #ifdef __cplusplus
 } /*extern "C"*/

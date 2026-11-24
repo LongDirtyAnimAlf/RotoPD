@@ -450,17 +450,17 @@ public:
             return NULL;
         }
         if (print_out) {
-            printf("const unsigned char config[186] = {");
+            printf_("const unsigned char config[186] = {");
             for (int i = 0; i < GT911_REG_LENGTH; ++i) {
                 if ( (i % 8) == 0) {
-                    printf("\n");
+                    printf_("\n");
                 }
-                printf(" 0x%02X", buffer[i]);
+                printf_(" 0x%02X", buffer[i]);
                 if ((i + 1) < GT911_REG_LENGTH) {
-                    printf(",");
+                    printf_(",");
                 }
             }
-            printf("};\n");
+            printf_("};\n");
         }
         *output_size = GT911_REG_LENGTH;
         return buffer;
@@ -493,9 +493,9 @@ public:
         }
 
         if (buffer == NULL)return;
-        printf("----------Dump register------------\n");
+        printf_("----------Dump register------------\n");
         for (size_t  i = 0; i < output_size; ++i) {
-            printf("[%d]  REG: 0x%X : 0x%02X\n", i, GT911_CONFIG_VERSION + i, buffer[i]);
+            printf_("[%d]  REG: 0x%X : 0x%02X\n", i, GT911_CONFIG_VERSION + i, buffer[i]);
         }
         free(buffer);
     }
