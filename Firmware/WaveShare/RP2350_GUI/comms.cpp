@@ -226,12 +226,15 @@ void ResetWire(void)
 
 bool initCANopen(void)
 {
+  // De-init CANopen
+  node.end();
+
   // Init IT2704
   load.setID(BoardInfo.IT2704NodeID);
   load.setChannel(BoardInfo.IT2704Channel);
 
-  // Init CANOpen
-  node.setNodeId(BoardInfo.LocalNodeID);
+  // Init CANopen
+  node.setNodeId(BoardInfo.getLocalNodeID());
 
   // Enable/Disable NMT state machine and PDO mapping (Default is enabled)
   ///node.disableNMT(true); 

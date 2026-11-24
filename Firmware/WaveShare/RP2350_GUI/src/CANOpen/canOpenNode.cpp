@@ -208,12 +208,10 @@ void CanOpenNode::setPdoInhibitTime(PDO::Type type, uint8_t num, uint16_t inhibi
 // ------------------------------------------------------------------
 void CanOpenNode::begin() {
     can.begin();
+}
 
-    #ifdef ARDUINO_ARCH_RP2040
-    #endif
-
-    #ifdef ARDUINO_ARCH_ESP32
-    #endif
+void CanOpenNode::end() {
+    can.end();
 }
 
 // Run function to handle the core communication loop with NMT handling

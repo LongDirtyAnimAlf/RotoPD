@@ -515,12 +515,6 @@ static void main_event_handler(lv_event_t * e)
 
         if (event_object == sw_savesettings)
         {
-          BoardInfo.UIDarkEnabled = GetDarkTheme();
-          BoardInfo.BeepEnabled = GetButtonBeep();
-          BoardInfo.LocalNodeID = GetNodeAdress();
-          BoardInfo.MasterNodeID = GetMasterAdress();
-          BoardInfo.IT2704NodeID = GetIT2704Adress();
-          BoardInfo.IT2704Channel = GetIT2704Channel();
           StoreBoardInfo = true;
         }
 
@@ -570,37 +564,88 @@ static void main_event_handler(lv_event_t * e)
         else
         {
           flagSoundButton = false;
-          #ifdef DEBUG
-          Serial.println("Unknown button pressed");
-          #endif
-          if (event_user_data == screenpdo)
-          {
-            #ifdef DEBUG                      
-            //Serial.println("Button from screen pdo");
-            #endif
-            if (object_user_data != NULL)
-            {
-              flagSoundButton = true;
 
-              // WE got a PDO select click !!
-              byte SelectPDOindex = ((byte)(uintptr_t)object_user_data);      
-              #ifdef DEBUG
-              Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
+          if (event_user_data != NULL)
+          {
+            if (event_user_data == screenpdo)
+            {
+              #ifdef DEBUG                      
+              Serial.println("Button from screen pdo");
               #endif
 
-              // Prepare the command to engage the hardware
-              memset(SendCommand, 0, COMMAND_SIZE); 
-              SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
-              SendCommand[BOARDPOSITION]     = BoardInfo.getBoardNumber();
-              SendCommand[LENGTHPOSITION]    = 1U; // length
-              SendCommand[DATASTART]         = SelectPDOindex;
+              if (object_user_data != NULL)
+              {
+                flagSoundButton = true;
+
+                // WE got a PDO select click !!
+                byte SelectPDOindex = ((byte)(uintptr_t)object_user_data);      
+                #ifdef DEBUG
+                Serial.printf("PDO button %d pressed.\r\n", SelectPDOindex);
+                #endif
+
+                // Prepare the command to engage the hardware
+                memset(SendCommand, 0, COMMAND_SIZE); 
+                SendCommand[COMMANDPOSITION]   = CMD_set_MAXPDO;
+                SendCommand[BOARDPOSITION]     = BoardInfo.getBoardNumber();
+                SendCommand[LENGTHPOSITION]    = 1U; // length
+                SendCommand[DATASTART]         = SelectPDOindex;
+              }
+            }
+            else
+            if (lv_obj_check_type(event_user_data, &lv_spinbox_class))
+            {
+              // spinbutton ??
+              #ifdef DEBUG                      
+              Serial.println("Spinbox !!");
+              #endif
+
+              object_user_data = (lv_obj_t *)lv_obj_get_user_data(event_user_data);
+              if (object_user_data == screensettings)
+              {
+                // Settings !!  
+                #ifdef DEBUG                      
+                Serial.println("Got you spinbox settings !!");
+                #endif
+                flagSoundButton = true;
+
+                // A valid spinbutton has been pressed, so a valid spinbox value has changed 
+                // So, get the values !
+                BoardInfo.MasterNodeID = ScreenSettings_GetMasterAdress();
+                BoardInfo.IT2704NodeID = ScreenSettings_GetIT2704Adress();
+                BoardInfo.IT2704Channel = ScreenSettings_GetIT2704Channel();
+
+                // Also set the readonly settings
+                ScreenSettings_SetBoardNumber(BoardInfo.getBoardNumber());
+                ScreenSettings_SetNodeAdress(BoardInfo.getLocalNodeID());
+              }
             }
           }
+
+          #ifdef DEBUG
+          if (!flagSoundButton) Serial.println("Unknown or unhandled button pressed");
+          #endif
+
         }
         #endif //STANDALONE
       }
     }
-
+    else
+    if (lv_obj_check_type(event_object, &lv_switch_class))
+    {
+      flagSoundButton = true;
+      #ifdef DEBUG
+      Serial.println("Event: switch event");
+      #endif
+      if (event_user_data == screensettings)
+      {
+        #ifdef DEBUG
+        Serial.println("Event: settings switch event");
+        #endif
+        BoardInfo.UIDarkEnabled = ScreenSettings_GetDarkTheme();
+        BoardInfo.BeepEnabled = ScreenSettings_GetButtonBeep();
+      }
+    }
+    else
     if ( (lv_obj_check_type(event_object, &lv_keyboard_class)) || (lv_obj_check_type(event_object, &lv_checkbox_class)) )
     {
       flagSoundButton = true;
@@ -752,7 +797,7 @@ void loop1()
   {
     // No activity on the bus
     // So, sleep a small bit
-    sleep_us(100U);
+    sleep_us(10U);
     //busy_wait_us_32(10U);
   }
 }
@@ -765,7 +810,7 @@ void setup()
   word tempintcalc;
   char myHex[10] = "";
   
-  // If this throws an error during compilation, you know you need to adjust your padding array size!
+  // If this throws an error during compilation, adjust padding !
   static_assert(sizeof(CircularDataQueue<TMeasurementData, DATASIZE, false>) == kOneQueueSize, 
               "Mismatched C/C++ structural padding! Update _cpp_queue_padding size to match.");  
   #ifdef ARDUINO_ARCH_RP2040
@@ -773,7 +818,7 @@ void setup()
               "can_frame must be trivially copyable for [multicore] safety!");
   #endif
 
-  // If it compiles, your memory footprint is perfectly optimized!
+  // If it compiles, memory footprint is perfectly optimized!
   static_assert(std::is_trivially_copyable<TMeasurementData>::value, "TMeasurementData must be trivially copyable for [multicore] safety!");
   
   #ifdef ARDUINO_ARCH_RP2040
@@ -935,13 +980,13 @@ void setup()
   Setup_ScreenPDO(BoardInfo.IT2704Channel,false);
   Setup_Screen1(BoardInfo.IT2704Channel);
 
-  SetDarkTheme(BoardInfo.UIDarkEnabled);
-  SetButtonBeep(BoardInfo.BeepEnabled);
-  SetNodeAdress(BoardInfo.LocalNodeID);
-  SetMasterAdress(BoardInfo.MasterNodeID);
-  SetIT2704Adress(BoardInfo.IT2704NodeID);
-  SetIT2704Channel(BoardInfo.IT2704Channel);
-
+  ScreenSettings_SetDarkTheme(BoardInfo.UIDarkEnabled);
+  ScreenSettings_SetButtonBeep(BoardInfo.BeepEnabled);
+  ScreenSettings_SetBoardNumber(BoardInfo.getBoardNumber());
+  ScreenSettings_SetNodeAdress(BoardInfo.getLocalNodeID());
+  ScreenSettings_SetMasterAdress(BoardInfo.MasterNodeID);
+  ScreenSettings_SetIT2704Adress(BoardInfo.IT2704NodeID);
+  ScreenSettings_SetIT2704Channel(BoardInfo.IT2704Channel);
 
   #ifdef ARDUINO_ARCH_RP2040
   Info_Add("GUI. Starting RP2350 hardware init.");
@@ -1089,7 +1134,7 @@ void setup()
   #endif
 
   init_screensaver_controller(SAVERTIME);
-  switch_to_dark(BoardInfo.UIDarkEnabled);
+  ScreenSettings_SwitchToDark(BoardInfo.UIDarkEnabled);
 
   // This will auto-delete the savescreen and load the basescreen
   lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
@@ -1098,7 +1143,7 @@ void setup()
 
   Info_Add_Fmt("GUI. Board-number: %d.",BoardInfo.getBoardNumber());
   Info_Add_Fmt("GUI. Channel-number: %d.",BoardInfo.IT2704Channel);
-  Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.LocalNodeID);
+  Info_Add_Fmt("GUI. Local Node-ID: %d.",BoardInfo.getLocalNodeID());
   Info_Add_Fmt("GUI. Master Node-ID: %d.",BoardInfo.MasterNodeID);
   Info_Add_Fmt("GUI. IT2704 Node-ID: %d.",BoardInfo.IT2704NodeID);
 
@@ -1485,7 +1530,7 @@ void loop()
         // if LOCAL, disable the buttons on these screens
         Screen1SetLocal(Local);
         ScreenPDOSetLocal(Local);
-        ScreenSettingsSetLocal(Local);
+        ScreenSettings_SetLocal(Local);
         #endif
         break;
       }
@@ -1873,6 +1918,9 @@ void loop()
     lv_screen_load_anim(screenbase, LV_SCR_LOAD_ANIM_NONE, 0, 0, true);
     //lv_obj_delete();
     lv_timer_handler();
+    delay(20);
+    lv_timer_handler();
+    delay(20);
     lv_screen_brightness(100);
   }   
   

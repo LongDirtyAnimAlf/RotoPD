@@ -428,7 +428,7 @@ public:
   // Common board information
   byte BoardSerial[12];
   byte BoardCalDate[4];   // YYMD
-  byte LocalNodeID;
+  //byte LocalNodeID;
   byte MasterNodeID;
   byte IT2704NodeID;
   byte IT2704Channel;
@@ -443,7 +443,7 @@ public:
     memset(BoardCalDate, 0, sizeof(BoardCalDate));
 
     // Other members
-    LocalNodeID     = DEFAULT_LOCAL_NODEID;
+    //LocalNodeID     = DEFAULT_LOCAL_NODEID;
     MasterNodeID    = DEFAULT_MASTER_NODEID;
     IT2704NodeID    = DEFAULT_IT2704_NODEID;
     IT2704Channel   = DEFAULT_IT2704_CHANNEL;
@@ -481,6 +481,9 @@ public:
   // Always returns LocalNodeID + 1
   byte getBoardNumber() const {
     return (IT2704Channel + 1);
+  }
+  byte getLocalNodeID() const {
+    return (IT2704Channel + 21);
   }
 };
 

@@ -495,6 +495,7 @@ class MCP2515
         //MCP2515(const uint8_t _CS, const uint32_t _SPI_CLOCK = DEFAULT_SPI_CLOCK, SPIClass * _SPI = nullptr);
         MCP2515(const uint32_t _SPI_CLOCK = DEFAULT_SPI_CLOCK);
         void begin();
+        void end();
         ERROR reset(void);
         ERROR setConfigMode();
         ERROR setListenOnlyMode();

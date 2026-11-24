@@ -195,9 +195,14 @@ end;
 
 procedure TForm1.Timer2Timer(Sender: TObject);
 begin
-  V:=Random(20000)/1000;
-  I:=Random(5000)/1000;
-  P:=123+Random(5000)/1000;
+  //V:=Random(20000)/1000;
+  //I:=Random(5000)/1000;
+  //P:=123+Random(5000)/1000;
+
+  V:=V+0.01;
+  I:=I+0.01;
+  P:=P+0.01;
+
   SerialTxData('t'+'581'+'8'+'430B3001'+SingleToHex(V));
   SerialTxData('t'+'581'+'8'+'430B3002'+SingleToHex(I));
   SerialTxData('t'+'581'+'8'+'430B3003'+SingleToHex(P));
@@ -408,18 +413,21 @@ begin
   begin
     if (s='t6018430B300100000000') then
     begin
-      V:=Random(20000)/1000;
+      //V:=Random(20000)/1000;
+      V:=V+0.01;
       SerialTxData('t'+'581'+'8'+'430B3001'+SingleToHex(V));
     end;
     if (s='t6018430B300200000000') then
     begin
-      I:=Random(5000)/1000;
+      //I:=Random(5000)/1000;
+      I:=I+0.01;
       SerialTxData('t'+'581'+'8'+'430B3002'+SingleToHex(I));
     end;
 
     if (s='t6018430B300300000000') then
     begin
-      P:=123+Random(5000)/1000;
+      //P:=123+Random(5000)/1000;
+      P:=P+0.01;
       SerialTxData('t'+'581'+'8'+'430B3003'+SingleToHex(P));
     end;
 

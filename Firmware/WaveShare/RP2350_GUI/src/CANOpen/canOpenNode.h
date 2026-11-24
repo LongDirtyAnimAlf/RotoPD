@@ -28,6 +28,8 @@ public:
     // Initialize the CAN controller and set up the node
     void begin();
 
+    void end();
+
     // Run core communication loop
     bool run();
 

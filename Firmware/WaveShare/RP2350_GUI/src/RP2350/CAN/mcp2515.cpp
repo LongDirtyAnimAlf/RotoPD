@@ -67,6 +67,23 @@ void MCP2515::begin()
     */    
 }
 
+void MCP2515::end()
+{
+    disableInterrupt();
+
+    //setSleepMode();
+
+    spi_deinit(BSP_XL2515_SPI_PORT);
+
+    gpio_deinit(BSP_XL2515_SCLK_PIN);
+    gpio_deinit(BSP_XL2515_MOSI_PIN);
+    gpio_deinit(BSP_XL2515_MISO_PIN);
+
+    gpio_deinit(BSP_XL2515_CS_PIN);
+
+    //gpio_deinit(BSP_XL2515_INT_PIN);    
+}
+
 void MCP2515_ISR_ATTR MCP2515::startSPI() const {
     //busy_wait_at_least_cycles(20);
     gpio_put(BSP_XL2515_CS_PIN, 0);    

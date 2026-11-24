@@ -62,6 +62,13 @@ void CBUSDevice::begin(uint8_t MasterID, uint8_t IT2704ID)
     }
 }
 
+void CBUSDevice::end(void)
+{
+  //_intPin = -1;
+  caninterface.disableInterrupt();
+  caninterface.end();
+}
+
 bool CBUSDevice::checkCANInterrupt(void)
 {
   return caninterface.checkInterrupt();
