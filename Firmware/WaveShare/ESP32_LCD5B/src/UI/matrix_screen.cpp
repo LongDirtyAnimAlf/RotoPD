@@ -9,8 +9,8 @@
 
 //#define BOX_COUNT     6
 
-#define SCREEN_WIDTH  480
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH  1024
+#define SCREEN_HEIGHT 600
 #define BOX_WIDTH     140
 #define BOX_HEIGHT    70
 

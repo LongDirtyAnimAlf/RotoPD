@@ -71,7 +71,7 @@ bool touch_init(int16_t w, int16_t h, uint8_t r)
   GT911.setPins(-1, -1);
 
   #ifdef ARDUINO_ARCH_ESP32
-  if (GT911.begin(Wire, gt911_i2c_addr, WS_CH32_IO::DEFAULT_I2C_SDA, WS_CH32_IO::DEFAULT_I2C_SCL)) {
+  if (GT911.begin(Wire, gt911_i2c_addr, -1, -1)) {
   #else
   if (GT911.begin(Wire1)) {
   #endif

@@ -90,15 +90,13 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     1  /* R0 (R3) */, 2  /* R1 (R4) */, 42 /* R2 (R5) */, 41 /* R3 (R6) */, 40 /* R4 (R7) */,
     39 /* G0 (G2) */, 0  /* G1 (G3) */, 45 /* G2 (G4) */, 48 /* G3 (G5) */, 47 /* G4 (G6) */, 21 /* G5 (G7) */,
     14 /* B0 (B3) */, 38 /* B1 (B4) */, 18 /* B2 (B5) */, 17 /* B3 (B6) */, 10 /* B4 (B7) */,
-    #ifdef ALTERNATIVELCDSETTINGS
+    #ifndef ALTERNATIVELCDSETTINGS
     0  /* hsync_polarity */, 160 /* hsync_front_porch */, 24 /* hsync_pulse_width */, 160 /* hsync_back_porch */,
     0  /* vsync_polarity */, 12 /* vsync_front_porch */, 2  /* vsync_pulse_width */, 23 /* vsync_back_porch */,
-    //1  /* pclk_active_neg */, 16000000 /* prefer_speed (16 MHz) */
     1 /* pclk_active_neg */, 21000000 /* prefer_speed */, false /* useBigEndian  */,
     #else
     0  /* hsync_polarity */, 40 /* hsync_front_porch */, 48 /* hsync_pulse_width */, 88 /* hsync_back_porch */,
     0  /* vsync_polarity */, 13 /* vsync_front_porch */, 3  /* vsync_pulse_width */, 32 /* vsync_back_porch */,
-    //1  /* pclk_active_neg */, 16000000 /* prefer_speed (16 MHz) */
     1 /* pclk_active_neg */, 16000000 /* prefer_speed */, false /* useBigEndian  */,
     #endif
     0 /* de_idle_high */, 0 /* pclk_idle_high */, HOR_RES * 10 /* bounce_buffer_size_px */
