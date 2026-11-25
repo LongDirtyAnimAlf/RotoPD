@@ -26,6 +26,7 @@ uses
   fptimernew,
   dsLeds,
   dlLEDCtrl,
+  SuperGaugeCommon, SuperGauge,
   usbcpd,
   pddevice,
   ap33772s,
@@ -112,10 +113,10 @@ type
     MyTransform2: TChartAxisTransformations;
     MyTransform2AutoScaleAxisTransform1: TAutoScaleAxisTransform;
     PageControl1: TPageControl;
-    Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
     Panel4: TPanel;
+    Panel5: TPanel;
     PopupMenu1: TPopupMenu;
     ChannelSheet: TTabSheet;
     ProductLabel: TLabel;
@@ -136,6 +137,7 @@ type
     StartStopSpeedButton: TSpeedButton;
     StaticText1: TStaticText;
     TabControl1: TTabControl;
+    LogSheet: TTabSheet;
     TestInfoMemo: TMemo;
     TestsBox: TComboBox;
     tsOverview1: TTabSheet;
@@ -206,10 +208,11 @@ type
 
     RealVoltageDisplay    : TdsSevenSegmentMultiDisplay;
     RealCurrentDisplay    : TdsSevenSegmentMultiDisplay;
-    NewPowerDisplay       : TLEDDisplay;
     NewEnergyDisplay      : TLEDDisplay;
     NewAHDisplay          : TLEDDisplay;
     NewTemperatureDisplay : TLEDDisplay;
+
+    fPowerGauge           : TSuperGauge;
 
     NumRate             : integer;
 
@@ -387,6 +390,147 @@ begin
     Hint:='IBUS';
     ShowHint:=True;
   end;
+
+  fPowerGauge:=TSuperGauge.Create(Panel5);
+  fPowerGauge.Parent:=Panel5;
+  with fPowerGauge do
+  begin
+    Align := alClient;
+    MinValue := 0;
+    MaxValue := 240;
+
+    AutoScale := True;
+
+    ScaleSettings.MainTickCount:=12;
+    ScaleSettings.Step:=20;
+    ScaleSettings.SubTickCount:=4;
+
+
+    BandSettings1.Enabled := True;
+    BandSettings1.EndValue := round(100*60/MaxValue);
+    BandSettings1.EnableText := True;
+    BandSettings1.Text := 'BASIC';
+    BandSettings1.TextFont := 'default';
+    BandSettings1.TextStyle := [fsBold];
+    BandSettings1.TextColor := clWhite;
+    BandSettings2.Enabled := True;
+    BandSettings2.StartValue := round(100*60/MaxValue);
+    BandSettings2.EndValue := round(100*100/MaxValue);
+    BandSettings2.EnableText := True;
+    BandSettings2.Text := 'PD';
+    BandSettings2.TextFont := 'default';
+    BandSettings2.TextStyle := [fsBold];
+    BandSettings2.TextColor := clBlack;
+    BandSettings2.BandColor := clYellow;
+    BandSettings3.Enabled := True;
+    BandSettings3.StartValue := round(100*100/MaxValue);
+    BandSettings3.EnableText := True;
+    BandSettings3.Text := 'EPR';
+    BandSettings3.TextFont := 'default';
+    BandSettings3.TextStyle := [fsBold];
+    BandSettings3.TextColor := clWhite;
+    BandSettings3.BandColor := clRed;
+    //BandSettings4.Text := 'Band 4';
+    //BandSettings4.TextSize := 18;
+    //BandSettings4.TextFont := 'default';
+    //BandSettings4.TextStyle := [fsBold];
+    //BandSettings4.TextRadius := 100;
+    //BandSettings4.TextColor := clBlack;
+    //BandSettings4.BandRadius := 90;
+    TextSettings1.Enabled := True;
+    TextSettings1.FontEx.Color := clWhite;
+    //TextSettings1.FontEx.FontQuality := fqSystemClearType;
+    TextSettings1.FontEx.Height := 24;
+    TextSettings1.FontEx.Shadow := False;
+    TextSettings1.FontEx.ShadowRadius := 5;
+    TextSettings1.FontEx.ShadowOffsetX := 5;
+    TextSettings1.FontEx.ShadowOffsetY := 5;
+    TextSettings1.FontEx.Style := [fsBold];
+    TextSettings1.Text := 'Watt';
+    TextSettings1.OffsetX := 0;
+    TextSettings1.OffsetY := -35;
+    TextSettings2.Enabled := True;
+    TextSettings2.FontEx.Color := 4227327;
+    //TextSettings2.FontEx.FontQuality := fqSystemClearType;
+    TextSettings2.FontEx.Height := 24;
+    TextSettings2.FontEx.Shadow := False;
+    TextSettings2.FontEx.ShadowRadius := 5;
+    TextSettings2.FontEx.ShadowOffsetX := 5;
+    TextSettings2.FontEx.ShadowOffsetY := 5;
+    TextSettings2.FontEx.Style := [fsBold];
+    TextSettings2.Text := '--';
+    TextSettings2.OffsetX := 0;
+    TextSettings2.OffsetY := 40;
+    TextSettings3.FontEx.Color := clWhite;
+    //TextSettings3.FontEx.FontQuality := fqSystemClearType;
+    TextSettings3.FontEx.Height := 16;
+    TextSettings3.FontEx.Shadow := False;
+    TextSettings3.FontEx.ShadowRadius := 5;
+    TextSettings3.FontEx.ShadowOffsetX := 5;
+    TextSettings3.FontEx.ShadowOffsetY := 5;
+    TextSettings3.FontEx.Style := [fsBold];
+    TextSettings3.Text := 'x100';
+    TextSettings3.OffsetX := 0;
+    TextSettings3.OffsetY := 60;
+    FrameSettings.OuterFrameColor := clGray;
+    FrameSettings.MiddleFrameColor := clSilver;
+    FrameSettings.InnerFrameColor := clMedGray;
+    FrameSettings.OuterFrameThickness := 5;
+    FrameSettings.MiddleFrameThickness := 5;
+    FrameSettings.InnerFrameThickness := 5;
+    ScaleSettings.TickColor := 8242399;
+    ScaleSettings.TextColor := clSkyBlue;
+    ScaleSettings.TextSize := 20;
+    ScaleSettings.TextFont := 'default';
+    ScaleSettings.TickArcColor := 8242399;
+    ScaleSettings.Enabled := True;
+    RangeLEDSettings.ActiveColor := clRed;
+    RangeLEDSettings.InactiveColor := clBlack;
+    RangeLEDSettings.BorderColor := clGray;
+    RangeLEDSettings.Style := lsShaded;
+    RangeLEDSettings.RangeStartValue := round(100*200/MaxValue);
+    RangeLEDSettings.RangeType := rcGreaterStart;
+    //MarkerSettings1.Enabled := True;
+    //MarkerSettings1.Color := clLime;
+    //MarkerSettings1.Style := msRight;
+    //MarkerSettings2.Enabled := True;
+    //MarkerSettings2.Color := clRed;
+    //MarkerSettings2.Style := msLeft;
+    //MarkerSettings3.Enabled := True;
+    //MarkerSettings3.Color := clYellow;
+    //MarkerSettings3.Height := 15;
+    //MarkerSettings3.Radius := 135;
+    //MarkerSettings3.Width := 5;
+    PointerSettings.Color := 4227327;
+    PointerSettings.Enabled := True;
+    PointerSettings.Width:= 8;
+    PointerSettings.HighlightLine:=true;
+    PointerSettings.HighlightColor:=clBlack;
+    //AuxPointerSettings.Color := clRed;
+    //AuxPointerSettings.Length := 100;
+    //AuxPointerSettings.ExtensionLength := 5;
+    //AuxPointerSettings.Width := 7;
+    //AuxPointerSettings.Enabled := False;
+    PointerCapSettings.Radius := 20;
+
+    (*
+    OverloadTriggered := @SuperGaugeOverloadTriggered;
+    OverloadRecovered := @SuperGaugeOverloadRecovered;
+    ResStream := TResourceStream.Create(HInstance, 'FLAME', RT_RCDATA);
+    try
+      FaceSettings.Picture.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    *)
+
+    FaceSettings.PictureEnabled := False;
+    FaceSettings.PictureOffsetX := -16;
+    FaceSettings.PictureOffsetY := 56;
+  end;
+
+
+
   MachineChartLineSeries2.SeriesColor:=IBUSCOLOR;
   MachineChartLineSeries2.LinePen.Color:=IBUSCOLOR;
   MachineChart.AxisList[2].Title.LabelFont.Color:=IBUSCOLOR;
@@ -418,37 +562,6 @@ begin
     Clear;
     Value:=23.4;
     FractionDigits:=1;
-  end;
-
-
-  NewPowerDisplay := TLEDDisplay.Create(Panel1);
-  with NewPowerDisplay do begin
-    Parent := Panel1;
-    Align := alClient;
-    ColorLED:=POWERCOLOR;
-    NumDigits := 5;
-    LeadingZeros := false;
-    LEDContrast := 7;
-    DigitLineWidth := 8;
-    if (Parent IS TPanel) then
-    begin
-      DigitHeight := Parent.Height-TPanel(Parent).BevelWidth*2;
-      if (TPanel(Parent).BevelInner<>TPanelBevel.bvNone) then DigitHeight := DigitHeight-TPanel(Parent).BevelWidth*2;
-      DigitWidth := Parent.Height * 2 div 4 - 1;
-    end
-    else
-    begin
-      DigitHeight := Parent.Height;
-      DigitWidth := DigitHeight * 2 div 4 - 1;
-    end;
-    Borderstyle := bsNone;
-    BevelStyle := bvNone;
-    Angle := 0;
-    Clear;
-    Value:=0;
-    FractionDigits:=3;
-    Hint:='Power [W]';
-    ShowHint:=True;
   end;
 
   NewEnergyDisplay := TLEDDisplay.Create(Panel2);
@@ -1823,7 +1936,7 @@ end;
 
 procedure TPowerbankMainForm.SetPower(value:double);
 begin
-  NewPowerDisplay.Value:=value;
+  fPowerGauge.Value:=value;
 end;
 
 procedure TPowerbankMainForm.SetTemperature(value:double);

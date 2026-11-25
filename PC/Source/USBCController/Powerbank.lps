@@ -7,34 +7,28 @@
     <Units>
       <Unit>
         <Filename Value="Powerbank.lpr"/>
-        <IsPartOfProject Value="True"/>
         <UsageCount Value="200"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="7" Y="12"/>
       </Unit>
       <Unit>
         <Filename Value="main.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="PowerbankMainForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <UsageCount Value="200"/>
-        <TopLine Value="2044"/>
-        <CursorPos X="44" Y="2049"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="512"/>
+        <CursorPos X="5" Y="525"/>
       </Unit>
       <Unit>
         <Filename Value="pddevice.pas"/>
-        <IsPartOfProject Value="True"/>
         <UsageCount Value="200"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="15" Y="14"/>
       </Unit>
       <Unit>
         <Filename Value="..\Common\ap33772s.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UsageCount Value="122"/>
+        <UsageCount Value="123"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="3" Y="13"/>
       </Unit>
@@ -3628,9 +3622,8 @@
         <UnitName Value="usb"/>
         <Loaded Value="True"/>
         <UsageCount Value="53"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="5"/>
-        <TopLine Value="47"/>
+        <TopLine Value="48"/>
         <CursorPos X="27" Y="63"/>
       </Unit>
       <Unit>
@@ -3885,8 +3878,8 @@
         <LoadedDesigner Value="True"/>
         <UsageCount Value="24"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="105"/>
-        <CursorPos Y="120"/>
+        <TopLine Value="250"/>
+        <CursorPos X="13" Y="265"/>
       </Unit>
       <Unit>
         <Filename Value="C:\fpcupsystems\stable324\lazarus\lcl\include\pagecontrol.inc"/>
@@ -4213,7 +4206,80 @@
     <Debugger>
       <Backend Value="{162CE507-2F2C-4990-A8FE-4E98280B79D4}"/>
     </Debugger>
-    <JumpHistory HistoryIndex="-1"/>
+    <JumpHistory HistoryIndex="17">
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2049" Column="44" TopLine="2044"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2050" Column="44" TopLine="2045"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2049" Column="44" TopLine="2044"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2050" Column="44" TopLine="2045"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2049" Column="44" TopLine="2044"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2050" Column="44" TopLine="2045"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="2053" Column="51" TopLine="2046"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="212" TopLine="199"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="423" Column="3" TopLine="406"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="422" Column="3" TopLine="405"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="395" Column="15" TopLine="387"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="46" Column="46" TopLine="34"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="214" Column="16" TopLine="202"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="29" Column="3" TopLine="11"/>
+      </Position>
+      <Position>
+        <Filename Value="processframe_simple.pas"/>
+        <Caret Line="46" Column="39" TopLine="42"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="523" Column="30" TopLine="511"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="525" Column="5" TopLine="512"/>
+      </Position>
+      <Position>
+        <Filename Value="main.pas"/>
+        <Caret Line="524" Column="5" TopLine="511"/>
+      </Position>
+    </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
       <Modes ActiveMode=""/>
