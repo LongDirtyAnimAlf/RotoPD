@@ -1,0 +1,123 @@
+#ifndef _COMMS_H_
+#define _COMMS_H_
+
+#include <Arduino.h>
+#include "shared.h"
+
+#ifdef ENABLEUSB
+
+#ifdef ARDUINO_ARCH_RP2040
+#ifdef USE_TINYUSB
+#include "Adafruit_TinyUSB.h"
+#else
+#include <USB.h>
+#endif
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#ifndef ARDUINO_USB_MODE
+#error This ESP32 board has no Native USB interface
+#elif ARDUINO_USB_MODE == 1
+#error This sketch for ESP32 should only be used when USB is in OTG mode
+#else
+#include "USB.h"
+#include "USBHID.h"
+#include "esp32-hal-tinyusb.h"
+extern USBCDC USBSerial;
+#define Serial USBSerial
+#endif
+#endif
+
+#endif //ENABLEUSB
+
+#ifdef ARDUINO_WIO_TERMINAL
+#define USE_LCD 
+#define BUZZER_PIN WIO_BUZZER /* sig pin of the buzzer */
+//#define PIN_WIRE_SERCOM SERCOM3
+//#define PIN_WIRE_BATT_SDA  PIN_WIRE_SDA
+//#define PIN_WIRE_BATT_SCL  PIN_WIRE_SCL
+#define PIN_WIRE_SERCOM SERCOM4
+#define PIN_WIRE_BATT_SDA  PIN_WIRE1_SDA
+#define PIN_WIRE_BATT_SCL  PIN_WIRE1_SCL
+#endif
+
+#ifdef SEEED_XIAO_M0
+#define PIN_WIRE_SERCOM SERCOM2
+#define PIN_WIRE_BATT_SDA PIN_WIRE_SDA
+#define PIN_WIRE_BATT_SCL PIN_WIRE_SCL
+#endif
+
+#ifdef ARDUINO_SEEED_INDICATOR_RP2040
+#define PIN_WIRE_BATT_SDA  PIN_WIRE0_SDA
+#define PIN_WIRE_BATT_SCL  PIN_WIRE0_SCL
+#include "storage.h"
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#define USE_LCD 
+#endif
+
+#include "extras.h"
+
+#ifdef ARDUINO_SEEED_INDICATOR_RP2040
+#include <Wire.h>
+#endif
+
+#if defined(ARDUINO_ARCH_SAMD)
+#define WireBattery MyWire
+#endif
+
+#ifdef ARDUINO_SEEED_INDICATOR_RP2040
+#define WireBattery Wire
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#include "storage.h"
+#define WireBattery Wire
+#endif
+
+#ifdef ARDUINO_ARCH_RP2040
+#include "storage.h"
+#define WireBattery Wire1
+#endif
+
+#ifdef ENABLEUSB
+// USB HID report descriptor.
+uint8_t const desc_hid_report[] = 
+{
+  TUD_HID_REPORT_DESC_GENERIC_INOUT(HID_INT_OUT_EP_SIZE)
+};
+#endif
+
+const byte DefaultBoardSerial[12] = {0xFF,0x1F,0xFF,0x2F,0xFF,0x3F,0xFF,0x4F,0xFF,0x5F,0xFF,0x6F};
+const byte DefaultCalDate[4] = {20,26,01,01};
+
+extern TBoardInfo BoardInfo;
+
+extern bool StoreBoardInfo;
+
+extern CircularDataQueue<HidReportFrame, 8, true> hidQueue;
+
+void Info_Add(const char *txt);
+void Info_Add_Fmt(const char *format, ...);
+
+bool process_command(void const *data, void *result);
+
+bool initCANopen(void);
+
+bool initINA238(void);
+
+bool initROTOPD(void);
+int8_t taskRotoPDInit(void);
+void collectRotoPDData(void);
+void getRotoPDData(uint16_t* I, uint16_t* V, uint32_t* P, uint16_t* T);
+
+#ifdef ENABLEUSB
+#ifdef ARDUINO_ARCH_ESP32
+void set_report_callback(uint8_t report_id, uint8_t const* hid_report_out, uint16_t bufsize);
+#else
+void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* hid_report_out, uint16_t bufsize);
+#endif
+#endif
+
+#endif

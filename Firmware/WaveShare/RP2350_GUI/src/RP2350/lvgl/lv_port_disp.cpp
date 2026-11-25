@@ -74,10 +74,10 @@ void __not_in_flash_func(disp_flush)(lv_display_t * disp, const lv_area_t * area
         // Request framebuffer swap at end of current LCD scanout
         display_if->flush_dma(NULL, NULL);
         #else
-        //lv_disp_flush_ready(disp);
+        lv_disp_flush_ready(disp);
         #endif
         #ifndef USE_PSRAM
-        lv_disp_flush_ready(disp);
+        //lv_disp_flush_ready(disp);
         #endif
     }
     else

@@ -1,0 +1,66 @@
+#ifndef _CBUSRP2350_H_
+#define _CBUSRP2350_H_
+
+#ifdef ARDUINO_ARCH_RP2040
+
+#define    CANTXBUFFERSIZE            16u
+#define    CANRXBUFFERSIZE            32u
+#define    CANTXPRIOBUFFERSIZE        16u
+
+#include <atomic>
+#include "./CBUS.h"
+#include "./../RP2350/CAN/mcp2515.h"
+#include "./../RP2350/queue.h"
+
+class CBUSDevice : public CBUSbase {
+public:
+  CBUSDevice(void);
+
+  void begin(void);
+  void begin(uint8_t MasterID, uint8_t IT2704I);
+
+  void end(void);
+
+  // Virtual overrides
+
+  CANERROR abortCANAllPending(bool withqueues = false);
+  bool checkCANInterrupt(void);
+  CANERROR resetCAN(void);
+  bool taskCAN(bool single = false);
+  CANERROR sendCANMessage(const can_frame *frame);
+  CANERROR sendCANMessage(const can_frame &frame) {return sendCANMessage(&frame);}
+  CANERROR sendCANMessagePrio(const can_frame *frame);
+  CANERROR sendCANMessagePrio(const can_frame &frame) {return sendCANMessagePrio(&frame);}
+  CANERROR readCANMessage(can_frame *frame);
+  CANERROR readCANMessage(can_frame &frame) {return readCANMessage(&frame);}
+
+  uint32_t getCANRxQueueDepth(void) {return CanRxBuffer.getCount();}
+  uint32_t getCANTxQueueDepth(void) {return CanTxBuffer.getCount();}
+  uint32_t getCANTxPrioQueueDepth(void) {return CanTxPrioBuffer.getCount();}
+  bool checkCANRxQueue(void) {return ( !CanRxBuffer.isEmpty() );}
+  bool getCANTxFull(void) {return ( CanTxBuffer.isFull() || CanTxPrioBuffer.isFull() );}
+  bool getCANRxFull(void) {return ( CanRxBuffer.isFull() );}
+
+  const MCP2515& getMCP2515() const { return caninterface; }
+  MCP2515& getMCP2515() { return caninterface; }  
+
+private:
+  MCP2515 caninterface;  
+  const uint8_t _intPin;
+
+  //volatile bool HandleTxMessages;
+  std::atomic<bool> HandleTxMessages;
+  //bool HandleTxMessages;
+
+  CircularDataQueue<can_frame, CANRXBUFFERSIZE> CanRxBuffer;
+  CircularDataQueue<can_frame, CANTXBUFFERSIZE> CanTxBuffer;
+  CircularDataQueue<can_frame, CANTXPRIOBUFFERSIZE> CanTxPrioBuffer;
+
+  bool processTxQueue(void);
+};
+
+//extern CBUSDevice CBUSDevice;
+
+#endif
+
+#endif // _CBUSRP2350_H_

@@ -1,0 +1,52 @@
+#ifndef _CBUSESP32_H_
+#define _CBUSESP32_H_
+
+#if defined(ARDUINO_ARCH_ESP32)
+
+#include <atomic>
+#include "./CBUS.h"
+#include "./../ESP32/CAN/ESP32-TWAI-CAN.hpp"
+#include "./../ESP32/CAN/twai.h"
+
+class CBUSDevice : public CBUSbase {
+public:
+  CBUSDevice(void);
+
+  void begin(void);
+  void begin(uint8_t MasterID, uint8_t IT2704I);
+
+  void end(void);
+
+  // Virtual overrides
+
+  CANERROR abortCANAllPending(bool withqueues = false);
+  bool checkCANInterrupt(void);
+  CANERROR resetCAN(void);
+  bool taskCAN(bool single = false);
+  CANERROR sendCANMessage(const can_frame *frame);
+  CANERROR sendCANMessage(const can_frame &frame) {return sendCANMessage(&frame);}
+  CANERROR sendCANMessagePrio(const can_frame *frame);
+  CANERROR sendCANMessagePrio(const can_frame &frame) {return sendCANMessagePrio(&frame);}
+  CANERROR readCANMessage(can_frame *frame);
+  CANERROR readCANMessage(can_frame &frame) {return readCANMessage(&frame);}
+
+
+  uint32_t getCANRxQueueDepth(void) override;
+  uint32_t getCANTxQueueDepth(void) override;
+  uint32_t getCANTxPrioQueueDepth(void) override;
+  bool checkCANRxQueue(void) override;
+  bool getCANTxFull(void) override;
+  bool getCANRxFull(void) override;
+
+private:
+  TwaiCAN caninterface;  
+  //volatile bool HandleTxMessages;
+  std::atomic<bool> HandleTxMessages;
+
+  bool readTWAIMessage(struct can_frame *frame);
+  bool sendTWAIMessage(const struct can_frame *frame);
+};
+
+#endif
+
+#endif // _CBUSESP32_H_
