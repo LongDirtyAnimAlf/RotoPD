@@ -44,6 +44,10 @@ const char * const ThresholdNames[] = {
 
 static lv_obj_t * Display[NUMBEROFDISPLAY] = {NULL};
 
+static lv_color_t ThresholdColorEnable = lv_palette_darken(LV_PALETTE_YELLOW, 1); 
+static lv_color_t ThresholdColorDisable = lv_color_black(); 
+
+
 /* ── Shared styles (created once) ─────────────────────────────────────────── */
 static lv_style_t style_margin;
 static lv_style_t style_section_border;
@@ -479,7 +483,7 @@ void Setup_Screen1(byte index)
         lv_obj_center(label);
         lv_obj_set_style_text_opa(label, 255, 0);
         lv_obj_set_style_text_font(label, &lv_font_montserrat_18, 0);
-        lv_obj_set_style_text_color(label, lv_color_black(), 0);
+        lv_obj_set_style_text_color(label, ThresholdColorDisable, 0);
         lv_label_set_text(label, ThresholdNames[i]);
     }
 
@@ -521,12 +525,17 @@ void Screen1SetThresholdLedEnabled(TThresholdModes Mode, bool On)
 {
     lv_obj_t * obj = ThresholdLed[Mode];
     if (obj == NULL) return;
-
     obj = lv_obj_get_child(obj, 0);
+    if (obj == NULL) return;
+    lv_color_t ledColor = lv_obj_get_style_text_color(obj, LV_PART_MAIN);
     if (On)
-        lv_obj_set_style_text_color(obj, lv_palette_darken(LV_PALETTE_YELLOW, 1), 0);
+    {
+        if (!lv_color_eq(ledColor,ThresholdColorEnable)) lv_obj_set_style_text_color(obj, ThresholdColorEnable, LV_PART_MAIN);
+    }
     else
-        lv_obj_set_style_text_color(obj, lv_color_black(), 0);
+    {
+        if (!lv_color_eq(ledColor,ThresholdColorDisable)) lv_obj_set_style_text_color(obj, ThresholdColorDisable, LV_PART_MAIN);
+    }
 }
 
 void Screen1SetThresholdLed(TThresholdModes Mode, bool On)
@@ -537,41 +546,41 @@ void Screen1SetThresholdLed(TThresholdModes Mode, bool On)
     else    lv_led_off(obj);
 }
 
-void Screen1AddVData(word V)
+void Screen1SetVData(word V)
 {
     if (Display[0] != NULL) SetDisplaymV(Display[0], V);
 }
 
-void Screen1AddIData(word I)
+void Screen1SetIData(word I)
 {
     if (Display[1] != NULL) SetDisplaymV(Display[1], I);
 }
 
-void Screen1AddVIData(word V, word I)
+void Screen1SetVIData(word V, word I)
 {
-    Screen1AddVData(V);
-    Screen1AddIData(I);
+    Screen1SetVData(V);
+    Screen1SetIData(I);
 }
 
-void Screen1AddTData(qword T)
+void Screen1SetTData(qword T)
 {
     if (Display[4] != NULL) SetDisplayV(Display[4], (T / 100));
 }
 
-void Screen1AddEData(dword E)
+void Screen1SetEData(dword E)
 {
     if (Display[3] != NULL) SetDisplaymV(Display[3], E);
 }
 
-void Screen1AddPData(dword P)
+void Screen1SetPData(dword P)
 {
     if (Display[2] != NULL) SetDisplaymV(Display[2], P);
 }
 
-void Screen1AddEPData(dword E, dword P)
+void Screen1SetEPData(dword E, dword P)
 {
-    Screen1AddEData(E);
-    Screen1AddPData(P);
+    Screen1SetEData(E);
+    Screen1SetPData(P);
 }
 
 void Screen1SetOutput(bool On)
@@ -582,6 +591,13 @@ void Screen1SetOutput(bool On)
 
 void Screen1SetStageData(PStageData SD)
 {
+
+    for (byte i = (tmNONE + 1); i < tmLast; i++)
+    {
+        Screen1SetThresholdLedEnabled((TThresholdModes)i, SD->ThresholdSettings[(TThresholdModes)i].Enabled);
+        Screen1SetThresholdLed((TThresholdModes)i,SD->ThresholdSettings[(TThresholdModes)i].Triggered);
+    }
+
     switch(SD->Status)
     {
         case smCurrent :
@@ -632,81 +648,85 @@ void Screen1SetStageData(PStageData SD)
 
 void Screen1SetTestData(PTestData TD)
 {
-    //chargedisabled   = (SET->Stages[FIXEDCHARGESTAGENUMBER].Status == smDisabled);
-    //dischargedisabled = (SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status == smDisabled);
+    chargedisabled       = true;
+    dischargedisabled    = true;
 
-    chargedisabled   = ( TD->SetStageMode == smCurrent);
-    dischargedisabled   = ( TD->SetStageMode == smCharge);
+    dword Value = TD->SetStageValue;
+
+    switch(TD->SetStageMode)
+    {
+        case smCurrent   :
+        case smPower     :
+        case smResistor  : 
+        case smVoltage   :
+        {
+            dischargedisabled = false;
+            if (TD->SetStageMode == smCurrent) lv_label_set_text(dischargelabel, "Discharge set [mA]");
+            if (TD->SetStageMode == smPower) lv_label_set_text(dischargelabel, "Discharge set [mW]");
+            if (TD->SetStageMode == smResistor) lv_label_set_text(dischargelabel, "Discharge set [mΩ]");
+            if (TD->SetStageMode == smVoltage) lv_label_set_text(dischargelabel, "Discharge set [mV]");
+            Screen1SetOutput(Value == 0);
+            Screen1SetDischargeCurrent(Value);
+            break;
+        }
+        case smCharge  :
+        case smPulse   :
+        case smTopOff  :
+        case smTrickle :
+        {
+            chargedisabled = false;
+            lv_label_set_text(chargelabel, "Charge set [mA]");
+            Screen1SetOutput(Value == 0);
+            Screen1SetChargeCurrent(Value);                
+            break;
+        }
+        default :
+        {
+            Screen1SetOutput(false);
+            break;
+        }
+    }
 
     ChargeStatus(chargedisabled);
     DischargeStatus(dischargedisabled);
 
     PRunDatas RDS = &TD->RunDatas;
     TMeasurementData Last = RDS->NewerRotoPDDatas.getLastData();
-    Screen1AddVIData(Last.V, Last.I);
-    Screen1AddEPData(Last.E / 1000, Last.P);
-    Screen1AddTData(RDS->Time);
+    Screen1SetVIData(Last.V, Last.I);
+    Screen1SetEPData(Last.E / 1000, Last.P);
+    Screen1SetTData(RDS->Time);
 
-    if (TD->Active == bmActive) {
-        if (TD->SetStageMode == smCurrent) setbuttons(startdischargebutton, true);
-        if (TD->SetStageMode == smCharge)  setbuttons(startchargebutton, true);
-    } else {
-        if (TD->SetStageMode == smCurrent) setbuttons(testdischargebutton, true);
-        if (TD->SetStageMode == smCharge)  setbuttons(testchargebutton, true);
+    if (TD->Active == bmActive)
+    {
+        if (!dischargedisabled) setbuttons(startdischargebutton, true);
+        if (!chargedisabled)  setbuttons(startchargebutton, true);
+    }
+    else
+    {
+        if (!dischargedisabled) setbuttons(testdischargebutton, true);
+        if (!chargedisabled)  setbuttons(testchargebutton, true);
     }
 
-    Screen1SetOutput((TD->SetStageMode != smUnknown) &&
-                     (TD->SetStageMode != smZero) &&
-                     (TD->SetStageMode != smDisabled));
-
-    dword Value;
-
-    Value = 0;
-    if (TD->SetStageMode == smCurrent) Value = TD->SetStageValue;
-    Screen1SetDischargeCurrent(Value);
-
-    Value = 0;
-    if (TD->SetStageMode == smCharge) Value = TD->SetStageValue;
-    Screen1SetChargeCurrent(Value);
-
-    for (byte i = (tmNONE + 1); i < tmLast; i++) {
-        Screen1SetThresholdLed((TThresholdModes)i,
-                               TD->RunDatas.ThresholdResult[i].Triggered);
-#ifdef STANDALONEEEE
-        bool Enabled = false;
-        Enabled |= (TD->SetStageMode == smCurrent &&
-                    SET->Stages[FIXEDDISCHARGESTAGENUMBER].ThresholdSettings[i].Enabled);
-        Enabled |= (TD->SetStageMode == smCharge &&
-                    SET->Stages[FIXEDCHARGESTAGENUMBER].ThresholdSettings[i].Enabled);
-        Screen1SetThresholdLedEnabled((TThresholdModes)i, Enabled);
-#endif
+    // Set the LEDs according to the rundata triggers !
+    for (byte i = (tmNONE + 1); i < tmLast; i++)
+    {
+        //Screen1SetThresholdLedEnabled((TThresholdModes)i, TD->RunDatas.ThresholdResult[i].Enabled);
+        Screen1SetThresholdLed((TThresholdModes)i, TD->RunDatas.ThresholdResult[i].Triggered);
     }
 }
 
 void Screen1SetData(PBatterySetting SET)
 {
-    Settings = SET;
+    // Set predefined stagedata fom settings
+    // We have 3 stages: IDDLE, DISCHARGE, CHARGE
+    //TStageData Stages[3]; // at max three : iddle, discharge and charge to keep it simple
 
-#ifndef STANDALONE
-    lv_obj_add_state(ta1, LV_STATE_DISABLED);
-    lv_obj_add_state(ta2, LV_STATE_DISABLED);
-    lv_obj_add_state(testdischargebutton, LV_STATE_DISABLED);
-    lv_obj_add_state(startdischargebutton, LV_STATE_DISABLED);
-    lv_obj_add_state(testchargebutton, LV_STATE_DISABLED);
-    lv_obj_add_state(startchargebutton, LV_STATE_DISABLED);
-    lv_obj_add_state(outputbutton, LV_STATE_DISABLED);
-    lv_obj_add_state(zerocapacitybutton, LV_STATE_DISABLED);
-    lv_obj_add_state(zeroenergybutton, LV_STATE_DISABLED);
-    if (zerotimebutton != NULL)
-        lv_obj_add_state(zerotimebutton, LV_STATE_DISABLED);
-#else
     chargedisabled   = (SET->Stages[FIXEDCHARGESTAGENUMBER].Status == smDisabled);
     dischargedisabled = (SET->Stages[FIXEDDISCHARGESTAGENUMBER].Status == smDisabled);
 
     ChargeStatus(chargedisabled);
     DischargeStatus(dischargedisabled);
 
-#endif
     dword Value;
 
     Value = SET->Stages[FIXEDDISCHARGESTAGENUMBER].SetValue;

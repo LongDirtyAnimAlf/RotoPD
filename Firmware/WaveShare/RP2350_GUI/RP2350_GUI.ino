@@ -428,10 +428,6 @@ static void main_event_handler(lv_event_t * e)
           // We will always start with being idle
           CurrentBoard->TD.Active = bmIdle;
 
-          // Reset all trigger settings
-          CurrentBoard->TD.ThresholdMode = tmNONE;
-          CurrentBoard->TD.ThresholdValue = 0;
-
           for(i = (tmNONE+1); i < tmLast; i++)
           {
             TM = (TThresholdModes)i;
@@ -545,7 +541,7 @@ static void main_event_handler(lv_event_t * e)
             // Keep rest of data default == 0 !!
           }
           if (event_object == zerotimebutton) RDS->Time = 0;
-          Screen1AddEPData(RDS->Energy,0);
+          Screen1SetEPData(RDS->Energy,0);
           ScreenPowerAddEPData(RDS->Energy,0);
         }
         else
@@ -1182,6 +1178,7 @@ void loop()
 
   PBatterySetting SET = CurrentSettings;
   PRunDatas RDS = &CurrentBoard->TD.RunDatas;
+  PStageData SD = NULL;
 
   int8_t PDOCount = 0;
   AP33772S_PDO PDO;
@@ -1211,9 +1208,14 @@ void loop()
       case 1:
       {
         Setup_Screen1(BoardInfo.IT2704Channel);
+
+        // Show current settings
         Screen1SetData(SET);
+        // Show and override with current stagedata
+        SD = GetCorrectStageSettings(SET, CurrentBoard->TD.SetStageMode);
+        if (SD != NULL) Screen1SetStageData(SD);
+        // Show and override with current testdata
         Screen1SetTestData(&CurrentBoard->TD);
-        //Screen1SetStageData(&SET->Stages[IDDLESTAGENUMBER]);
         break;
       }
       case 2:
@@ -1501,7 +1503,6 @@ void loop()
     TBatteryMode BM = bmUnknown;
     TStageMode SM = smDisabled;
     TThresholdModes TM = tmNONE;
-    PStageData SD = NULL;
     PThresholdDataItem TS = NULL;    
 
     // We have received a command from the screen or through USB-HID or the standalone measurement timer.
@@ -1553,21 +1554,11 @@ void loop()
       {
         BM = CurrentBoard->TD.Active;
 
-        // Set default trigger indicators
-        // To be investigated if needed
-        /*
-        for(j = (tmNONE+1); j < tmLast; j++)
-        {
-          TM = (TThresholdModes)j;
-          Screen1SetThresholdLedEnabled(TM, false);
-          Screen1SetThresholdLed(TM, false);
-        }
-        if ((BM == bmActive) || (BM == bmReady))
-        {
-          Screen1SetThresholdLedEnabled(tmMINV, true);
-          if (BM == bmReady) Screen1SetThresholdLed(tmMINV, true);
-        }  
-        */
+        // Show current stagedata
+        SD = GetCorrectStageSettings(SET, CurrentBoard->TD.SetStageMode);
+        if (SD != NULL) Screen1SetStageData(SD);
+        // Show and override with current testdata
+        Screen1SetTestData(&CurrentBoard->TD);
 
         break;
       }
@@ -1577,10 +1568,9 @@ void loop()
         // Get the stagemode to be used
         SM = (TStageMode)INData[counter++];
         SD = GetCorrectStageSettings(SET, SM);
-        if (SD != NULL)
-        {
-          Screen1SetStageData(SD);
-        }
+        if (SD != NULL) Screen1SetStageData(SD);
+        // Show and override with current testdata
+        Screen1SetTestData(&CurrentBoard->TD);
 
         break;
       }
@@ -1588,18 +1578,9 @@ void loop()
       case CMD_set_value:
       {
         SD = GetCorrectStageSettings(SET, CurrentBoard->TD.SetStageMode);
-        if (SD != NULL)
-        {
-          // Set all trigger indicators
-          for(j = (tmNONE+1); j < tmLast; j++)
-          {
-            TM = (TThresholdModes)j;
-            TS = &SD->ThresholdSettings[TM];
-            Screen1SetThresholdLedEnabled(TM, TS->Enabled);
-            Screen1SetThresholdLed(TM, TS->Triggered);
-          }
-          Screen1SetStageData(SD);
-        }
+        if (SD != NULL) Screen1SetStageData(SD);
+        // Show and override with current testdata
+        Screen1SetTestData(&CurrentBoard->TD);
 
         break;
       }
@@ -1620,7 +1601,7 @@ void loop()
         if (cCmd == CMD_set_energy)
         {
           RDS->Energy = qw_data.Val; // in nAh
-          Screen1AddEData(RDS->Energy / 1000000ULL);
+          Screen1SetEData(RDS->Energy / 1000000ULL);
           if (RDS->Energy == 0)
           {
             load.clearEnergy();
@@ -1633,13 +1614,13 @@ void loop()
         if (cCmd == CMD_set_capacity)
         {
           RDS->Capacity = qw_data.Val; // in nWh
-          //Screen1AddCData(RDS->Capacity);
+          //Screen1SetCData(RDS->Capacity);
         }
 
         if (cCmd == CMD_set_time)
         {
           RDS->Time = qw_data.Val;  // in ms
-          Screen1AddTData(RDS->Time);
+          Screen1SetTData(RDS->Time);
         }
 
         break;
@@ -1795,7 +1776,7 @@ void loop()
       //ScreenChartAddData(LatestIT2704Data.V, LatestIT2704Data.I);
       
       // Show data on screen 1
-      Screen1AddVIData(LatestRotoPDData.V, LatestRotoPDData.I);
+      Screen1SetVIData(LatestRotoPDData.V, LatestRotoPDData.I);
 
       // Now prepare the data to be send back to the PC host
 
@@ -1883,8 +1864,8 @@ void loop()
       } 
     }
 
-    Screen1AddEPData((RDS->Energy / 1000000),(LatestRotoPDData.P));
-    Screen1AddTData(RDS->Time);
+    Screen1SetEPData((RDS->Energy / 1000000),(LatestRotoPDData.P));
+    Screen1SetTData(RDS->Time);
 
     //ScreenPowerAddEPData((RDS->LastIT2704Data.E / 1000),(RDS->LastIT2704Data.P / 1000));
   }

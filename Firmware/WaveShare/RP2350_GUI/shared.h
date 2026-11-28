@@ -208,7 +208,7 @@ typedef enum
   smTopOff,
   smTrickle,
   smZero,
-  smDisabled,
+  smDisabled, // = bmOff
   smIndicator,
   smIRTask
 } TStageMode;
@@ -338,8 +338,6 @@ typedef struct
   TBatteryMode         Active;
   TStageMode           SetStageMode;
   dword                SetStageValue;
-  TThresholdModes      ThresholdMode;
-  dword                ThresholdValue;
   byte                 DataTriggerCounter;
   TRunDatas            RunDatas;
 } TTestData, *PTestData;

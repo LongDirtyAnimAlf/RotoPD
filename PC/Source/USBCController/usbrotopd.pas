@@ -27,7 +27,7 @@ const
 
 type
   TBatteryMode    = (bmUnknown,bmIdle,bmActive,bmPause,bmWaiting,bmOff,bmReady,bmError);
-  TStageMode      = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,smDisabled,smIndicator,smIRTask);
+  TStageMode      = (smUnknown,smResistor,smCurrent,smPower,smVoltage,smCharge,smPulse,smTopOff,smTrickle,smZero,{bmOff=}smDisabled,smIndicator,smIRTask);
   TThresholdMode  = (tmNONE,tmMAXV,tmMINV,tmDELTAV,tmPLATEAUV,tmABST,tmDELTAT,tmDVT,tmTIME,tmMAXC);
 
   TCommands = (
@@ -146,7 +146,7 @@ type
     function  SetPPSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
     function  SetAVSPDO(board,PDO:word;MaxCurrent_mA,Voltage_mV:dword):boolean;
 
-    function  SetOutput(board:word; Engage:boolean):boolean;
+    //function  SetOutput(board:word; Engage:boolean):boolean;
     function  SetMode(board:word; Mode:TBatteryMode):boolean;
     function  SetEnergy(board:word; Energy:qword):boolean;
 
@@ -164,6 +164,7 @@ type
     function  SetLocal(board:word; local:boolean):boolean;
 
     function  SetThreshold(board:word; SM:TStageMode; TM: TThresholdMode; Enabled:boolean; Value:word):boolean;
+    function  DisableAndClearAllThresholds(board:word; SM:TStageMode):boolean;
 
     function  SetProductInfo(board:word;Code,Brand,Model:ansistring):boolean;
   end;
@@ -746,6 +747,22 @@ begin
   result:=error;
 end;
 
+function  TDataDevice.DisableAndClearAllThresholds(board:word; SM:TStageMode):boolean;
+var
+  TM: TThresholdMode;
+begin
+  result:=false;
+
+  if CheckParameters(board) then exit;
+  if (SM=TStageMode.smUnknown) then exit;
+
+  for TM in TThresholdMode do
+  begin
+    if (TM=TThresholdMode.tmNONE) then continue;
+    if SetThreshold(board,SM,TM,false,0) then result:=true;
+  end
+end;
+
 function  TDataDevice.SetThreshold(board:word; SM:TStageMode; TM: TThresholdMode; Enabled:boolean; Value:word):boolean;
 var
   error:boolean;
@@ -756,10 +773,9 @@ var
 begin
   result:=false;
 
-  if CheckParameters(board) then
-  begin
-    exit;
-  end;
+  if CheckParameters(board) then exit;
+  if (SM=TStageMode.smUnknown) then exit;
+  if (TM=TThresholdMode.tmNONE) then exit;
 
   ErrorCounter:=1;
   cmd := TCommands.CMD_set_threshold;
@@ -793,6 +809,7 @@ begin
   result:=error;
 end;
 
+(*
 function  TDataDevice.SetOutput(board:word; Engage:boolean):boolean;
 var
   error:boolean;
@@ -836,6 +853,7 @@ begin
 
   result:=error;
 end;
+*)
 
 function  TDataDevice.SetMode(board:word; Mode:TBatteryMode):boolean;
 var

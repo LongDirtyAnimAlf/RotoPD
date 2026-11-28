@@ -540,7 +540,17 @@ bool process_command(void const *data, void *result)
     case CMD_set_batterymode:
     {
       // Unfortunately, we have to set the batterymode by ourselves !!
+      // In practice, this is only needed for the GUI !!
       CurrentBoard->TD.Active = (TBatteryMode)databuffer[dataindexer++];
+
+      if (CurrentBoard->TD.Active != bmActive)
+      {
+        // We might switch the output to off !!
+        // Just to be sure
+        // As we only use this setting for GUI, do not perform any hardware changes !!
+        //load.setOutput(false);        
+      }
+
       break;
     }
     case CMD_set_threshold:
@@ -560,6 +570,8 @@ bool process_command(void const *data, void *result)
           TS->Enabled = (databuffer[dataindexer++] != 0);
           for ( j=0; j<2; j++ ) {dw_data.v[j] = databuffer[dataindexer++];}
           TS->SetValue = dw_data.Val;
+          // Always reset the threshold !
+          TS->Triggered = false;
           //TS->Triggered = (databuffer[dataindexer++] != 0);
         }
       }
@@ -701,28 +713,47 @@ bool process_command(void const *data, void *result)
       for ( j=0; j<4; j++ ) {dw_data.v[j]=databuffer[dataindexer++];}
       CurrentBoard->TD.SetStageValue=dw_data.Val;
 
+      char mode_label[10] = {0};
+      //mode_label[0] = '\0';
+      switch(CurrentBoard->TD.SetStageMode)
+      {
+        case smUnknown    : {strcpy(mode_label,"Unknown"); break;}
+
+        case smCurrent    : {strcpy(mode_label,"Current"); break;}
+        case smPower      : {strcpy(mode_label,"Power"); break;}
+        case smResistor   : {strcpy(mode_label,"Resistor"); break;}
+        case smVoltage    : {strcpy(mode_label,"Voltage"); break;}
+
+        case smCharge     : {strcpy(mode_label,"Charge"); break;}
+        case smPulse      : {strcpy(mode_label,"Pulse"); break;}
+        case smTopOff     : {strcpy(mode_label,"TopOff"); break;}
+        case smTrickle    : {strcpy(mode_label,"Trickle"); break;}
+        
+        case smZero       : {strcpy(mode_label,"Zero"); break;}
+        case smDisabled   : {strcpy(mode_label,"Disabled"); break;}
+        case smIndicator  : {strcpy(mode_label,"Indicator"); break;}
+        case smIRTask     : {strcpy(mode_label,"IRTask"); break;}
+
+        default           : {strcpy(mode_label,"Unknown"); break;}
+      }
+
+      Info_Add_Fmt("Comms. Got SetValue. Mode: %s. Value: %d.",mode_label,CurrentBoard->TD.SetStageValue);
+
+      // Also set the stagedata !  
       PStageData SD = GetCorrectStageSettings(CurrentSettings, CurrentBoard->TD.SetStageMode);
       if (SD != NULL)
       {
         // Adjust the settings with the correct values
         SD->Status = CurrentBoard->TD.SetStageMode;
         SD->SetValue = CurrentBoard->TD.SetStageValue;
-
-        // Reset all triggers
-        for(j = (tmNONE+1); j < tmLast; j++)
-        {
-          TThresholdModes TM = (TThresholdModes)j;
-          PThresholdDataItem TS = &SD->ThresholdSettings[TM];
-          TS->Triggered = false;
-        }
       }
 
-      Info_Add_Fmt("Comms. Received SetValue command. Value: %d.",CurrentBoard->TD.SetStageValue);
 
       StatusUpdateNeeded = true;
       Engage = false;
 
-      // When off or zero, alsways first switch-off output.
+      // When off or zero, always first switch-off output.
+      // smDisabled is used to indicate the bmOff status
       if ( (CurrentBoard->TD.SetStageMode == smUnknown) || (CurrentBoard->TD.SetStageMode == smZero) || (CurrentBoard->TD.SetStageMode == smDisabled) || (CurrentBoard->TD.SetStageValue == 0) )
       {
         if (CurrentBoard->TD.SetStageValue == 0)
@@ -762,6 +793,7 @@ bool process_command(void const *data, void *result)
         }
         case smCharge :
         {
+          // We do not yet charge !!
           break;
         }
         default :
@@ -770,6 +802,7 @@ bool process_command(void const *data, void *result)
         }
       }
 
+      // This sets the output if needed !
       if (Engage) Engage = (CurrentBoard->TD.SetStageValue != 0);
       if (Engage)
       {

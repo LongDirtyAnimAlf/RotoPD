@@ -458,9 +458,9 @@ begin
     TextSettings2.FontEx.ShadowOffsetX := 5;
     TextSettings2.FontEx.ShadowOffsetY := 5;
     TextSettings2.FontEx.Style := [fsBold];
-    TextSettings2.Text := '--';
+    TextSettings2.Text := '---';
     TextSettings2.OffsetX := 0;
-    TextSettings2.OffsetY := 40;
+    TextSettings2.OffsetY := 100;
     TextSettings3.FontEx.Color := clWhite;
     //TextSettings3.FontEx.FontQuality := fqSystemClearType;
     TextSettings3.FontEx.Height := 16;
@@ -572,7 +572,7 @@ begin
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
-    DigitLineWidth := 8;
+    DigitLineWidth := 4;
     if (Parent IS TPanel) then
     begin
       DigitHeight := Parent.Height-TPanel(Parent).BevelWidth*2;
@@ -602,7 +602,7 @@ begin
     NumDigits := 5;
     LeadingZeros := false;
     LEDContrast := 7;
-    DigitLineWidth := 8;
+    DigitLineWidth := 4;
     if (Parent IS TPanel) then
     begin
       DigitHeight := Parent.Height-TPanel(Parent).BevelWidth*2;
@@ -763,9 +763,9 @@ end;
 procedure TPowerbankMainForm.grpVADataResize(Sender: TObject);
 begin
   RealVoltageDisplay.Top:=2;
-  RealVoltageDisplay.Left:=5;
+  RealVoltageDisplay.Left:=0;
 
-  RealVoltageDisplay.Width:=(TControl(Sender).Width)-6;
+  RealVoltageDisplay.Width:=(TControl(Sender).Width)-2;
   RealVoltageDisplay.Height:=(TControl(Sender).Height DIV 2)-12;
 
   RealCurrentDisplay.Width:=RealVoltageDisplay.Width;
@@ -1452,9 +1452,12 @@ begin
         // To prevent any disturbance of this running test
         DD.SetLocal(PCurrentMachineSet^.MachineNumber, false);
 
-        // Set thresholds
-        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMINV,True,900);
-        DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMAXV,True,19000);
+        // Set thresholds if not testing
+        if (Sender=StartStopSpeedButton) then
+        begin
+          DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMINV,True,900);
+          //DD.SetThreshold(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent,TThresholdMode.tmMAXV,True,19000);
+        end;
 
         // Set mode to easy and enable some GUI indications
         DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmActive);
@@ -1476,9 +1479,16 @@ begin
     begin
       TestInfoMemo.Lines.Append('Test stopped.');
 
-      DD.SetOutput(PCurrentMachineSet^.MachineNumber, false);
-
+      // Output already set with the next command.
+      // So, SetOutput not needed here.
+      //DD.SetOutput(PCurrentMachineSet^.MachineNumber, false);
       DD.SetOff(PCurrentMachineSet^.MachineNumber);
+
+      // Reset thresholds if not testing
+      if (Sender=StartStopSpeedButton) then
+      begin
+        DD.DisableAndClearAllThresholds(PCurrentMachineSet^.MachineNumber,TStageMode.smCurrent);
+      end;
 
       // Set mode to easy and enable some GUI indications
       DD.SetMode(PCurrentMachineSet^.MachineNumber, TBatteryMode.bmIdle);
@@ -2019,16 +2029,14 @@ end;
 
 procedure TPowerbankMainForm.AllStop(Sender: TObject);
 var
-  MachineRunner:integer;
+  MachineRunner         : integer;
 begin
   UpdateTimer.Enabled:=False;
   DataStoreTimer.Enabled:=False;
   ProgressStepperTimer.Enabled:=False;
-
   for MachineRunner:=Low(MachineSet) to High(MachineSet) do
   begin
-    DD.SetOutput(MachineRunner,false);
-    DD.SetOff(MachineRunner);
+    DD.SetOff(MachineSet[MachineRunner].MachineNumber);
     MachineSet[MachineRunner].Active:=false;
     MachineSet[MachineRunner].Testing:=false;
     MachineSet[MachineRunner].RunData.Clear;
