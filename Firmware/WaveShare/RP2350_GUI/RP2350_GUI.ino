@@ -1520,19 +1520,24 @@ void loop()
       // Should never happen !!
       Info_Add("GUI. Severe error. Wrong boardnumber !!!");
       Info_Add_Fmt("GUI. Received board %d. BoardInfo has %d.", BoardNumber, BoardInfo.getBoardNumber());
+      // Force ignore command and data
+      cCmd = CMD_unknown;
+      Length = 0;
     }
 
     switch(cCmd)
     {
       case CMD_set_local:
       {
-        #ifdef USE_LCD
         bool Local = (INData[counter++] != 0);
         // if LOCAL, disable the buttons on these screens
+
+        if (Local) Info_Add("GUI. Enable local. Buttons enabled.");
+        else       Info_Add("GUI. Disable local. Buttons disabled.");
+
         Screen1SetLocal(Local);
         ScreenPDOSetLocal(Local);
         ScreenSettings_SetLocal(Local);
-        #endif
         break;
       }
 

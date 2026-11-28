@@ -743,12 +743,6 @@ void Screen1SetDischargeCurrent(word I)
     lv_label_set_text(ta1, textlabel);
 }
 
-word Screen1GetDischargeCurrent(void)
-{
-    const char * text = lv_label_get_text(ta1);
-    return (atoi(text));
-    //return (String(text).toInt());
-}
 
 void Screen1SetChargeCurrent(word I)
 {
@@ -757,12 +751,21 @@ void Screen1SetChargeCurrent(word I)
     lv_label_set_text(ta2, textlabel);
 }
 
+/*
+word Screen1GetDischargeCurrent(void)
+{
+    const char * text = lv_label_get_text(ta1);
+    return (atoi(text));
+    //return (String(text).toInt());
+}
+
 word Screen1GetChargeCurrent(void)
 {
     const char * text = lv_label_get_text(ta2);
     return (atoi(text));
     //return (String(text).toInt());
 }
+*/
 
 void Screen1SetLocal(bool Local)
 {

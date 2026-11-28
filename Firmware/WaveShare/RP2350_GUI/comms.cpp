@@ -520,6 +520,17 @@ bool process_command(void const *data, void *result)
 
   switch (cCmd)
   {
+    case CMD_set_local:
+    {
+      bool Local = (databuffer[dataindexer++] != 0);
+      // if LOCAL, disable the buttons on these screens
+
+      if (Local) Info_Add("Comms. Enable local. Buttons enabled.");
+      else       Info_Add("Comms. Disable local. Buttons disabled.");
+
+      break;
+    }
+
     case CMD_set_code:
     {
       strcpy(CurrentSettings->code,reinterpret_cast<const char*>(&databuffer[dataindexer]));
@@ -728,7 +739,7 @@ bool process_command(void const *data, void *result)
         case smPulse      : {strcpy(mode_label,"Pulse"); break;}
         case smTopOff     : {strcpy(mode_label,"TopOff"); break;}
         case smTrickle    : {strcpy(mode_label,"Trickle"); break;}
-        
+
         case smZero       : {strcpy(mode_label,"Zero"); break;}
         case smDisabled   : {strcpy(mode_label,"Disabled"); break;}
         case smIndicator  : {strcpy(mode_label,"Indicator"); break;}
@@ -823,6 +834,7 @@ bool process_command(void const *data, void *result)
     } 
   }
 
+  // Finished handling the command itself
   // Start processing the collected data !!
   
   // Data start at position 3 !!

@@ -81,6 +81,7 @@ type
     AutoFileNameCheckBox: TCheckBox;
     btnRotoPDGetPDOList: TButton;
     btnTestDischarge: TSpeedButton;
+    Button1: TButton;
     Button2: TButton;
     chkCurrentLimit: TCheckBox;
     chkVoltageLimit: TCheckBox;
@@ -151,6 +152,7 @@ type
     procedure AutoFileNameCheckBoxClick(Sender: TObject);
     procedure btnCleanLogsClick({%H-}Sender: TObject);
     procedure btnRotoPDGetPDOListClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure DataEditKeyPress(Sender: TObject; var Key: char);
     procedure dgFlagsDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -1234,6 +1236,11 @@ begin
   SourcePDODrawGrid.Invalidate;
   SourceEPRPDODrawGrid.Invalidate;
   DD.GetPDOList(PCurrentMachineSet^.MachineNumber);
+end;
+
+procedure TPowerbankMainForm.Button1Click(Sender: TObject);
+begin
+  DD.SetLocal(PCurrentMachineSet^.MachineNumber, true);
 end;
 
 procedure TPowerbankMainForm.Button2Click(Sender: TObject);
